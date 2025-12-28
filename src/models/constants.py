@@ -22,7 +22,7 @@ UNARY_OPERATORS = {
 }
 
 BASE_PREFIXES = {
-    "b": 2,
+    "0b": 2,
     "0x": 16,   
 }
 
@@ -45,7 +45,6 @@ REGEX_BINARY_GROUP = re.compile(r"....")
 class Assoc(Enum):
     LEFT = auto()
     RIGHT = auto()
-
 
 OPERATOR_INFO = {
     # operator : (precedence, arity, associativity)

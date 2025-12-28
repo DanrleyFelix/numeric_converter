@@ -116,6 +116,12 @@ class Tokenizer:
 
                 if not digits:
                     raise TokenizerError(f"Invalid number for base {base} at position {start}")
+                
+                if self.pos < self.length:
+                    next_char = self.text[self.pos]
+                    if (base == 2 and next_char not in " \t\n()+-*/") or \
+                    (base == 16 and next_char not in "0123456789abcdefABCDEF \t\n()+-*/"):
+                        raise TokenizerError(f"Invalid digit '{next_char}' for base {base} at position {self.pos}")
 
                 return prefix + digits, start
 
@@ -124,6 +130,7 @@ class Tokenizer:
             return digits, start
 
         return None
+
 
     def _match_identifier(self):
         match = IDENTIFIER_RE.match(self.text, self.pos)

@@ -11,15 +11,15 @@ class Evaluator:
 
     def evaluate(self, tokens: List[Token]) -> Number:
         values: List[Number] = []
-        operators: List[str] = []
+        operators: List[Token] = []
 
         for token in tokens:
             if token.type == TokenType.NUMBER:
                 values.append(token.value)
             elif token.type == TokenType.OPERATOR:
-                self._process_operator(token.raw, operators, values)
+                self._process_operator(token, operators, values)
             elif token.type == TokenType.LPAREN:
-                operators.append("(")
+                operators.append(token)
             elif token.type == TokenType.RPAREN:
                 self._process_rparen(operators, values)
             elif token.type == TokenType.EOF:
@@ -41,42 +41,41 @@ class Evaluator:
     def _arity(self, op: str) -> int:
         return OPERATOR_INFO[op][1]
 
-    def _apply_top_operator(self, operators: List[str], values: List[Number]) -> None:
-        op = operators.pop()
-        op_arity = self._arity(op)
+    def _apply_top_operator(self, operators: List[Token], values: List[Number]) -> None:
+        op_token = operators.pop()
+        op = op_token.raw
+        arity = self._arity(op)
 
-        if op_arity == 1:
+        if arity == 1:
             a = values.pop()
             result = apply_operator(op, a)
         else:
-            b = values.pop()
+            b = values.pop() # em operações unárias, pode não existir (corrigir quando acordar)
             a = values.pop()
             result = apply_operator(op, a, b)
 
         values.append(result)
 
-    def _process_operator(self, op: str, operators: List[str], values: List[Number]) -> None:
+    def _process_operator(self, token: Token, operators: List[Token], values: List[Number]) -> None:
+        op = token.raw
         while operators:
-            top = operators[-1]
-            if top == "(":
+            top_token = operators[-1]
+            if top_token.type == TokenType.LPAREN:
                 break
-            reduce_top = (self._precedence(top) > self._precedence(op) or
-                          (self._precedence(top) == self._precedence(op) and self._associativity(op) == Assoc.LEFT))
+            top_op = top_token.raw
+            reduce_top = (self._precedence(top_op) > self._precedence(op) or
+                          (self._precedence(top_op) == self._precedence(op) and self._associativity(op) == Assoc.LEFT))
             if reduce_top:
                 self._apply_top_operator(operators, values)
             else:
                 break
-        operators.append(op)
+        operators.append(token)
 
-    def _process_rparen(self, operators: List[str], values: List[Number]) -> None:
-        while operators and operators[-1] != "(":
+    def _process_rparen(self, operators: List[Token], values: List[Number]) -> None:
+        while operators and operators[-1].type != TokenType.LPAREN:
             self._apply_top_operator(operators, values)
-        if not operators:
-            raise EvaluationError("Mismatched parentheses")
-        operators.pop()
+        operators.pop()  # remove "("
 
-    def _finalize(self, operators: List[str], values: List[Number]) -> None:
+    def _finalize(self, operators: List[Token], values: List[Number]) -> None:
         while operators:
-            if operators[-1] == "(":
-                raise EvaluationError("Mismatched parentheses")
             self._apply_top_operator(operators, values)
