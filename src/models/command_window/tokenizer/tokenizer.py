@@ -1,14 +1,18 @@
+from __future__ import annotations
+
+from typing import Optional, Tuple, Union, List
+
 from src.models.command_window.tokenizer.token import Token, TokenType
 from src.models.constants import (
-    MULTI_CHAR_OPERATORS,
-    IDENTIFIER_RE,
     WHITESPACE_RE,
+    IDENTIFIER_RE,
+    MULTI_CHAR_OPERATORS,
+    BASE_PREFIXES,
     DECIMAL_DIGITS,
     BINARY_DIGITS,
-    HEX_DIGITS,
-    BASE_PREFIXES,
-    UNARY_OPERATORS
-)
+    HEX_DIGITS)
+
+Number = Union[int, float]
 
 
 class TokenizerError(Exception):
@@ -16,123 +20,79 @@ class TokenizerError(Exception):
 
 
 class Tokenizer:
-
     def __init__(self, text: str):
-        self.prev_token: Token | None = None
-        self.text = text
-        self.pos = 0
-        self.length = len(text)
+        self.text: str = text
+        self.length: int = len(text)
+        self.pos: int = 0
+        self.prev_token: Optional[Token] = None
 
-    def _is_unary_position(self) -> bool:
+    def tokenize(self) -> List[Token]:
+        tokens: List[Token] = []
+
+        while not self._eof():
+            if self._skip_whitespace():
+                continue
+
+            token = (
+                self._consume_signed_number()
+                or self._consume_number()
+                or self._consume_identifier()
+                or self._consume_parenthesis()
+                or self._consume_operator())
+
+            if token is None:
+                raise TokenizerError(
+                    f"Unknown token '{self._current()}' at position {self.pos}")
+
+            tokens.append(token)
+            self.prev_token = token
+
+        tokens.append(Token(TokenType.EOF, "", position=self.pos))
+        return tokens
+
+    def _can_start_signed_number(self) -> bool:
         if self.prev_token is None:
             return True
 
-        if self.prev_token.type in {
+        return self.prev_token.type in {
             TokenType.OPERATOR,
-            TokenType.LPAREN,
-        }:
-            return True
+            TokenType.LPAREN}
 
-        return False
+    def _consume_signed_number(self) -> Optional[Token]:
+        if self._current() not in "+-":
+            return None
 
-    def tokenize(self) -> list[Token]:
-        tokens: list[Token] = []
+        if not self._can_start_signed_number():
+            return None
 
-        while self.pos < self.length:
-            match = WHITESPACE_RE.match(self.text, self.pos)
-            if match:
-                self.pos = match.end()
-                continue
-
-            char = self.text[self.pos]
-
-            if char == "(":
-                token = Token(TokenType.LPAREN, "(", "(", self.pos)
-                tokens.append(token)
-                self.pos += 1
-                self.prev_token = token
-                continue
-
-            if char == ")":
-                token = Token(TokenType.RPAREN, ")", ")", self.pos)
-                tokens.append(token)
-                self.pos += 1
-                self.prev_token = token
-                continue
-
-            matched = self._match_operator()
-            if matched:
-                raw, can_be_unary = matched
-                token = Token(
-                    type=TokenType.OPERATOR,
-                    value=raw,
-                    raw=raw,
-                    position=self.pos,
-                    can_be_unary=can_be_unary)
-                tokens.append(token)
-                self.pos += len(raw)
-                self.prev_token = token
-                continue
-
-            number = self._match_number()
-            if number:
-                raw, start = number
-                token = Token(TokenType.NUMBER, raw, raw, start)
-                tokens.append(token)
-                self.prev_token = token
-                continue
-
-            ident = self._match_identifier()
-            if ident:
-                tokens.append(ident)
-                self.prev_token = ident
-                continue
-
-            raise TokenizerError(f"Unknown token '{char}' at position {self.pos}")
-
-        tokens.append(Token(TokenType.EOF, None, "", self.pos))
-        return tokens
-
-    def _match_operator(self):
-        for op in MULTI_CHAR_OPERATORS:
-            if self.text.startswith(op, self.pos):
-                can_be_unary = (op in UNARY_OPERATORS and self._is_unary_position())
-                return op, can_be_unary
-        return None
-
-    def _match_number(self):
         start = self.pos
+        sign = self._current()
+        self.pos += 1
 
-        for prefix, base in sorted(BASE_PREFIXES.items(), key=lambda x: -len(x[0])):
-            if self.text.startswith(prefix, self.pos):
-                self.pos += len(prefix)
+        number = self._consume_number()
+        if number is None:
+            self.pos = start
+            return None
 
-                if base == 2:
-                    digits = self._consume(BINARY_DIGITS)
-                elif base == 16:
-                    digits = self._consume(HEX_DIGITS)
-                else:
-                    return None
+        value = -number.value if sign == "-" else number.value
 
-                if not digits:
-                    raise TokenizerError(f"Invalid number for base {base} at position {start}")
-                
-                if self.pos < self.length:
-                    next_char = self.text[self.pos]
-                    if (base == 2 and next_char not in " \t\n()+-*/") or \
-                    (base == 16 and next_char not in "0123456789abcdefABCDEF \t\n()+-*/"):
-                        raise TokenizerError(f"Invalid digit '{next_char}' for base {base} at position {self.pos}")
+        return Token(
+            TokenType.NUMBER,
+            raw=sign + number.raw,
+            value=value,
+            position=start)
 
-                return prefix + digits, start
+    def _consume_number(self) -> Optional[Token]:
+        start = self.pos
+        result = self._consume_number_raw()
 
-        if self.text[self.pos] in DECIMAL_DIGITS:
-            digits = self._consume(DECIMAL_DIGITS)
-            return digits, start
+        if result is None:
+            return None
 
-        return None
+        raw, value = result
+        return Token(TokenType.NUMBER, raw, value, start)
 
-
-    def _match_identifier(self):
+    def _consume_identifier(self) -> Optional[Token]:
         match = IDENTIFIER_RE.match(self.text, self.pos)
         if not match:
             return None
@@ -140,13 +100,108 @@ class Tokenizer:
         raw = match.group(0)
         start = self.pos
         self.pos += len(raw)
+
         return Token(TokenType.IDENTIFIER, raw, raw, start)
+
+    def _consume_operator(self) -> Optional[Token]:
+        for op in MULTI_CHAR_OPERATORS:
+            if self.text.startswith(op, self.pos):
+                start = self.pos
+                self.pos += len(op)
+
+                return Token(
+                    TokenType.OPERATOR,
+                    raw=op,
+                    value=op,
+                    position=start)
+        return None
+
+    def _consume_parenthesis(self) -> Optional[Token]:
+        ch = self._current()
+
+        if ch == "(":
+            self.pos += 1
+            return Token(TokenType.LPAREN, "(", "(", self.pos - 1)
+
+        if ch == ")":
+            self.pos += 1
+            return Token(TokenType.RPAREN, ")", ")", self.pos - 1)
+
+        return None
+
+    def _consume_number_raw(self) -> Optional[Tuple[str, Number]]:
+        start = self.pos
+
+        float_value = self._consume_decimal_float()
+        if float_value:
+            return float_value
+
+        for prefix, base in sorted(BASE_PREFIXES.items(), key=lambda x: -len(x[0])):
+            if self.text.startswith(prefix, self.pos):
+                self.pos += len(prefix)
+                digits = self._consume_digits(base)
+
+                if not digits:
+                    raise TokenizerError(f"Invalid number for base {base} at position {start}")
+
+                if not self._eof():
+                    next_char = self._current()
+                    if next_char.isalnum() or next_char == "_":
+                        raise TokenizerError(f"Invalid digit '{next_char}' for base {base} at position {self.pos}")
+
+                return prefix + digits, int(digits, base)
+
+        if self._current() in DECIMAL_DIGITS:
+            digits = self._consume(DECIMAL_DIGITS)
+            return digits, int(digits)
+
+        return None
+
+    def _consume_decimal_float(self) -> Optional[Tuple[str, float]]:
+        start = self.pos
+
+        integer = self._consume(DECIMAL_DIGITS)
+        if not integer:
+            return None
+
+        if self._current() != ".":
+            self.pos = start
+            return None
+
+        self.pos += 1
+        fractional = self._consume(DECIMAL_DIGITS)
+
+        if not fractional:
+            raise TokenizerError(f"Invalid float at position {start}")
+
+        raw = f"{integer}.{fractional}"
+        return raw, float(raw)
+
+    def _consume_digits(self, base: int) -> str:
+        if base == 2:
+            return self._consume(BINARY_DIGITS)
+        if base == 16:
+            return self._consume(HEX_DIGITS)
+        raise ValueError(f"Unsupported base {base}")
 
     def _consume(self, allowed: str) -> str:
         start = self.pos
-        while self.pos < self.length and self.text[self.pos] in allowed:
+        while not self._eof() and self._current() in allowed:
             self.pos += 1
         return self.text[start:self.pos]
 
+    def _skip_whitespace(self) -> bool:
+        match = WHITESPACE_RE.match(self.text, self.pos)
+        if not match:
+            return False
 
-__all__ = ["Tokenizer", "TokenizerError"]
+        self.pos = match.end()
+        return True
+
+    def _current(self) -> str:
+        if self._eof():
+            return "\0"
+        return self.text[self.pos]
+
+    def _eof(self) -> bool:
+        return self.pos >= self.length

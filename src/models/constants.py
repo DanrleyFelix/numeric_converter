@@ -4,33 +4,15 @@ from enum import Enum, auto
 DECIMAL_DIGITS = "0123456789"
 BINARY_DIGITS = "01"
 HEX_DIGITS = "0123456789abcdefABCDEF"
-OPERATORS = {
-    "+", "-", "*", "/", "%", "**", "sqrt",
-    "<<", ">>",
-    "==", "!=", "<", ">", "<=", ">=",
-    "&", "|", "^", "~",
-    "&&", "||", "!",
-    "=",
-}
 
-UNARY_OPERATORS = {
-    "+",
-    "-",
-    "!",
-    "~",
-    "sqrt",
-}
+OPERATORS = {"+", "-", "*", "/", "%", "**",
+    "<<", ">>", "==", "!=", "<", ">", "<=", ">=",
+    "&", "|", "^", "~", "&&", "||", "!", "="}
+UNARY_OPERATORS = {"!", "~"}
+SIGNALS = {"+", "-"}
+BASE_PREFIXES = {"0b": 2, "0x": 16}
 
-BASE_PREFIXES = {
-    "0b": 2,
-    "0x": 16,   
-}
-
-MULTI_CHAR_OPERATORS = sorted(
-    OPERATORS,
-    key=len,
-    reverse=True
-)
+MULTI_CHAR_OPERATORS = sorted(OPERATORS, key=len, reverse=True)
 
 ERROR_INVALID_EXPRESSION = ("Invalid expression. Use BACKSPACE or X key to delete it.")
 ERROR_DIVISION_BY_ZERO = "Division by zero."

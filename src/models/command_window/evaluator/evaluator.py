@@ -17,11 +17,11 @@ class Evaluator:
             if token.type == TokenType.NUMBER:
                 values.append(token.value)
             elif token.type == TokenType.OPERATOR:
-                self._process_operator(token, operators, values)
+                self._handle_operator(token, operators, values)
             elif token.type == TokenType.LPAREN:
                 operators.append(token)
             elif token.type == TokenType.RPAREN:
-                self._process_rparen(operators, values)
+                self._handle_rparen(operators, values)
             elif token.type == TokenType.EOF:
                 break
 
@@ -41,41 +41,55 @@ class Evaluator:
     def _arity(self, op: str) -> int:
         return OPERATOR_INFO[op][1]
 
-    def _apply_top_operator(self, operators: List[Token], values: List[Number]) -> None:
-        op_token = operators.pop()
-        op = op_token.raw
-        arity = self._arity(op)
+    def _handle_operator(self, token: Token, operators: List[Token], values: List[Number]) -> None:
+        while operators:
+            top = operators[-1]
+            if top.type == TokenType.LPAREN:
+                break
+
+            top_op = top.raw
+            top_prec = self._precedence(top_op)
+            token_prec = self._precedence(token.raw)
+
+            reduce_top = (
+                top_prec > token_prec or
+                (top_prec == token_prec and self._associativity(token.raw) == Assoc.LEFT))
+
+            if reduce_top:
+                self._apply_operator_token(operators.pop(), values)
+            else:
+                break
+
+        operators.append(token)
+
+    def _apply_operator_token(self, token: Token, values: List[Number]) -> None:
+        arity = 1 if getattr(token, "is_unary", False) else 2
 
         if arity == 1:
+            if not values:
+                raise EvaluationError(f"Missing operand for unary operator '{token.raw}'")
             a = values.pop()
-            result = apply_operator(op, a)
+            result = apply_operator(token.raw, a)
         else:
-            b = values.pop() # em operações unárias, pode não existir (corrigir quando acordar)
+            if len(values) < 2:
+                raise EvaluationError(f"Missing operands for binary operator '{token.raw}'")
+            b = values.pop()
             a = values.pop()
-            result = apply_operator(op, a, b)
+            result = apply_operator(token.raw, a, b)
 
         values.append(result)
 
-    def _process_operator(self, token: Token, operators: List[Token], values: List[Number]) -> None:
-        op = token.raw
-        while operators:
-            top_token = operators[-1]
-            if top_token.type == TokenType.LPAREN:
-                break
-            top_op = top_token.raw
-            reduce_top = (self._precedence(top_op) > self._precedence(op) or
-                          (self._precedence(top_op) == self._precedence(op) and self._associativity(op) == Assoc.LEFT))
-            if reduce_top:
-                self._apply_top_operator(operators, values)
-            else:
-                break
-        operators.append(token)
-
-    def _process_rparen(self, operators: List[Token], values: List[Number]) -> None:
+    def _handle_rparen(self, operators: List[Token], values: List[Number]) -> None:
         while operators and operators[-1].type != TokenType.LPAREN:
-            self._apply_top_operator(operators, values)
-        operators.pop()  # remove "("
+            self._apply_operator_token(operators.pop(), values)
+
+        if not operators or operators[-1].type != TokenType.LPAREN:
+            raise EvaluationError("Mismatched parentheses")
+
+        operators.pop()
 
     def _finalize(self, operators: List[Token], values: List[Number]) -> None:
         while operators:
-            self._apply_top_operator(operators, values)
+            if operators[-1].type == TokenType.LPAREN:
+                raise EvaluationError("Mismatched parentheses")
+            self._apply_operator_token(operators.pop(), values)

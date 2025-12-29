@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from dataclasses import dataclass
 
 
 class TokenType(Enum):
@@ -11,13 +10,12 @@ class TokenType(Enum):
     EOF = auto()
 
 
-@dataclass
 class Token:
-    type: TokenType
-    value: any
-    raw: str
-    position: int
-    can_be_unary: bool = False
+    def __init__(self, type, raw: str, value: float | int | None = None, position=None):
+        self.type = type
+        self.raw = raw
+        self.value = value
+        self.position = position
 
 
 __all__ = ["Token", "TokenType"]
