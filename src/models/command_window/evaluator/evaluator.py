@@ -1,5 +1,5 @@
 from typing import Union, List
-from src.models.constants import OPERATOR_INFO, Assoc
+from src.models.constants import OPERATOR_INFO, ASSOC
 from src.models.command_window.tokenizer import Token, TokenType
 from src.models.command_window.evaluator.apply_operator import apply_operator
 from src.models.command_window.evaluator.errors import EvaluationError
@@ -10,86 +10,87 @@ Number = Union[int, float]
 class Evaluator:
 
     def evaluate(self, tokens: List[Token]) -> Number:
-        values: List[Number] = []
-        operators: List[Token] = []
-
+        stack = _EvaluationStack()
+        prev_token: Token | None = None
         for token in tokens:
-            if token.type == TokenType.NUMBER:
-                values.append(token.value)
-            elif token.type == TokenType.OPERATOR:
-                self._handle_operator(token, operators, values)
-            elif token.type == TokenType.LPAREN:
-                operators.append(token)
-            elif token.type == TokenType.RPAREN:
-                self._handle_rparen(operators, values)
-            elif token.type == TokenType.EOF:
-                break
+            match token.type:
+                case TokenType.NUMBER:
+                    stack.push_value(token.value)
+                case TokenType.OPERATOR:
+                    token = self._normalize_unary(token, prev_token)
+                    stack.push_operator(token)
+                case TokenType.LPAREN:
+                    stack.push_lparen(token)
+                case TokenType.RPAREN:
+                    stack.reduce_until_lparen()
+                case TokenType.EOF:
+                    break
+            prev_token = token
+        stack.finalize()
+        return stack.result()
 
-        self._finalize(operators, values)
+    def _normalize_unary(self, token: Token, prev_token: Token | None) -> Token:
+        if token.raw in ("+", "-"):
+            if prev_token is None or prev_token.type in {TokenType.OPERATOR, TokenType.LPAREN}:
+                token = Token(TokenType.OPERATOR, "POS" if token.raw == "+" else "NEG")
+        return token
 
-        if len(values) != 1:
-            raise EvaluationError("Invalid evaluation state")
 
-        return values[0]
+class _EvaluationStack:
 
-    def _precedence(self, op: str) -> int:
-        return OPERATOR_INFO[op][0]
+    def __init__(self):
+        self._values: List[Number] = []
+        self._operators: List[Token] = []
 
-    def _associativity(self, op: str) -> Assoc:
-        return OPERATOR_INFO[op][2]
+    def push_value(self, value: Number) -> None:
+        self._values.append(value)
 
-    def _arity(self, op: str) -> int:
-        return OPERATOR_INFO[op][1]
+    def push_lparen(self, token: Token) -> None:
+        self._operators.append(token)
 
-    def _handle_operator(self, token: Token, operators: List[Token], values: List[Number]) -> None:
-        while operators:
-            top = operators[-1]
-            if top.type == TokenType.LPAREN:
-                break
+    def push_operator(self, token: Token) -> None:
+        while self._operators and self._should_reduce(self._operators[-1], token):
+            self._apply(self._operators.pop())
+        self._operators.append(token)
 
-            top_op = top.raw
-            top_prec = self._precedence(top_op)
-            token_prec = self._precedence(token.raw)
+    def reduce_until_lparen(self) -> None:
+        while self._operators and self._operators[-1].type != TokenType.LPAREN:
+            self._apply(self._operators.pop())
+        if not self._operators:
+            raise EvaluationError("Mismatched parentheses")
+        self._operators.pop()
 
-            reduce_top = (
-                top_prec > token_prec or
-                (top_prec == token_prec and self._associativity(token.raw) == Assoc.LEFT))
+    def finalize(self) -> None:
+        while self._operators:
+            self._apply(self._operators.pop())
 
-            if reduce_top:
-                self._apply_operator_token(operators.pop(), values)
-            else:
-                break
+    def result(self) -> Number:
+        if len(self._values) != 1:
+            raise EvaluationError("Invalid expression")
+        return self._values[0]
 
-        operators.append(token)
+    def _should_reduce(self, top: Token, current: Token) -> bool:
+        if top.type == TokenType.LPAREN: return False
 
-    def _apply_operator_token(self, token: Token, values: List[Number]) -> None:
-        arity = 1 if getattr(token, "is_unary", False) else 2
+        top_prec, _, top_assoc = OPERATOR_INFO[top.raw]
+        cur_prec, _, _ = OPERATOR_INFO[current.raw]
+
+        if top_prec > cur_prec: return True
+        if top_prec == cur_prec and top_assoc == ASSOC.LEFT: return True
+        return False
+
+
+    def _apply(self, token: Token) -> None:
+        _, arity, _ = OPERATOR_INFO[token.raw]
 
         if arity == 1:
-            if not values:
-                raise EvaluationError(f"Missing operand for unary operator '{token.raw}'")
-            a = values.pop()
-            result = apply_operator(token.raw, a)
-        else:
-            if len(values) < 2:
-                raise EvaluationError(f"Missing operands for binary operator '{token.raw}'")
-            b = values.pop()
-            a = values.pop()
-            result = apply_operator(token.raw, a, b)
-
-        values.append(result)
-
-    def _handle_rparen(self, operators: List[Token], values: List[Number]) -> None:
-        while operators and operators[-1].type != TokenType.LPAREN:
-            self._apply_operator_token(operators.pop(), values)
-
-        if not operators or operators[-1].type != TokenType.LPAREN:
-            raise EvaluationError("Mismatched parentheses")
-
-        operators.pop()
-
-    def _finalize(self, operators: List[Token], values: List[Number]) -> None:
-        while operators:
-            if operators[-1].type == TokenType.LPAREN:
-                raise EvaluationError("Mismatched parentheses")
-            self._apply_operator_token(operators.pop(), values)
+            if not self._values:
+                raise EvaluationError(f"Unary operator '{token.raw}' without operand")
+            a = self._values.pop()
+            self._values.append(apply_operator(token.raw, a))
+        elif arity == 2:
+            if len(self._values) < 2:
+                raise EvaluationError(f"Binary operator '{token.raw}' without enough operands")
+            b = self._values.pop()
+            a = self._values.pop()
+            self._values.append(apply_operator(token.raw, a, b))

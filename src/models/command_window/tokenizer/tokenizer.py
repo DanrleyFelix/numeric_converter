@@ -10,7 +10,8 @@ from src.models.constants import (
     BASE_PREFIXES,
     DECIMAL_DIGITS,
     BINARY_DIGITS,
-    HEX_DIGITS)
+    HEX_DIGITS,
+)
 
 Number = Union[int, float]
 
@@ -24,7 +25,6 @@ class Tokenizer:
         self.text: str = text
         self.length: int = len(text)
         self.pos: int = 0
-        self.prev_token: Optional[Token] = None
 
     def tokenize(self) -> List[Token]:
         tokens: List[Token] = []
@@ -34,8 +34,7 @@ class Tokenizer:
                 continue
 
             token = (
-                self._consume_signed_number()
-                or self._consume_number()
+                self._consume_number()
                 or self._consume_identifier()
                 or self._consume_parenthesis()
                 or self._consume_operator())
@@ -45,42 +44,9 @@ class Tokenizer:
                     f"Unknown token '{self._current()}' at position {self.pos}")
 
             tokens.append(token)
-            self.prev_token = token
 
         tokens.append(Token(TokenType.EOF, "", position=self.pos))
         return tokens
-
-    def _can_start_signed_number(self) -> bool:
-        if self.prev_token is None:
-            return True
-
-        return self.prev_token.type in {
-            TokenType.OPERATOR,
-            TokenType.LPAREN}
-
-    def _consume_signed_number(self) -> Optional[Token]:
-        if self._current() not in "+-":
-            return None
-
-        if not self._can_start_signed_number():
-            return None
-
-        start = self.pos
-        sign = self._current()
-        self.pos += 1
-
-        number = self._consume_number()
-        if number is None:
-            self.pos = start
-            return None
-
-        value = -number.value if sign == "-" else number.value
-
-        return Token(
-            TokenType.NUMBER,
-            raw=sign + number.raw,
-            value=value,
-            position=start)
 
     def _consume_number(self) -> Optional[Token]:
         start = self.pos
@@ -109,11 +75,7 @@ class Tokenizer:
                 start = self.pos
                 self.pos += len(op)
 
-                return Token(
-                    TokenType.OPERATOR,
-                    raw=op,
-                    value=op,
-                    position=start)
+                return Token(TokenType.OPERATOR, op, op, start)
         return None
 
     def _consume_parenthesis(self) -> Optional[Token]:
@@ -133,7 +95,7 @@ class Tokenizer:
         start = self.pos
 
         float_value = self._consume_decimal_float()
-        if float_value:
+        if float_value is not None:
             return float_value
 
         for prefix, base in sorted(BASE_PREFIXES.items(), key=lambda x: -len(x[0])):
@@ -142,12 +104,15 @@ class Tokenizer:
                 digits = self._consume_digits(base)
 
                 if not digits:
-                    raise TokenizerError(f"Invalid number for base {base} at position {start}")
+                    raise TokenizerError(
+                        f"Invalid number for base {base} at position {start}")
 
                 if not self._eof():
                     next_char = self._current()
                     if next_char.isalnum() or next_char == "_":
-                        raise TokenizerError(f"Invalid digit '{next_char}' for base {base} at position {self.pos}")
+                        raise TokenizerError(
+                            f"Invalid digit '{next_char}' for base {base} "
+                            f"at position {self.pos}")
 
                 return prefix + digits, int(digits, base)
 

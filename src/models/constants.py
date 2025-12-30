@@ -8,8 +8,12 @@ HEX_DIGITS = "0123456789abcdefABCDEF"
 OPERATORS = {"+", "-", "*", "/", "%", "**",
     "<<", ">>", "==", "!=", "<", ">", "<=", ">=",
     "&", "|", "^", "~", "&&", "||", "!", "="}
-UNARY_OPERATORS = {"!", "~"}
-SIGNALS = {"+", "-"}
+ASSIGNMENT_OPERATOR = {"="}
+BITWISE_OPERATORS = {"<<", ">>"}
+LOGICAL_OPERATORS = {"&", "|", "^", "~", "&&", "||", "!"}
+CONDITIONAL_OPERATORS = {"==", "!=", "<", ">", "<=", ">="}
+ARITHMETIC_OPERATORS = {"*", "-", "+", "/", "**"}
+UNARY_OPERATORS = {"!", "~", "+", "-"}
 BASE_PREFIXES = {"0b": 2, "0x": 16}
 
 MULTI_CHAR_OPERATORS = sorted(OPERATORS, key=len, reverse=True)
@@ -24,42 +28,49 @@ WHITESPACE_RE = re.compile(r"\s+")
 REGEX_HEX_PAIR = re.compile(r"..")
 REGEX_BINARY_GROUP = re.compile(r"....")
 
-class Assoc(Enum):
+class ASSOC(Enum):
     LEFT = auto()
     RIGHT = auto()
 
+
 OPERATOR_INFO = {
-    # operator : (precedence, arity, associativity)
+    # operator : (precedence, arity, Associativity)
 
-    "=":   (1, 2, Assoc.RIGHT),
+    "=":   (1, 2, ASSOC.RIGHT),
 
-    "||":  (2, 2, Assoc.LEFT),
-    "&&":  (3, 2, Assoc.LEFT),
+    "||":  (2, 2, ASSOC.LEFT),
+    "&&":  (3, 2, ASSOC.LEFT),
 
-    "|":   (4, 2, Assoc.LEFT),
-    "^":   (5, 2, Assoc.LEFT),
-    "&":   (6, 2, Assoc.LEFT),
+    "|":   (4, 2, ASSOC.LEFT),
+    "^":   (5, 2, ASSOC.LEFT),
+    "&":   (6, 2, ASSOC.LEFT),
 
-    "==":  (7, 2, Assoc.LEFT),
-    "!=":  (7, 2, Assoc.LEFT),
-    "<":   (8, 2, Assoc.LEFT),
-    ">":   (8, 2, Assoc.LEFT),
-    "<=":  (8, 2, Assoc.LEFT),
-    ">=":  (8, 2, Assoc.LEFT),
+    "==":  (7, 2, ASSOC.LEFT),
+    "!=":  (7, 2, ASSOC.LEFT),
+    "<":   (8, 2, ASSOC.LEFT),
+    ">":   (8, 2, ASSOC.LEFT),
+    "<=":  (8, 2, ASSOC.LEFT),
+    ">=":  (8, 2, ASSOC.LEFT),
 
-    "<<":  (9, 2, Assoc.LEFT),
-    ">>":  (9, 2, Assoc.LEFT),
+    "<<":  (9, 2, ASSOC.LEFT),
+    ">>":  (9, 2, ASSOC.LEFT),
 
-    "+":   (10, 2, Assoc.LEFT),
-    "-":   (10, 2, Assoc.LEFT),
-    "*":   (11, 2, Assoc.LEFT),
-    "/":   (11, 2, Assoc.LEFT),
-    "%":   (11, 2, Assoc.LEFT),
+    "+":   (10, 2, ASSOC.LEFT),
+    "-":   (10, 2, ASSOC.LEFT),
 
-    "**":  (12, 2, Assoc.RIGHT),
+    "*":   (11, 2, ASSOC.LEFT),
+    "/":   (11, 2, ASSOC.LEFT),
+    "%":   (11, 2, ASSOC.LEFT),
 
-    "!":   (13, 1, Assoc.RIGHT),
-    "~":   (13, 1, Assoc.RIGHT),
-    "sqrt":(13, 1, Assoc.RIGHT),
+    # 🔹 unários (MENOR que potência, MAIOR que multiplicativos)
+    "NEG": (12, 1, ASSOC.RIGHT),
+    "POS": (12, 1, ASSOC.RIGHT),
+    "!":   (12, 1, ASSOC.RIGHT),
+    "~":   (12, 1, ASSOC.RIGHT),
+
+    # 🔹 potência (mais alta)
+    "**":  (13, 2, ASSOC.RIGHT),
 }
+
+
 

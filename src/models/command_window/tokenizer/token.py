@@ -1,6 +1,5 @@
 from enum import Enum, auto
 
-
 class TokenType(Enum):
     NUMBER = auto()
     IDENTIFIER = auto()
@@ -10,8 +9,12 @@ class TokenType(Enum):
     EOF = auto()
 
 
+
 class Token:
-    def __init__(self, type, raw: str, value: float | int | None = None, position=None):
+    
+    __slots__ = ("type", "raw", "value", "position")
+
+    def __init__(self, type: TokenType, raw: str, value: float | int | None = None, position=0):
         self.type = type
         self.raw = raw
         self.value = value

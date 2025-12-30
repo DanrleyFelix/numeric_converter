@@ -15,30 +15,25 @@ def ctx():
     c.set_variable("c", 3)
     return c
 
-
-@pytest.mark.parametrize("text", ["a+b*c-2","a*(b+c*(a-b))","!(a==b)||c>2","~a&b|c^a","a<<2+b>>1"])
+@pytest.mark.parametrize("text", ["a+b*c-2","a*(b+c*(a-b))","!(a==b)||c>2","~a&b|c^a","a<<2+b>>1", "a <= -2", "2 <= -3", "-3==-3", "2>=-2"])
 def test_complex_valid_expressions(text):
     state = ExpressionValidator.validate(text, ctx())
     assert state == ValidationState.ACCEPTABLE
 
-
-@pytest.mark.parametrize("text", ["a+*b","a&&==b","a<<|b","a**==b","a=/b"])
+@pytest.mark.parametrize("text", ["a+*b","a&&==b","a<<|b","a**==b","a=/b", "!-2", "2&-2", "a-*2", "a+*2", "a=*2", "a==*2", "a>-*2", "2>=*-4"])
 def test_deep_invalid_operator_sequences(text):
     with pytest.raises(InvalidOperatorSequenceError):
         ExpressionValidator.validate(text, ctx())
 
-
 @pytest.mark.parametrize("text", ["!!a","~~b","!~a","+-a"])
 def test_multiple_unary_not_allowed(text):
-    state = ExpressionValidator.validate(text, ctx())
-    assert state == ValidationState.ACCEPTABLE
-
+    with pytest.raises(InvalidOperatorSequenceError):
+        ExpressionValidator.validate(text, ctx())
 
 @pytest.mark.parametrize("text", ["!a","~b","-a","+b","a*-b","a==!b"])
 def test_valid_unary_usage(text):
     state = ExpressionValidator.validate(text, ctx())
     assert state == ValidationState.ACCEPTABLE
-
 
 @pytest.mark.parametrize("text", ["a=b+1","c=a*(b+2)","a=!(b==2)"])
 def test_assignment_with_expression(text):

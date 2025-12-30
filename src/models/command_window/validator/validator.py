@@ -1,6 +1,11 @@
 from typing import List
 
-from src.models.constants import ERROR_INVALID_EXPRESSION, UNARY_OPERATORS, SIGNALS
+from src.models.constants import (
+    ERROR_INVALID_EXPRESSION,
+    UNARY_OPERATORS,
+    ARITHMETIC_OPERATORS,
+    ASSIGNMENT_OPERATOR,
+    CONDITIONAL_OPERATORS)
 from src.models.command_window.tokenizer import (
     Tokenizer,
     TokenizerError,
@@ -27,120 +32,206 @@ class ExpressionValidator:
         if not expr.strip():
             return ValidationState.POTENTIALLY_INVALID
 
-        tokens = ExpressionValidator._tokenize(expr)
+        tokens = _Tokenizer(expr).tokenize()
         tokens = [t for t in tokens if t.type != TokenType.EOF]
 
-        state = ValidationState.ACCEPTABLE
-        state &= ExpressionValidator._check_start(tokens)
-        state &= ExpressionValidator._check_parentheses(tokens)
-        state &= ExpressionValidator._check_tokens_sequence(tokens)
-        state &= ExpressionValidator._check_variable_usage(tokens, ctx)
-        state &= ExpressionValidator._check_assignment_rules(tokens)
-        state &= ExpressionValidator._check_partial_state(tokens)
+        return _ExpressionChecker(tokens, ctx).check()
 
-        return state
 
-    @staticmethod
-    def _tokenize(expr: str) -> List[Token]:
+class _Tokenizer:
+
+    def __init__(self, expr: str):
+        self.expr = expr
+
+    def tokenize(self) -> List[Token]:
         try:
-            return Tokenizer(expr).tokenize()
+            return Tokenizer(self.expr).tokenize()
         except TokenizerError as e:
             raise UnknownTokenError(ERROR_INVALID_EXPRESSION) from e
+        
 
-    @staticmethod
-    def _check_start(tokens: List[Token]) -> ValidationState:
-        first = tokens[0]
+class _ExpressionChecker:
 
-        if first.type == TokenType.OPERATOR and first.raw not in SIGNALS:
-            if first.raw not in UNARY_OPERATORS:
-                raise InvalidStartError(ERROR_INVALID_EXPRESSION, position=first.position)
+    def __init__(self, tokens: List[Token], ctx: Context):
+        self.tokens = tokens
+        self.ctx = ctx
 
+    def check(self) -> ValidationState:
+        return (
+            _StructureValidator(self.tokens).validate() &
+            _SequenceValidator(self.tokens).validate() &
+            _SemanticValidator(self.tokens, self.ctx).validate())
+
+
+class _StructureValidator:
+
+    def __init__(self, tokens: List[Token]):
+        self.tokens = tokens
+
+    def validate(self) -> ValidationState:
+        return (
+            self._check_start() &
+            self._check_parentheses() &
+            self._check_partial())
+
+    def _check_start(self) -> ValidationState:
+        first = self.tokens[0]
+        if first.type == TokenType.OPERATOR and first.raw not in UNARY_OPERATORS:
+            raise InvalidStartError(
+                ERROR_INVALID_EXPRESSION,
+                position=first.position)
         return ValidationState.ACCEPTABLE
 
-    @staticmethod
-    def _check_parentheses(tokens: List[Token]) -> ValidationState:
+    def _check_parentheses(self) -> ValidationState:
         balance = 0
-        for t in tokens:
+        for t in self.tokens:
             if t.type == TokenType.LPAREN:
                 balance += 1
             elif t.type == TokenType.RPAREN:
                 balance -= 1
                 if balance < 0:
-                    raise ParenthesisMismatchError(ERROR_INVALID_EXPRESSION, position=t.position)
+                    raise ParenthesisMismatchError(
+                        ERROR_INVALID_EXPRESSION,
+                        position=t.position)
+        return (
+            ValidationState.POTENTIALLY_INVALID
+            if balance > 0
+            else ValidationState.ACCEPTABLE)
 
-        if balance > 0:
+    def _check_partial(self) -> ValidationState:
+        if not self.tokens:
+            return ValidationState.POTENTIALLY_INVALID
+
+        last = self.tokens[-1]
+        if last.type in {TokenType.OPERATOR, TokenType.LPAREN}:
             return ValidationState.POTENTIALLY_INVALID
 
         return ValidationState.ACCEPTABLE
 
-    @staticmethod
-    def _check_tokens_sequence(tokens: List[Token]) -> ValidationState:
-        for prev, curr in zip(tokens, tokens[1:]):
-            prev_is_operator = prev.type == TokenType.OPERATOR
-            curr_is_operator = curr.type == TokenType.OPERATOR
-            curr_is_rparen = curr.type == TokenType.RPAREN
-            prev_is_lparen = prev.type == TokenType.LPAREN
-            curr_is_lparen = curr.type == TokenType.LPAREN
-            prev_is_operand = prev.type in {TokenType.NUMBER, TokenType.IDENTIFIER}
 
-            two_operators_in_sequence = prev_is_operator and curr_is_operator
-            operator_before_rparen = prev_is_operator and curr_is_rparen
-            empty_parentheses = prev_is_lparen and curr_is_rparen
-            implicit_multiplication = prev_is_operand and curr_is_lparen
+class _SequenceValidator:
 
-            if two_operators_in_sequence:
-                if curr.raw in UNARY_OPERATORS or curr.raw in SIGNALS:
-                    continue
-                raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION,position=curr.position)
+    def __init__(self, tokens: List[Token]):
+        self.tokens = tokens
 
-            if operator_before_rparen:
-                raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION,position=curr.position)
-
-            if empty_parentheses:
-                raise ParenthesisMismatchError(ERROR_INVALID_EXPRESSION,position=curr.position)
-
-            if implicit_multiplication:
-                raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION,position=curr.position)
-
+    def validate(self) -> ValidationState:
+        for i in range(len(self.tokens) - 1):
+            self._validate_pair(i)
         return ValidationState.ACCEPTABLE
 
-    @staticmethod
-    def _check_variable_usage(tokens: List[Token], ctx: Context) -> ValidationState:
-        for i, t in enumerate(tokens):
+    def _validate_pair(self, i: int) -> None:
+        prev = self.tokens[i]
+        curr = self.tokens[i + 1]
+
+        if self._operator_before_rparen(prev, curr): self._invalid(curr)
+        if self._empty_parentheses(prev, curr): self._paren_error(curr)
+        if self._implicit_multiplication(prev, curr): self._invalid(curr)
+        if self._invalid_operator_sequence(i): self._invalid(curr)
+
+    def _operator_before_rparen(self, prev: Token, curr: Token) -> bool:
+        return (
+            prev.type == TokenType.OPERATOR and
+            curr.type == TokenType.RPAREN)
+
+    def _empty_parentheses(self, prev: Token, curr: Token) -> bool:
+        return (
+            prev.type == TokenType.LPAREN and
+            curr.type == TokenType.RPAREN)
+
+    def _implicit_multiplication(self, prev: Token, curr: Token) -> bool:
+        return (
+            prev.type in {TokenType.NUMBER, TokenType.IDENTIFIER} and
+            curr.type == TokenType.LPAREN)
+
+    def _invalid_operator_sequence(self, i: int) -> bool:
+        prev = self.tokens[i]
+        curr = self.tokens[i + 1]
+
+        if not self._both_operators(prev, curr): return False
+        if self._binary_after_binary(curr): return True
+        if self._unary_after_unary(prev, curr): return True
+        if self._invalid_signed_unary(prev, curr): return True
+        if self._unary_without_operand(i): return True
+        return False
+
+    def _both_operators(self, prev: Token, curr: Token) -> bool:
+        return (
+            prev.type == TokenType.OPERATOR and
+            curr.type == TokenType.OPERATOR)
+
+    def _binary_after_binary(self, curr: Token) -> bool:
+        return curr.raw not in UNARY_OPERATORS
+
+    def _unary_after_unary(self, prev: Token, curr: Token) -> bool:
+        return (
+            prev.raw in UNARY_OPERATORS and
+            curr.raw in UNARY_OPERATORS)
+
+    def _invalid_signed_unary(self, prev: Token, curr: Token) -> bool:
+        if curr.raw not in {"+", "-"}:
+            return False
+        return prev.raw not in (
+            ARITHMETIC_OPERATORS |
+            ASSIGNMENT_OPERATOR |
+            CONDITIONAL_OPERATORS)
+
+    def _unary_without_operand(self, i: int) -> bool:
+        if i + 2 >= len(self.tokens):
+            return True
+        return self.tokens[i + 2].type not in {
+            TokenType.NUMBER,
+            TokenType.IDENTIFIER,
+            TokenType.LPAREN}
+
+    def _invalid(self, token: Token) -> None:
+        raise InvalidOperatorSequenceError(
+            ERROR_INVALID_EXPRESSION,
+            position=token.position)
+
+    def _paren_error(self, token: Token) -> None:
+        raise ParenthesisMismatchError(
+            ERROR_INVALID_EXPRESSION,
+            position=token.position)
+
+
+class _SemanticValidator:
+
+    def __init__(self, tokens: List[Token], ctx: Context):
+        self.tokens = tokens
+        self.ctx = ctx
+
+    def validate(self) -> ValidationState:
+        return (
+            self._check_variables() &
+            self._check_assignments())
+
+    def _check_variables(self) -> ValidationState:
+        for i, t in enumerate(self.tokens):
             if t.type != TokenType.IDENTIFIER:
                 continue
 
-            is_lhs = (i + 1 < len(tokens) and tokens[i + 1].type == TokenType.OPERATOR and tokens[i + 1].raw == "=")
-
-            if not is_lhs and ctx.get_variable(t.raw) is None:
-                raise UnknownVariableError(f"Variable '{t.raw}' is not defined.", position=t.position)
-
+            if not self._is_lhs(i) and self.ctx.get_variable(t.raw) is None:
+                raise UnknownVariableError(
+                    f"Variable '{t.raw}' is not defined.",
+                    position=t.position)
         return ValidationState.ACCEPTABLE
 
-    @staticmethod
-    def _check_assignment_rules(tokens: List[Token]) -> ValidationState:
-        assignments = [t for t in tokens if t.type == TokenType.OPERATOR and t.raw == "="]
+    def _is_lhs(self, i: int) -> bool:
+        return (
+            i + 1 < len(self.tokens) and
+            self.tokens[i + 1].type == TokenType.OPERATOR and
+            self.tokens[i + 1].raw == "=")
 
-        if len(assignments) > 1:
+    def _check_assignments(self) -> ValidationState:
+        assignments = [
+            t for t in self.tokens
+            if t.type == TokenType.OPERATOR and t.raw == "="]
+
+        if len(assignments) > 1: 
+            raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
+        if assignments and self.tokens[0].type != TokenType.IDENTIFIER: 
             raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
 
-        if assignments:
-            if tokens[0].type != TokenType.IDENTIFIER:
-                raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
-
         return ValidationState.ACCEPTABLE
 
-    @staticmethod
-    def _check_partial_state(tokens: List[Token]) -> ValidationState:
-        if not tokens:
-            return ValidationState.POTENTIALLY_INVALID
 
-        last = tokens[-1]
-
-        if last.type == TokenType.OPERATOR:
-            return ValidationState.POTENTIALLY_INVALID
-
-        if last.type == TokenType.LPAREN:
-            return ValidationState.POTENTIALLY_INVALID
-
-        return ValidationState.ACCEPTABLE
