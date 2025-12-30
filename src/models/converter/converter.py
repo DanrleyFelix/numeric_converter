@@ -45,7 +45,6 @@ class Converter:
         elif from_type == "hexBE":
             dec = Converter.from_hex(value)
         elif from_type == "hexLE":
-            # interpret as little endian
             clean = value.replace(" ", "")
             raw = binascii.unhexlify(clean)
             dec = int.from_bytes(raw, byteorder="little")

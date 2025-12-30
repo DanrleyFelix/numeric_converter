@@ -12,18 +12,17 @@ class AssignmentHandler:
         self.evaluator = Evaluator()
 
     def handle(self, tokens: List[Token]) -> Number:
-        resolved_tokens = self._resolve_identifiers(tokens)
-        lhs, rhs_tokens = self._split_assignment(resolved_tokens)
-        result = self.evaluator.evaluate(rhs_tokens)
-
+        lhs, rhs_tokens = self._split_assignment(tokens)
+        resolved_rhs = self._resolve_identifiers(rhs_tokens)
+        result = self.evaluator.evaluate(resolved_rhs)
         if lhs is not None:
             self.ctx.set_variable(lhs, result)
-        self.ctx.set_variable("ANS", result)
+        else:
+            self.ctx.set_variable("ANS", result)
 
         return result
 
     def _split_assignment(self, tokens: List[Token]) -> tuple[str | None, List[Token]]:
-
         for i, t in enumerate(tokens):
             if t.type == TokenType.OPERATOR and t.raw == "=":
                 lhs = tokens[i - 1].raw
@@ -38,7 +37,8 @@ class AssignmentHandler:
         for t in tokens:
             if t.type == TokenType.IDENTIFIER:
                 value = self.ctx.get_variable(t.raw)
-                resolved.append(Token(
+                resolved.append(
+                    Token(
                         type=TokenType.NUMBER,
                         raw=t.raw,
                         value=value,
