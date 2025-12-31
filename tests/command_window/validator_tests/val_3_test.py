@@ -4,7 +4,6 @@ from src.models.command_window.validator.validator import ExpressionValidator, V
 from src.models.command_window.validator.errors import (
     InvalidStartError,
     InvalidOperatorSequenceError,
-    ParenthesisMismatchError,
     UnknownVariableError)
 from src.models.command_window.context import Context
 
@@ -47,6 +46,17 @@ def test_valid_complete_expressions(text):
     state = ExpressionValidator.validate(text, ctx())
     assert state == ValidationState.ACCEPTABLE
 
+@pytest.mark.parametrize(
+    "expr", [
+        "a + b = 3",
+        "2 = a",       
+        "(a) = 3",   
+        "a * b = c"])
+def test_invalid_assignment_lhs(expr):
+    ctx = Context()
+    ctx.set_variable("a", 1)
+    ctx.set_variable("b", 2)
+    ctx.set_variable("c", 3)
 
-
-
+    with pytest.raises(InvalidOperatorSequenceError):
+        ExpressionValidator.validate(expr, ctx)

@@ -25,9 +25,6 @@ ERROR_UNKNOWN_TOKEN = "Unknown token."
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 WHITESPACE_RE = re.compile(r"\s+")
 
-REGEX_HEX_PAIR = re.compile(r"..")
-REGEX_BINARY_GROUP = re.compile(r"....")
-
 class ASSOC(Enum):
     LEFT = auto()
     RIGHT = auto()
@@ -62,13 +59,11 @@ OPERATOR_INFO = {
     "/":   (11, 2, ASSOC.LEFT),
     "%":   (11, 2, ASSOC.LEFT),
 
-    # 🔹 unários (MENOR que potência, MAIOR que multiplicativos)
     "NEG": (12, 1, ASSOC.RIGHT),
     "POS": (12, 1, ASSOC.RIGHT),
     "!":   (12, 1, ASSOC.RIGHT),
     "~":   (12, 1, ASSOC.RIGHT),
 
-    # 🔹 potência (mais alta)
     "**":  (13, 2, ASSOC.RIGHT),
 }
 

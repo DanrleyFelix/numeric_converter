@@ -223,13 +223,17 @@ class _SemanticValidator:
             self.tokens[i + 1].raw == "=")
 
     def _check_assignments(self) -> ValidationState:
-        assignments = [
-            t for t in self.tokens
+        eq_positions = [
+            i for i, t in enumerate(self.tokens)
             if t.type == TokenType.OPERATOR and t.raw == "="]
-
-        if len(assignments) > 1: 
+        if not eq_positions:
+            return ValidationState.ACCEPTABLE
+        if len(eq_positions) > 1:
             raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
-        if assignments and self.tokens[0].type != TokenType.IDENTIFIER: 
+        eq = eq_positions[0]
+        if eq != 1:
+            raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
+        if self.tokens[0].type != TokenType.IDENTIFIER:
             raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
 
         return ValidationState.ACCEPTABLE
