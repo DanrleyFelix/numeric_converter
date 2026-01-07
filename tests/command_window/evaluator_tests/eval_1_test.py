@@ -1,6 +1,6 @@
 import pytest # type: ignore
-from src.models.command_window.evaluator.apply_operator import apply_operator
-from src.models.command_window.evaluator.errors import EvaluationError, DivisionByZeroError
+from src.core.command_window.evaluator.apply_operator import apply_operator
+from src.core.command_window.evaluator.errors import EvaluationError, DivisionByZeroError
 
 def test_unary_operators():
     assert apply_operator("!", 0) == 1

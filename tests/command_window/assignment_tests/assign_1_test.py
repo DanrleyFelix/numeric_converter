@@ -1,7 +1,8 @@
 import pytest # type: ignore
-from src.models.command_window.evaluator.assignment import AssignmentHandler
-from src.models.command_window.context import Context
-from src.models.command_window.tokenizer.token import Token, TokenType
+from src.application.use_cases.evaluator_use_case import EvaluatorUseCase
+from src.core.command_window.evaluator.evaluator import Evaluator
+from src.core.command_window.context import cmd_window_context
+from src.core.command_window.tokenizer.token import Token, TokenType
 
 
 def Tok(type, raw, value=None):
@@ -9,8 +10,10 @@ def Tok(type, raw, value=None):
 
 
 def test_expression_without_assignment_updates_ans():
-    ctx = Context()
-    handler = AssignmentHandler(ctx)
+    ctx = cmd_window_context
+    ctx.clear_all()
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.NUMBER, "2", 2),
@@ -24,10 +27,12 @@ def test_expression_without_assignment_updates_ans():
     assert ctx.get_variable("ANS") == 5
 
 def test_expression_with_identifier():
-    ctx = Context()
+    ctx = cmd_window_context
+    ctx.clear_all()
     ctx.set_variable("a", 10)
 
-    handler = AssignmentHandler(ctx)
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.NUMBER, "2", 2),
@@ -42,8 +47,10 @@ def test_expression_with_identifier():
     assert ctx.get_variable("a") == 10 
 
 def test_simple_assignment():
-    ctx = Context()
-    handler = AssignmentHandler(ctx)
+    ctx = cmd_window_context
+    ctx.clear_all()
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.IDENTIFIER, "a"),
@@ -58,8 +65,10 @@ def test_simple_assignment():
     assert ctx.get_variable("ANS") == 0
 
 def test_assignment_with_expression():
-    ctx = Context()
-    handler = AssignmentHandler(ctx)
+    ctx = cmd_window_context
+    ctx.clear_all()
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.IDENTIFIER, "x"),

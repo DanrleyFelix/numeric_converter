@@ -1,5 +1,5 @@
 import pytest # type: ignore
-from src.models.converter.converter import Converter
+from src.core.converter.converter import Converter
 
 
 @pytest.mark.parametrize(

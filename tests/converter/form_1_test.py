@@ -1,69 +1,101 @@
-import pytest # type: ignore
-from pathlib import Path
-from src.models.converter.repository import PreferencesManager, DEFAULT_CONTEXT
-from src.models.converter.formatter import OutputFormatter
-
-ROOT_PATH = Path("root") 
+from src.presentation.formatters.converter_output import OutputFormatter
+from src.application.dto.formatting_context import FormattingOutputDTO
 
 
-@pytest.fixture
-def prefs_manager():
-    prefs = PreferencesManager(ROOT_PATH)
-    prefs.set_preference("default", True)
-    return prefs
+def test_group_string_basic_cases():
+    f = OutputFormatter()
+    assert f._group_string("1234", 2) == "12 34"
+    assert f._group_string("12345", 2) == "1 23 45"
+    assert f._group_string("123456", 3) == "123 456"
+    assert f._group_string("1234567", 3) == "1 234 567"
 
+def test_group_string_disabled_grouping():
+    f = OutputFormatter()
+    assert f._group_string("123", 0) == "123"
+    assert f._group_string("123", -1) == "123"
 
-@pytest.fixture
-def formatter(prefs_manager):
-    return OutputFormatter(prefs_manager)
+def test_format_decimal_without_zero_pad():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=3, zero_pad=False)
+    result = f.format_decimal(12345, cfg)
+    assert result == "12 345"
 
-def test_decimal_group_size_3_no_padding(formatter):
-    context = {"group_size": 3, "zero_pad": False}
-    assert formatter.format("decimal", 1222333, context) == "1 222 333"
-    assert formatter.format("decimal", 22321210, context) == "22 321 210"
-    assert formatter.format("decimal", 333221212, context) == "333 221 212"
+def test_format_decimal_with_zero_pad_no_grouping():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=4, zero_pad=True)
+    result = f.format_decimal(123, cfg)
+    assert result == "0123"
 
-def test_decimal_group_size_4_zero_pad_false_small_number(formatter):
-    context = {"group_size": 4, "zero_pad": False}
-    assert formatter.format("decimal", 7, context) == "7"
-    assert formatter.format("decimal", 123, context) == "123"
-    assert formatter.format("decimal", 1232, context) == "1232"
-    assert formatter.format("decimal", 12322, context) == "1 2322"
+def test_format_decimal_with_zero_pad_and_grouping():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=3, zero_pad=True)
+    result = f.format_decimal(45, cfg)
+    assert result == "045"
 
-def test_decimal_group_size_4_zero_pad_true_small_number(formatter):
-    context = {"group_size": 4, "zero_pad": True}
-    assert formatter.format("decimal", 7, context) == "0007"
-    assert formatter.format("decimal", 123, context) == "0123"
+def test_format_decimal_group_size_disabled():
+    f = OutputFormatter()
+    cfg_zero = FormattingOutputDTO(group_size=0, zero_pad=True)
+    cfg_negative = FormattingOutputDTO(group_size=-1, zero_pad=True)
+    assert f.format_decimal(123, cfg_zero) == "123"
+    assert f.format_decimal(123, cfg_negative) == "123"
 
-def test_binary_group_size_4_zero_pad_true(formatter):
-    context = {"group_size": 4, "zero_pad": True}
-    assert formatter.format("binary", "11011001", context) == "1101 1001"
-    assert formatter.format("binary", "1011", context) == "1011"
-    assert formatter.format("binary", "101", context) == "0101" 
-def test_binary_group_size_4_zero_pad_false(formatter):
-    context = {"group_size": 4, "zero_pad": False}
-    assert formatter.format("binary", "11011001", context) == "1101 1001"
-    assert formatter.format("binary", "101", context) == "101"
+def test_format_binary_without_zero_pad():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=4, zero_pad=False)
+    result = f.format_binary("101011", cfg)
+    assert result == "10 1011"
 
-def test_binary_group_size_1_zero_pad_true(formatter):
-    context = {"group_size": 1, "zero_pad": True}
-    assert formatter.format("binary", "11011", context) == "1 1 0 1 1"
+def test_format_binary_with_zero_pad():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=4, zero_pad=True)
+    result = f.format_binary("101", cfg)
+    assert result == "0101"
 
-def test_binary_group_size_0(formatter):
-    context = {"group_size": 0, "zero_pad": True}
-    assert formatter.format("binary", "110110", context) == "110110"  # sem espaços, sem padding
+def test_format_binary_with_zero_pad_and_grouping():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=3, zero_pad=True)
+    result = f.format_binary("11", cfg)
+    assert result == "011"
 
-def test_hexBE_default(formatter):
-    data = bytes([0x0E, 0x00, 0xFF])
-    context = DEFAULT_CONTEXT["hexBE"]
-    assert formatter.format("hexBE", data, context) == "0E 00 FF"
+def test_format_binary_group_size_disabled():
+    f = OutputFormatter()
+    cfg_zero = FormattingOutputDTO(group_size=0, zero_pad=True)
+    cfg_negative = FormattingOutputDTO(group_size=-1, zero_pad=True)
+    assert f.format_binary("101", cfg_zero) == "101"
+    assert f.format_binary("101", cfg_negative) == "101"
 
-def test_hexLE_custom(formatter):
-    data = bytes([0x0E, 0x01])
-    context = {"group_size": 2, "zero_pad": True}
-    assert formatter.format("hexLE", data, context) == "0E 01"
+def test_format_hex_basic():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=2, zero_pad=False)
+    value = bytes([0xDE, 0xAD, 0xBE, 0xEF])
+    result = f.format_hex(value, cfg)
+    assert result == "DE AD BE EF"
 
-def test_hexBE_group_size_4_zero_pad(formatter):
-    data = bytes([0x0E])
-    context = {"group_size": 4, "zero_pad": True}
-    assert formatter.format("hexBE", data, context) == "000E"
+def test_format_hex_with_zero_pad_group_size_4():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=4, zero_pad=True)
+    value = bytes([0x0A, 0xF2, 0xAA])  # "0AF2AA"
+    result = f.format_hex(value, cfg)
+    assert result == "000A F2AA"
+
+def test_format_hex_with_zero_pad_and_grouping():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=3, zero_pad=True)
+    value = bytes([0x1])
+    result = f.format_hex(value, cfg)
+    assert result == "001"
+
+def test_format_hex_group_size_disabled():
+    f = OutputFormatter()
+    cfg_zero = FormattingOutputDTO(group_size=0, zero_pad=True)
+    cfg_negative = FormattingOutputDTO(group_size=-1, zero_pad=True)
+    value = bytes([0xFF])
+    assert f.format_hex(value, cfg_zero) == "FF"
+    assert f.format_hex(value, cfg_negative) == "FF"
+
+def test_formatter_is_stateless():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=2, zero_pad=True)
+    r1 = f.format_decimal(1, cfg)
+    r2 = f.format_decimal(1, cfg)
+    assert r1 == r2

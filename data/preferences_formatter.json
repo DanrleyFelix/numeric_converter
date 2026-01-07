@@ -1,0 +1,20 @@
+{
+    "formatters": {
+        "decimal": {
+            "group_size": 3,
+            "zero_pad": false
+        },
+        "binary": {
+            "group_size": 8,
+            "zero_pad": true
+        },
+        "hexBE": {
+            "group_size": 2,
+            "zero_pad": false
+        },
+        "hexLE": {
+            "group_size": 4,
+            "zero_pad": true
+        }
+    }
+}

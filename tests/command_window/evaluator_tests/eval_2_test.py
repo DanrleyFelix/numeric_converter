@@ -1,6 +1,6 @@
 import pytest # type: ignore
-from src.models.command_window.evaluator.apply_operator import apply_operator
-from src.models.command_window.evaluator.errors import DivisionByZeroError
+from src.core.command_window.evaluator.apply_operator import apply_operator
+from src.core.command_window.evaluator.errors import DivisionByZeroError
 
 @pytest.mark.parametrize("op,a,b,expected", [
     ("+", 1, 2, 3),

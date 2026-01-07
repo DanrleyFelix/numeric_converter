@@ -1,7 +1,8 @@
 import pytest # type: ignore
-from src.models.command_window.evaluator.assignment import AssignmentHandler
-from src.models.command_window.context import Context
-from src.models.command_window.tokenizer.token import Token, TokenType
+from src.application.use_cases.evaluator_use_case import EvaluatorUseCase
+from src.core.command_window.evaluator.evaluator import Evaluator
+from src.core.command_window.context import cmd_window_context
+from src.core.command_window.tokenizer.token import Token, TokenType
 
 
 def Tok(type, raw, value=None):
@@ -69,12 +70,12 @@ def Tok(type, raw, value=None):
     ]
 )
 def test_assignments_do_not_touch_ans(initial_vars, tokens, expected, updated_var):
-    ctx = Context()
+    ctx = cmd_window_context
     for k, v in initial_vars.items():
         ctx.set_variable(k, v)
 
-    handler = AssignmentHandler(ctx)
-
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
     result = handler.handle(tokens)
 
     assert result == expected
@@ -82,12 +83,13 @@ def test_assignments_do_not_touch_ans(initial_vars, tokens, expected, updated_va
     assert ctx.get_variable("ANS") == 0
 
 def test_expression_updates_ans_only():
-    ctx = Context()
+    ctx = cmd_window_context
     ctx.set_variable("a", 2)
     ctx.set_variable("b", 3)
     ctx.set_variable("c", 4)
 
-    handler = AssignmentHandler(ctx)
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.NUMBER, "2", 2),
@@ -131,13 +133,14 @@ def test_expression_updates_ans_only():
     assert ctx.get_variable("c") == 4
 
 def test_assignment_can_use_ans_but_does_not_modify_it():
-    ctx = Context()
+    ctx = cmd_window_context
     ctx.set_variable("a", 2)
     ctx.set_variable("b", 3)
     ctx.set_variable("c", 4)
     ctx.set_variable("ANS", 10)
 
-    handler = AssignmentHandler(ctx)
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.IDENTIFIER, "c"),
@@ -159,12 +162,13 @@ def test_assignment_can_use_ans_but_does_not_modify_it():
     assert ctx.get_variable("ANS") == 10
 
 def test_expression_using_ans():
-    ctx = Context()
+    ctx = cmd_window_context
     ctx.set_variable("a", 2)
     ctx.set_variable("b", 3)
     ctx.set_variable("ANS", 4)
 
-    handler = AssignmentHandler(ctx)
+    evaluator = Evaluator()
+    handler = EvaluatorUseCase(evaluator)
 
     tokens = [
         Tok(TokenType.NUMBER, "2", 2),

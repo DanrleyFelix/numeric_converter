@@ -1,0 +1,4 @@
+class COLOR:
+    SUCCESS = "#6AE899"
+    FAILED = "#ED4D4D"
+    INCOMPLETE = "#FFC222"

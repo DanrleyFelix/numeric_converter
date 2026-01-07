@@ -1,6 +1,6 @@
 import pytest  # type: ignore
-from src.models.command_window.evaluator.evaluator import Evaluator
-from src.models.command_window.tokenizer.token import TokenType, Token as T
+from src.core.command_window.evaluator.evaluator import Evaluator
+from src.core.command_window.tokenizer.token import TokenType, Token as T
 
 def Tok(type, raw, value=None):
     return T(type, raw, value) if value is not None else T(type, raw)

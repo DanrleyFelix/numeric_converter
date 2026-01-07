@@ -1,7 +1,7 @@
 import pytest #type: ignore
 
-from src.models.command_window.tokenizer.token import TokenType
-from src.models.command_window.tokenizer.tokenizer import Tokenizer, TokenizerError
+from src.core.command_window.tokenizer.token import TokenType
+from src.core.command_window.tokenizer.tokenizer import Tokenizer, TokenizerError
 
 @pytest.mark.parametrize("text, ops", [
     ("1+2", ["+"]),

@@ -1,5 +1,5 @@
-from src.models.command_window.evaluator.evaluator import Evaluator
-from src.models.command_window.tokenizer import Token, TokenType
+from src.core.command_window.evaluator.evaluator import Evaluator
+from src.core.command_window.tokenizer import Token, TokenType
 
 def T(t, raw, value=None):
     return Token(t, raw, value=value, position=0)

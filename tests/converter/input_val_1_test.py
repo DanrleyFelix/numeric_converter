@@ -1,5 +1,5 @@
 import pytest # type: ignore
-from src.models.converter.validator import NumericValidator
+from src.core.converter.validator import NumericValidator
 
 
 class TestNumericValidator:

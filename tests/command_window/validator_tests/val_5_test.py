@@ -1,10 +1,12 @@
 import pytest # type: ignore
-from src.models.command_window.validator.validator import ExpressionValidator, ValidationState
-from src.models.command_window.context import Context
+from src.core.command_window.validator.validator import ExpressionValidator, ValidationState
+from src.core.command_window.context import cmd_window_context
 
 
-def ctx():
-    return Context()
+@pytest.fixture(autouse=True)
+def clean_context():
+    ctx = cmd_window_context
+    ctx.clear_all()
 
 @pytest.mark.parametrize("text, should_pass", [
     ("value = 1", True),
@@ -44,10 +46,9 @@ def ctx():
     ("1value\t= 2", False),
     ("@value = 10", False)])
 def test_assignment_validation_general(text, should_pass):
-    ctx_obj = ctx()
     if should_pass:
-        state = ExpressionValidator.validate(text, ctx_obj)
+        state = ExpressionValidator.validate(text)
         assert state == ValidationState.ACCEPTABLE
     else:
         with pytest.raises(Exception):
-            ExpressionValidator.validate(text, ctx_obj)
+            ExpressionValidator.validate(text)
