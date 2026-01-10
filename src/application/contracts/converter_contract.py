@@ -14,7 +14,7 @@ class IConverterController(Protocol):
         pass
 
 
-class IConverterView(Protocol):
+class IConverterPresenter(Protocol):
 
     def on_user_input(self, from_type: str, raw_value: str) -> Optional[dict[str, str]]:
         pass

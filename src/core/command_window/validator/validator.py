@@ -23,6 +23,7 @@ from src.core.command_window.context import cmd_window_context
 class ValidationState:
     POTENTIALLY_INVALID = 0
     ACCEPTABLE = 1
+    is_error = False
 
 
 class ExpressionValidator:

@@ -33,7 +33,7 @@ class ICommandWindowController(Protocol):
         pass
 
 
-class ICommandWindowView(Protocol):
+class ICommandWindowPresenter(Protocol):
 
     def handle_typing(self, text: str) -> tuple[list[str], COLOR]:
         pass

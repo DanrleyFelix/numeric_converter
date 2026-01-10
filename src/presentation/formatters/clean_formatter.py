@@ -1,7 +1,7 @@
 from typing import Optional
 
 
-class InputFormatter:
+class CleanFormatter:
 
     @staticmethod
     def format(value: Optional[str]) -> str:
