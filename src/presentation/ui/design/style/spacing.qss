@@ -1,0 +1,21 @@
+QLabel {
+    padding: 8px 0 4px 6px;
+}
+
+
+QWidget#BaseConverter,
+QWidget#LogPanel,
+QWidget#Expression, 
+QWidget#VirtualKeyboard {
+    padding: 20px 0 20px 0;
+
+}
+
+QLineEdit#ConverterInput,  QPlainTextEdit#ExpressionInput{
+    padding: 12px 12px 12px 12px;
+}
+
+QLabel#WidgetTitle, QLabel#WidgetTitleLog {
+    padding: 25px 40px 25px 40px;
+}
+

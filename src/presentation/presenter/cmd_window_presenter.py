@@ -57,18 +57,18 @@ class CommandWindowPresenter:
             color = COLOR.SUCCESS if validation_state else COLOR.INCOMPLETE
             return CommandRenderResultDTO(lines=[new_text], color=color)
 
-        except Exception:
+        except Exception as error_name:
             if pasted:
                 self._active_line = new_text
                 self._last_validation_state = False
-                return CommandRenderResultDTO(lines=[new_text], color=COLOR.FAILED)
+                return CommandRenderResultDTO(lines=[new_text], color=COLOR.FAILED, message=error_name)
 
             if self._active_line:
                 self._undo_stack.append(self._active_line)
                 self._active_line = self._active_line[:-1]
 
             self._last_validation_state = False
-            return CommandRenderResultDTO(lines=[self._active_line], color=COLOR.FAILED)
+            return CommandRenderResultDTO(lines=[self._active_line], color=COLOR.FAILED, message=error_name)
 
     def on_enter(self) -> CommandRenderResultDTO:
         try:
@@ -95,7 +95,7 @@ class CommandWindowPresenter:
             self._append_limited(self._log, CommandLogEntryDTO(input=self.active_line, success=True, message=None, result=self._last_result_raw), Limit.MAX_LOG)
             return CommandRenderResultDTO(
                 lines=[self._active_line, str(e)],
-                color=COLOR.FAILED)
+                color=COLOR.FAILED, message=e)
 
     def undo(self) -> None:
         if not self._undo_stack:

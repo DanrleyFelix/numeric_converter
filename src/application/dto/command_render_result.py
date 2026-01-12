@@ -6,3 +6,4 @@ from src.modules.utils import COLOR
 class CommandRenderResultDTO:
     lines: list[str]
     color: COLOR
+    message: str | None = None
