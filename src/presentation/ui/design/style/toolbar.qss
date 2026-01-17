@@ -1,0 +1,15 @@
+QFrame#toolbar {
+    background-color: $bg-toolbar;
+}
+
+QToolButton {
+    background-color: transparent;
+    border: none;
+    font-family: $font-base;
+    font-size: $fs-tb-md;
+    color: $text-main;
+}
+
+QToolButton:hover {
+    background-color: $bg-toolbar-button-hover;
+}

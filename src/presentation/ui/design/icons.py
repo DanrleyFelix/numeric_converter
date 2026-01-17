@@ -4,7 +4,7 @@ class Icons:
 
     @staticmethod
     def numeric_workbench():
-        return qta.icon("fa5s.project-diagram", color="#466cc3")
+        return qta.icon("fa5s.project-diagram", color="#357A58")
 
     @staticmethod
     def calculator():
@@ -16,11 +16,11 @@ class Icons:
 
     @staticmethod
     def binary():
-        return qta.icon("fa5.code-branch", color="#466cc3")
+        return qta.icon("fa5s.code-branch", color="#466cc3")
 
     @staticmethod
     def hexadecimal():
-        return qta.icon("fa5.superscript", color="#466cc3")
+        return qta.icon("fa5s.superscript", color="#466cc3")
 
     @staticmethod
     def command_window():

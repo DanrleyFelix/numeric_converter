@@ -1,0 +1,16 @@
+/* tokens already applied */
+
+@import "toolbar.qss";
+@import "body.qss";
+@import "footer.qss";
+
+
+/* reset */
+QWidget {
+    font-family: $font-base;
+    color: $text-main;
+}
+
+QWidget#main-window {
+    background-color: $bg-main;
+}

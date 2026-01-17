@@ -1,0 +1,95 @@
+/* ===============================
+   COLORS — BACKGROUNDS
+   =============================== */
+$bg-main:                 #0F0F19;
+$bg-header:               #171726;
+$bg-toolbar:              #2b2b41;
+$bg-input:                #0F0F1E;
+$bg-panel:                #1A1A27;
+$bg-button:               #0F0F19;
+$bg-button-pressed:       #ff303b80;
+$bg-button-hover:         #26264b;
+$bg-toolbar-button-hover: #373765; 
+$bg-button-enter:         #803232; 
+$bg-button-enter-hover:   #9c3636;
+$bg-button-enter-pressed: #c44c4c;
+$bg-button-log:           #a37b2c;
+$bg-button-log-hover:     #bc9731;
+$bg-button-log-pressed:   #cba848;
+$bg-button-clear:         #3f7a42;
+$bg-button-clear-hover:   #408b43;
+$bg-button-clear-pressed: #54ac57;
+
+/* ===============================
+   BORDER-COLORS 
+   ===============================*/
+$border:                  #133874;
+$border-hover:            #214b90;
+$border-focus:            #2e58a6;
+
+/* ===============================
+   COLORS — TEXT
+   =============================== */
+$text-main:               #EAEAF5;
+$text-muted:              #B5B5C5;
+
+/* ===============================
+   COLORS — ACCENTS
+   =============================== */
+$accent-clear:            #4D7640;
+$accent-log:              #A8802A;
+$accent-icon:             #37A35C;
+$accent-stroke:           #224A8A;
+
+/* ===============================
+   FONTS
+   =============================== */
+$font-header: "Share Tech Mono";
+$font-base:   "Share Tech";
+
+/* ===============================
+   FONT WEIGHTS
+   =============================== */
+$fw-regular: 400;
+$fw-semibold: 600;
+
+/* ===============================
+   FONT SIZES — TOOLBAR
+   =============================== */
+$fs-tb-sm: 14px;
+$fs-tb-md: 16px;
+$fs-tb-lg: 18px;
+
+/* ===============================
+   FONT SIZES — MAIN LABELS
+   =============================== */
+$fs-ml-sm: 18px;
+$fs-ml-md: 20px;
+$fs-ml-lg: 24px;
+
+/* ===============================
+   FONT SIZES — CONTENT
+   =============================== */
+$fs-c-sm: 14px;
+$fs-c-md: 16px;
+$fs-c-lg: 18px;
+
+/* ===============================
+   FONT SIZES — BUTTONS
+   =============================== */
+$fs-btn-sm: 16px;
+$fs-btn-lg: 18px;
+
+/* ===============================
+   FONT SIZES — FOOTER
+   =============================== */
+$fs-ft-sm: 12px;
+$fs-ft-md: 14px;
+$fs-ft-lg: 16px;
+
+/* ===============================
+   RADIUS
+   =============================== */
+$r-sm: 8px;
+$r-md: 16px;
+$r-lg: 24px;

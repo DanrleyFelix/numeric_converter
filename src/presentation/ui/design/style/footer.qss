@@ -1,0 +1,5 @@
+QLabel#footer-text {
+    font-family: $font-base;
+    font-size: $fs-ft-sm;
+    color: $text-muted;
+}
