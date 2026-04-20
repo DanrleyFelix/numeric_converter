@@ -13,7 +13,7 @@ class Toolbar(QFrame):
         self.setObjectName("toolbar")
         self.setFixedHeight(32)
 
-        for text in ("File", "Preferences", "Language", "Help"):
+        for text in ("File", "Preferences", "Help"):
             btn = QToolButton()
             btn.setText(text)
             btn.setObjectName(text.lower())

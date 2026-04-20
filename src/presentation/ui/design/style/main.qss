@@ -3,6 +3,7 @@
 @import "toolbar.qss";
 @import "body.qss";
 @import "footer.qss";
+@import "scrollbar.qss";
 
 
 /* reset */

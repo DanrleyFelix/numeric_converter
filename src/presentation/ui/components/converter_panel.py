@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QFrame, QFormLayout, QLabel, QPlainTextEdit
+from PySide6.QtWidgets import (
+    QFrame, QVBoxLayout, QHBoxLayout,
+    QLabel, QPlainTextEdit
+)
 from PySide6.QtCore import Qt
 
 
@@ -6,15 +9,22 @@ class ConverterPanel(QFrame):
     def __init__(self):
         super().__init__()
 
-        form = QFormLayout(self)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setHorizontalSpacing(20)
-        form.setVerticalSpacing(20)
-        for text in ("Decimal", "Binary", "Hex (BE)", "Hex (LE)"):
-            inp = QPlainTextEdit()
-            lab = QLabel(text)
-            inp.setMinimumHeight(40)
-            form.addRow(lab, inp)
-            form.setSpacing(12)
-        form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        main = QVBoxLayout(self)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(20)
 
+        for text in ("Decimal", "Binary", "Hex (BE)", "Hex (LE)"):
+            row = QHBoxLayout()
+            row.setSpacing(20)
+
+            lab = QLabel(text)
+            lab.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            lab.setFixedWidth(90)
+
+            inp = QPlainTextEdit()
+            inp.setMinimumHeight(40)
+
+            row.addWidget(lab)
+            row.addWidget(inp, 1)
+
+            main.addLayout(row)

@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
-from PySide6.QtCore import Qt
 
 from src.presentation.ui.components import Toolbar, Body, Footer, KeyPanel
 from src.presentation.ui.helpers.load_qss import STYLESHEET
@@ -11,7 +10,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setMinimumSize(600, 500)
+        self.setMinimumSize(670, 640)
         self.setWindowTitle("Numeric WorkBench")
         self.setWindowIcon(Icons.hexadecimal())
 
@@ -35,3 +34,4 @@ class MainWindow(QMainWindow):
         layout.addStretch()
         central.setObjectName("main-window")
         self.setStyleSheet(STYLESHEET)
+

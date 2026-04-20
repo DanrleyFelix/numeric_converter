@@ -1,0 +1,72 @@
+QPlainTextEdit {
+    padding-right: 8px;
+    padding-bottom: 6px;
+}
+
+QPlainTextEdit QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 6px 6px 6px 0px;   
+}
+
+QPlainTextEdit QScrollBar::handle:vertical {
+    background: rgba(19, 56, 116, 0.80);
+    border-radius: 12px;
+    min-height: 30px;
+}
+
+QPlainTextEdit QScrollBar::handle:vertical:hover {
+    background: rgba(33, 75, 144, 0.95);
+}
+
+QPlainTextEdit QScrollBar::add-page:vertical,
+QPlainTextEdit QScrollBar::sub-page:vertical {
+    background: rgba(15, 15, 25, 0.35);
+    border-radius: 12px;
+}
+
+QPlainTextEdit QScrollBar::add-line:vertical,
+QPlainTextEdit QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: transparent;
+    border: none;
+}
+
+QPlainTextEdit QScrollBar::up-arrow:vertical,
+QPlainTextEdit QScrollBar::down-arrow:vertical {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+QPlainTextEdit QScrollBar:horizontal {
+    background: transparent;
+    height: 10px;
+    margin: 0px 6px 6px 6px;
+}
+
+QPlainTextEdit QScrollBar::handle:horizontal {
+    background: rgba(19, 56, 116, 0.80);
+    border-radius: 12px;
+    min-width: 30px;
+}
+
+QPlainTextEdit QScrollBar::handle:horizontal:hover {
+    background: rgba(33, 75, 144, 0.95);
+}
+
+QPlainTextEdit QScrollBar::add-page:horizontal,
+QPlainTextEdit QScrollBar::sub-page:horizontal {
+    background: rgba(15, 15, 25, 0.35);
+    border-radius: 12px;
+}
+
+QPlainTextEdit QScrollBar::add-line:horizontal,
+QPlainTextEdit QScrollBar::sub-line:horizontal,
+QPlainTextEdit QScrollBar::left-arrow:horizontal,
+QPlainTextEdit QScrollBar::right-arrow:horizontal {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+    border: none;
+}
