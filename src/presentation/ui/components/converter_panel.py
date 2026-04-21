@@ -47,7 +47,10 @@ class ConverterInputEdit(QPlainTextEdit):
             return
 
         text = event.text()
-        if text and not event.modifiers():
+        if text and event.modifiers() in (
+            Qt.KeyboardModifier.NoModifier,
+            Qt.KeyboardModifier.KeypadModifier,
+        ):
             self._append_text(text)
             event.accept()
             return

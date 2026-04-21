@@ -1,15 +1,16 @@
 from pathlib import Path
 
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QMainWindow, QVBoxLayout, QWidget
 
-from src.application.dto import ApplicationContextDTO, ConverterStateDTO, FormattingOutputDTO
+from src.application.dto import ApplicationContextDTO, ConverterStateDTO
 from src.application.services.formating_preferences import FormattingPreferencesService
 from src.application.services.workspace_state_service import WorkspaceStateService
 from src.modules.utils import COLOR
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter
 from src.presentation.ui.components import Body, Footer, KeyPanel, Toolbar
+from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import PreferencesDialog
 from src.presentation.ui.design.icons import Icons
 from src.presentation.ui.helpers.load_qss import STYLESHEET
@@ -29,6 +30,7 @@ class MainWindow(QMainWindow):
         self._command_presenter = command_presenter
         self._state_service = state_service
         self._preferences_service = preferences_service
+        self._help_window: HelpWindow | None = None
         self._syncing_converter = False
         self._syncing_command = False
         self._loaded = False
@@ -84,7 +86,7 @@ class MainWindow(QMainWindow):
         self.toolbar.converter_preferences_action.triggered.connect(self._open_preferences)
         self.toolbar.toggle_key_panel_action.toggled.connect(self.key_panel.setVisible)
         self.toolbar.toggle_key_panel_action.toggled.connect(lambda _: self._autosave_state())
-        self.toolbar.about_action.triggered.connect(self._show_about)
+        self.toolbar.help_button.clicked.connect(self._open_help)
 
     def _load_default_state(self) -> None:
         context = self._state_service.load_default_context()
@@ -127,10 +129,8 @@ class MainWindow(QMainWindow):
         message = result.message
         if message is None:
             message = "Expression ready." if result.color == COLOR.SUCCESS else "Expression incomplete."
-        self.body.command_panel.set_feedback(
-            message,
-            result.color,
-        )
+
+        self.body.command_panel.set_feedback(message, result.color)
         self._refresh_command_completions()
         self._autosave_state()
 
@@ -147,6 +147,10 @@ class MainWindow(QMainWindow):
             result.message or "Expression incomplete.",
             result.color,
         )
+
+        if result.color == COLOR.SUCCESS and self.body.command_panel.convert_enabled():
+            self._convert_command_result()
+
         self._refresh_command_completions()
         self._autosave_state()
 
@@ -183,6 +187,26 @@ class MainWindow(QMainWindow):
             self.body.command_panel.set_input_text(current + insertion)
         self._syncing_command = False
         self._on_command_text_changed()
+
+    def _convert_command_result(self) -> None:
+        raw_result = self._command_presenter.copy_raw()
+        if raw_result is None or not raw_result.isdigit():
+            self.footer.set_status(
+                "Convert toggle accepts only non-negative integer results.",
+                COLOR.INCOMPLETE,
+            )
+            return
+
+        output = self._converter_presenter.on_user_input("decimal", raw_result)
+        if output is None:
+            self.footer.set_status(
+                self._converter_presenter.last_error_message or "Unable to convert command result.",
+                COLOR.FAILED,
+            )
+            return
+
+        self._render_converter(output)
+        self.footer.set_status("Command result sent to converter.", COLOR.SUCCESS)
 
     def _save_context(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
@@ -246,7 +270,7 @@ class MainWindow(QMainWindow):
             key_panel_visible=self.key_panel.isVisible(),
             parent=self,
         )
-        if dialog.exec() != PreferencesDialog.Accepted:
+        if dialog.exec() != dialog.DialogCode.Accepted:
             return
 
         formatting = dialog.selected_formatting()
@@ -263,12 +287,17 @@ class MainWindow(QMainWindow):
         self.footer.set_status("Preferences updated.", COLOR.SUCCESS)
         self._autosave_state()
 
-    def _show_about(self) -> None:
-        QMessageBox.information(
-            self,
-            "About Numeric WorkBench",
-            "Numeric WorkBench stores variables as context and command results as logs.",
-        )
+    def _open_help(self) -> None:
+        if self._help_window is None:
+            self._help_window = HelpWindow(self)
+            self._help_window.destroyed.connect(lambda *_: self._clear_help_window())
+
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
+
+    def _clear_help_window(self) -> None:
+        self._help_window = None
 
     def _collect_context(self) -> ApplicationContextDTO:
         return ApplicationContextDTO(
@@ -291,10 +320,11 @@ class MainWindow(QMainWindow):
             self.body.command_panel.set_input_text(context.command.active_line)
         self._syncing_command = False
 
-        if context.converter.fields.get(context.converter.from_type):
+        source_value = context.converter.fields.get(context.converter.from_type, "")
+        if source_value:
             output = self._converter_presenter.on_user_input(
                 context.converter.from_type,
-                context.converter.fields[context.converter.from_type],
+                source_value,
             )
             if output is not None:
                 self._render_converter(output)
@@ -323,12 +353,12 @@ class MainWindow(QMainWindow):
     def _map_key_panel_input(self, key: str) -> str:
         if key == "x":
             return "*"
-        if key == "÷":
+        if key in {"÷", "/"}:
             return "/"
         if key in {"NOT", "AND", "OR", "XOR"}:
-            prefix = "" if not self._command_presenter.active_line or self._command_presenter.active_line.endswith((" ", "(")) else " "
-            suffix = " "
-            return f"{prefix}{key}{suffix}"
+            active_line = self._command_presenter.active_line
+            prefix = "" if not active_line or active_line.endswith((" ", "(")) else " "
+            return f"{prefix}{key} "
         return key
 
     def _autosave_state(self) -> None:

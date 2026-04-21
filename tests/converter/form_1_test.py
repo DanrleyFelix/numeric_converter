@@ -64,6 +64,11 @@ def test_format_binary_group_size_disabled():
     assert f.format_binary("101", cfg_zero) == "101"
     assert f.format_binary("101", cfg_negative) == "101"
 
+def test_prepare_binary_input_applies_zero_pad_before_conversion():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=8, zero_pad=True)
+    assert f.prepare_binary_input("101", cfg) == "00000101"
+
 def test_format_hex_basic():
     f = OutputFormatter()
     cfg = FormattingOutputDTO(group_size=2, zero_pad=False)
@@ -92,6 +97,18 @@ def test_format_hex_group_size_disabled():
     value = bytes([0xFF])
     assert f.format_hex(value, cfg_zero) == "FF"
     assert f.format_hex(value, cfg_negative) == "FF"
+
+def test_prepare_hex_input_completes_missing_half_byte():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=0, zero_pad=False)
+    assert f.prepare_hex_input("ABC", cfg) == "0ABC"
+
+def test_prepare_hex_input_keeps_raw_typing_stable_with_zero_pad():
+    f = OutputFormatter()
+    cfg = FormattingOutputDTO(group_size=4, zero_pad=True)
+    assert f.prepare_hex_input("45", cfg) == "0045"
+    assert f.prepare_hex_input("454", cfg) == "0454"
+    assert f.prepare_hex_input("4546", cfg) == "4546"
 
 def test_formatter_is_stateless():
     f = OutputFormatter()

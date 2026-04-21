@@ -1,4 +1,4 @@
-QFrame#body{
+QFrame#body {
     background-color: $bg-panel;
     border-radius: $r-md;
 }
@@ -16,12 +16,17 @@ QPlainTextEdit {
     font-family: $font-base;
     font-size: $fs-c-md;
     color: $text-main;
-}
-
-QPlainTextEdit{
     padding-top: 4px;
     padding-left: 8px;
     padding-right: 8px;
+}
+
+QPlainTextEdit:hover {
+    border: 1px solid $border-hover;
+}
+
+QPlainTextEdit:focus {
+    border: 1px solid $border-focus;
 }
 
 QLabel#command-title {
@@ -38,13 +43,34 @@ QLabel#command-feedback {
     padding-left: 2px;
 }
 
-QPlainTextEdit#command-editor { padding-top: 8px; }
+QPushButton#command-convert-toggle {
+    min-width: 96px;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background-color: $bg-button;
+    border: 1px solid $border;
+    color: $text-muted;
+}
 
-QWidget#cmd-prompt-area { background: transparent; }
+QPushButton#command-convert-toggle:hover {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+}
 
-QPlainTextEdit:hover { border: 1px solid $border-hover; }
+QPushButton#command-convert-toggle:checked {
+    background-color: rgba(106, 232, 153, 0.12);
+    border: 1px solid $accent-icon;
+    color: $text-main;
+}
 
-QPlainTextEdit:focus { border: 1px solid $border-focus; }
+QPlainTextEdit#command-editor {
+    padding-top: 8px;
+}
+
+QWidget#cmd-prompt-area {
+    background: transparent;
+}
 
 QTabWidget#command-tabs::pane {
     border: 1px solid $border;
@@ -70,8 +96,23 @@ QTabBar::tab:!selected {
     margin-top: 2px;
 }
 
-QDialog#preferences-dialog {
+QDialog#preferences-dialog,
+QDialog#help-window {
     background-color: $bg-panel;
+}
+
+QLabel#preferences-title,
+QLabel#help-title {
+    font-size: 24px;
+    font-weight: $fw-semibold;
+    color: $text-main;
+}
+
+QLabel#preferences-subtitle,
+QLabel#help-subtitle,
+QLabel#help-page-indicator {
+    font-size: $fs-c-md;
+    color: $text-muted;
 }
 
 QSpinBox {
@@ -101,20 +142,61 @@ QCheckBox::indicator {
 }
 
 QCheckBox::indicator:checked {
-    background-color: $bg-toolbar-button-hover;
-    border: 1px solid $border-focus;
+    background-color: rgba(106, 232, 153, 0.12);
+    border: 1px solid $accent-icon;
 }
 
-QListView#command-completer {
+QPushButton#preferences-ok,
+QPushButton#preferences-cancel,
+QPushButton#help-nav-button {
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+}
+
+QPushButton#preferences-ok {
+    background-color: $bg-button-clear;
+}
+
+QPushButton#preferences-ok:hover {
+    background-color: $bg-button-clear-hover;
+}
+
+QPushButton#preferences-cancel {
+    background-color: $bg-button;
+}
+
+QPushButton#preferences-cancel:hover,
+QPushButton#help-nav-button:hover {
+    background-color: $bg-toolbar-button-hover;
+}
+
+QListView#command-completer,
+QListWidget#help-nav {
     background-color: $bg-panel;
     border: 1px solid $border;
     color: $text-main;
     padding: 4px;
+    border-radius: 12px;
 }
 
-QListView#command-completer::item:selected {
+QListView#command-completer::item:selected,
+QListWidget#help-nav::item:selected {
     background-color: $bg-toolbar-button-hover;
     border-radius: $r-sm;
+}
+
+QListWidget#help-nav::item {
+    padding: 10px 12px;
+    margin: 2px 0;
+    border-radius: 10px;
+}
+
+QTextBrowser#help-page {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    border-radius: 16px;
+    padding: 4px;
 }
 
 QFrame#key-panel {
@@ -131,24 +213,46 @@ QPushButton {
     border-radius: $r-sm;
 }
 
-QPushButton#log { background-color: $bg-button-log; }
+QPushButton#log {
+    background-color: $bg-button-log;
+}
 
-QPushButton#clear { background-color: $bg-button-clear; }
+QPushButton#clear {
+    background-color: $bg-button-clear;
+}
 
-QPushButton#enter { background-color: $bg-button-enter; }
+QPushButton#enter {
+    background-color: $bg-button-enter;
+}
 
-QPushButton:hover { background-color: $bg-button-hover; }
+QPushButton:hover {
+    background-color: $bg-button-hover;
+}
 
-QPushButton#clear:hover { background-color: $bg-button-clear-hover; }
+QPushButton#clear:hover {
+    background-color: $bg-button-clear-hover;
+}
 
-QPushButton#clear:pressed { background-color: $bg-button-clear-pressed; }
+QPushButton#clear:pressed {
+    background-color: $bg-button-clear-pressed;
+}
 
-QPushButton#log:hover { background-color: $bg-button-log-hover; }
+QPushButton#log:hover {
+    background-color: $bg-button-log-hover;
+}
 
-QPushButton#log:pressed { background-color: $bg-button-log-pressed; }
+QPushButton#log:pressed {
+    background-color: $bg-button-log-pressed;
+}
 
-QPushButton#enter:hover { background-color: $bg-button-enter-hover; }
+QPushButton#enter:hover {
+    background-color: $bg-button-enter-hover;
+}
 
-QPushButton#enter:pressed { background-color: $bg-button-enter-pressed; }
+QPushButton#enter:pressed {
+    background-color: $bg-button-enter-pressed;
+}
 
-QPushButton:pressed { background-color: $bg-button-pressed; }
+QPushButton:pressed {
+    background-color: $bg-button-pressed;
+}

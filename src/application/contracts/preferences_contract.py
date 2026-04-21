@@ -4,6 +4,27 @@ from src.application.dto.formatting_context import FormattingOutputDTO
 
 class IOutputFormatter(Protocol):
 
+    def prepare_decimal_input(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        pass
+
+    def prepare_binary_input(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        pass
+
+    def prepare_hex_input(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        pass
+
     def format_decimal(
         self,
         value: int,

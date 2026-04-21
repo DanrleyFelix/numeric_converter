@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QGridLayout,
     QLabel,
+    QPushButton,
     QSpinBox,
     QVBoxLayout,
 )
@@ -24,16 +25,30 @@ class PreferencesDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle("Preferences")
         self.setModal(True)
+        self.setMinimumSize(620, 430)
 
         self._group_boxes: dict[str, QSpinBox] = {}
         self._zero_pad_boxes: dict[str, QCheckBox] = {}
 
         layout = QVBoxLayout(self)
-        title = QLabel("Converter Formatting")
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+
+        title = QLabel("Preferences")
         title.setObjectName("preferences-title")
         layout.addWidget(title)
 
+        subtitle = QLabel("Configure grouping, zero padding and visibility options.")
+        subtitle.setObjectName("preferences-subtitle")
+        layout.addWidget(subtitle)
+
         grid = QGridLayout()
+        grid.setHorizontalSpacing(18)
+        grid.setVerticalSpacing(16)
+        grid.setColumnStretch(0, 2)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 1)
+
         grid.addWidget(QLabel("Field"), 0, 0)
         grid.addWidget(QLabel("Group Size"), 0, 1)
         grid.addWidget(QLabel("Zero Pad"), 0, 2)
@@ -59,15 +74,31 @@ class PreferencesDialog(QDialog):
 
             grid.addWidget(QLabel(label_text), row, 0)
             grid.addWidget(group_size, row, 1)
-            grid.addWidget(zero_pad, row, 2)
+            grid.addWidget(zero_pad, row, 2, Qt.AlignLeft)
 
         layout.addLayout(grid)
 
         self.key_panel_checkbox = QCheckBox("Show Key Panel")
         self.key_panel_checkbox.setChecked(key_panel_visible)
+        self.key_panel_checkbox.setObjectName("preferences-key-panel")
         layout.addWidget(self.key_panel_checkbox)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        if buttons.layout() is not None:
+            buttons.layout().setSpacing(12)
+        ok_button = buttons.button(QDialogButtonBox.Ok)
+        cancel_button = buttons.button(QDialogButtonBox.Cancel)
+
+        for button in (ok_button, cancel_button):
+            if isinstance(button, QPushButton):
+                button.setMinimumWidth(140)
+                button.setMinimumHeight(38)
+
+        if isinstance(ok_button, QPushButton):
+            ok_button.setObjectName("preferences-ok")
+        if isinstance(cancel_button, QPushButton):
+            cancel_button.setObjectName("preferences-cancel")
+
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

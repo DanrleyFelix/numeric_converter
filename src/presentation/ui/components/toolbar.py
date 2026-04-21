@@ -1,5 +1,8 @@
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QHBoxLayout, QFrame, QMenu, QToolButton
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QToolButton
+
+from src.presentation.ui.design.icons import Icons
 
 
 class Toolbar(QFrame):
@@ -8,52 +11,68 @@ class Toolbar(QFrame):
         super().__init__()
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 20, 0)
-        layout.setSpacing(0)
+        layout.setContentsMargins(10, 2, 16, 2)
+        layout.setSpacing(4)
         self.setObjectName("toolbar")
-        self.setFixedHeight(32)
+        self.setFixedHeight(40)
 
         self.save_context_action = QAction("Save Context", self)
         self.load_context_action = QAction("Load Context", self)
         self.save_log_action = QAction("Save Log", self)
         self.load_log_action = QAction("Load Log", self)
 
-        self.converter_preferences_action = QAction("Converter Preferences", self)
+        self.converter_preferences_action = QAction("Converter", self)
         self.toggle_key_panel_action = QAction("Show Key Panel", self)
         self.toggle_key_panel_action.setCheckable(True)
         self.toggle_key_panel_action.setChecked(True)
 
-        self.about_action = QAction("About", self)
-
         file_menu = QMenu(self)
         file_menu.addAction(self.save_context_action)
         file_menu.addAction(self.load_context_action)
-        file_menu.addSeparator()
         file_menu.addAction(self.save_log_action)
         file_menu.addAction(self.load_log_action)
 
         preferences_menu = QMenu(self)
         preferences_menu.addAction(self.converter_preferences_action)
-        preferences_menu.addSeparator()
         preferences_menu.addAction(self.toggle_key_panel_action)
 
-        help_menu = QMenu(self)
-        help_menu.addAction(self.about_action)
-
-        layout.addWidget(self._build_menu_button("File", "file", file_menu))
-        layout.addWidget(
-            self._build_menu_button("Preferences", "preferences", preferences_menu)
+        self.file_button = self._build_menu_button("File", "file", Icons.file(), file_menu)
+        self.preferences_button = self._build_menu_button(
+            "Preferences",
+            "preferences",
+            Icons.preferences(),
+            preferences_menu,
         )
-        layout.addWidget(self._build_menu_button("Help", "help", help_menu))
+        self.help_button = self._build_action_button("Help", "help", Icons.help())
+
+        layout.addWidget(self.file_button)
+        layout.addWidget(self.preferences_button)
+        layout.addWidget(self.help_button)
         layout.addStretch()
 
-    def _build_menu_button(self, text: str, object_name: str, menu: QMenu) -> QToolButton:
-        button = QToolButton()
-        button.setText(text)
-        button.setObjectName(object_name)
-        button.setMinimumHeight(32)
-        button.setMinimumWidth(120)
-        button.setAutoRaise(True)
+    def _build_menu_button(
+        self,
+        text: str,
+        object_name: str,
+        icon,
+        menu: QMenu,
+    ) -> QToolButton:
+        button = self._build_base_button(text, object_name, icon)
         button.setPopupMode(QToolButton.InstantPopup)
         button.setMenu(menu)
+        return button
+
+    def _build_action_button(self, text: str, object_name: str, icon) -> QToolButton:
+        return self._build_base_button(text, object_name, icon)
+
+    def _build_base_button(self, text: str, object_name: str, icon) -> QToolButton:
+        button = QToolButton()
+        button.setText(text)
+        button.setIcon(icon)
+        button.setObjectName(object_name)
+        button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        button.setMinimumHeight(32)
+        button.setMinimumWidth(126)
+        button.setAutoRaise(True)
+        button.setCursor(Qt.PointingHandCursor)
         return button

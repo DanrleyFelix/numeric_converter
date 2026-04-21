@@ -1,5 +1,6 @@
 import qtawesome as qta
 
+
 class Icons:
 
     @staticmethod
@@ -25,5 +26,15 @@ class Icons:
     @staticmethod
     def command_window():
         return qta.icon("fa5s.terminal", color="#466cc3")
-    
-    
+
+    @staticmethod
+    def file():
+        return qta.icon("fa5s.folder-open", color="#EAEAF5")
+
+    @staticmethod
+    def preferences():
+        return qta.icon("fa5s.sliders-h", color="#EAEAF5")
+
+    @staticmethod
+    def help():
+        return qta.icon("fa5s.book-open", color="#EAEAF5")

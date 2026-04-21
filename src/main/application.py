@@ -33,6 +33,7 @@ def create_main_window(root: Path | None = None) -> MainWindow:
             formatting=preferences_service.get_format(),
         ),
         formatter=formatter,
+        initial_formatting=preferences_service.get_format(),
     )
     command_presenter = CommandWindowPresenter(
         controller=CommandWindowController(

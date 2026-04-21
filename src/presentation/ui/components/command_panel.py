@@ -3,9 +3,11 @@ from PySide6.QtGui import QKeyEvent, QPainter, QTextCursor
 from PySide6.QtWidgets import (
     QCompleter,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QListView,
     QPlainTextEdit,
+    QPushButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -184,8 +186,21 @@ class CommandPanel(QFrame):
         self.tabs.addTab(self.history_view, "History")
         self.tabs.addTab(self.log_view, "Log")
 
+        feedback_row = QHBoxLayout()
+        feedback_row.setContentsMargins(0, 0, 0, 0)
+        feedback_row.setSpacing(10)
+
         self.feedback = QLabel("Type an expression and press Enter.")
         self.feedback.setObjectName("command-feedback")
+
+        self.convert_toggle = QPushButton("Convert")
+        self.convert_toggle.setObjectName("command-convert-toggle")
+        self.convert_toggle.setCheckable(True)
+        self.convert_toggle.setChecked(False)
+        self.convert_toggle.setCursor(Qt.PointingHandCursor)
+
+        feedback_row.addWidget(self.feedback, 1)
+        feedback_row.addWidget(self.convert_toggle, 0, Qt.AlignRight)
 
         self.editor = CommandEdit()
         self.editor.setObjectName("command-editor")
@@ -193,7 +208,7 @@ class CommandPanel(QFrame):
 
         layout.addWidget(title)
         layout.addWidget(self.tabs, 1)
-        layout.addWidget(self.feedback)
+        layout.addLayout(feedback_row)
         layout.addWidget(self.editor)
 
     def set_input_text(self, value: str) -> None:
@@ -207,6 +222,9 @@ class CommandPanel(QFrame):
 
     def set_completions(self, values: list[str]) -> None:
         self.editor.set_completions(values)
+
+    def convert_enabled(self) -> bool:
+        return self.convert_toggle.isChecked()
 
     def current_tab_name(self) -> str:
         return "history" if self.tabs.currentWidget() is self.history_view else "log"
@@ -226,10 +244,13 @@ class CommandPanel(QFrame):
     def render_log(self, entries: list[CommandLogEntryDTO]) -> None:
         lines: list[str] = []
         for entry in entries:
-            status = "OK" if entry.success else "ERROR"
-            suffix = f" -> {entry.result}" if entry.result is not None else ""
-            message = f" ({entry.message})" if entry.message else ""
-            lines.append(f"[{status}] {entry.input}{suffix}{message}")
+            if entry.success:
+                result = "" if entry.result is None else str(entry.result)
+                lines.append(f"{entry.input} -> {result}".rstrip())
+                continue
+
+            detail = entry.message or "Invalid expression."
+            lines.append(f"{entry.input} -> {detail}")
         self.log_view.setPlainText("\n".join(lines))
 
     def set_feedback(self, message: str, color: str) -> None:
