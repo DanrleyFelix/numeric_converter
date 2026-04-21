@@ -238,10 +238,10 @@ class CommandPanel(QFrame):
     def render_history(self, entries: list[CommandEntryDTO]) -> None:
         lines: list[str] = []
         for entry in entries:
-            lines.append(entry.input)
             if entry.output:
-                lines.append(entry.output)
-            lines.append("")
+                lines.append(f"{entry.input} => {entry.output}")
+            else:
+                lines.append(entry.input)
         self.history_view.setPlainText("\n".join(lines).strip())
 
     def render_log(self, entries: list[CommandLogEntryDTO]) -> None:

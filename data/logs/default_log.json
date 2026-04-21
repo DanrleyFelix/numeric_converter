@@ -1,22 +1,10 @@
 {
     "entries": [
         {
-            "input": "x=5665+58*(40-23)",
+            "input": "54&6",
             "success": true,
             "message": null,
-            "result": 6651
-        },
-        {
-            "input": "x",
-            "success": true,
-            "message": null,
-            "result": 6651
-        },
-        {
-            "input": "ANS",
-            "success": true,
-            "message": null,
-            "result": 6651
+            "result": 6
         }
     ]
 }

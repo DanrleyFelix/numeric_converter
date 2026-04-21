@@ -84,31 +84,32 @@ typed: 454   effective: 0454</pre>
                 <li>Textual aliases: <code>NOT</code>, <code>AND</code>, <code>OR</code>, <code>XOR</code>.</li>
             </ul>
             <h2>Examples</h2>
-            <h3>Basic arithmetic</h3>
+            <h3>1. Basic arithmetic</h3>
             <pre>1 + 1
 0x10 + 5
 0b1010 * 3
 (12 + 4) / 2</pre>
-            <h3>Assignments and reuse</h3>
+            <h3>2. Assignments and reuse</h3>
+            <p><code>ANS</code> is updated with the last successful command result. You can use it like any other variable.</p>
             <pre>gp=0x89823A
 gp >> 3
 offset=0x1C
-gp + offset</pre>
-            <h3>Bitwise workflows</h3>
+gp + offset
+ANS + 4</pre>
+            <h3>3. Bitwise workflows</h3>
             <pre>mask=0xFF
 mask AND 0b10101010
 flags=0b11001100
 flags XOR mask
 NOT 0x0F</pre>
-            <h3>Comparisons and grouping</h3>
+            <h3>4. Comparisons and shifts</h3>
             <pre>value=0x20
 (value & 0x0F) == 0
 (value + 5) << 2</pre>
-            <h2>Autocomplete and Convert</h2>
-            <ul>
-                <li>Variables saved in the current context appear as autocomplete suggestions.</li>
-                <li>When <b>Convert</b> is enabled, a successful non-negative integer result is sent to the Decimal converter input.</li>
-            </ul>
+            <h2>Autocomplete</h2>
+            <p>Variables saved in the current context appear as suggestions while typing identifiers.</p>
+            <h2>Convert Toggle</h2>
+            <p>When <b>Convert</b> is enabled, a successful non-negative integer result is sent to the Decimal converter input.</p>
         """,
     },
     {
@@ -228,8 +229,10 @@ class HelpWindow(QDialog):
 
         self.previous_button = QPushButton("Previous")
         self.previous_button.setObjectName("help-nav-button")
+        self.previous_button.setMinimumSize(120, 38)
         self.next_button = QPushButton("Next")
         self.next_button.setObjectName("help-nav-button")
+        self.next_button.setMinimumSize(120, 38)
         self.page_indicator = QLabel()
         self.page_indicator.setObjectName("help-page-indicator")
         self.page_indicator.setAlignment(Qt.AlignCenter)

@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
     def _map_key_panel_input(self, key: str) -> str:
         if key == "x":
             return "*"
-        if key in {"÷", "/"}:
+        if key == "/":
             return "/"
         if key in {"NOT", "AND", "OR", "XOR"}:
             active_line = self._command_presenter.active_line

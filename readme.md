@@ -124,7 +124,10 @@ Variables:
 value=0x20
 value + 10
 value << 2
+ANS + 4
 ```
+
+`ANS` always contains the last successful command result and can be reused like a normal variable.
 
 Bitwise:
 
@@ -136,6 +139,12 @@ NOT 0x0F
 ```
 
 Command results appear in the result label above the input. When `Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
+
+History entries are rendered on one line:
+
+```text
+x=5665+58*(40-23) => 6651
+```
 
 ## Workspace, Context and Logs
 

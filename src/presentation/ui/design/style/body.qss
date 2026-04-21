@@ -150,6 +150,7 @@ QPushButton#preferences-ok,
 QPushButton#preferences-cancel,
 QPushButton#help-nav-button {
     min-height: 38px;
+    min-width: 120px;
     padding: 0 16px;
     border-radius: 10px;
 }
