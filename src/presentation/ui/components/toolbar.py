@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QToolButton
 
@@ -11,8 +11,8 @@ class Toolbar(QFrame):
         super().__init__()
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 2, 16, 2)
-        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 16, 0)
+        layout.setSpacing(0)
         self.setObjectName("toolbar")
         self.setFixedHeight(40)
 
@@ -67,11 +67,12 @@ class Toolbar(QFrame):
 
     def _build_base_button(self, text: str, object_name: str, icon) -> QToolButton:
         button = QToolButton()
-        button.setText(text)
+        button.setText(f"  {text}")
         button.setIcon(icon)
+        button.setIconSize(QSize(16, 16))
         button.setObjectName(object_name)
         button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        button.setMinimumHeight(32)
+        button.setMinimumHeight(40)
         button.setMinimumWidth(126)
         button.setAutoRaise(True)
         button.setCursor(Qt.PointingHandCursor)

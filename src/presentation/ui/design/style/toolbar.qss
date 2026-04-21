@@ -5,12 +5,12 @@ QFrame#toolbar {
 QToolButton {
     background-color: transparent;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 0px;
     font-family: $font-base;
     font-size: $fs-tb-md;
     color: $text-main;
-    padding: 4px 14px;
-    margin: 2px 4px;
+    padding: 0px 18px;
+    margin: 0px;
 }
 
 QToolButton:hover {
@@ -29,16 +29,16 @@ QToolButton::menu-indicator {
 QMenu {
     background-color: $bg-panel;
     border: 1px solid $border;
-    border-radius: 14px;
+    border-radius: 0px;
     color: $text-main;
-    padding: 10px;
+    padding: 6px 0px;
 }
 
 QMenu::item {
-    margin: 2px 0;
+    margin: 0px;
     padding: 10px 16px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 0px;
 }
 
 QMenu::item:selected {

@@ -1,174 +1,232 @@
 # Numeric WorkBench
 
-Numeric WorkBench e uma calculadora numerica com duas frentes integradas:
+Numeric WorkBench is a desktop calculator for numeric conversion, command expressions, variables, context persistence and execution logs.
 
-- um conversor ao vivo entre Decimal, Binary, Hex (BE) e Hex (LE);
-- uma command window para expressoes, atribuicoes, reutilizacao de variaveis e historico operacional.
+It combines two main tools:
 
-O objetivo do projeto e oferecer uma bancada de trabalho para manipulacao numerica, analise bitwise e persistencia de contexto sem perder clareza visual.
+- a live converter for Decimal, Binary, Hex (BE) and Hex (LE);
+- a command window for expressions, assignments, operators and reusable variables.
 
-## O que a calculadora faz
+## Features
 
-- Converte automaticamente entre Decimal, Binary, Hex Big-Endian e Hex Little-Endian.
-- Restringe cada input do converter aos caracteres validos da sua base.
-- Mantem o cursor no fim do input do converter para preservar digitacao e backspace previsiveis.
-- Aceita digitacao pelo teclado principal e pelo numpad.
-- Aplica `group size` e `zero padding` por campo, definidos em `Preferences`.
-- Trata hexadecimal digitado de forma progressiva, completando o byte com zero a esquerda quando necessario.
-- Separa o conteudo digitado do padding de exibicao para evitar corrupcao durante a edicao.
-- Avalia expressoes na command window com operadores numericos e bitwise.
-- Permite atribuicoes de variaveis com nomes compativeis com Python.
-- Aceita prefixos como `0x` e `0b`.
-- Aceita operadores textuais como `NOT`, `AND`, `OR` e `XOR`.
-- Faz autocomplete de variaveis salvas no contexto.
-- Corrige expressoes invalidas a partir do ultimo caractere digitado.
-- Exibe resultado da command window na label superior.
-- Pode enviar o resultado decimal da command window diretamente para o converter por meio do toggle `Convert`.
-- Mantem `History` e `Log`, com persistencia em JSON.
-- Salva e carrega contextos especificos.
-- Salva e carrega logs especificos.
-- Mantem `default context` e `default log` automaticamente.
-- Possui key panel integrado com `LOG`, `CLEAR` e `ENTER`.
-- Possui janela interna de ajuda paginada em PySide, acessivel pelo botao `Help`.
+- Converts between Decimal, Binary, Hex Big-Endian and Hex Little-Endian.
+- Restricts each converter input to the characters accepted by its numeric base.
+- Keeps typed converter content separate from formatted display output.
+- Applies `group size` and `zero padding` independently for each converter field.
+- Completes odd hexadecimal input with a leading zero before conversion.
+- Keeps Hex (LE) editing stable even when zero padding is visible.
+- Evaluates arithmetic, comparison, bitwise and textual-operator expressions.
+- Supports decimal, `0b` binary and `0x` hexadecimal literals.
+- Supports assignments with Python-compatible variable names.
+- Provides autocomplete for variables stored in the active context.
+- Saves and loads context files.
+- Saves and loads log files.
+- Keeps automatic default context and log files.
+- Sends command results into the converter when the `Convert` toggle is enabled.
+- Provides a key panel for fast command input.
+- Includes an in-app Help window with focused usage documentation.
 
 ## Converter
 
-### Bases aceitas
+The converter has four fields:
 
-- `Decimal`: apenas `0-9`
-- `Binary`: apenas `0` e `1`
-- `Hex (BE)` e `Hex (LE)`: apenas `0-9` e `A-F`
+- `Decimal`: accepts digits `0-9`.
+- `Binary`: accepts digits `0` and `1`.
+- `Hex (BE)`: accepts digits `0-9` and letters `A-F`.
+- `Hex (LE)`: accepts digits `0-9` and letters `A-F`.
 
-### Regras importantes
+### Padding and grouping
 
-- O converter bloqueia teclas invalidas no proprio input.
-- O valor bruto digitado e mantido separado da exibicao formatada.
-- O valor convertido considera a representacao efetiva com zero padding.
-- Em hexadecimal, quando a quantidade de digitos nao completa um byte, um zero a esquerda e usado para completar a entrada.
-- O comportamento de `Hex (LE)` continua estavel mesmo quando o usuario adiciona mais digitos depois de um padding visual.
+Each field can be configured in `Preferences > Converter`:
 
-### Exemplo
+- `group size` defines how characters are grouped visually.
+- `zero pad` pads the effective value before display and conversion.
 
-Se `Hex (LE)` estiver com `group size = 4` e `zero pad = true`:
+The raw typed content is not overwritten by padding. For example, with Hex (LE), `group size = 4` and `zero pad = true`:
 
 ```text
-raw: 45
-display: 0045
+typed: 45
+effective/displayed: 0045
 
-raw: 454
-display: 0454
+typed: 454
+effective/displayed: 0454
+```
+
+Odd hexadecimal input is completed with one leading zero before conversion:
+
+```text
+typed: FFF0123
+effective: 0FFF0123
 ```
 
 ## Command Window
 
-### O que pode ser digitado
+The command window evaluates expressions and stores variables in the active context.
 
-- numeros decimais;
-- valores em hexadecimal com `0x`;
-- valores em binario com `0b`;
-- variaveis;
-- atribuicoes;
-- operadores aritmeticos e bitwise.
-
-### Exemplos
+### Numbers
 
 ```text
-mask = 0xFF
-base = 0b1010
-mask AND base
-NOT 0x0F
-gp = 0x89823A
-gp >> 3
+42
+0b101010
+0x2A
 ```
 
-### Comportamento
+### Assignments
 
-- Enquanto o usuario digita, a expressao e validada continuamente.
-- Se o final da expressao estiver incorreto, o sistema remove apenas o trecho invalido do fim.
-- Variaveis presentes no contexto aparecem no autocomplete.
-- O historico nao mostra o prompt `>>`.
-- O log registra as linhas no formato `expressao -> resultado`.
-- O resultado validado aparece em verde na label superior.
+Assignments work with or without spaces:
 
-## Contexto e Log
+```text
+gp=0x89823A
+mask = 0xFF
+bits=0b10101010
+```
 
-### Contexto
+Variable names follow Python identifier rules.
 
-Contexto representa o estado de trabalho do usuario:
+### Operators
 
-- variaveis salvas;
-- historico de comandos;
-- linha ativa da command window;
-- estado atual do converter;
-- visibilidade do key panel.
+Arithmetic:
 
-### Log
+```text
++  -  *  /  %  **
+```
 
-Log representa as execucoes realizadas:
+Bitwise:
 
-- comando executado;
-- resultado ou mensagem associada;
-- persistencia em JSON.
+```text
+&  |  ^  ~  <<  >>
+```
 
-### Persistencia
+Comparisons:
 
-Todos os dados ficam dentro da pasta `data`:
+```text
+==  !=  <  >  <=  >=
+```
 
-- `data/contexts`
-- `data/logs`
+Textual aliases:
 
-Arquivos importantes:
+```text
+NOT  AND  OR  XOR
+```
 
-- `default_context.json`
-- `default_log.json`
+### Examples
 
-## Preferences
+Basic:
 
-O menu `Preferences` permite:
+```text
+1 + 1
+0x10 + 5
+0b1010 * 3
+```
 
-- abrir a configuracao do converter;
-- mostrar ou ocultar o key panel.
+Variables:
 
-Dentro da janela de preferencias, cada campo do converter pode configurar:
+```text
+value=0x20
+value + 10
+value << 2
+```
 
-- `group size`
-- `zero pad`
+Bitwise:
+
+```text
+mask=0xFF
+mask AND 0b10101010
+NOT 0x0F
+(0x20 + 5) << 2
+```
+
+Command results appear in the result label above the input. When `Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
+
+## Context
+
+Context stores the working state:
+
+- variables;
+- command history;
+- active command line;
+- converter state;
+- key panel visibility.
+
+Context files are stored in:
+
+```text
+data/contexts
+```
+
+Use:
+
+- `File > Save Context`
+- `File > Load Context`
+
+The default context is saved automatically.
+
+## Logs
+
+Logs store executed command lines and their results:
+
+```text
+expression -> result
+```
+
+Log files are stored in:
+
+```text
+data/logs
+```
+
+Use:
+
+- `File > Save Log`
+- `File > Load Log`
+
+The default log is saved automatically.
 
 ## Key Panel
 
-O key panel digita diretamente na command window.
+The key panel writes directly into the command window.
 
-### Acoes especiais
+Special keys:
 
-- `LOG`: alterna entre `History` e `Log`
-- `CLEAR`: apaga o ultimo caractere da linha ativa ou remove uma linha do painel ativo
-- `ENTER`: executa a expressao atual
+- `LOG`: toggles between History and Log.
+- `CLEAR`: deletes the last command character, or removes one line from the active History/Log panel when the command input is empty.
+- `ENTER`: submits the current expression.
 
-## Help interno
+## Preferences
 
-O botao `Help` abre uma janela dedicada dentro do programa com paginas de manual. Ela foi feita em Python/PySide e cobre:
+`Preferences > Converter` controls formatting for each converter field:
 
-- visao geral;
+- group size;
+- zero padding.
+
+`Preferences > Show Key Panel` toggles the key panel.
+
+Checked preference items are highlighted with the project theme instead of a default check icon.
+
+## Help
+
+The `Help` toolbar button opens an in-app manual with pages for:
+
+- overview;
 - converter;
 - command window;
-- contexto e logs;
-- preferencias.
+- context and logs;
+- key panel;
+- preferences.
 
-## Estrutura do projeto
+## Project Structure
 
-O projeto segue uma arquitetura organizada por responsabilidades:
+```text
+src/core          domain rules, converter, tokenizer, validator and context
+src/application   contracts, DTOs, services and use cases
+src/controllers   bridges between presenters and use cases
+src/presentation  presenters, repositories, formatters and UI components
+src/main          application composition
+tests             automated tests
+data              local contexts and logs
+```
 
-- `src/core`: regras centrais de conversao, tokenizer, validator e contexto
-- `src/application`: contratos, DTOs, servicos e casos de uso
-- `src/controllers`: ponte entre UI e casos de uso
-- `src/presentation`: presenters, repositorios, formatters e componentes de interface
-- `src/main`: composicao da aplicacao
-- `tests`: cobertura automatizada
-- `data`: persistencia local de contextos e logs
-
-## Dependencias
-
-Dependencias principais do projeto:
+## Dependencies
 
 ```text
 packaging==25.0
@@ -181,27 +239,14 @@ shiboken6==6.10.1
 pytest
 ```
 
-## Executar
+## Run
 
 ```bash
 python -m src
 ```
 
-Se o bootstrap principal do projeto estiver apontando para outro entrypoint local, basta usar o ponto de entrada configurado no ambiente.
-
-## Testes
+## Test
 
 ```bash
 pytest
 ```
-
-## Resumo
-
-Numeric WorkBench foi pensado para ser mais do que um conversor simples. Ele une:
-
-- conversao numerica orientada a bases;
-- calculo com expressoes e variaveis;
-- persistencia de contexto;
-- log operacional;
-- preferencias de formatacao;
-- documentacao interna integrada a interface.

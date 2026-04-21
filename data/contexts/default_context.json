@@ -11,40 +11,8 @@
     },
     "command": {
         "active_line": "",
-        "history": [
-            {
-                "input": "gp = 0x8009AF08",
-                "output": "2148118280"
-            },
-            {
-                "input": "gp + 0x1C",
-                "output": "2148118308"
-            },
-            {
-                "input": "turn_count = gp + 0x150",
-                "output": "2148118616"
-            },
-            {
-                "input": "turn_count",
-                "output": "2148118616"
-            },
-            {
-                "input": "gp",
-                "output": "2148118280"
-            },
-            {
-                "input": "gp",
-                "output": "2148118280"
-            }
-        ],
-        "instructions": [
-            "gp = 0x8009AF08",
-            "gp + 0x1C",
-            "turn_count = gp + 0x150",
-            "turn_count",
-            "gp",
-            "gp"
-        ],
+        "history": [],
+        "instructions": [],
         "variables": {
             "ANS": 2148118280,
             "gp": 2148118280,

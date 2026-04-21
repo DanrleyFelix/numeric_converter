@@ -1,62 +1,107 @@
-QPlainTextEdit {
+QPlainTextEdit,
+QTextBrowser#help-page,
+QListWidget#help-nav,
+QListView#command-completer {
     padding-right: 8px;
     padding-bottom: 6px;
 }
 
-QPlainTextEdit QScrollBar:vertical {
+QPlainTextEdit QScrollBar:vertical,
+QTextBrowser#help-page QScrollBar:vertical,
+QListWidget#help-nav QScrollBar:vertical,
+QListView#command-completer QScrollBar:vertical {
     background: transparent;
     width: 10px;
-    margin: 6px 6px 6px 0px;   
+    margin: 6px 6px 6px 0px;
 }
 
-QPlainTextEdit QScrollBar::handle:vertical {
+QPlainTextEdit QScrollBar::handle:vertical,
+QTextBrowser#help-page QScrollBar::handle:vertical,
+QListWidget#help-nav QScrollBar::handle:vertical,
+QListView#command-completer QScrollBar::handle:vertical {
     background: rgba(19, 56, 116, 0.80);
     border-radius: 12px;
     min-height: 30px;
 }
 
-QPlainTextEdit QScrollBar::handle:vertical:hover {
+QPlainTextEdit QScrollBar::handle:vertical:hover,
+QTextBrowser#help-page QScrollBar::handle:vertical:hover,
+QListWidget#help-nav QScrollBar::handle:vertical:hover,
+QListView#command-completer QScrollBar::handle:vertical:hover {
     background: rgba(33, 75, 144, 0.95);
 }
 
 QPlainTextEdit QScrollBar::add-page:vertical,
-QPlainTextEdit QScrollBar::sub-page:vertical {
+QPlainTextEdit QScrollBar::sub-page:vertical,
+QTextBrowser#help-page QScrollBar::add-page:vertical,
+QTextBrowser#help-page QScrollBar::sub-page:vertical,
+QListWidget#help-nav QScrollBar::add-page:vertical,
+QListWidget#help-nav QScrollBar::sub-page:vertical,
+QListView#command-completer QScrollBar::add-page:vertical,
+QListView#command-completer QScrollBar::sub-page:vertical {
     background: rgba(15, 15, 25, 0.35);
     border-radius: 12px;
 }
 
 QPlainTextEdit QScrollBar::add-line:vertical,
-QPlainTextEdit QScrollBar::sub-line:vertical {
+QPlainTextEdit QScrollBar::sub-line:vertical,
+QTextBrowser#help-page QScrollBar::add-line:vertical,
+QTextBrowser#help-page QScrollBar::sub-line:vertical,
+QListWidget#help-nav QScrollBar::add-line:vertical,
+QListWidget#help-nav QScrollBar::sub-line:vertical,
+QListView#command-completer QScrollBar::add-line:vertical,
+QListView#command-completer QScrollBar::sub-line:vertical {
     height: 0px;
     background: transparent;
     border: none;
 }
 
 QPlainTextEdit QScrollBar::up-arrow:vertical,
-QPlainTextEdit QScrollBar::down-arrow:vertical {
+QPlainTextEdit QScrollBar::down-arrow:vertical,
+QTextBrowser#help-page QScrollBar::up-arrow:vertical,
+QTextBrowser#help-page QScrollBar::down-arrow:vertical,
+QListWidget#help-nav QScrollBar::up-arrow:vertical,
+QListWidget#help-nav QScrollBar::down-arrow:vertical,
+QListView#command-completer QScrollBar::up-arrow:vertical,
+QListView#command-completer QScrollBar::down-arrow:vertical {
     width: 0px;
     height: 0px;
     background: transparent;
 }
 
-QPlainTextEdit QScrollBar:horizontal {
+QPlainTextEdit QScrollBar:horizontal,
+QTextBrowser#help-page QScrollBar:horizontal,
+QListWidget#help-nav QScrollBar:horizontal,
+QListView#command-completer QScrollBar:horizontal {
     background: transparent;
     height: 10px;
     margin: 0px 6px 6px 6px;
 }
 
-QPlainTextEdit QScrollBar::handle:horizontal {
+QPlainTextEdit QScrollBar::handle:horizontal,
+QTextBrowser#help-page QScrollBar::handle:horizontal,
+QListWidget#help-nav QScrollBar::handle:horizontal,
+QListView#command-completer QScrollBar::handle:horizontal {
     background: rgba(19, 56, 116, 0.80);
     border-radius: 12px;
     min-width: 30px;
 }
 
-QPlainTextEdit QScrollBar::handle:horizontal:hover {
+QPlainTextEdit QScrollBar::handle:horizontal:hover,
+QTextBrowser#help-page QScrollBar::handle:horizontal:hover,
+QListWidget#help-nav QScrollBar::handle:horizontal:hover,
+QListView#command-completer QScrollBar::handle:horizontal:hover {
     background: rgba(33, 75, 144, 0.95);
 }
 
 QPlainTextEdit QScrollBar::add-page:horizontal,
-QPlainTextEdit QScrollBar::sub-page:horizontal {
+QPlainTextEdit QScrollBar::sub-page:horizontal,
+QTextBrowser#help-page QScrollBar::add-page:horizontal,
+QTextBrowser#help-page QScrollBar::sub-page:horizontal,
+QListWidget#help-nav QScrollBar::add-page:horizontal,
+QListWidget#help-nav QScrollBar::sub-page:horizontal,
+QListView#command-completer QScrollBar::add-page:horizontal,
+QListView#command-completer QScrollBar::sub-page:horizontal {
     background: rgba(15, 15, 25, 0.35);
     border-radius: 12px;
 }
@@ -64,7 +109,19 @@ QPlainTextEdit QScrollBar::sub-page:horizontal {
 QPlainTextEdit QScrollBar::add-line:horizontal,
 QPlainTextEdit QScrollBar::sub-line:horizontal,
 QPlainTextEdit QScrollBar::left-arrow:horizontal,
-QPlainTextEdit QScrollBar::right-arrow:horizontal {
+QPlainTextEdit QScrollBar::right-arrow:horizontal,
+QTextBrowser#help-page QScrollBar::add-line:horizontal,
+QTextBrowser#help-page QScrollBar::sub-line:horizontal,
+QTextBrowser#help-page QScrollBar::left-arrow:horizontal,
+QTextBrowser#help-page QScrollBar::right-arrow:horizontal,
+QListWidget#help-nav QScrollBar::add-line:horizontal,
+QListWidget#help-nav QScrollBar::sub-line:horizontal,
+QListWidget#help-nav QScrollBar::left-arrow:horizontal,
+QListWidget#help-nav QScrollBar::right-arrow:horizontal,
+QListView#command-completer QScrollBar::add-line:horizontal,
+QListView#command-completer QScrollBar::sub-line:horizontal,
+QListView#command-completer QScrollBar::left-arrow:horizontal,
+QListView#command-completer QScrollBar::right-arrow:horizontal {
     width: 0px;
     height: 0px;
     background: transparent;

@@ -16,6 +16,8 @@ def clean_context():
     ("VALUE = 0x2ABCDEF - 0b1011", True),
     ("value_1 = 25", True),
     ("value1 = 43", True),
+    ("gp=0x89823A", True),
+    ("bits=0b101010", True),
 
     ("myVar = 5 + 3 * (2 - 1)", True),
     ("_x = 0b1010 & 0xFF", True),

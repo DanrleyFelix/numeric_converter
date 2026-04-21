@@ -154,49 +154,68 @@ QPushButton#help-nav-button {
     border-radius: 10px;
 }
 
-QPushButton#preferences-ok {
-    background-color: $bg-button-clear;
-}
-
-QPushButton#preferences-ok:hover {
-    background-color: $bg-button-clear-hover;
-}
-
+QPushButton#preferences-ok,
 QPushButton#preferences-cancel {
     background-color: $bg-button;
 }
 
+QPushButton#preferences-ok:hover,
 QPushButton#preferences-cancel:hover,
 QPushButton#help-nav-button:hover {
     background-color: $bg-toolbar-button-hover;
 }
 
-QListView#command-completer,
+QListView#command-completer {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    color: $text-main;
+    padding: 6px;
+    border-radius: 10px;
+    outline: none;
+}
+
+QListView#command-completer::item {
+    padding: 8px 12px;
+    margin: 1px 0;
+    border-radius: 6px;
+}
+
+QListView#command-completer::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+}
+
 QListWidget#help-nav {
     background-color: $bg-panel;
     border: 1px solid $border;
     color: $text-main;
-    padding: 4px;
+    padding: 10px;
     border-radius: 12px;
+    outline: none;
 }
 
-QListView#command-completer::item:selected,
 QListWidget#help-nav::item:selected {
     background-color: $bg-toolbar-button-hover;
     border-radius: $r-sm;
+    outline: none;
 }
 
 QListWidget#help-nav::item {
-    padding: 10px 12px;
-    margin: 2px 0;
+    padding: 12px 14px;
+    margin: 3px 0;
     border-radius: 10px;
+    outline: none;
+}
+
+QListWidget#help-nav::item:focus {
+    outline: none;
 }
 
 QTextBrowser#help-page {
     background-color: $bg-input;
     border: 1px solid $border;
     border-radius: 16px;
-    padding: 4px;
+    padding: 8px;
 }
 
 QFrame#key-panel {

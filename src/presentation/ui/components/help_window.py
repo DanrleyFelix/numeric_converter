@@ -16,23 +16,19 @@ from PySide6.QtWidgets import (
 HELP_PAGES = [
     {
         "title": "Overview",
-        "subtitle": "What Numeric WorkBench does",
+        "subtitle": "A calculator for conversion, expressions, context and logs",
         "html": """
             <h1>Numeric WorkBench</h1>
-            <p>Numeric WorkBench combines a live numeric converter with a programmable command window.</p>
-            <h2>Main ideas</h2>
+            <p>Numeric WorkBench combines a base converter with a command calculator that remembers variables, history and logs.</p>
+            <h2>Core workflow</h2>
             <ul>
-                <li>Type in decimal, binary, hex big-endian or hex little-endian and the other views update automatically.</li>
-                <li>Use the command window to evaluate expressions, create variables and reuse them later.</li>
-                <li>Context stores variables and command history. Log stores execution lines and results.</li>
-                <li>Everything is persisted in <code>data/contexts</code> and <code>data/logs</code>.</li>
+                <li>Use the converter for Decimal, Binary, Hex (BE) and Hex (LE) representations.</li>
+                <li>Use the command window for expressions, assignments and variable reuse.</li>
+                <li>Use context files to save variables and the current workspace state.</li>
+                <li>Use log files to save executed commands and their results.</li>
             </ul>
-            <h2>Quick flow</h2>
-            <ol>
-                <li>Enter a value in any converter field or type an expression in the command window.</li>
-                <li>Review the converted representations and the command result label.</li>
-                <li>Save or load a specific context/log from the File menu whenever needed.</li>
-            </ol>
+            <h2>Data location</h2>
+            <p>Context JSON files are stored in <code>data/contexts</code>. Log JSON files are stored in <code>data/logs</code>.</p>
         """,
     },
     {
@@ -40,98 +36,128 @@ HELP_PAGES = [
         "subtitle": "Working with Decimal, Binary, Hex (BE) and Hex (LE)",
         "html": """
             <h1>Converter</h1>
-            <p>Each input accepts only characters that belong to its own numeric base.</p>
-            <h2>Accepted input</h2>
+            <p>The converter keeps the typed content separate from the formatted display, so padding and grouping do not corrupt editing.</p>
+            <h2>Inputs</h2>
             <ul>
                 <li><b>Decimal</b>: digits <code>0-9</code>.</li>
                 <li><b>Binary</b>: digits <code>0</code> and <code>1</code>.</li>
                 <li><b>Hex (BE)</b> and <b>Hex (LE)</b>: digits <code>0-9</code> and letters <code>A-F</code>.</li>
-                <li>The cursor always stays at the end so typing and backspace remain predictable.</li>
-                <li>Numpad digits are accepted.</li>
             </ul>
-            <h2>Zero padding and grouping</h2>
+            <h2>Padding and grouping</h2>
             <ul>
-                <li>Raw typed content is preserved separately from formatting.</li>
-                <li>Display formatting may prepend zeroes to satisfy zero padding and grouping.</li>
-                <li>For hexadecimal values, an extra leading zero is also added when needed to complete a full byte.</li>
-                <li>The converted value uses the effective padded representation, not only the raw typed content.</li>
+                <li><b>Group size</b> controls how many characters appear in each group.</li>
+                <li><b>Zero pad</b> pads the effective input before conversion.</li>
+                <li>Hex values with an odd number of digits receive one leading zero to complete a byte.</li>
+                <li>Hex (LE) interprets the effective byte sequence as little-endian.</li>
             </ul>
             <h2>Examples</h2>
-            <pre>Hex (LE) raw: 45
-Displayed with group size 4 + zero pad: 0045
-Next key: 4
-Raw becomes: 454
-Displayed becomes: 0454</pre>
+            <pre>Decimal: 255
+Binary: 11111111
+Hex (BE): FF
+Hex (LE): FF
+
+Hex (LE), group size 4, zero pad enabled:
+typed: 45    effective: 0045
+typed: 454   effective: 0454</pre>
         """,
     },
     {
         "title": "Command Window",
-        "subtitle": "Expressions, variables and automatic conversion",
+        "subtitle": "Expressions, variables, operators and automatic conversion",
         "html": """
             <h1>Command Window</h1>
-            <p>The command window validates while you type and trims invalid trailing content when necessary.</p>
-            <h2>You can type</h2>
+            <p>The command window evaluates expressions and stores variables in the active context.</p>
+            <h2>Numbers and variables</h2>
             <ul>
-                <li>Decimal numbers and identifiers compatible with Python variable rules.</li>
-                <li>Binary and hexadecimal prefixes like <code>0b1010</code> and <code>0x2A</code>.</li>
-                <li>Operators such as <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>&amp;</code>, <code>|</code>, <code>^</code>, <code>~</code>, <code>&lt;&lt;</code>, <code>&gt;&gt;</code>, <code>==</code>, <code>!=</code>, <code>&gt;=</code>, <code>&lt;=</code> and textual operators like <code>NOT</code>, <code>AND</code>, <code>OR</code>, <code>XOR</code>.</li>
-                <li>Assignments such as <code>mask = 0xFF</code>.</li>
+                <li>Decimal numbers: <code>42</code>.</li>
+                <li>Binary numbers: <code>0b101010</code>.</li>
+                <li>Hexadecimal numbers: <code>0x2A</code>.</li>
+                <li>Assignments: <code>mask=0xFF</code> or <code>mask = 0xFF</code>.</li>
+                <li>Variable names follow Python identifier rules.</li>
             </ul>
-            <h2>Autocomplete</h2>
+            <h2>Operators</h2>
             <ul>
-                <li>Saved variables appear as autocomplete suggestions while you type identifiers.</li>
-                <li>The current context is the source for those suggestions.</li>
+                <li>Arithmetic: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>**</code>.</li>
+                <li>Bitwise: <code>&amp;</code>, <code>|</code>, <code>^</code>, <code>~</code>, <code>&lt;&lt;</code>, <code>&gt;&gt;</code>.</li>
+                <li>Comparisons: <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>.</li>
+                <li>Textual aliases: <code>NOT</code>, <code>AND</code>, <code>OR</code>, <code>XOR</code>.</li>
             </ul>
-            <h2>Convert toggle</h2>
+            <h2>Examples</h2>
+            <pre>gp=0x89823A
+gp >> 3
+mask = 0xFF
+mask AND 0b10101010
+NOT 0x0F
+(0x20 + 5) << 2</pre>
+            <h2>Autocomplete and Convert</h2>
             <ul>
-                <li>When <b>Convert</b> is active, a successful decimal result is copied into the Decimal input of the converter automatically.</li>
-                <li>The command result remains visible in the top label in green.</li>
+                <li>Variables saved in the current context appear as autocomplete suggestions.</li>
+                <li>When <b>Convert</b> is enabled, a successful non-negative integer result is sent to the Decimal converter input.</li>
             </ul>
         """,
     },
     {
         "title": "Context and Logs",
-        "subtitle": "Persistence, history, log and key panel behavior",
+        "subtitle": "Saving variables, history and execution output",
         "html": """
             <h1>Context and Logs</h1>
             <h2>Context</h2>
             <ul>
                 <li>Context stores variables, command history, the active command line and converter state.</li>
                 <li>Use <b>File &gt; Save Context</b> and <b>File &gt; Load Context</b> for specific JSON files.</li>
-                <li>The application also keeps a default context automatically.</li>
+                <li>The default context is saved automatically when the workspace changes.</li>
             </ul>
             <h2>Log</h2>
             <ul>
                 <li>Log stores execution lines in the form <code>expression -&gt; result</code>.</li>
                 <li>Use <b>File &gt; Save Log</b> and <b>File &gt; Load Log</b> for specific JSON files.</li>
-                <li>The default log is also saved automatically.</li>
+                <li>The default log is saved automatically after command execution.</li>
             </ul>
+            <h2>Basic to advanced examples</h2>
+            <pre>1 + 1 -> 2
+value=0x10 -> 16
+value*3 -> 48
+(value & 0x0F) == 0 -> 1</pre>
+        """,
+    },
+    {
+        "title": "Key Panel",
+        "subtitle": "Calculator buttons for the command window",
+        "html": """
+            <h1>Key Panel</h1>
+            <p>The key panel writes directly into the command window.</p>
             <h2>Key panel</h2>
             <ul>
                 <li><b>LOG</b> toggles the History/Log tab.</li>
                 <li><b>CLEAR</b> removes the last character from the command input, or deletes one line from the active History/Log panel.</li>
                 <li><b>ENTER</b> submits the current expression.</li>
             </ul>
+            <h2>Typical use</h2>
+            <pre>0x FF AND 0b 1010 ENTER
+LOG
+CLEAR</pre>
         """,
     },
     {
         "title": "Preferences",
-        "subtitle": "Formatting options and interface behavior",
+        "subtitle": "Converter formatting and key panel visibility",
         "html": """
             <h1>Preferences</h1>
-            <p>Use the Preferences menu to control the converter presentation and visibility.</p>
-            <h2>Available options</h2>
+            <p>Preferences configure converter display rules and key panel visibility.</p>
+            <h2>Converter options</h2>
             <ul>
-                <li>Group size per converter field.</li>
-                <li>Zero padding per converter field.</li>
-                <li>Show or hide the key panel.</li>
+                <li><b>Group size</b>: controls visual grouping for each converter field.</li>
+                <li><b>Zero pad</b>: pads the effective value before formatting and conversion.</li>
             </ul>
-            <h2>Tips</h2>
+            <h2>Interface options</h2>
             <ul>
-                <li>Use larger binary groups for byte-oriented workflows.</li>
-                <li>Use zero padding in hex little-endian when you want aligned byte groups during typing.</li>
-                <li>Open this Help window whenever you need the calculator manual inside the app.</li>
+                <li><b>Show Key Panel</b>: toggles the calculator button panel.</li>
             </ul>
+            <h2>Example configuration</h2>
+            <pre>Decimal: group size 3, zero pad off
+Binary: group size 8, zero pad on
+Hex (BE): group size 2, zero pad off
+Hex (LE): group size 4, zero pad on</pre>
         """,
     },
 ]
@@ -148,15 +174,15 @@ class HelpWindow(QDialog):
         self.resize(980, 680)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(20, 20, 20, 20)
-        root.setSpacing(16)
+        root.setContentsMargins(28, 28, 28, 28)
+        root.setSpacing(20)
 
         header = QVBoxLayout()
         header.setSpacing(4)
 
         title = QLabel("Help")
         title.setObjectName("help-title")
-        subtitle = QLabel("Manual de uso da Numeric WorkBench")
+        subtitle = QLabel("Numeric WorkBench user guide")
         subtitle.setObjectName("help-subtitle")
 
         header.addWidget(title)
@@ -164,11 +190,12 @@ class HelpWindow(QDialog):
         root.addLayout(header)
 
         content = QHBoxLayout()
-        content.setSpacing(16)
+        content.setSpacing(20)
 
         self.navigation = QListWidget()
         self.navigation.setObjectName("help-nav")
-        self.navigation.setFixedWidth(220)
+        self.navigation.setFixedWidth(240)
+        self.navigation.setFocusPolicy(Qt.NoFocus)
 
         self.pages = QStackedWidget()
         self.pages.setObjectName("help-pages")
@@ -183,7 +210,7 @@ class HelpWindow(QDialog):
         root.addLayout(content, 1)
 
         footer = QHBoxLayout()
-        footer.setSpacing(10)
+        footer.setSpacing(14)
 
         self.previous_button = QPushButton("Previous")
         self.previous_button.setObjectName("help-nav-button")
@@ -207,11 +234,12 @@ class HelpWindow(QDialog):
     def _build_page(self, title: str, subtitle: str, html: str) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(6, 6, 6, 6)
 
         browser = QTextBrowser()
         browser.setObjectName("help-page")
         browser.setOpenExternalLinks(False)
+        browser.document().setDocumentMargin(18)
         browser.setHtml(
             f"""
             <html>

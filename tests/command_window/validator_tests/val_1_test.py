@@ -46,7 +46,7 @@ def test_invalid_parentheses(text):
     with pytest.raises(ParenthesisMismatchError):
         ExpressionValidator.validate(text)
 
-@pytest.mark.parametrize("text", ["(", "(1+", "1+", "1*", "a="])
+@pytest.mark.parametrize("text", ["(", "(1+", "1+", "1*", "a=", "a=0x", "a=0b", "a+0x", "a&0b"])
 def test_partial_expressions_are_potentially_invalid(text):
     state = ExpressionValidator.validate(text)
     assert state is ValidationState.POTENTIALLY_INVALID

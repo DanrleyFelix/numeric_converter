@@ -79,10 +79,11 @@ class _PartialExpressionAnalyzer:
     def _trailing_fragment(self, text: str) -> str:
         end = len(text)
         start = end
+        operator_chars = set("+-*/%<>=!&|^~")
 
         while start > 0:
             char = text[start - 1]
-            if char.isspace() or char in "()":
+            if char.isspace() or char in "()" or char in operator_chars:
                 break
             start -= 1
 

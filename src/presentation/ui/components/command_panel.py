@@ -52,6 +52,7 @@ class CommandEdit(QPlainTextEdit):
 
         popup = QListView()
         popup.setObjectName("command-completer")
+        popup.setFocusPolicy(Qt.NoFocus)
         self._completer.setPopup(popup)
 
         self.setContentsMargins(0, 0, 0, 0)
@@ -151,9 +152,11 @@ class CommandEdit(QPlainTextEdit):
             )
 
         rect = self.cursorRect()
+        rect.translate(0, self.fontMetrics().height() + 4)
         rect.setWidth(
             self._completer.popup().sizeHintForColumn(0)
             + self._completer.popup().verticalScrollBar().sizeHint().width()
+            + 24
         )
         self._completer.complete(rect)
 

@@ -33,7 +33,7 @@ class Icons:
 
     @staticmethod
     def preferences():
-        return qta.icon("fa5s.sliders-h", color="#EAEAF5")
+        return qta.icon("fa5s.cog", color="#EAEAF5")
 
     @staticmethod
     def help():
