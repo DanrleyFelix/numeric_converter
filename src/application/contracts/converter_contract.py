@@ -10,7 +10,7 @@ class IConverterUseCase(Protocol):
 
 class IConverterController(Protocol):
     
-    def on_input_changed(self, from_type: str, raw_value: str) -> Optional[ConversionResultDTO]:
+    def on_input_changed(self, from_type: str, value: str) -> Optional[ConversionResultDTO]:
         pass
 
 

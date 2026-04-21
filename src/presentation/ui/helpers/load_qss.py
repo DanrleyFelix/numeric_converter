@@ -14,12 +14,15 @@ def load_tokens(path: Path) -> Tokens:
     text = path.read_text(encoding="utf-8")
     return {
         name: value.strip()
-        for name, value in VAR_RE.findall(text)}
+        for name, value in VAR_RE.findall(text)
+    }
+
 
 def apply_tokens(qss: str, tokens: Tokens) -> str:
     for name in sorted(tokens, key=len, reverse=True):
         qss = qss.replace(f"${name}", tokens[name])
     return qss
+
 
 def expand_imports(qss: str, base_dir: Path) -> str:
     def replacer(match):
@@ -31,6 +34,7 @@ def expand_imports(qss: str, base_dir: Path) -> str:
 
     return qss
 
+
 def load_stylesheet(tokens_path: Path, qss_path: Path) -> str:
     tokens = load_tokens(tokens_path)
 
@@ -40,11 +44,8 @@ def load_stylesheet(tokens_path: Path, qss_path: Path) -> str:
 
     return qss
 
+
 STYLESHEET = load_stylesheet(
     STYLE_DIR / "tokens.qss",
-    STYLE_DIR / "main.qss")
-
-print(STYLESHEET)
-
-
-
+    STYLE_DIR / "main.qss",
+)

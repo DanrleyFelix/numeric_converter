@@ -3,3 +3,9 @@ QLabel#footer-text {
     font-size: $fs-ft-sm;
     color: $text-muted;
 }
+
+QLabel#footer-status {
+    font-family: $font-base;
+    font-size: $fs-ft-sm;
+    color: $text-muted;
+}

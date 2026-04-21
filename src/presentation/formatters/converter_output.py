@@ -13,21 +13,60 @@ class OutputFormatter:
             groups.append(value[i:i + group_size])
         return " ".join(groups)
 
-    def format_decimal(self, value: int, formatter: FormattingOutputDTO) -> str:
+    def format_decimal(
+        self,
+        value: int,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        formatter = formatter or FormattingOutputDTO()
         s = str(value)
         if formatter.zero_pad and formatter.group_size > 0:
             pad_len = (formatter.group_size - len(s) % formatter.group_size) % formatter.group_size
             s = "0" * pad_len + s
         return self._group_string(s, formatter.group_size)
 
-    def format_binary(self, value: str, formatter: FormattingOutputDTO) -> str:
+    def format_decimal_input(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        formatter = formatter or FormattingOutputDTO()
+        s = value
+        if formatter.zero_pad and formatter.group_size > 0:
+            pad_len = (formatter.group_size - len(s) % formatter.group_size) % formatter.group_size
+            s = "0" * pad_len + s
+        return self._group_string(s, formatter.group_size)
+
+    def format_binary(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        formatter = formatter or FormattingOutputDTO()
         s = value
         if formatter.group_size > 0 and formatter.zero_pad:
             pad_len = (formatter.group_size - len(s) % formatter.group_size) % formatter.group_size
             s = "0" * pad_len + s
         return self._group_string(s, formatter.group_size)
 
-    def format_hex(self, value: bytes, formatter: FormattingOutputDTO) -> str:
+    def format_hex_input(
+        self,
+        value: str,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        formatter = formatter or FormattingOutputDTO()
+        s = value.upper()
+        if formatter.group_size > 0 and formatter.zero_pad:
+            pad_len = (formatter.group_size - len(s) % formatter.group_size) % formatter.group_size
+            s = "0" * pad_len + s
+        return self._group_string(s, formatter.group_size)
+
+    def format_hex(
+        self,
+        value: bytes,
+        formatter: FormattingOutputDTO | None = None,
+    ) -> str:
+        formatter = formatter or FormattingOutputDTO()
         s = "".join(f"{b:02X}" for b in value)
         if formatter.group_size > 0 and formatter.zero_pad:
             pad_len = (formatter.group_size - len(s) % formatter.group_size) % formatter.group_size

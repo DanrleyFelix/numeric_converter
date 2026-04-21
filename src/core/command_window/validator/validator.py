@@ -5,7 +5,10 @@ from src.core.constants import (
     UNARY_OPERATORS,
     ARITHMETIC_OPERATORS,
     ASSIGNMENT_OPERATOR,
-    CONDITIONAL_OPERATORS)
+    CONDITIONAL_OPERATORS,
+    MULTI_CHAR_OPERATORS,
+    TEXTUAL_OPERATORS,
+    BASE_PREFIXES)
 from src.core.command_window.tokenizer import (
     Tokenizer,
     TokenizerError,
@@ -32,9 +35,58 @@ class ExpressionValidator:
     def validate(expr: str) -> ValidationState:
         if not expr.strip():
             return ValidationState.POTENTIALLY_INVALID
+        if _PartialExpressionAnalyzer(expr).is_partial():
+            return ValidationState.POTENTIALLY_INVALID
         tokens = _Tokenizer(expr).tokenize()
         tokens = [t for t in tokens if t.type != TokenType.EOF]
         return _ExpressionChecker(tokens).check()
+
+
+class _PartialExpressionAnalyzer:
+
+    def __init__(self, expr: str):
+        self.expr = expr
+
+    def is_partial(self) -> bool:
+        stripped = self.expr.rstrip()
+        if not stripped:
+            return True
+
+        trailing = self._trailing_fragment(stripped)
+        if not trailing:
+            return False
+
+        upper_fragment = trailing.upper()
+        if trailing != "=" and any(
+            op.startswith(trailing) and op != trailing
+            for op in MULTI_CHAR_OPERATORS
+        ):
+            return True
+        if trailing.lower() in BASE_PREFIXES:
+            return True
+        if len(trailing) > 1 and any(
+            alias.startswith(upper_fragment) and alias != upper_fragment
+            for alias in TEXTUAL_OPERATORS
+        ):
+            return True
+        if len(trailing) > 1 and any(
+            prefix.startswith(trailing.lower()) and prefix != trailing.lower()
+            for prefix in BASE_PREFIXES
+        ):
+            return True
+        return False
+
+    def _trailing_fragment(self, text: str) -> str:
+        end = len(text)
+        start = end
+
+        while start > 0:
+            char = text[start - 1]
+            if char.isspace() or char in "()":
+                break
+            start -= 1
+
+        return text[start:end]
 
 
 class _Tokenizer:
@@ -192,11 +244,19 @@ class _SemanticValidator:
         return ValidationState.ACCEPTABLE
 
     def _is_lhs(self, i: int) -> bool:
-        return (i + 1 < len(self.tokens) and self.tokens[i + 1].type == TokenType.OPERATOR and self.tokens[i + 1].raw == "=")
+        return (
+            i + 1 < len(self.tokens)
+            and self.tokens[i + 1].type == TokenType.OPERATOR
+            and self.tokens[i + 1].raw == "="
+        )
 
     def _check_assignments(self) -> ValidationState:
         assignment_operators = [i for i, t in enumerate(self.tokens) if t.type == TokenType.OPERATOR and t.raw == "="]
-        is_simple_assignment = (len(assignment_operators) == 1 and assignment_operators[0] == 1 and self.tokens[0].type == TokenType.IDENTIFIER)
+        is_simple_assignment = (
+            len(assignment_operators) == 1
+            and assignment_operators[0] == 1
+            and self.tokens[0].type == TokenType.IDENTIFIER
+        )
         if assignment_operators and not is_simple_assignment:
             raise InvalidOperatorSequenceError(ERROR_INVALID_EXPRESSION)
         return ValidationState.ACCEPTABLE

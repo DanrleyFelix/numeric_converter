@@ -12,12 +12,18 @@ class _Context:
 
     def get_variable(self, name: str) -> Number | None:
         return self.__variables.get(name)
+
+    def get_variables(self) -> dict[str, Number]:
+        return dict(self.__variables)
     
-    def get_history(self) -> None:
-        return self.__history
+    def get_history(self) -> list[str]:
+        return list(self.__history)
 
     def add_to_history(self, instruction: str) -> None:
         self.__history.append(instruction)
+
+    def set_history(self, instructions: list[str]) -> None:
+        self.__history = list(instructions)
 
     def remove_history_line(self, index: int) -> None:
         if 0 <= index < len(self.__history):
@@ -34,6 +40,12 @@ class _Context:
         self.__history.clear()
         self.__variables.clear()
         self.set_variable("ANS", 0)
+
+    def restore(self, variables: dict[str, Number], history: list[str]) -> None:
+        self.__variables = dict(variables) if variables else {"ANS": 0}
+        if "ANS" not in self.__variables:
+            self.__variables["ANS"] = 0
+        self.__history = list(history)
 
 
 

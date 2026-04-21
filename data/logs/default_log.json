@@ -1,0 +1,22 @@
+{
+    "entries": [
+        {
+            "input": "gp = 0x89823A",
+            "success": true,
+            "message": null,
+            "result": 9011770
+        },
+        {
+            "input": "0x21a*22",
+            "success": true,
+            "message": null,
+            "result": 11836
+        },
+        {
+            "input": "NOT ANS",
+            "success": true,
+            "message": null,
+            "result": 0
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "converter": {
+        "from_type": "hexLE",
+        "fields": {
+            "decimal": "",
+            "binary": "",
+            "hexBE": "",
+            "hexLE": ""
+        },
+        "message": null
+    },
+    "command": {
+        "active_line": "",
+        "history": [
+            {
+                "input": "gp = 0x89823A",
+                "output": "9011770"
+            },
+            {
+                "input": "0x21a*22",
+                "output": "11836"
+            },
+            {
+                "input": "NOT ANS",
+                "output": "0"
+            }
+        ],
+        "instructions": [
+            "gp = 0x89823A",
+            "0x21a*22",
+            "NOT ANS"
+        ],
+        "variables": {
+            "ANS": 0,
+            "gp": 9011770
+        }
+    },
+    "key_panel_visible": true
+}

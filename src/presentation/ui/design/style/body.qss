@@ -31,6 +31,13 @@ QLabel#command-title {
     color: $text-main;
 }
 
+QLabel#command-feedback {
+    font-family: $font-base;
+    font-size: $fs-c-lg;
+    color: $text-muted;
+    padding-left: 2px;
+}
+
 QPlainTextEdit#command-editor { padding-top: 8px; }
 
 QWidget#cmd-prompt-area { background: transparent; }
@@ -38,6 +45,77 @@ QWidget#cmd-prompt-area { background: transparent; }
 QPlainTextEdit:hover { border: 1px solid $border-hover; }
 
 QPlainTextEdit:focus { border: 1px solid $border-focus; }
+
+QTabWidget#command-tabs::pane {
+    border: 1px solid $border;
+    border-radius: $r-sm;
+    background-color: $bg-input;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background-color: $bg-panel;
+    color: $text-muted;
+    border: 1px solid $border;
+    padding: 8px 18px;
+    min-width: 84px;
+}
+
+QTabBar::tab:selected {
+    background-color: $bg-toolbar;
+    color: $text-main;
+}
+
+QTabBar::tab:!selected {
+    margin-top: 2px;
+}
+
+QDialog#preferences-dialog {
+    background-color: $bg-panel;
+}
+
+QSpinBox {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    border-radius: $r-sm;
+    color: $text-main;
+    min-height: 30px;
+    padding: 4px 8px;
+}
+
+QSpinBox:focus {
+    border: 1px solid $border-focus;
+}
+
+QCheckBox {
+    spacing: 10px;
+    color: $text-main;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid $border;
+    border-radius: 4px;
+    background-color: $bg-input;
+}
+
+QCheckBox::indicator:checked {
+    background-color: $bg-toolbar-button-hover;
+    border: 1px solid $border-focus;
+}
+
+QListView#command-completer {
+    background-color: $bg-panel;
+    border: 1px solid $border;
+    color: $text-main;
+    padding: 4px;
+}
+
+QListView#command-completer::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    border-radius: $r-sm;
+}
 
 QFrame#key-panel {
     background-color: $bg-panel;

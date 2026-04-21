@@ -1,15 +1,15 @@
-from typing import Optional, List
 from numbers import Number
+from typing import List, Optional
 
 from src.application.contracts.cmd_window_contract import ICommandWindowController
 from src.application.contracts.preferences_contract import IOutputFormatter
-from src.presentation.formatters.clean_formatter import CleanFormatter
+from src.application.dto.application_state import CommandContextDTO, CommandLogDTO
+from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
 from src.application.dto.command_render_result import CommandRenderResultDTO
-from src.application.dto.command_entry import CommandEntryDTO
-from src.application.dto.command_entry import CommandLogEntryDTO
-from src.presentation.presenter.utils import Limit
-
+from src.core.command_window.context import cmd_window_context
+from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
 from src.modules.utils import COLOR
+from src.presentation.presenter.utils import Limit
 
 
 class CommandWindowPresenter:
@@ -17,11 +17,11 @@ class CommandWindowPresenter:
     def __init__(
         self,
         controller: ICommandWindowController,
-        formatter: IOutputFormatter):
+        formatter: IOutputFormatter,
+    ):
 
         self._controller = controller
         self._formatter = formatter
-        self._clean_formatter = CleanFormatter()
 
         self._history: List[CommandEntryDTO] = []
         self._active_line: str = ""
@@ -37,7 +37,7 @@ class CommandWindowPresenter:
     @property
     def history(self) -> List[CommandEntryDTO]:
         return list(self._history)
-    
+
     @property
     def log(self) -> List[CommandLogEntryDTO]:
         return list(self._log)
@@ -46,81 +46,128 @@ class CommandWindowPresenter:
     def active_line(self) -> str:
         return self._active_line
 
+    @property
+    def variable_names(self) -> list[str]:
+        return sorted(cmd_window_context.get_variables().keys())
+
     def on_text_changed(self, new_text: str, pasted: bool = False) -> CommandRenderResultDTO:
+        sanitized = new_text.replace("\r", " ").replace("\n", " ")
+
+        if sanitized != self._active_line:
+            self._undo_stack.append(self._active_line)
+            self._redo_stack.clear()
+
         try:
-            validation_state = self._controller.on_input_changed(new_text)
-            if new_text != self._active_line:
-                self._undo_stack.append(self._active_line)
-                self._redo_stack.clear()
-            self._active_line = new_text
+            validation_state = self._controller.on_input_changed(sanitized)
+            self._active_line = sanitized
             self._last_validation_state = validation_state
             color = COLOR.SUCCESS if validation_state else COLOR.INCOMPLETE
-            return CommandRenderResultDTO(lines=[new_text], color=color)
-
-        except Exception as error_name:
-            if pasted:
-                self._active_line = new_text
-                self._last_validation_state = False
-                return CommandRenderResultDTO(lines=[new_text], color=COLOR.FAILED, message=error_name)
-
-            if self._active_line:
-                self._undo_stack.append(self._active_line)
-                self._active_line = self._active_line[:-1]
-
+            return CommandRenderResultDTO(lines=[sanitized], color=color)
+        except UnknownVariableError:
+            self._active_line = sanitized
             self._last_validation_state = False
-            return CommandRenderResultDTO(lines=[self._active_line], color=COLOR.FAILED, message=error_name)
+            return CommandRenderResultDTO(lines=[sanitized], color=COLOR.INCOMPLETE)
+        except ValidationError as error:
+            corrected = self._trim_invalid_suffix(sanitized)
+            self._active_line = corrected
+            self._last_validation_state = False
+            return CommandRenderResultDTO(
+                lines=[corrected],
+                color=COLOR.INCOMPLETE,
+                message=None if corrected != sanitized or pasted else str(error),
+            )
+        except Exception as error:
+            corrected = self._trim_invalid_suffix(sanitized)
+            self._active_line = corrected
+            self._last_validation_state = False
+            return CommandRenderResultDTO(
+                lines=[corrected],
+                color=COLOR.INCOMPLETE,
+                message=None if corrected != sanitized or pasted else str(error),
+            )
 
     def on_enter(self) -> CommandRenderResultDTO:
         try:
-            result = self._controller.on_confirm(self._last_validation_state)
+            result = self._controller.on_confirm()
             if result is None:
-                self._append_limited(self._log, CommandLogEntryDTO(input=self.active_line, success=True, message="Invalid expression.", result=result), Limit.MAX_LOG)
+                self._append_limited(
+                    self._log,
+                    CommandLogEntryDTO(
+                        input=self.active_line,
+                        success=False,
+                        message="Invalid expression.",
+                        result=None,
+                    ),
+                    Limit.MAX_LOG,
+                )
                 return CommandRenderResultDTO(
                     lines=[self._active_line],
-                    color=COLOR.INCOMPLETE)
+                    color=COLOR.INCOMPLETE,
+                    message="Invalid expression.",
+                )
+
             formatted = self._formatter.format_decimal(result)
             self._last_result_formatted = formatted
-            entry = CommandEntryDTO(
-                input=self._active_line,
-                output=formatted)
             self._last_result_raw = result
-            self._append_limited(self._history, entry, Limit.MAX_HISTORY)
-            self._append_limited(self._log, CommandLogEntryDTO(input=self.active_line, success=True, message=None, result=self._last_result_raw), Limit.MAX_LOG)
+            cmd_window_context.add_to_history(self._active_line)
+            self._append_limited(
+                self._history,
+                CommandEntryDTO(input=self._active_line, output=formatted),
+                Limit.MAX_HISTORY,
+            )
+            self._append_limited(
+                self._log,
+                CommandLogEntryDTO(
+                    input=self.active_line,
+                    success=True,
+                    message=None,
+                    result=result,
+                ),
+                Limit.MAX_LOG,
+            )
             self._active_line = ""
             self._undo_stack.clear()
             self._redo_stack.clear()
             self._last_validation_state = False
-            return CommandRenderResultDTO(lines=[formatted, ""], color=COLOR.SUCCESS)
-        except Exception as e:
-            self._append_limited(self._log, CommandLogEntryDTO(input=self.active_line, success=True, message=None, result=self._last_result_raw), Limit.MAX_LOG)
             return CommandRenderResultDTO(
-                lines=[self._active_line, str(e)],
-                color=COLOR.FAILED, message=e)
+                lines=[formatted, ""],
+                color=COLOR.SUCCESS,
+                message=formatted,
+            )
+        except Exception as error:
+            self._append_limited(
+                self._log,
+                CommandLogEntryDTO(
+                    input=self.active_line,
+                    success=False,
+                    message=str(error),
+                    result=self._last_result_raw,
+                ),
+                Limit.MAX_LOG,
+            )
+            return CommandRenderResultDTO(
+                lines=[self._active_line, str(error)],
+                color=COLOR.FAILED,
+                message=str(error),
+            )
 
-    def undo(self) -> None:
-        if not self._undo_stack:
-            return
-        self._redo_stack.append(self._active_line)
-        self._active_line = self._undo_stack.pop()
-
-    def redo(self) -> None:
-        if not self._redo_stack:
-            return
-        self._undo_stack.append(self._active_line)
-        self._active_line = self._redo_stack.pop()
-
-    def delete(self) -> None:
+    def delete(self, target: str | None = None) -> None:
         if self._active_line:
             self._undo_stack.append(self._active_line)
             self._redo_stack.clear()
             self._active_line = self._active_line[:-1]
             return
 
-        if self._history:
-            self._undo_stack.append("")
-            self._redo_stack.clear()
-            last_entry = self._history.pop()
-            self._active_line = last_entry.input
+        if target == "history":
+            if self._history:
+                self._history.pop()
+            instructions = cmd_window_context.get_history()
+            if instructions:
+                cmd_window_context.remove_history_line(len(instructions) - 1)
+            return
+
+        if target == "log" and self._log:
+            self._log.pop()
 
     def copy_formatted(self) -> Optional[str]:
         return self._last_result_formatted
@@ -128,20 +175,44 @@ class CommandWindowPresenter:
     def copy_raw(self) -> Optional[str]:
         if self._last_result_raw is None:
             return None
-        return self._clean_formatter.format(self._last_result_raw)
+        return str(self._last_result_raw)
 
-    def _append_log(
-            self,
-            input_text: str,
-            success: bool,
-            message: Optional[str] = None,
-            result: Optional[Number] = None) -> None:
-        self._log.append(
-            CommandLogEntryDTO(
-                input=input_text,
-                success=success,
-                message=message,
-                result=result))
+    def export_context(self) -> CommandContextDTO:
+        return CommandContextDTO(
+            active_line=self._active_line,
+            history=list(self._history),
+            instructions=cmd_window_context.get_history(),
+            variables=cmd_window_context.get_variables(),
+        )
+
+    def load_context(self, context: CommandContextDTO) -> None:
+        self._active_line = context.active_line
+        self._history = list(context.history)
+        self._undo_stack.clear()
+        self._redo_stack.clear()
+        self._last_validation_state = False
+        self._last_result_raw = None
+        self._last_result_formatted = None
+        cmd_window_context.restore(context.variables, context.instructions)
+
+    def export_log(self) -> CommandLogDTO:
+        return CommandLogDTO(entries=list(self._log))
+
+    def load_log(self, log: CommandLogDTO) -> None:
+        self._log = list(log.entries)
+
+    def _trim_invalid_suffix(self, text: str) -> str:
+        candidate = text
+        while candidate:
+            candidate = candidate[:-1]
+            try:
+                self._controller.on_input_changed(candidate)
+                return candidate
+            except UnknownVariableError:
+                return candidate
+            except Exception:
+                continue
+        return ""
 
     def _append_limited(self, target: list, value, max_size: int) -> None:
         target.append(value)

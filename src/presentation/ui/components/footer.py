@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import QFrame, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
 
 class Footer(QFrame):
+
     def __init__(self):
         super().__init__()
 
@@ -12,8 +13,17 @@ class Footer(QFrame):
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(4)
 
-        footer = QLabel("© All rights reserved. Created by Danrley Felix.")
-        footer.setObjectName("footer-text")
-        footer.setAlignment(Qt.AlignCenter)
+        self.footer = QLabel("© All rights reserved. Created by Danrley Felix.")
+        self.footer.setObjectName("footer-text")
+        self.footer.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        layout.addWidget(footer)
+        self.status = QLabel("Ready.")
+        self.status.setObjectName("footer-status")
+        self.status.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        layout.addWidget(self.footer, 1)
+        layout.addWidget(self.status, 2)
+
+    def set_status(self, message: str, color: str | None = None) -> None:
+        self.status.setText(message)
+        self.status.setStyleSheet("" if color is None else f"color: {color};")

@@ -15,6 +15,12 @@ CONDITIONAL_OPERATORS = {"==", "!=", "<", ">", "<=", ">="}
 ARITHMETIC_OPERATORS = {"*", "-", "+", "/", "**"}
 UNARY_OPERATORS = {"!", "~", "+", "-"}
 BASE_PREFIXES = {"0b": 2, "0x": 16}
+TEXTUAL_OPERATORS = {
+    "NOT": "!",
+    "AND": "&&",
+    "OR": "||",
+    "XOR": "^",
+}
 
 MULTI_CHAR_OPERATORS = sorted(OPERATORS, key=len, reverse=True)
 

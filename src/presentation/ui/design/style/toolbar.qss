@@ -13,3 +13,30 @@ QToolButton {
 QToolButton:hover {
     background-color: $bg-toolbar-button-hover;
 }
+
+QToolButton::menu-indicator {
+    image: none;
+    width: 0px;
+}
+
+QMenu {
+    background-color: $bg-panel;
+    border: 1px solid $border;
+    color: $text-main;
+    padding: 6px;
+}
+
+QMenu::item {
+    padding: 8px 16px;
+    border-radius: $r-sm;
+}
+
+QMenu::item:selected {
+    background-color: $bg-toolbar-button-hover;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: $border;
+    margin: 4px 8px;
+}

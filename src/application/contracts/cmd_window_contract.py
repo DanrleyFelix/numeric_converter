@@ -29,7 +29,7 @@ class ICommandWindowController(Protocol):
     def on_input_changed(self, raw_input: str) -> bool:
         pass
 
-    def on_confirm(self, validation_state: bool, expression: list[Token]) -> Number | None:
+    def on_confirm(self) -> Number | None:
         pass
 
 

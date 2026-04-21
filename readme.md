@@ -30,3 +30,4 @@
     }
 }
 # criar uma documentação (ficará em helps) em html (css com dark themed navy). Pasta: helps (index.js, index.html, style.css, content.json). index.js traz o conteúdo do json para o html. 
+# Finalizar o projeto tornando o conversor funcional (comunicação entre as camadas)

@@ -13,7 +13,7 @@
             "zero_pad": false
         },
         "hexLE": {
-            "group_size": 4,
+            "group_size": 2,
             "zero_pad": true
         }
     }

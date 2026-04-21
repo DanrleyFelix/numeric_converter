@@ -10,6 +10,7 @@ from src.core.constants import (
     IDENTIFIER_RE,
     MULTI_CHAR_OPERATORS,
     BASE_PREFIXES,
+    TEXTUAL_OPERATORS,
     DECIMAL_DIGITS,
     BINARY_DIGITS,
     HEX_DIGITS)
@@ -52,6 +53,9 @@ class Tokenizer:
         raw = match.group(0)
         start = self.pos
         self.pos += len(raw)
+        normalized = TEXTUAL_OPERATORS.get(raw.upper())
+        if normalized is not None:
+            return Token(TokenType.OPERATOR, normalized, normalized, start)
         return Token(TokenType.IDENTIFIER, raw, raw, start)
 
     def _consume_operator(self) -> Optional[Token]:
