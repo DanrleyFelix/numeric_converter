@@ -16,10 +16,8 @@ class Toolbar(QFrame):
         self.setObjectName("toolbar")
         self.setFixedHeight(40)
 
-        self.save_context_action = QAction("Save Context", self)
-        self.load_context_action = QAction("Load Context", self)
-        self.save_log_action = QAction("Save Log", self)
-        self.load_log_action = QAction("Load Log", self)
+        self.save_workspace_action = QAction("Save Workspace", self)
+        self.load_workspace_action = QAction("Load Workspace", self)
 
         self.converter_preferences_action = QAction("Converter", self)
         self.toggle_key_panel_action = QAction("Show Key Panel", self)
@@ -27,10 +25,8 @@ class Toolbar(QFrame):
         self.toggle_key_panel_action.setChecked(True)
 
         file_menu = QMenu(self)
-        file_menu.addAction(self.save_context_action)
-        file_menu.addAction(self.load_context_action)
-        file_menu.addAction(self.save_log_action)
-        file_menu.addAction(self.load_log_action)
+        file_menu.addAction(self.save_workspace_action)
+        file_menu.addAction(self.load_workspace_action)
 
         preferences_menu = QMenu(self)
         preferences_menu.addAction(self.converter_preferences_action)

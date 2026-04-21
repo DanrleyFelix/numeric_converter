@@ -196,6 +196,7 @@ QListWidget#help-nav {
 
 QListWidget#help-nav::item:selected {
     background-color: $bg-toolbar-button-hover;
+    color: $text-main;
     border-radius: $r-sm;
     outline: none;
 }

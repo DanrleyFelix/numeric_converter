@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QTextBrowser,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -24,11 +25,11 @@ HELP_PAGES = [
             <ul>
                 <li>Use the converter for Decimal, Binary, Hex (BE) and Hex (LE) representations.</li>
                 <li>Use the command window for expressions, assignments and variable reuse.</li>
-                <li>Use context files to save variables and the current workspace state.</li>
-                <li>Use log files to save executed commands and their results.</li>
+                <li>Use workspace files to save context and log together.</li>
+                <li>Load a workspace file to restore variables, history, converter state and execution log in one step.</li>
             </ul>
             <h2>Data location</h2>
-            <p>Context JSON files are stored in <code>data/contexts</code>. Log JSON files are stored in <code>data/logs</code>.</p>
+            <p>Workspace JSON files are stored in <code>data/workspaces</code>. Automatic defaults still live under <code>data/contexts</code> and <code>data/logs</code>.</p>
         """,
     },
     {
@@ -83,12 +84,26 @@ typed: 454   effective: 0454</pre>
                 <li>Textual aliases: <code>NOT</code>, <code>AND</code>, <code>OR</code>, <code>XOR</code>.</li>
             </ul>
             <h2>Examples</h2>
+            <h3>Basic arithmetic</h3>
+            <pre>1 + 1
+0x10 + 5
+0b1010 * 3
+(12 + 4) / 2</pre>
+            <h3>Assignments and reuse</h3>
             <pre>gp=0x89823A
 gp >> 3
-mask = 0xFF
+offset=0x1C
+gp + offset</pre>
+            <h3>Bitwise workflows</h3>
+            <pre>mask=0xFF
 mask AND 0b10101010
-NOT 0x0F
-(0x20 + 5) << 2</pre>
+flags=0b11001100
+flags XOR mask
+NOT 0x0F</pre>
+            <h3>Comparisons and grouping</h3>
+            <pre>value=0x20
+(value & 0x0F) == 0
+(value + 5) << 2</pre>
             <h2>Autocomplete and Convert</h2>
             <ul>
                 <li>Variables saved in the current context appear as autocomplete suggestions.</li>
@@ -104,13 +119,12 @@ NOT 0x0F
             <h2>Context</h2>
             <ul>
                 <li>Context stores variables, command history, the active command line and converter state.</li>
-                <li>Use <b>File &gt; Save Context</b> and <b>File &gt; Load Context</b> for specific JSON files.</li>
+                <li>Use <b>File &gt; Save Workspace</b> and <b>File &gt; Load Workspace</b> to save or load context and log together.</li>
                 <li>The default context is saved automatically when the workspace changes.</li>
             </ul>
             <h2>Log</h2>
             <ul>
                 <li>Log stores execution lines in the form <code>expression -&gt; result</code>.</li>
-                <li>Use <b>File &gt; Save Log</b> and <b>File &gt; Load Log</b> for specific JSON files.</li>
                 <li>The default log is saved automatically after command execution.</li>
             </ul>
             <h2>Basic to advanced examples</h2>
@@ -239,10 +253,32 @@ class HelpWindow(QDialog):
         browser = QTextBrowser()
         browser.setObjectName("help-page")
         browser.setOpenExternalLinks(False)
+        browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        browser.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         browser.document().setDocumentMargin(18)
         browser.setHtml(
             f"""
             <html>
+                <head>
+                    <style>
+                        h1, h2, h3, p, li {{
+                            white-space: normal;
+                        }}
+                        pre {{
+                            background-color: #0F0F1E;
+                            border: 1px solid #133874;
+                            border-radius: 10px;
+                            color: #EAEAF5;
+                            padding: 12px;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        }}
+                        code {{
+                            color: #EAEAF5;
+                            white-space: normal;
+                        }}
+                    </style>
+                </head>
                 <body style="
                     background-color: #0F0F1E;
                     color: #EAEAF5;

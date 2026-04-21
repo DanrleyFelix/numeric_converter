@@ -3,8 +3,13 @@ from pathlib import Path
 from src.application.contracts.state_contract import (
     IApplicationContextRepository,
     ICommandLogRepository,
+    IWorkspaceStateRepository,
 )
-from src.application.dto.application_state import ApplicationContextDTO, CommandLogDTO
+from src.application.dto.application_state import (
+    ApplicationContextDTO,
+    CommandLogDTO,
+    WorkspaceStateDTO,
+)
 
 
 class WorkspaceStateService:
@@ -13,9 +18,11 @@ class WorkspaceStateService:
         self,
         context_repository: IApplicationContextRepository,
         log_repository: ICommandLogRepository,
+        workspace_repository: IWorkspaceStateRepository,
     ):
         self._context_repository = context_repository
         self._log_repository = log_repository
+        self._workspace_repository = workspace_repository
 
     @property
     def context_directory(self) -> Path:
@@ -24,6 +31,10 @@ class WorkspaceStateService:
     @property
     def log_directory(self) -> Path:
         return self._log_repository.directory
+
+    @property
+    def workspace_directory(self) -> Path:
+        return self._workspace_repository.directory
 
     def load_default_context(self) -> ApplicationContextDTO:
         return self._context_repository.load()
@@ -48,3 +59,17 @@ class WorkspaceStateService:
 
     def save_log(self, log: CommandLogDTO, path: Path) -> Path:
         return self._log_repository.save(log, path)
+
+    def load_workspace(self, path: Path) -> WorkspaceStateDTO:
+        return self._workspace_repository.load(path)
+
+    def save_workspace(
+        self,
+        context: ApplicationContextDTO,
+        log: CommandLogDTO,
+        path: Path,
+    ) -> Path:
+        return self._workspace_repository.save(
+            WorkspaceStateDTO(context=context, log=log),
+            path,
+        )

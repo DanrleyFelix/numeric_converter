@@ -15,6 +15,7 @@ from src.presentation.repository.preferences_formatter import FormattingPreferen
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
     CommandLogRepository,
+    WorkspaceStateRepository,
 )
 from src.presentation.ui.main_window import MainWindow
 
@@ -45,6 +46,7 @@ def create_main_window(root: Path | None = None) -> MainWindow:
     state_service = WorkspaceStateService(
         context_repository=ApplicationContextRepository(root),
         log_repository=CommandLogRepository(root),
+        workspace_repository=WorkspaceStateRepository(root),
     )
 
     return MainWindow(

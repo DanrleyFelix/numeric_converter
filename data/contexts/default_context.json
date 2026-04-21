@@ -11,12 +11,30 @@
     },
     "command": {
         "active_line": "",
-        "history": [],
-        "instructions": [],
+        "history": [
+            {
+                "input": "x=5665+58*(40-23)",
+                "output": "6651"
+            },
+            {
+                "input": "x",
+                "output": "6651"
+            },
+            {
+                "input": "ANS",
+                "output": "6651"
+            }
+        ],
+        "instructions": [
+            "x=5665+58*(40-23)",
+            "x",
+            "ANS"
+        ],
         "variables": {
-            "ANS": 2148118280,
+            "ANS": 6651,
             "gp": 2148118280,
-            "turn_count": 2148118616
+            "turn_count": 2148118616,
+            "x": 6651
         }
     },
     "key_panel_visible": true

@@ -79,10 +79,8 @@ class MainWindow(QMainWindow):
         self.body.command_panel.editor.submitted.connect(self._on_command_submitted)
         self.key_panel.keyPressed.connect(self._on_key_panel_pressed)
 
-        self.toolbar.save_context_action.triggered.connect(self._save_context)
-        self.toolbar.load_context_action.triggered.connect(self._load_context)
-        self.toolbar.save_log_action.triggered.connect(self._save_log)
-        self.toolbar.load_log_action.triggered.connect(self._load_log)
+        self.toolbar.save_workspace_action.triggered.connect(self._save_workspace)
+        self.toolbar.load_workspace_action.triggered.connect(self._load_workspace)
         self.toolbar.converter_preferences_action.triggered.connect(self._open_preferences)
         self.toolbar.toggle_key_panel_action.toggled.connect(self.key_panel.setVisible)
         self.toolbar.toggle_key_panel_action.toggled.connect(lambda _: self._autosave_state())
@@ -208,60 +206,37 @@ class MainWindow(QMainWindow):
         self._render_converter(output)
         self.footer.set_status("Command result sent to converter.", COLOR.SUCCESS)
 
-    def _save_context(self) -> None:
+    def _save_workspace(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Context",
-            str(self._state_service.context_directory / "context.json"),
+            "Save Workspace",
+            str(self._state_service.workspace_directory / "workspace.json"),
             "JSON Files (*.json)",
         )
         if not path:
             return
-        saved_path = self._state_service.save_context(self._collect_context(), Path(path))
-        self.footer.set_status(f"Context saved to {saved_path.name}.", COLOR.SUCCESS)
-
-    def _load_context(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Load Context",
-            str(self._state_service.context_directory),
-            "JSON Files (*.json)",
-        )
-        if not path:
-            return
-        context = self._state_service.load_context(Path(path))
-        self._apply_context(context)
-        self._refresh_command_completions()
-        self.footer.set_status(f"Context loaded from {Path(path).name}.", COLOR.SUCCESS)
-
-    def _save_log(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Log",
-            str(self._state_service.log_directory / "log.json"),
-            "JSON Files (*.json)",
-        )
-        if not path:
-            return
-        saved_path = self._state_service.save_log(
+        saved_path = self._state_service.save_workspace(
+            self._collect_context(),
             self._command_presenter.export_log(),
             Path(path),
         )
-        self.footer.set_status(f"Log saved to {saved_path.name}.", COLOR.SUCCESS)
+        self.footer.set_status(f"Workspace saved to {saved_path.name}.", COLOR.SUCCESS)
 
-    def _load_log(self) -> None:
+    def _load_workspace(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Load Log",
-            str(self._state_service.log_directory),
+            "Load Workspace",
+            str(self._state_service.workspace_directory),
             "JSON Files (*.json)",
         )
         if not path:
             return
-        log = self._state_service.load_log(Path(path))
-        self._command_presenter.load_log(log)
+        workspace = self._state_service.load_workspace(Path(path))
+        self._apply_context(workspace.context)
+        self._command_presenter.load_log(workspace.log)
         self.body.command_panel.render_log(self._command_presenter.log)
-        self.footer.set_status(f"Log loaded from {Path(path).name}.", COLOR.SUCCESS)
+        self._refresh_command_completions()
+        self.footer.set_status(f"Workspace loaded from {Path(path).name}.", COLOR.SUCCESS)
         self._autosave_state()
 
     def _open_preferences(self) -> None:

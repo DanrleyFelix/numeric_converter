@@ -19,8 +19,7 @@ It combines two main tools:
 - Supports decimal, `0b` binary and `0x` hexadecimal literals.
 - Supports assignments with Python-compatible variable names.
 - Provides autocomplete for variables stored in the active context.
-- Saves and loads context files.
-- Saves and loads log files.
+- Saves and loads workspace files containing context and log together.
 - Keeps automatic default context and log files.
 - Sends command results into the converter when the `Convert` toggle is enabled.
 - Provides a key panel for fast command input.
@@ -138,7 +137,7 @@ NOT 0x0F
 
 Command results appear in the result label above the input. When `Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
 
-## Context
+## Workspace, Context and Logs
 
 Context stores the working state:
 
@@ -148,39 +147,30 @@ Context stores the working state:
 - converter state;
 - key panel visibility.
 
-Context files are stored in:
-
-```text
-data/contexts
-```
-
-Use:
-
-- `File > Save Context`
-- `File > Load Context`
-
-The default context is saved automatically.
-
-## Logs
-
 Logs store executed command lines and their results:
 
 ```text
 expression -> result
 ```
 
-Log files are stored in:
+Workspace files save context and log together:
 
-```text
-data/logs
+data/workspaces
 ```
 
 Use:
 
-- `File > Save Log`
-- `File > Load Log`
+- `File > Save Workspace`
+- `File > Load Workspace`
 
-The default log is saved automatically.
+The automatic defaults are still stored internally in:
+
+```text
+data/contexts
+data/logs
+```
+
+The default context and default log are saved automatically as the workspace changes.
 
 ## Key Panel
 

@@ -5,11 +5,13 @@ from src.application.dto.application_state import (
     CommandContextDTO,
     CommandLogDTO,
     ConverterStateDTO,
+    WorkspaceStateDTO,
 )
 from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
     CommandLogRepository,
+    WorkspaceStateRepository,
 )
 
 
@@ -61,3 +63,44 @@ def test_command_log_roundtrip(tmp_path: Path):
 
     assert saved_path == repository.directory / "custom_log.json"
     assert loaded == log
+
+
+def test_workspace_state_roundtrip_saves_context_and_log_together(tmp_path: Path):
+    repository = WorkspaceStateRepository(tmp_path)
+    workspace = WorkspaceStateDTO(
+        context=ApplicationContextDTO(
+            converter=ConverterStateDTO(
+                from_type="decimal",
+                fields={
+                    "decimal": "42",
+                    "binary": "101010",
+                    "hexBE": "2A",
+                    "hexLE": "2A",
+                },
+                message=None,
+            ),
+            command=CommandContextDTO(
+                active_line="answer",
+                history=[CommandEntryDTO(input="answer=42", output="42")],
+                instructions=["answer=42"],
+                variables={"ANS": 42, "answer": 42},
+            ),
+            key_panel_visible=True,
+        ),
+        log=CommandLogDTO(
+            entries=[
+                CommandLogEntryDTO(
+                    input="answer=42",
+                    success=True,
+                    message=None,
+                    result=42,
+                )
+            ]
+        ),
+    )
+
+    saved_path = repository.save(workspace, Path("full_workspace"))
+    loaded = repository.load(saved_path)
+
+    assert saved_path == repository.directory / "full_workspace.json"
+    assert loaded == workspace

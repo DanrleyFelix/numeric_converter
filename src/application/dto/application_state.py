@@ -42,3 +42,9 @@ class ApplicationContextDTO:
 @dataclass(frozen=True)
 class CommandLogDTO:
     entries: list[CommandLogEntryDTO] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class WorkspaceStateDTO:
+    context: ApplicationContextDTO = field(default_factory=ApplicationContextDTO)
+    log: CommandLogDTO = field(default_factory=CommandLogDTO)
