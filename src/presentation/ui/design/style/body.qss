@@ -72,28 +72,18 @@ QWidget#cmd-prompt-area {
     background: transparent;
 }
 
-QTabWidget#command-tabs::pane {
+QToolButton#copy-raw {
+    background-color: $bg-button;
     border: 1px solid $border;
-    border-radius: $r-sm;
-    background-color: $bg-input;
-    top: -1px;
+    border-radius: 8px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px;
 }
 
-QTabBar::tab {
-    background-color: $bg-panel;
-    color: $text-muted;
-    border: 1px solid $border;
-    padding: 8px 18px;
-    min-width: 84px;
-}
-
-QTabBar::tab:selected {
-    background-color: $bg-toolbar;
-    color: $text-main;
-}
-
-QTabBar::tab:!selected {
-    margin-top: 2px;
+QToolButton#copy-raw:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: 1px solid $border-hover;
 }
 
 QDialog#preferences-dialog,
@@ -234,10 +224,6 @@ QPushButton {
     border-radius: $r-sm;
 }
 
-QPushButton#log {
-    background-color: $bg-button-log;
-}
-
 QPushButton#clear {
     background-color: $bg-button-clear;
 }
@@ -256,14 +242,6 @@ QPushButton#clear:hover {
 
 QPushButton#clear:pressed {
     background-color: $bg-button-clear-pressed;
-}
-
-QPushButton#log:hover {
-    background-color: $bg-button-log-hover;
-}
-
-QPushButton#log:pressed {
-    background-color: $bg-button-log-pressed;
 }
 
 QPushButton#enter:hover {

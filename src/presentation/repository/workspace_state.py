@@ -5,11 +5,10 @@ from typing import Any
 from src.application.dto.application_state import (
     ApplicationContextDTO,
     CommandContextDTO,
-    CommandLogDTO,
     ConverterStateDTO,
     WorkspaceStateDTO,
 )
-from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
+from src.application.dto.command_entry import CommandEntryDTO
 
 
 def _converter_fields(raw: dict[str, Any]) -> dict[str, str]:
@@ -71,34 +70,6 @@ def _context_to_payload(context: ApplicationContextDTO) -> dict[str, Any]:
     }
 
 
-def _log_from_payload(payload: dict[str, Any]) -> CommandLogDTO:
-    return CommandLogDTO(
-        entries=[
-            CommandLogEntryDTO(
-                input=item.get("input", ""),
-                success=bool(item.get("success", False)),
-                message=item.get("message"),
-                result=item.get("result"),
-            )
-            for item in payload.get("entries", [])
-        ]
-    )
-
-
-def _log_to_payload(log: CommandLogDTO) -> dict[str, Any]:
-    return {
-        "entries": [
-            {
-                "input": entry.input,
-                "success": entry.success,
-                "message": entry.message,
-                "result": entry.result,
-            }
-            for entry in log.entries
-        ]
-    }
-
-
 def _read_json(path: Path) -> dict[str, Any] | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -155,42 +126,6 @@ class ApplicationContextRepository:
         return path
 
 
-class CommandLogRepository:
-
-    def __init__(self, root: Path):
-        self._directory = root / "data" / "logs"
-        self._directory.mkdir(parents=True, exist_ok=True)
-
-    @property
-    def directory(self) -> Path:
-        return self._directory
-
-    def default_path(self) -> Path:
-        return self._directory / "default_log.json"
-
-    def load(self, path: Path | None = None) -> CommandLogDTO:
-        target = path or self.default_path()
-        if not target.exists():
-            return CommandLogDTO()
-
-        payload = _read_json(target)
-        if payload is None:
-            return CommandLogDTO()
-
-        return _log_from_payload(payload)
-
-    def save(self, log: CommandLogDTO, path: Path | None = None) -> Path:
-        target = self._normalize_path(path or self.default_path())
-        return _write_json(target, _log_to_payload(log))
-
-    def _normalize_path(self, path: Path) -> Path:
-        if path.suffix.lower() != ".json":
-            path = path.with_suffix(".json")
-        if not path.is_absolute() or self._directory not in path.parents:
-            path = self._directory / path.name
-        return path
-
-
 class WorkspaceStateRepository:
 
     def __init__(self, root: Path):
@@ -210,10 +145,8 @@ class WorkspaceStateRepository:
         if payload is None:
             return WorkspaceStateDTO()
 
-        return WorkspaceStateDTO(
-            context=_context_from_payload(payload.get("context", {})),
-            log=_log_from_payload(payload.get("log", {})),
-        )
+        context_payload = payload.get("context", payload)
+        return WorkspaceStateDTO(context=_context_from_payload(context_payload))
 
     def save(
         self,
@@ -221,11 +154,7 @@ class WorkspaceStateRepository:
         path: Path | None = None,
     ) -> Path:
         target = self._normalize_path(path or (self._directory / "workspace.json"))
-        payload = {
-            "context": _context_to_payload(workspace.context),
-            "log": _log_to_payload(workspace.log),
-        }
-        return _write_json(target, payload)
+        return _write_json(target, _context_to_payload(workspace.context))
 
     def _normalize_path(self, path: Path) -> Path:
         if path.suffix.lower() != ".json":

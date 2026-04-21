@@ -17,19 +17,19 @@ from PySide6.QtWidgets import (
 HELP_PAGES = [
     {
         "title": "Overview",
-        "subtitle": "A calculator for conversion, expressions, context and logs",
+        "subtitle": "A calculator for conversion, expressions, context and reusable history",
         "html": """
             <h1>Numeric WorkBench</h1>
-            <p>Numeric WorkBench combines a base converter with a command calculator that remembers variables, history and logs.</p>
+            <p>Numeric WorkBench combines a base converter with a command calculator that remembers variables, command history and converter state.</p>
             <h2>Core workflow</h2>
             <ul>
                 <li>Use the converter for Decimal, Binary, Hex (BE) and Hex (LE) representations.</li>
                 <li>Use the command window for expressions, assignments and variable reuse.</li>
-                <li>Use workspace files to save context and log together.</li>
-                <li>Load a workspace file to restore variables, history, converter state and execution log in one step.</li>
+                <li>Use workspace files to save or load the complete context in one action.</li>
+                <li>Load a workspace file to restore variables, history, the active command line, key panel visibility and converter state.</li>
             </ul>
             <h2>Data location</h2>
-            <p>Workspace JSON files are stored in <code>data/workspaces</code>. Automatic defaults still live under <code>data/contexts</code> and <code>data/logs</code>.</p>
+            <p>Workspace JSON files are stored in <code>data/workspaces</code>. The automatic default context lives under <code>data/contexts</code>.</p>
         """,
     },
     {
@@ -50,6 +50,11 @@ HELP_PAGES = [
                 <li><b>Zero pad</b> pads the effective input before conversion.</li>
                 <li>Hex values with an odd number of digits receive one leading zero to complete a byte.</li>
                 <li>Hex (LE) interprets the effective byte sequence as little-endian.</li>
+            </ul>
+            <h2>Copying values</h2>
+            <ul>
+                <li>Normal copy keeps the field exactly as displayed, including spaces.</li>
+                <li>The small copy icon beside each field copies the same value without spaces.</li>
             </ul>
             <h2>Examples</h2>
             <pre>Decimal: 255
@@ -113,26 +118,26 @@ NOT 0x0F</pre>
         """,
     },
     {
-        "title": "Context and Logs",
-        "subtitle": "Saving variables, history and execution output",
+        "title": "Context and History",
+        "subtitle": "Saving variables, history and the working state",
         "html": """
-            <h1>Context and Logs</h1>
+            <h1>Context and History</h1>
             <h2>Context</h2>
             <ul>
-                <li>Context stores variables, command history, the active command line and converter state.</li>
-                <li>Use <b>File &gt; Save Workspace</b> and <b>File &gt; Load Workspace</b> to save or load context and log together.</li>
+                <li>Context stores variables, command history, the active command line, converter state and key panel visibility.</li>
+                <li>Use <b>File &gt; Save Workspace</b> and <b>File &gt; Load Workspace</b> to save or load the complete context.</li>
                 <li>The default context is saved automatically when the workspace changes.</li>
             </ul>
-            <h2>Log</h2>
+            <h2>History</h2>
             <ul>
-                <li>Log stores execution lines in the form <code>expression -&gt; result</code>.</li>
-                <li>The default log is saved automatically after command execution.</li>
+                <li>History stores successful commands in the form <code>expression =&gt; result</code>.</li>
+                <li>History is part of the context, so there is no second history-like panel or file.</li>
             </ul>
             <h2>Basic to advanced examples</h2>
-            <pre>1 + 1 -> 2
-value=0x10 -> 16
-value*3 -> 48
-(value & 0x0F) == 0 -> 1</pre>
+            <pre>1 + 1 => 2
+value=0x10 => 16
+value*3 => 48
+(value & 0x0F) == 0 => 1</pre>
         """,
     },
     {
@@ -143,13 +148,12 @@ value*3 -> 48
             <p>The key panel writes directly into the command window.</p>
             <h2>Key panel</h2>
             <ul>
-                <li><b>LOG</b> toggles the History/Log tab.</li>
-                <li><b>CLEAR</b> removes the last character from the command input, or deletes one line from the active History/Log panel.</li>
+                <li><b>CLEAR</b> removes the last character from the command input, or deletes one line from History when the command input is empty.</li>
                 <li><b>ENTER</b> submits the current expression.</li>
+                <li>Operator, number and prefix buttons insert their text at the current command cursor position.</li>
             </ul>
             <h2>Typical use</h2>
             <pre>0x FF AND 0b 1010 ENTER
-LOG
 CLEAR</pre>
         """,
     },

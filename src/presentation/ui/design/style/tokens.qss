@@ -13,9 +13,6 @@ $bg-toolbar-button-hover: #373765;
 $bg-button-enter:         #803232; 
 $bg-button-enter-hover:   #9c3636;
 $bg-button-enter-pressed: #c44c4c;
-$bg-button-log:           #a37b2c;
-$bg-button-log-hover:     #bc9731;
-$bg-button-log-pressed:   #cba848;
 $bg-button-clear:         #3f7a42;
 $bg-button-clear-hover:   #408b43;
 $bg-button-clear-pressed: #54ac57;
@@ -37,7 +34,6 @@ $text-muted:              #B5B5C5;
    COLORS — ACCENTS
    =============================== */
 $accent-clear:            #4D7640;
-$accent-log:              #A8802A;
 $accent-icon:             #37A35C;
 $accent-stroke:           #224A8A;
 

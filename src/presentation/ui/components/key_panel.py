@@ -20,13 +20,13 @@ class KeyPanel(QFrame):
             "+", "-", "x", "/", "^", "==", "!=", ">=", "<=",
             "=", "&", "|", "~", "NOT", "OR", "AND", "XOR", ">>", "<<",
             "(", ")", "0x", "0b",
-            "LOG", "CLEAR", "ENTER",
+            "CLEAR", "ENTER",
         ]
 
         for key in keys:
             label = "&&" if key == "&" else key
             button = QPushButton(label)
-            if key.lower() in ("log", "clear", "enter"):
+            if key.lower() in ("clear", "enter"):
                 button.setObjectName(key.lower())
 
             button.setMinimumHeight(34)

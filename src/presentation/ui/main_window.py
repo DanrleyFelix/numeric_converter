@@ -88,12 +88,9 @@ class MainWindow(QMainWindow):
 
     def _load_default_state(self) -> None:
         context = self._state_service.load_default_context()
-        log = self._state_service.load_default_log()
         self._apply_context(context)
-        self._command_presenter.load_log(log)
-        self.body.command_panel.render_log(self._command_presenter.log)
         self._refresh_command_completions()
-        self.footer.set_status("Default context and log loaded.")
+        self.footer.set_status("Default context loaded.")
 
     def _on_converter_input(self, from_type: str, raw_value: str) -> None:
         if self._syncing_converter:
@@ -140,7 +137,6 @@ class MainWindow(QMainWindow):
         self._syncing_command = False
 
         self.body.command_panel.render_history(self._command_presenter.history)
-        self.body.command_panel.render_log(self._command_presenter.log)
         self.body.command_panel.set_feedback(
             result.message or "Expression incomplete.",
             result.color,
@@ -157,22 +153,13 @@ class MainWindow(QMainWindow):
             self._on_command_submitted()
             return
 
-        if key == "LOG":
-            self.body.command_panel.toggle_history_log()
-            self.body.command_panel.set_feedback(
-                f"{self.body.command_panel.current_tab_name().title()} panel active.",
-                COLOR.SUCCESS,
-            )
-            return
-
         if key == "CLEAR":
-            self._command_presenter.delete(self.body.command_panel.current_tab_name())
+            self._command_presenter.delete("history")
             self._syncing_command = True
             with QSignalBlocker(self.body.command_panel.editor):
                 self.body.command_panel.set_input_text(self._command_presenter.active_line)
             self._syncing_command = False
             self.body.command_panel.render_history(self._command_presenter.history)
-            self.body.command_panel.render_log(self._command_presenter.log)
             self.body.command_panel.set_feedback("Deleted last item.", COLOR.INCOMPLETE)
             self._refresh_command_completions()
             self._autosave_state()
@@ -217,7 +204,6 @@ class MainWindow(QMainWindow):
             return
         saved_path = self._state_service.save_workspace(
             self._collect_context(),
-            self._command_presenter.export_log(),
             Path(path),
         )
         self.footer.set_status(f"Workspace saved to {saved_path.name}.", COLOR.SUCCESS)
@@ -233,8 +219,6 @@ class MainWindow(QMainWindow):
             return
         workspace = self._state_service.load_workspace(Path(path))
         self._apply_context(workspace.context)
-        self._command_presenter.load_log(workspace.log)
-        self.body.command_panel.render_log(self._command_presenter.log)
         self._refresh_command_completions()
         self.footer.set_status(f"Workspace loaded from {Path(path).name}.", COLOR.SUCCESS)
         self._autosave_state()
@@ -288,7 +272,6 @@ class MainWindow(QMainWindow):
     def _apply_context(self, context: ApplicationContextDTO) -> None:
         self._command_presenter.load_context(context.command)
         self.body.command_panel.render_history(self._command_presenter.history)
-        self.body.command_panel.render_log(self._command_presenter.log)
 
         self._syncing_command = True
         with QSignalBlocker(self.body.command_panel.editor):
@@ -340,4 +323,3 @@ class MainWindow(QMainWindow):
         if not self._loaded:
             return
         self._state_service.save_default_context(self._collect_context())
-        self._state_service.save_default_log(self._command_presenter.export_log())

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from numbers import Number
 
-from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
+from src.application.dto.command_entry import CommandEntryDTO
 
 
 def _default_converter_fields() -> dict[str, str]:
@@ -40,11 +40,5 @@ class ApplicationContextDTO:
 
 
 @dataclass(frozen=True)
-class CommandLogDTO:
-    entries: list[CommandLogEntryDTO] = field(default_factory=list)
-
-
-@dataclass(frozen=True)
 class WorkspaceStateDTO:
     context: ApplicationContextDTO = field(default_factory=ApplicationContextDTO)
-    log: CommandLogDTO = field(default_factory=CommandLogDTO)

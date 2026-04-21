@@ -3,8 +3,8 @@ from typing import List, Optional
 
 from src.application.contracts.cmd_window_contract import ICommandWindowController
 from src.application.contracts.preferences_contract import IOutputFormatter
-from src.application.dto.application_state import CommandContextDTO, CommandLogDTO
-from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
+from src.application.dto.application_state import CommandContextDTO
+from src.application.dto.command_entry import CommandEntryDTO
 from src.application.dto.command_render_result import CommandRenderResultDTO
 from src.core.command_window.context import cmd_window_context
 from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
@@ -25,7 +25,6 @@ class CommandWindowPresenter:
 
         self._history: List[CommandEntryDTO] = []
         self._active_line: str = ""
-        self._log: List[CommandLogEntryDTO] = []
 
         self._undo_stack: List[str] = []
         self._redo_stack: List[str] = []
@@ -37,10 +36,6 @@ class CommandWindowPresenter:
     @property
     def history(self) -> List[CommandEntryDTO]:
         return list(self._history)
-
-    @property
-    def log(self) -> List[CommandLogEntryDTO]:
-        return list(self._log)
 
     @property
     def active_line(self) -> str:
@@ -90,16 +85,6 @@ class CommandWindowPresenter:
         try:
             result = self._controller.on_confirm()
             if result is None:
-                self._append_limited(
-                    self._log,
-                    CommandLogEntryDTO(
-                        input=self.active_line,
-                        success=False,
-                        message="Invalid expression.",
-                        result=None,
-                    ),
-                    Limit.MAX_LOG,
-                )
                 return CommandRenderResultDTO(
                     lines=[self._active_line],
                     color=COLOR.INCOMPLETE,
@@ -115,16 +100,6 @@ class CommandWindowPresenter:
                 CommandEntryDTO(input=self._active_line, output=formatted),
                 Limit.MAX_HISTORY,
             )
-            self._append_limited(
-                self._log,
-                CommandLogEntryDTO(
-                    input=self.active_line,
-                    success=True,
-                    message=None,
-                    result=result,
-                ),
-                Limit.MAX_LOG,
-            )
             self._active_line = ""
             self._undo_stack.clear()
             self._redo_stack.clear()
@@ -135,16 +110,6 @@ class CommandWindowPresenter:
                 message=formatted,
             )
         except Exception as error:
-            self._append_limited(
-                self._log,
-                CommandLogEntryDTO(
-                    input=self.active_line,
-                    success=False,
-                    message=str(error),
-                    result=self._last_result_raw,
-                ),
-                Limit.MAX_LOG,
-            )
             return CommandRenderResultDTO(
                 lines=[self._active_line, str(error)],
                 color=COLOR.FAILED,
@@ -165,9 +130,6 @@ class CommandWindowPresenter:
             if instructions:
                 cmd_window_context.remove_history_line(len(instructions) - 1)
             return
-
-        if target == "log" and self._log:
-            self._log.pop()
 
     def copy_formatted(self) -> Optional[str]:
         return self._last_result_formatted
@@ -194,12 +156,6 @@ class CommandWindowPresenter:
         self._last_result_raw = None
         self._last_result_formatted = None
         cmd_window_context.restore(context.variables, context.instructions)
-
-    def export_log(self) -> CommandLogDTO:
-        return CommandLogDTO(entries=list(self._log))
-
-    def load_log(self, log: CommandLogDTO) -> None:
-        self._log = list(log.entries)
 
     def _trim_invalid_suffix(self, text: str) -> str:
         candidate = text

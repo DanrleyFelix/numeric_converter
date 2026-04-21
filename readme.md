@@ -1,6 +1,6 @@
 # Numeric WorkBench
 
-Numeric WorkBench is a desktop calculator for numeric conversion, command expressions, variables, context persistence and execution logs.
+Numeric WorkBench is a desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
 
 It combines two main tools:
 
@@ -15,12 +15,13 @@ It combines two main tools:
 - Applies `group size` and `zero padding` independently for each converter field.
 - Completes odd hexadecimal input with a leading zero before conversion.
 - Keeps Hex (LE) editing stable even when zero padding is visible.
+- Copies converter text exactly as displayed, or copies raw text without spaces from the small copy icon beside each field.
 - Evaluates arithmetic, comparison, bitwise and textual-operator expressions.
 - Supports decimal, `0b` binary and `0x` hexadecimal literals.
 - Supports assignments with Python-compatible variable names.
 - Provides autocomplete for variables stored in the active context.
-- Saves and loads workspace files containing context and log together.
-- Keeps automatic default context and log files.
+- Saves and loads workspace files containing the full context.
+- Keeps an automatic default context file.
 - Sends command results into the converter when the `Convert` toggle is enabled.
 - Provides a key panel for fast command input.
 - Includes an in-app Help window with focused usage documentation.
@@ -33,6 +34,15 @@ The converter has four fields:
 - `Binary`: accepts digits `0` and `1`.
 - `Hex (BE)`: accepts digits `0-9` and letters `A-F`.
 - `Hex (LE)`: accepts digits `0-9` and letters `A-F`.
+
+### Editing and copying
+
+Converter fields behave like normal text fields for selection, cursor movement and standard copy:
+
+- `Ctrl+C` copies the selected value exactly as it appears on screen, including spaces.
+- `Ctrl+A` selects the visible field content.
+- `Backspace` and `Delete` remove the selected raw content or the raw character near the cursor.
+- The small copy icon beside each field performs `copy raw`, which copies the visible value without spaces.
 
 ### Padding and grouping
 
@@ -146,7 +156,7 @@ History entries are rendered on one line:
 x=5665+58*(40-23) => 6651
 ```
 
-## Workspace, Context and Logs
+## Workspace and Context
 
 Context stores the working state:
 
@@ -156,14 +166,9 @@ Context stores the working state:
 - converter state;
 - key panel visibility.
 
-Logs store executed command lines and their results:
+Workspace files save the full context:
 
 ```text
-expression -> result
-```
-
-Workspace files save context and log together:
-
 data/workspaces
 ```
 
@@ -172,14 +177,13 @@ Use:
 - `File > Save Workspace`
 - `File > Load Workspace`
 
-The automatic defaults are still stored internally in:
+The automatic default context is stored internally in:
 
 ```text
 data/contexts
-data/logs
 ```
 
-The default context and default log are saved automatically as the workspace changes.
+The default context is saved automatically as the workspace changes.
 
 ## Key Panel
 
@@ -187,8 +191,7 @@ The key panel writes directly into the command window.
 
 Special keys:
 
-- `LOG`: toggles between History and Log.
-- `CLEAR`: deletes the last command character, or removes one line from the active History/Log panel when the command input is empty.
+- `CLEAR`: deletes the last command character, or removes one line from History when the command input is empty.
 - `ENTER`: submits the current expression.
 
 ## Preferences
@@ -209,7 +212,7 @@ The `Help` toolbar button opens an in-app manual with pages for:
 - overview;
 - converter;
 - command window;
-- context and logs;
+- context and history;
 - key panel;
 - preferences.
 
@@ -222,7 +225,7 @@ src/controllers   bridges between presenters and use cases
 src/presentation  presenters, repositories, formatters and UI components
 src/main          application composition
 tests             automated tests
-data              local contexts and logs
+data              local contexts and workspaces
 ```
 
 ## Dependencies

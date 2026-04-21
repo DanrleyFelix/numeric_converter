@@ -8,12 +8,11 @@ from PySide6.QtWidgets import (
     QListView,
     QPlainTextEdit,
     QPushButton,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from src.application.dto.command_entry import CommandEntryDTO, CommandLogEntryDTO
+from src.application.dto.command_entry import CommandEntryDTO
 
 
 class PromptArea(QWidget):
@@ -179,16 +178,6 @@ class CommandPanel(QFrame):
         self.history_view.setReadOnly(True)
         self.history_view.setPlaceholderText("Command history will appear here.")
 
-        self.log_view = QPlainTextEdit()
-        self.log_view.setObjectName("command-log")
-        self.log_view.setReadOnly(True)
-        self.log_view.setPlaceholderText("Command log will appear here.")
-
-        self.tabs = QTabWidget()
-        self.tabs.setObjectName("command-tabs")
-        self.tabs.addTab(self.history_view, "History")
-        self.tabs.addTab(self.log_view, "Log")
-
         feedback_row = QHBoxLayout()
         feedback_row.setContentsMargins(0, 0, 0, 0)
         feedback_row.setSpacing(10)
@@ -210,7 +199,7 @@ class CommandPanel(QFrame):
         self.editor.setFixedHeight(88)
 
         layout.addWidget(title)
-        layout.addWidget(self.tabs, 1)
+        layout.addWidget(self.history_view, 1)
         layout.addLayout(feedback_row)
         layout.addWidget(self.editor)
 
@@ -229,12 +218,6 @@ class CommandPanel(QFrame):
     def convert_enabled(self) -> bool:
         return self.convert_toggle.isChecked()
 
-    def current_tab_name(self) -> str:
-        return "history" if self.tabs.currentWidget() is self.history_view else "log"
-
-    def toggle_history_log(self) -> None:
-        self.tabs.setCurrentIndex((self.tabs.currentIndex() + 1) % self.tabs.count())
-
     def render_history(self, entries: list[CommandEntryDTO]) -> None:
         lines: list[str] = []
         for entry in entries:
@@ -243,18 +226,6 @@ class CommandPanel(QFrame):
             else:
                 lines.append(entry.input)
         self.history_view.setPlainText("\n".join(lines).strip())
-
-    def render_log(self, entries: list[CommandLogEntryDTO]) -> None:
-        lines: list[str] = []
-        for entry in entries:
-            if entry.success:
-                result = "" if entry.result is None else str(entry.result)
-                lines.append(f"{entry.input} -> {result}".rstrip())
-                continue
-
-            detail = entry.message or "Invalid expression."
-            lines.append(f"{entry.input} -> {detail}")
-        self.log_view.setPlainText("\n".join(lines))
 
     def set_feedback(self, message: str, color: str) -> None:
         self.feedback.setText(message)

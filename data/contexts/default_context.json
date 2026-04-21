@@ -1,11 +1,11 @@
 {
     "converter": {
-        "from_type": "hexLE",
+        "from_type": "decimal",
         "fields": {
-            "decimal": "10053888",
-            "binary": "100110010110100100000000",
-            "hexBE": "996900",
-            "hexLE": "06999"
+            "decimal": "2148118280",
+            "binary": "10000000000010011010111100001000",
+            "hexBE": "8009AF08",
+            "hexLE": "08AF0980"
         },
         "message": null
     },
@@ -15,10 +15,15 @@
             {
                 "input": "54&6",
                 "output": "6"
+            },
+            {
+                "input": "gp=0x8009AF08",
+                "output": "2148118280"
             }
         ],
         "instructions": [
-            "54&6"
+            "54&6",
+            "gp=0x8009AF08"
         ],
         "variables": {
             "ANS": 6,
@@ -27,5 +32,5 @@
             "x": 6651
         }
     },
-    "key_panel_visible": true
+    "key_panel_visible": false
 }
