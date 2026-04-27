@@ -30,6 +30,7 @@ class CommandContextDTO:
     history: list[CommandEntryDTO] = field(default_factory=list)
     instructions: list[str] = field(default_factory=list)
     variables: dict[str, Number] = field(default_factory=_default_command_variables)
+    workspace_view_mode: str = "variables"
 
 
 @dataclass(frozen=True)

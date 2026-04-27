@@ -252,3 +252,28 @@ python -m src
 ```bash
 pytest
 ```
+
+# Corrigindo bugs
+
+## Em relação ao Key Panel (apenas ajuste moderado):
+Ao clicar nas teclas NOT, OR, AND e XOR insere-se automaticamente um " " (espaço), uma vez que, por exemplo, NOT1 seria uma varíavel. Então ao clicar em NOT ficará "NOT " (o mesmo para os outros operadores que possuem teclas válidas para variáveis).
+
+## Bugs críticos
+É IMPOSSÍVEL criar varíaveis que começam com AN, O E XO. Isso se deve ao fato de existirem operadores não unários que usam letras normais como AND, OR E XOR. Isso significa que esses operadores e o NOT, de forma particular e excepcional, devem ser interpretados como operadores apenas se houver espaço ou parênteses entre os operandos. Exemplo 1: A AND B (AND É OPERADOR). AANDB (AND não é operador). (A)AND(B) (AND é operador). 
+Exemplo 2: NOT1 (NOT não é operador). NOT 1 (NOT é operador). NOT(1) (NOT é operador).
+Exemplo 3: (NOT)1, A(OR)B são EXPRESSÕES INVÁLIDAS. OPERADORES NÃO PODEM FICAR ENTRE PARÊNTESES.
+Obs: Tome cuidado ao corrigir este bug, pois você pode quebrar outras funcionalidades. Um exemplo de erro que você pode cometer é proibir que a seguinte expressão não possa ser digitada: (A AND B)OR(B XOR 1). Caso A seja uma variável desconhecida, a interface deve colocar na zona de output "Unknown variable "A"". Essa expressão É VÁLIDA.
+
+# Ajustes na interface (UI/UX)
+## Em relação a toolbar:
+File: Save Workspace possui um espaçamento que não deveria em existir no "top". Load Workspace possui um espaçamento que não deveria em existir no "bottom".
+Preferences: Acontece a mesma coisa que no File. O Show Key Panel aparece de forma redundante no converter. Outro erro consiste em colocar borda quando show key panel está ativado. Ao invés disso, use um ícone verde de "verified" quando ativo.
+## Em relação ao output do command window:
+O texto "Type an Expression and Press Enter" deve ser azul e não amarelo. 
+Ao digitar, por exemplo, "NOT1", aparece CORRETAMENTE "Expression Incomplete" em AMARELO, mao pressionar ENTER, aparece "Invalid Expression" em AMARELO. Para expressões incorretas, sempre deve-se usar o vermelho após pressionar a tecla ENTER.
+
+## Em relação ao Help
+O título na janela de Help deve ser apenas User Guide ao invés de Help. E "Numeric WorkBench user guide" não deve existir. 
+Adicione um padding em relação ao conteúdo/títulos/subtítulos etc. em relação ao preenchimento no fundo. O texto está muito colado com o fundo do panel.
+Essa cor de fundo só deve existir nos títulos e subtítulos. Use outra tonalidade da cor para textos com size normal (que não seja título e nem subtítulo).
+

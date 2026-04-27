@@ -21,6 +21,8 @@ class CommandWindowController:
         self._validation_state: ValidationState = ValidationState.POTENTIALLY_INVALID
 
     def on_input_changed(self, raw_input: str) -> ValidationState:
+        self._tokens = []
+        self._validation_state = ValidationState.POTENTIALLY_INVALID
         state = self._validator.validate(raw_input)
         try:
             tokenizer = Tokenizer(raw_input)

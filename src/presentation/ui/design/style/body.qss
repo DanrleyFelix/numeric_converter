@@ -29,13 +29,6 @@ QPlainTextEdit:focus {
     border: 1px solid $border-focus;
 }
 
-QLabel#command-title {
-    font-family: $font-base;
-    font-weight: $fw-regular;
-    font-size: $fs-ml-sm;
-    color: $text-main;
-}
-
 QLabel#command-feedback {
     font-family: $font-base;
     font-size: $fs-c-lg;
@@ -43,6 +36,7 @@ QLabel#command-feedback {
     padding-left: 2px;
 }
 
+QPushButton#command-header-button,
 QPushButton#command-convert-toggle {
     min-width: 96px;
     min-height: 34px;
@@ -53,9 +47,16 @@ QPushButton#command-convert-toggle {
     color: $text-muted;
 }
 
+QPushButton#command-header-button:hover,
 QPushButton#command-convert-toggle:hover {
     background-color: $bg-toolbar-button-hover;
     color: $text-main;
+}
+
+QPushButton#command-header-button:focus,
+QPushButton#command-convert-toggle:focus {
+    outline: none;
+    border: 1px solid $border;
 }
 
 QPushButton#command-convert-toggle:checked {
@@ -87,12 +88,14 @@ QToolButton#copy-raw:hover {
 }
 
 QDialog#preferences-dialog,
-QDialog#help-window {
+QDialog#help-window,
+QDialog#workspace-table-dialog {
     background-color: $bg-panel;
 }
 
 QLabel#preferences-title,
-QLabel#help-title {
+QLabel#help-title,
+QLabel#workspace-table-title {
     font-size: 24px;
     font-weight: $fw-semibold;
     color: $text-main;
@@ -103,6 +106,20 @@ QLabel#help-subtitle,
 QLabel#help-page-indicator {
     font-size: $fs-c-md;
     color: $text-muted;
+}
+
+QToolTip {
+    background-color: rgba(14, 20, 33, 0.98);
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+QLabel#preferences-section-title {
+    font-size: $fs-c-lg;
+    color: $text-main;
+    padding-top: 4px;
 }
 
 QSpinBox {
@@ -123,6 +140,11 @@ QCheckBox {
     color: $text-main;
 }
 
+QRadioButton {
+    spacing: 10px;
+    color: $text-main;
+}
+
 QCheckBox::indicator {
     width: 18px;
     height: 18px;
@@ -132,6 +154,19 @@ QCheckBox::indicator {
 }
 
 QCheckBox::indicator:checked {
+    background-color: rgba(106, 232, 153, 0.12);
+    border: 1px solid $accent-icon;
+}
+
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid $border;
+    border-radius: 9px;
+    background-color: $bg-input;
+}
+
+QRadioButton::indicator:checked {
     background-color: rgba(106, 232, 153, 0.12);
     border: 1px solid $accent-icon;
 }
@@ -204,10 +239,72 @@ QListWidget#help-nav::item:focus {
 }
 
 QTextBrowser#help-page {
-    background-color: $bg-input;
+    background-color: transparent;
     border: 1px solid $border;
-    border-radius: 16px;
-    padding: 8px;
+    border-radius: 18px;
+    padding: 10px 32px 10px 10px;
+}
+
+QFrame#workspace-table-shell {
+    background-color: rgba(11, 19, 33, 0.98);
+    border: 1px solid $border;
+    border-radius: 18px;
+}
+
+QWidget#workspace-table-header {
+    background-color: rgba(22, 31, 48, 0.98);
+    border: none;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom: 1px solid rgba(24, 73, 156, 0.95);
+}
+
+QWidget#workspace-table-header-spacer,
+QWidget#workspace-header-labels,
+QScrollArea#workspace-table-body-scroll,
+QWidget#workspace-table-body,
+QWidget#workspace-row {
+    background-color: transparent;
+    border: none;
+}
+
+QLabel#workspace-table-header-cell {
+    background-color: transparent;
+    color: #C9D8FF;
+    font-size: 17px;
+    font-weight: $fw-regular;
+}
+
+QFrame#workspace-row-card {
+    background-color: rgba(14, 20, 33, 0.78);
+    border: 1px solid transparent;
+    border-radius: 14px;
+}
+
+QFrame#workspace-row-card:hover {
+    background-color: rgba(28, 42, 68, 0.90);
+    border: 1px solid rgba(34, 87, 172, 0.88);
+}
+
+QLabel#workspace-row-cell {
+    color: $text-main;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QPushButton#workspace-row-remove {
+    background-color: rgba(48, 20, 28, 0.82);
+    border: 1px solid rgba(241, 111, 123, 0.88);
+    border-radius: 8px;
+    color: #FF8B96;
+    font-size: 18px;
+    font-weight: $fw-semibold;
+    padding: 0 0 2px 0;
+}
+
+QPushButton#workspace-row-remove:hover {
+    background-color: rgba(70, 26, 37, 0.94);
+    border: 1px solid rgba(255, 143, 153, 0.98);
 }
 
 QFrame#key-panel {

@@ -45,6 +45,7 @@ def _context_from_payload(payload: dict[str, Any]) -> ApplicationContextDTO:
             ],
             instructions=list(command_raw.get("instructions", [])),
             variables=dict(command_raw.get("variables", {"ANS": 0})),
+            workspace_view_mode=command_raw.get("workspace_view_mode", "variables"),
         ),
         key_panel_visible=payload.get("key_panel_visible", True),
     )
@@ -65,6 +66,7 @@ def _context_to_payload(context: ApplicationContextDTO) -> dict[str, Any]:
             ],
             "instructions": list(context.command.instructions),
             "variables": dict(context.command.variables),
+            "workspace_view_mode": context.command.workspace_view_mode,
         },
         "key_panel_visible": context.key_panel_visible,
     }

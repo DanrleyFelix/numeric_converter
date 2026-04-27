@@ -9,7 +9,7 @@ from src.application.services.workspace_state_service import WorkspaceStateServi
 from src.modules.utils import COLOR
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter
-from src.presentation.ui.components import Body, Footer, KeyPanel, Toolbar
+from src.presentation.ui.components import Body, Footer, KeyPanel, Toolbar, WorkspaceRow, WorkspaceTableDialog
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import PreferencesDialog
 from src.presentation.ui.design.icons import Icons
@@ -31,6 +31,8 @@ class MainWindow(QMainWindow):
         self._state_service = state_service
         self._preferences_service = preferences_service
         self._help_window: HelpWindow | None = None
+        self._logs_window: WorkspaceTableDialog | None = None
+        self._variables_window: WorkspaceTableDialog | None = None
         self._syncing_converter = False
         self._syncing_command = False
         self._loaded = False
@@ -85,6 +87,8 @@ class MainWindow(QMainWindow):
         self.toolbar.toggle_key_panel_action.toggled.connect(self.key_panel.setVisible)
         self.toolbar.toggle_key_panel_action.toggled.connect(lambda _: self._autosave_state())
         self.toolbar.help_button.clicked.connect(self._open_help)
+        self.body.command_panel.show_logs_button.clicked.connect(self._open_logs_window)
+        self.body.command_panel.show_variables_button.clicked.connect(self._open_variables_window)
 
     def _load_default_state(self) -> None:
         context = self._state_service.load_default_context()
@@ -121,6 +125,15 @@ class MainWindow(QMainWindow):
                 self.body.command_panel.set_input_text(self._command_presenter.active_line)
             self._syncing_command = False
 
+        if not self._command_presenter.active_line.strip():
+            self.body.command_panel.set_feedback(
+                "Type an expression and press Enter.",
+                COLOR.INFO,
+            )
+            self._refresh_command_completions()
+            self._autosave_state()
+            return
+
         message = result.message
         if message is None:
             message = "Expression ready." if result.color == COLOR.SUCCESS else "Expression incomplete."
@@ -136,7 +149,7 @@ class MainWindow(QMainWindow):
             self.body.command_panel.set_input_text(self._command_presenter.active_line)
         self._syncing_command = False
 
-        self.body.command_panel.render_history(self._command_presenter.history)
+        self._refresh_workspace_windows()
         self.body.command_panel.set_feedback(
             result.message or "Expression incomplete.",
             result.color,
@@ -159,7 +172,7 @@ class MainWindow(QMainWindow):
             with QSignalBlocker(self.body.command_panel.editor):
                 self.body.command_panel.set_input_text(self._command_presenter.active_line)
             self._syncing_command = False
-            self.body.command_panel.render_history(self._command_presenter.history)
+            self._refresh_workspace_windows()
             self.body.command_panel.set_feedback("Deleted last item.", COLOR.INCOMPLETE)
             self._refresh_command_completions()
             self._autosave_state()
@@ -226,7 +239,6 @@ class MainWindow(QMainWindow):
     def _open_preferences(self) -> None:
         dialog = PreferencesDialog(
             formatting=self._preferences_service.get_format(),
-            key_panel_visible=self.key_panel.isVisible(),
             parent=self,
         )
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -235,9 +247,6 @@ class MainWindow(QMainWindow):
         formatting = dialog.selected_formatting()
         for key, config in formatting.items():
             self._preferences_service.update(key, config)
-
-        self.key_panel.setVisible(dialog.key_panel_visible())
-        self.toolbar.toggle_key_panel_action.setChecked(dialog.key_panel_visible())
 
         output = self._converter_presenter.update_formatting(formatting)
         if output is not None:
@@ -258,6 +267,51 @@ class MainWindow(QMainWindow):
     def _clear_help_window(self) -> None:
         self._help_window = None
 
+    def _open_logs_window(self) -> None:
+        if self._logs_window is None:
+            self._logs_window = WorkspaceTableDialog("Logs", ["Instruction", "Result"], self)
+            self._logs_window.destroyed.connect(lambda *_: self._clear_logs_window())
+            self._logs_window.removeRequested.connect(self._remove_log_row)
+        self._refresh_logs_window()
+        self._logs_window.show()
+        self._logs_window.raise_()
+        self._logs_window.activateWindow()
+
+    def _open_variables_window(self) -> None:
+        if self._variables_window is None:
+            self._variables_window = WorkspaceTableDialog("Variables", ["Name", "Value"], self)
+            self._variables_window.destroyed.connect(lambda *_: self._clear_variables_window())
+            self._variables_window.removeRequested.connect(self._remove_variable_row)
+        self._refresh_variables_window()
+        self._variables_window.show()
+        self._variables_window.raise_()
+        self._variables_window.activateWindow()
+
+    def _clear_logs_window(self) -> None:
+        self._logs_window = None
+
+    def _clear_variables_window(self) -> None:
+        self._variables_window = None
+
+    def _remove_log_row(self, index: object) -> None:
+        try:
+            row_index = int(index)
+        except (TypeError, ValueError):
+            return
+        self._command_presenter.remove_log(row_index)
+        self._refresh_workspace_windows()
+        self.footer.set_status("Log entry removed.", COLOR.INCOMPLETE)
+        self._autosave_state()
+
+    def _remove_variable_row(self, name: object) -> None:
+        if not isinstance(name, str):
+            return
+        self._command_presenter.remove_variable(name)
+        self._refresh_workspace_windows()
+        self._refresh_command_completions()
+        self.footer.set_status(f'Variable "{name}" removed.', COLOR.INCOMPLETE)
+        self._autosave_state()
+
     def _collect_context(self) -> ApplicationContextDTO:
         return ApplicationContextDTO(
             converter=ConverterStateDTO(
@@ -271,7 +325,7 @@ class MainWindow(QMainWindow):
 
     def _apply_context(self, context: ApplicationContextDTO) -> None:
         self._command_presenter.load_context(context.command)
-        self.body.command_panel.render_history(self._command_presenter.history)
+        self._refresh_workspace_windows()
 
         self._syncing_command = True
         with QSignalBlocker(self.body.command_panel.editor):
@@ -295,7 +349,10 @@ class MainWindow(QMainWindow):
 
         self.key_panel.setVisible(context.key_panel_visible)
         self.toolbar.toggle_key_panel_action.setChecked(context.key_panel_visible)
-        self.body.command_panel.set_feedback("Type an expression and press Enter.", COLOR.INCOMPLETE)
+        self.body.command_panel.set_feedback(
+            "Type an expression and press Enter.",
+            COLOR.INFO,
+        )
 
     def _render_converter(self, display_values: dict[str, str]) -> None:
         self._syncing_converter = True
@@ -307,6 +364,36 @@ class MainWindow(QMainWindow):
 
     def _refresh_command_completions(self) -> None:
         self.body.command_panel.set_completions(self._command_presenter.variable_names)
+
+    def _refresh_workspace_windows(self) -> None:
+        self._refresh_logs_window()
+        self._refresh_variables_window()
+
+    def _refresh_logs_window(self) -> None:
+        if self._logs_window is None:
+            return
+        self._logs_window.set_rows(
+            [
+                WorkspaceRow(
+                    key=index,
+                    values=(instruction, result),
+                )
+                for index, instruction, result in self._command_presenter.workspace_log_rows
+            ]
+        )
+
+    def _refresh_variables_window(self) -> None:
+        if self._variables_window is None:
+            return
+        self._variables_window.set_rows(
+            [
+                WorkspaceRow(
+                    key=name,
+                    values=(name, value),
+                )
+                for name, value in self._command_presenter.workspace_variable_rows
+            ]
+        )
 
     def _map_key_panel_input(self, key: str) -> str:
         if key == "x":

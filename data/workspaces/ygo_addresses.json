@@ -2,10 +2,10 @@
     "converter": {
         "from_type": "decimal",
         "fields": {
-            "decimal": "",
-            "binary": "",
-            "hexBE": "",
-            "hexLE": ""
+            "decimal": "2148118280",
+            "binary": "10000000000010011010111100001000",
+            "hexBE": "8009AF08",
+            "hexLE": "08AF0980"
         },
         "message": null
     },
@@ -41,7 +41,7 @@
             "p1_field_base_addr = 0x801A7B64"
         ],
         "variables": {
-            "ANS": 4,
+            "ANS": 2148118280,
             "gp": 2148118280,
             "turn_count": 2148118616,
             "IS_CPU_TURN": 2148118997,

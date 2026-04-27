@@ -31,12 +31,12 @@ QMenu {
     border: 1px solid $border;
     border-radius: 0px;
     color: $text-main;
-    padding: 6px 0px;
+    padding: 0px;
 }
 
 QMenu::item {
     margin: 0px;
-    padding: 10px 16px;
+    padding: 10px 18px;
     border: 1px solid transparent;
     border-radius: 0px;
 }
@@ -46,8 +46,8 @@ QMenu::item:selected {
 }
 
 QMenu::item:checked {
-    background-color: rgba(106, 232, 153, 0.10);
-    border: 1px solid $accent-icon;
+    background-color: rgba(70, 108, 195, 0.22);
+    border: none;
 }
 
 QMenu::indicator {

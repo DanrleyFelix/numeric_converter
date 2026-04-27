@@ -18,6 +18,7 @@ from src.core.command_window.validator.errors import (
     InvalidStartError,
     InvalidOperatorSequenceError,
     ParenthesisMismatchError,
+    ValidationError,
     UnknownTokenError,
     UnknownVariableError)
 from src.core.command_window.context import cmd_window_context
@@ -62,12 +63,9 @@ class _PartialExpressionAnalyzer:
             for op in MULTI_CHAR_OPERATORS
         ):
             return True
-        if trailing.lower() in BASE_PREFIXES:
+        if self._could_be_textual_operator(stripped, trailing):
             return True
-        if len(trailing) > 1 and any(
-            alias.startswith(upper_fragment) and alias != upper_fragment
-            for alias in TEXTUAL_OPERATORS
-        ):
+        if trailing.lower() in BASE_PREFIXES:
             return True
         if len(trailing) > 1 and any(
             prefix.startswith(trailing.lower()) and prefix != trailing.lower()
@@ -88,6 +86,55 @@ class _PartialExpressionAnalyzer:
             start -= 1
 
         return text[start:end]
+
+    def _could_be_textual_operator(self, text: str, trailing: str) -> bool:
+        upper_fragment = trailing.upper()
+        candidates = [
+            alias
+            for alias in TEXTUAL_OPERATORS
+            if alias.startswith(upper_fragment)
+        ]
+        if not candidates:
+            return False
+
+        fragment_start = len(text) - len(trailing)
+        prefix = text[:fragment_start]
+        try:
+            prefix_tokens = [
+                token
+                for token in Tokenizer(prefix).tokenize()
+                if token.type != TokenType.EOF
+            ]
+        except TokenizerError:
+            return False
+        if not self._prefix_is_structurally_valid(prefix_tokens):
+            return False
+
+        previous = prefix_tokens[-1] if prefix_tokens else None
+        for alias in candidates:
+            if alias == "NOT":
+                if previous is None or previous.type in {
+                    TokenType.OPERATOR,
+                    TokenType.LPAREN,
+                }:
+                    return True
+            elif previous is not None and previous.type in {
+                TokenType.NUMBER,
+                TokenType.IDENTIFIER,
+                TokenType.RPAREN,
+            }:
+                return True
+        return False
+
+    def _prefix_is_structurally_valid(self, tokens: list[Token]) -> bool:
+        if not tokens:
+            return True
+        try:
+            _StructureValidator(tokens).validate()
+            _SequenceValidator(tokens).validate()
+        except ValidationError:
+            return False
+        return True
 
 
 class _Tokenizer:
@@ -182,7 +229,9 @@ class _SequenceValidator:
         return (prev.type == TokenType.LPAREN and curr.type == TokenType.RPAREN)
 
     def _implicit_multiplication(self, prev: Token, curr: Token) -> bool:
-        return (prev.type in {TokenType.NUMBER, TokenType.IDENTIFIER} and curr.type == TokenType.LPAREN)
+        left_tokens = {TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.RPAREN}
+        right_tokens = {TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.LPAREN}
+        return prev.type in left_tokens and curr.type in right_tokens
 
     def _invalid_operator_sequence(self, i: int) -> bool:
         prev = self.tokens[i]
@@ -241,7 +290,10 @@ class _SemanticValidator:
             if t.type != TokenType.IDENTIFIER:
                 continue
             if not self._is_lhs(i) and cmd_window_context.get_variable(t.raw) is None:
-                raise UnknownVariableError(f"Variable '{t.raw}' is not defined.", position=t.position)
+                raise UnknownVariableError(
+                    f'Unknown variable "{t.raw}".',
+                    position=t.position,
+                )
         return ValidationState.ACCEPTABLE
 
     def _is_lhs(self, i: int) -> bool:

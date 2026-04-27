@@ -101,6 +101,35 @@ def test_invalid_numbers_raise(text):
         Tokenizer(text).tokenize()
 
 
+@pytest.mark.parametrize("text, operators", [
+    ("A AND B", ["&&"]),
+    ("(A)AND(B)", ["&&"]),
+    ("NOT 1", ["!"]),
+    ("NOT(1)", ["!"]),
+    ("(A AND B)OR(B XOR 1)", ["&&", "||", "^"]),
+    ("1+NOT(0)", ["+", "!"]),
+])
+def test_textual_operators_require_expression_context(text, operators):
+    tokens = Tokenizer(text).tokenize()
+    found_ops = [t.raw for t in tokens if t.type is TokenType.OPERATOR]
+    assert found_ops == operators
+
+
+@pytest.mark.parametrize("text, identifiers", [
+    ("AND=1", ["AND"]),
+    ("OR=1", ["OR"]),
+    ("NOT=1", ["NOT"]),
+    ("AND_value=1", ["AND_value"]),
+    ("ORBIT=1", ["ORBIT"]),
+    ("XOFFSET=1", ["XOFFSET"]),
+    ("NOT1", ["NOT1"]),
+])
+def test_textual_operator_words_can_still_be_identifiers(text, identifiers):
+    tokens = Tokenizer(text).tokenize()
+    found_idents = [t.raw for t in tokens if t.type is TokenType.IDENTIFIER]
+    assert found_idents == identifiers
+
+
 
 
 

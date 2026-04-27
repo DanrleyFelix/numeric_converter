@@ -1,9 +1,9 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
-    QDialog,
-    QDialogButtonBox,
     QGridLayout,
+    QHBoxLayout,
+    QDialog,
     QLabel,
     QPushButton,
     QSpinBox,
@@ -18,7 +18,6 @@ class PreferencesDialog(QDialog):
     def __init__(
         self,
         formatting: dict[str, FormattingOutputDTO],
-        key_panel_visible: bool,
         parent=None,
     ):
         super().__init__(parent)
@@ -38,7 +37,7 @@ class PreferencesDialog(QDialog):
         title.setObjectName("preferences-title")
         layout.addWidget(title)
 
-        subtitle = QLabel("Configure grouping, zero padding and visibility options.")
+        subtitle = QLabel("Configure grouping and zero padding for each converter input.")
         subtitle.setObjectName("preferences-subtitle")
         layout.addWidget(subtitle)
 
@@ -67,7 +66,6 @@ class PreferencesDialog(QDialog):
 
             zero_pad = QCheckBox()
             zero_pad.setChecked(formatting[key].zero_pad)
-            zero_pad.setLayoutDirection(Qt.LeftToRight)
 
             self._group_boxes[key] = group_size
             self._zero_pad_boxes[key] = zero_pad
@@ -78,30 +76,27 @@ class PreferencesDialog(QDialog):
 
         layout.addLayout(grid)
 
-        self.key_panel_checkbox = QCheckBox("Show Key Panel")
-        self.key_panel_checkbox.setChecked(key_panel_visible)
-        self.key_panel_checkbox.setObjectName("preferences-key-panel")
-        layout.addWidget(self.key_panel_checkbox)
+        buttons_row = QHBoxLayout()
+        buttons_row.setContentsMargins(0, 12, 0, 0)
+        buttons_row.setSpacing(12)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        if buttons.layout() is not None:
-            buttons.layout().setSpacing(12)
-        ok_button = buttons.button(QDialogButtonBox.Ok)
-        cancel_button = buttons.button(QDialogButtonBox.Cancel)
+        cancel_button = QPushButton("Cancel")
+        ok_button = QPushButton("OK")
 
         for button in (ok_button, cancel_button):
-            if isinstance(button, QPushButton):
-                button.setMinimumWidth(140)
-                button.setMinimumHeight(38)
+            button.setMinimumWidth(160)
+            button.setMinimumHeight(38)
 
-        if isinstance(ok_button, QPushButton):
-            ok_button.setObjectName("preferences-ok")
-        if isinstance(cancel_button, QPushButton):
-            cancel_button.setObjectName("preferences-cancel")
+        ok_button.setObjectName("preferences-ok")
+        cancel_button.setObjectName("preferences-cancel")
 
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        ok_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+
+        buttons_row.addWidget(cancel_button, 0, Qt.AlignLeft)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(ok_button, 0, Qt.AlignRight)
+        layout.addLayout(buttons_row)
 
     def selected_formatting(self) -> dict[str, FormattingOutputDTO]:
         return {
@@ -111,6 +106,3 @@ class PreferencesDialog(QDialog):
             )
             for key in self._group_boxes
         }
-
-    def key_panel_visible(self) -> bool:
-        return self.key_panel_checkbox.isChecked()

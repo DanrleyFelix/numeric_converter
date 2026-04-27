@@ -15,6 +15,11 @@ class _Context:
 
     def get_variables(self) -> dict[str, Number]:
         return dict(self.__variables)
+
+    def remove_variable(self, name: str) -> None:
+        if name == "ANS":
+            return
+        self.__variables.pop(name, None)
     
     def get_history(self) -> list[str]:
         return list(self.__history)

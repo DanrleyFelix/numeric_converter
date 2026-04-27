@@ -35,6 +35,7 @@ class Tokenizer:
                 raise TokenizerError(
                     f"Unknown token '{self._current()}' at position {self.pos}")
             tokens.append(token)
+        tokens = self._normalize_textual_operators(tokens)
         tokens.append(Token(TokenType.EOF, "", position=self.pos))
         return tokens
 
@@ -53,9 +54,6 @@ class Tokenizer:
         raw = match.group(0)
         start = self.pos
         self.pos += len(raw)
-        normalized = TEXTUAL_OPERATORS.get(raw.upper())
-        if normalized is not None:
-            return Token(TokenType.OPERATOR, normalized, normalized, start)
         return Token(TokenType.IDENTIFIER, raw, raw, start)
 
     def _consume_operator(self) -> Optional[Token]:
@@ -162,3 +160,69 @@ class Tokenizer:
 
     def _eof(self) -> bool:
         return self.pos >= self.length
+
+    def _normalize_textual_operators(self, tokens: List[Token]) -> List[Token]:
+        normalized_tokens: List[Token] = []
+
+        for index, token in enumerate(tokens):
+            if token.type is not TokenType.IDENTIFIER:
+                normalized_tokens.append(token)
+                continue
+
+            alias = token.raw.upper()
+            operator = TEXTUAL_OPERATORS.get(alias)
+            if operator is None:
+                normalized_tokens.append(token)
+                continue
+
+            previous = tokens[index - 1] if index > 0 else None
+            next_token = tokens[index + 1] if index + 1 < len(tokens) else None
+
+            if alias == "NOT":
+                if self._is_unary_textual_operator(previous, next_token):
+                    normalized_tokens.append(
+                        Token(TokenType.OPERATOR, operator, operator, token.position)
+                    )
+                    continue
+            elif self._is_binary_textual_operator(previous, next_token):
+                normalized_tokens.append(
+                    Token(TokenType.OPERATOR, operator, operator, token.position)
+                )
+                continue
+
+            normalized_tokens.append(token)
+
+        return normalized_tokens
+
+    def _is_unary_textual_operator(
+        self,
+        previous: Token | None,
+        next_token: Token | None,
+    ) -> bool:
+        previous_allows = previous is None or previous.type in {
+            TokenType.OPERATOR,
+            TokenType.LPAREN,
+        }
+        next_allows = next_token is None or next_token.type in {
+            TokenType.NUMBER,
+            TokenType.IDENTIFIER,
+            TokenType.LPAREN,
+        }
+        return previous_allows and next_allows
+
+    def _is_binary_textual_operator(
+        self,
+        previous: Token | None,
+        next_token: Token | None,
+    ) -> bool:
+        previous_allows = previous is not None and previous.type in {
+            TokenType.NUMBER,
+            TokenType.IDENTIFIER,
+            TokenType.RPAREN,
+        }
+        next_allows = next_token is None or next_token.type in {
+            TokenType.NUMBER,
+            TokenType.IDENTIFIER,
+            TokenType.LPAREN,
+        }
+        return previous_allows and next_allows

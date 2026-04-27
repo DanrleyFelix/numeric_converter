@@ -1,4 +1,5 @@
 class COLOR:
+    INFO = "#466CC3"
     SUCCESS = "#6AE899"
     FAILED = "#ED4D4D"
     INCOMPLETE = "#FFC222"

@@ -42,3 +42,7 @@ class Icons:
     @staticmethod
     def copy():
         return qta.icon("fa5s.copy", color="#EAEAF5")
+
+    @staticmethod
+    def remove():
+        return qta.icon("fa5s.minus", color="#F16F7B")
