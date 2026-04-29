@@ -11,29 +11,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.presentation.ui.design.icon_specs import (
-    WINDOW_ICON_GLYPH,
-    WINDOW_ICON_TOKEN,
-)
+from src.presentation.ui.design.icon_font import resolve_fontawesome_solid_path
+from src.presentation.ui.design.icon_specs import ICON_GLYPHS, WINDOW_ICON_NAME, WINDOW_ICON_TOKEN
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
-QTA_FONTS_DIR = (
-    PROJECT_ROOT / ".venv" / "Lib" / "site-packages" / "qtawesome" / "fonts"
-)
-FONT_AWESOME_SOLID = QTA_FONTS_DIR / "fontawesome5-solid-webfont-5.15.4.ttf"
-FONT_AWESOME_CHARMAP = (
-    QTA_FONTS_DIR / "fontawesome5-solid-webfont-charmap-5.15.4.json"
-)
+FONT_AWESOME_SOLID = resolve_fontawesome_solid_path()
 POWERSHELL_RENDERER = PROJECT_ROOT / "build" / "render_fontawesome_icon.ps1"
 
 
 def _fontawesome_glyph() -> str:
-    import json
-
-    charmap = json.loads(FONT_AWESOME_CHARMAP.read_text(encoding="utf-8"))
-    glyph_name = WINDOW_ICON_GLYPH.split(".", maxsplit=1)[1]
-    return chr(int(charmap[glyph_name], 16))
+    return ICON_GLYPHS[WINDOW_ICON_NAME]
 
 
 def _icon_hex_color() -> str:

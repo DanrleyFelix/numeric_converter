@@ -1,67 +1,126 @@
-import qtawesome as qta
+from __future__ import annotations
 
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
+
+from src.presentation.ui.design.icon_font import fontawesome_solid_family
 from src.presentation.ui.design.icon_specs import (
-    WINDOW_ICON_GLYPH,
+    ICON_GLYPHS,
+    WINDOW_ICON_NAME,
     WINDOW_ICON_TOKEN,
 )
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
+
+ICON_SIZES = (16, 20, 24, 32, 48, 64)
 
 
 class Icons:
 
     @staticmethod
-    def _icon(name: str, token_name: str, **kwargs):
-        return qta.icon(name, color=THEME_TOKENS[token_name], **kwargs)
+    def _icon(
+        glyph_name: str,
+        token_name: str,
+        *,
+        active_token_name: str | None = None,
+        selected_token_name: str | None = None,
+    ) -> QIcon:
+        icon = QIcon()
+        icon.addPixmap(
+            _pixmap(glyph_name, token_name, 64),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        icon.addPixmap(
+            _pixmap(glyph_name, active_token_name or token_name, 64),
+            QIcon.Active,
+            QIcon.Off,
+        )
+        icon.addPixmap(
+            _pixmap(glyph_name, selected_token_name or token_name, 64),
+            QIcon.Selected,
+            QIcon.Off,
+        )
+        for size in ICON_SIZES:
+            icon.addPixmap(_pixmap(glyph_name, token_name, size), QIcon.Normal)
+            icon.addPixmap(
+                _pixmap(glyph_name, active_token_name or token_name, size),
+                QIcon.Active,
+            )
+            icon.addPixmap(
+                _pixmap(glyph_name, selected_token_name or token_name, size),
+                QIcon.Selected,
+            )
+        return icon
 
     @staticmethod
     def numeric_workbench():
-        return Icons._icon("fa5s.project-diagram", "icon-brand")
+        return Icons._icon("numeric_workbench", "icon-brand")
 
     @staticmethod
     def calculator():
-        return Icons._icon("fa5s.calculator", "icon-primary")
+        return Icons._icon("calculator", "icon-primary")
 
     @staticmethod
     def decimal():
-        return Icons._icon("fa5s.hashtag", "icon-primary")
+        return Icons._icon("decimal", "icon-primary")
 
     @staticmethod
     def binary():
-        return Icons._icon("fa5s.code-branch", "icon-primary")
+        return Icons._icon("binary", "icon-primary")
 
     @staticmethod
     def hexadecimal():
-        return Icons._icon(WINDOW_ICON_GLYPH, WINDOW_ICON_TOKEN)
+        return Icons._icon(WINDOW_ICON_NAME, WINDOW_ICON_TOKEN)
 
     @staticmethod
     def command_window():
-        return Icons._icon("fa5s.terminal", "icon-primary")
+        return Icons._icon("command_window", "icon-primary")
 
     @staticmethod
     def file():
-        return Icons._icon("fa5s.folder-open", "icon-toolbar")
+        return Icons._icon("file", "icon-toolbar")
 
     @staticmethod
     def preferences():
-        return Icons._icon("fa5s.cog", "icon-toolbar")
+        return Icons._icon("preferences", "icon-toolbar")
 
     @staticmethod
     def help():
-        return Icons._icon("fa5s.book-open", "icon-toolbar")
+        return Icons._icon("help", "icon-toolbar")
 
     @staticmethod
     def copy():
-        return Icons._icon("fa5s.copy", "icon-toolbar")
+        return Icons._icon("copy", "icon-toolbar")
 
     @staticmethod
     def remove():
         return Icons._icon(
-            "fa5s.trash-alt",
+            "remove",
             "icon-toolbar",
-            color_active=THEME_TOKENS["icon-danger"],
-            color_selected=THEME_TOKENS["icon-danger"],
+            active_token_name="icon-danger",
+            selected_token_name="icon-danger",
         )
 
     @staticmethod
     def remove_hover():
-        return Icons._icon("fa5s.trash-alt", "icon-danger")
+        return Icons._icon("remove", "icon-danger")
+
+
+def _pixmap(glyph_name: str, token_name: str, size: int) -> QPixmap:
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing, True)
+    painter.setRenderHint(QPainter.TextAntialiasing, True)
+    painter.setPen(QColor(THEME_TOKENS[token_name]))
+
+    font = QFont(fontawesome_solid_family())
+    font.setPixelSize(round(size * 0.78))
+    if glyph_name == "hexadecimal":
+        font.setBold(True)
+    painter.setFont(font)
+    painter.drawText(pixmap.rect(), Qt.AlignCenter, ICON_GLYPHS[glyph_name])
+    painter.end()
+
+    return pixmap

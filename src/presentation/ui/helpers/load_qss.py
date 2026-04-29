@@ -1,13 +1,14 @@
 import re
 from pathlib import Path
 
+from src.main.resource_paths import style_root
+
 Tokens = dict[str, str]
 
 VAR_RE = re.compile(r"\$(\w[\w\-]*)\s*:\s*(.+?);")
 IMPORT_RE = re.compile(r'@import\s+"(.+?)";')
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-STYLE_DIR = BASE_DIR / "design" / "style"
+STYLE_DIR = style_root()
 
 
 def load_tokens(path: Path) -> Tokens:

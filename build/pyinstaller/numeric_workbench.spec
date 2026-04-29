@@ -2,19 +2,15 @@
 from pathlib import Path
 from sys import platform as sys_platform
 
-from PyInstaller.utils.hooks import collect_data_files
+from build.pyinstaller_inputs import (
+    EXCLUDED_MODULES,
+    collect_packaged_data,
+    filter_packaged_entries,
+)
 
 project_root = Path.cwd().resolve()
 generated_icon = project_root / "build" / "generated" / "app.ico"
-qtawesome_datas = collect_data_files("qtawesome")
-datas = [
-    (str(project_root / "data"), "data"),
-    (
-        str(project_root / "src" / "presentation" / "ui" / "design" / "style"),
-        "src/presentation/ui/design/style",
-    ),
-]
-datas += qtawesome_datas
+datas = collect_packaged_data(project_root)
 
 analysis = Analysis(
     [str(project_root / "main.py")],
@@ -25,10 +21,12 @@ analysis = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=list(EXCLUDED_MODULES),
     noarchive=False,
     optimize=0,
 )
+filtered_binaries = filter_packaged_entries(analysis.binaries)
+filtered_datas = filter_packaged_entries(analysis.datas)
 pyz = PYZ(analysis.pure)
 exe = EXE(
     pyz,
@@ -54,8 +52,8 @@ if sys_platform == "darwin":
     )
     coll = COLLECT(
         bundle,
-        analysis.binaries,
-        analysis.datas,
+        filtered_binaries,
+        filtered_datas,
         strip=False,
         upx=True,
         upx_exclude=[],
@@ -64,8 +62,8 @@ if sys_platform == "darwin":
 else:
     coll = COLLECT(
         exe,
-        analysis.binaries,
-        analysis.datas,
+        filtered_binaries,
+        filtered_datas,
         strip=False,
         upx=True,
         upx_exclude=[],
