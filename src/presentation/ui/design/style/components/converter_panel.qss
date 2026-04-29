@@ -1,0 +1,13 @@
+QToolButton#copy-raw {
+    background-color: $bg-button;
+    border: 1px solid $border;
+    border-radius: 8px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px;
+}
+
+QToolButton#copy-raw:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: 1px solid $border-hover;
+}

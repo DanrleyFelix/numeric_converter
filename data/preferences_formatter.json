@@ -5,7 +5,7 @@
             "zero_pad": false
         },
         "binary": {
-            "group_size": 8,
+            "group_size": 4,
             "zero_pad": true
         },
         "hexBE": {

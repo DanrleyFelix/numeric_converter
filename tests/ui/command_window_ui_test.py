@@ -53,6 +53,40 @@ def test_command_feedback_reports_unknown_variable_for_complete_expression():
     assert COLOR.FAILED in window.body.command_panel.feedback.styleSheet()
 
 
+def test_command_feedback_keeps_typing_identifier_after_logical_operator():
+    window = _window()
+
+    window.body.command_panel.set_input_text("20 A")
+    window._on_command_text_changed()
+    assert window.body.command_panel.current_input() == "20 A"
+    assert window.body.command_panel.feedback.text() == "Expression incomplete."
+    assert COLOR.INCOMPLETE in window.body.command_panel.feedback.styleSheet()
+
+    window.body.command_panel.set_input_text("20 AN")
+    window._on_command_text_changed()
+    assert window.body.command_panel.current_input() == "20 AN"
+    assert window.body.command_panel.feedback.text() == "Expression incomplete."
+    assert COLOR.INCOMPLETE in window.body.command_panel.feedback.styleSheet()
+
+    window.body.command_panel.set_input_text("20 AND")
+    window._on_command_text_changed()
+    assert window.body.command_panel.current_input() == "20 AND"
+    assert window.body.command_panel.feedback.text() == "Expression incomplete."
+    assert COLOR.INCOMPLETE in window.body.command_panel.feedback.styleSheet()
+
+    window.body.command_panel.set_input_text("20 AND O")
+    window._on_command_text_changed()
+    assert window.body.command_panel.current_input() == "20 AND O"
+    assert window.body.command_panel.feedback.text() == "Expression incomplete."
+    assert COLOR.INCOMPLETE in window.body.command_panel.feedback.styleSheet()
+
+    window.body.command_panel.set_input_text("20 AND orbit")
+    window._on_command_text_changed()
+    assert window.body.command_panel.current_input() == "20 AND orbit"
+    assert window.body.command_panel.feedback.text() == "Expression incomplete."
+    assert COLOR.INCOMPLETE in window.body.command_panel.feedback.styleSheet()
+
+
 def test_key_panel_textual_buttons_add_trailing_space():
     window = _window()
 
@@ -80,7 +114,7 @@ def test_toolbar_action_has_no_icon_and_help_title_is_user_guide():
     browser = page.findChild(QTextBrowser, "help-page")
     assert browser is not None
     assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
-    assert browser.verticalScrollBar().styleSheet()
+    assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
 
 
 def test_command_panel_shows_workspace_buttons_and_convert_toggle():
@@ -92,6 +126,15 @@ def test_command_panel_shows_workspace_buttons_and_convert_toggle():
     assert isinstance(window.body.command_panel.show_logs_button, QPushButton)
     assert window.body.command_panel.show_variables_button.text() == "Variables"
     assert window.body.command_panel.show_logs_button.text() == "Logs"
+
+
+def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
+    window = _window()
+    initial_min_height = window.minimumHeight()
+
+    window.toolbar.toggle_key_panel_action.setChecked(False)
+
+    assert window.minimumHeight() < initial_min_height
 
 
 def test_workspace_windows_show_rows_and_support_removal():
@@ -112,10 +155,20 @@ def test_workspace_windows_show_rows_and_support_removal():
     assert window._logs_window is not None
     assert len(window._variables_window.row_widgets) == 1
     assert len(window._logs_window.row_widgets) == 2
-    assert window._variables_window.row_widgets[0].values == ("alpha", "5")
+    assert window._variables_window.row_widgets[0].values == ("alpha", "5", "0x5")
     assert window._logs_window.row_widgets[0].values == ("alpha=5", "5")
-    assert window._variables_window.row_widgets[0].remove_button.text() == "-"
-    assert window._logs_window.row_widgets[0].remove_button.text() == "-"
+    assert window._variables_window.row_widgets[0].remove_button.text() == ""
+    assert not window._variables_window.row_widgets[0].remove_button.icon().isNull()
+    assert window._logs_window.row_widgets[0].remove_button.text() == ""
+    assert not window._logs_window.row_widgets[0].remove_button.icon().isNull()
+    assert (
+        window._variables_window.row_widgets[0].cell_labels[0].textInteractionFlags()
+        & Qt.TextSelectableByMouse
+    )
+    assert (
+        window._variables_window.row_widgets[0].cell_labels[2].textInteractionFlags()
+        & Qt.TextSelectableByMouse
+    )
 
     window._variables_window.row_widgets[0].remove_button.click()
     assert "alpha" not in window._command_presenter.variable_names

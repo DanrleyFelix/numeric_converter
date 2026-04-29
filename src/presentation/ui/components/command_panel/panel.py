@@ -8,6 +8,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 from src.presentation.ui.components.command_panel.command_edit import CommandEdit
+from src.presentation.ui.components.command_panel.constants import (
+    COMMAND_PANEL_MARGIN,
+    COMMAND_PANEL_SIZE,
+    COMMAND_PANEL_SPACING,
+    COMMAND_PANEL_TEXT,
+)
 
 
 class CommandPanel(QFrame):
@@ -15,24 +21,29 @@ class CommandPanel(QFrame):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        layout.setContentsMargins(12, 0, 0, 0)
+        layout.setSpacing(COMMAND_PANEL_SPACING.ROOT)
+        layout.setContentsMargins(
+            COMMAND_PANEL_MARGIN.LEFT,
+            COMMAND_PANEL_MARGIN.TOP,
+            COMMAND_PANEL_MARGIN.RIGHT,
+            COMMAND_PANEL_MARGIN.BOTTOM,
+        )
 
         header_row = QHBoxLayout()
         header_row.setContentsMargins(0, 0, 0, 0)
-        header_row.setSpacing(10)
+        header_row.setSpacing(COMMAND_PANEL_SPACING.HEADER_ROW)
 
-        self.show_variables_button = QPushButton("Variables")
+        self.show_variables_button = QPushButton(COMMAND_PANEL_TEXT.VARIABLES)
         self.show_variables_button.setObjectName("command-header-button")
         self.show_variables_button.setCursor(Qt.PointingHandCursor)
         self.show_variables_button.setFocusPolicy(Qt.NoFocus)
 
-        self.show_logs_button = QPushButton("Logs")
+        self.show_logs_button = QPushButton(COMMAND_PANEL_TEXT.LOGS)
         self.show_logs_button.setObjectName("command-header-button")
         self.show_logs_button.setCursor(Qt.PointingHandCursor)
         self.show_logs_button.setFocusPolicy(Qt.NoFocus)
 
-        self.convert_toggle = QPushButton("Convert")
+        self.convert_toggle = QPushButton(COMMAND_PANEL_TEXT.CONVERT)
         self.convert_toggle.setObjectName("command-convert-toggle")
         self.convert_toggle.setCheckable(True)
         self.convert_toggle.setChecked(False)
@@ -46,14 +57,14 @@ class CommandPanel(QFrame):
 
         feedback_row = QHBoxLayout()
         feedback_row.setContentsMargins(0, 0, 0, 0)
-        feedback_row.setSpacing(0)
-        self.feedback = QLabel("Type an expression and press Enter.")
+        feedback_row.setSpacing(COMMAND_PANEL_SPACING.FEEDBACK_ROW)
+        self.feedback = QLabel(COMMAND_PANEL_TEXT.IDLE_FEEDBACK)
         self.feedback.setObjectName("command-feedback")
         feedback_row.addWidget(self.feedback, 1)
 
         self.editor = CommandEdit()
         self.editor.setObjectName("command-editor")
-        self.editor.setMinimumHeight(180)
+        self.editor.setMinimumHeight(COMMAND_PANEL_SIZE.EDITOR_MIN_HEIGHT)
         layout.addLayout(header_row)
         layout.addLayout(feedback_row)
         layout.addWidget(self.editor, 1)

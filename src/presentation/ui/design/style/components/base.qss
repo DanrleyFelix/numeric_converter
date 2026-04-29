@@ -1,0 +1,78 @@
+QLabel {
+    font-family: $font-base;
+    font-size: $fs-ml-sm;
+    color: $text-main;
+}
+
+QPlainTextEdit {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    border-radius: $r-sm;
+    font-family: $font-base;
+    font-size: $fs-c-md;
+    color: $text-main;
+    padding-top: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+QPlainTextEdit:hover {
+    border: 1px solid $border-hover;
+}
+
+QPlainTextEdit:focus {
+    border: 1px solid $border-focus;
+}
+
+QToolTip {
+    background-color: $bg-tooltip;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+QSpinBox {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    border-radius: $r-sm;
+    color: $text-main;
+    min-height: 30px;
+    padding: 4px 8px;
+}
+
+QSpinBox:focus {
+    border: 1px solid $border-focus;
+}
+
+QCheckBox,
+QRadioButton {
+    spacing: 10px;
+    color: $text-main;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid $border;
+    border-radius: 4px;
+    background-color: $bg-input;
+}
+
+QCheckBox::indicator:checked {
+    background-color: $bg-control-checked;
+    border: 1px solid $border-soft-success;
+}
+
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid $border;
+    border-radius: 9px;
+    background-color: $bg-input;
+}
+
+QRadioButton::indicator:checked {
+    background-color: $bg-control-checked;
+    border: 1px solid $border-soft-success;
+}

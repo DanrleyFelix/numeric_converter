@@ -1,0 +1,4 @@
+QFrame#key-panel {
+    background-color: $bg-panel;
+    border-radius: $r-lg;
+}

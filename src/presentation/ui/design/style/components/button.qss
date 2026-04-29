@@ -1,0 +1,40 @@
+QPushButton {
+    background-color: $bg-button;
+    font-family: $font-base;
+    font-size: $fs-btn-sm;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $r-sm;
+}
+
+QPushButton:hover {
+    background-color: $bg-button-hover;
+}
+
+QPushButton:pressed {
+    background-color: $bg-button-pressed;
+}
+
+QPushButton#clear {
+    background-color: $bg-button-clear;
+}
+
+QPushButton#clear:hover {
+    background-color: $bg-button-clear-hover;
+}
+
+QPushButton#clear:pressed {
+    background-color: $bg-button-clear-pressed;
+}
+
+QPushButton#enter {
+    background-color: $bg-button-enter;
+}
+
+QPushButton#enter:hover {
+    background-color: $bg-button-enter-hover;
+}
+
+QPushButton#enter:pressed {
+    background-color: $bg-button-enter-pressed;
+}

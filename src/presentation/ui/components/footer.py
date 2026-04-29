@@ -13,7 +13,7 @@ class Footer(QFrame):
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(4)
 
-        self.footer = QLabel("Copyright. Created by Danrley Felix.")
+        self.footer = QLabel("All rights reserved. Created by Danrley Felix.")
         self.footer.setObjectName("footer-text")
         self.footer.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 

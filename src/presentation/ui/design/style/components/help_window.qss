@@ -1,0 +1,33 @@
+QListWidget#help-nav {
+    background-color: $bg-panel;
+    border: 1px solid $border;
+    color: $text-main;
+    padding: 10px;
+    border-radius: 12px;
+    outline: none;
+}
+
+QListWidget#help-nav::item {
+    padding: 12px 14px;
+    margin: 3px 0;
+    border-radius: 10px;
+    outline: none;
+}
+
+QListWidget#help-nav::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+    border-radius: $r-sm;
+    outline: none;
+}
+
+QListWidget#help-nav::item:focus {
+    outline: none;
+}
+
+QTextBrowser#help-page {
+    background-color: transparent;
+    border: 1px solid $border;
+    border-radius: 18px;
+    padding: 30px 4px 22px 28px;
+}

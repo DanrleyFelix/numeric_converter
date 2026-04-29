@@ -1,0 +1,78 @@
+QLabel#command-feedback {
+    font-family: $font-base;
+    font-size: $fs-c-lg;
+    color: $text-muted;
+    padding-left: 2px;
+}
+
+QPushButton#command-header-button,
+QPushButton#command-convert-toggle {
+    min-width: 96px;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background-color: $bg-button;
+    border: 1px solid $border;
+    color: $text-muted;
+}
+
+QPushButton#command-header-button:hover,
+QPushButton#command-convert-toggle:hover {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+}
+
+QPushButton#command-header-button:focus,
+QPushButton#command-convert-toggle:focus {
+    outline: none;
+    border: 1px solid $border;
+}
+
+QPushButton#command-convert-toggle:checked {
+    background-color: $bg-button;
+    border: 1px solid $border-soft-success;
+    color: $text-main;
+}
+
+QPushButton#command-convert-toggle:checked:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: 1px solid $border-soft-success;
+}
+
+QPushButton#command-convert-toggle:checked:pressed {
+    background-color: $bg-button-hover;
+    border: 1px solid $border-soft-success;
+}
+
+QPushButton#command-convert-toggle:checked:focus {
+    background-color: $bg-button;
+    border: 1px solid $border-soft-success;
+}
+
+QPlainTextEdit#command-editor {
+    padding-top: 8px;
+}
+
+QWidget#cmd-prompt-area {
+    background: transparent;
+}
+
+QListView#command-completer {
+    background-color: $bg-input;
+    border: 1px solid $border;
+    color: $text-main;
+    padding: 6px;
+    border-radius: 10px;
+    outline: none;
+}
+
+QListView#command-completer::item {
+    padding: 8px 12px;
+    margin: 1px 0;
+    border-radius: 6px;
+}
+
+QListView#command-completer::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+}

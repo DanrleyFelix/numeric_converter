@@ -1,38 +1,17 @@
 import re
 from textwrap import dedent
 
+from src.presentation.ui.components.help_window.constants import (
+    HELP_HTML_FONT,
+    HELP_HTML_MARGIN,
+    HELP_HTML_SIZE,
+    HELP_HTML_SPACING,
+)
+from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
-HELP_SCROLLBAR_QSS = """
-QScrollBar:vertical {
-    background: rgba(15, 23, 38, 0.78);
-    border: 1px solid rgba(36, 54, 83, 0.95);
-    border-radius: 8px;
-    width: 18px;
-    margin: 8px 10px 8px 0px;
-}
-QScrollBar::handle:vertical {
-    background: rgba(42, 88, 168, 0.92);
-    border-radius: 10px;
-    min-height: 34px;
-}
-QScrollBar::handle:vertical:hover {
-    background: rgba(62, 112, 201, 0.98);
-}
-QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical {
-    background: rgba(15, 23, 38, 0.42);
-    border-radius: 8px;
-}
-QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical,
-QScrollBar::up-arrow:vertical,
-QScrollBar::down-arrow:vertical {
-    width: 0px;
-    height: 0px;
-    background: transparent;
-    border: none;
-}
-"""
+
+def _token(name: str) -> str:
+    return THEME_TOKENS[name]
 
 
 def render_help_html(title: str, subtitle: str, html: str) -> str:
@@ -44,38 +23,39 @@ def render_help_html(title: str, subtitle: str, html: str) -> str:
             <style>
                 body {{
                     margin: 0;
-                    padding: 14px 16px 14px 10px;
+                    padding: {HELP_HTML_MARGIN.BODY_TOP}px {HELP_HTML_MARGIN.BODY_RIGHT}px {HELP_HTML_MARGIN.BODY_BOTTOM}px {HELP_HTML_MARGIN.BODY_LEFT}px;
                     background-color: transparent;
-                    color: #D8DDEF;
-                    font-family: 'Segoe UI';
-                    font-size: 14px;
-                    line-height: 1.45;
+                    color: {_token("help-text-main")};
+                    font-family: {_token(HELP_HTML_FONT.BODY)};
+                    font-size: {HELP_HTML_SIZE.BODY}px;
+                    line-height: {HELP_HTML_SPACING.LINE_HEIGHT};
                 }}
                 .page-shell {{ padding: 0; }}
                 .page-header {{
-                    margin-bottom: 12px;
-                    padding-bottom: 8px;
-                    border-bottom: 1px solid #243653;
+                    margin-bottom: {HELP_HTML_SPACING.HEADER_BOTTOM}px;
+                    padding-bottom: {HELP_HTML_SPACING.HEADER_PADDING_BOTTOM}px;
+                    border-bottom: 1px solid {_token("help-border-strong")};
                 }}
-                .page-title {{ color: #F3F6FF; font-size: 28px; font-weight: 600; }}
-                .page-subtitle {{ color: #C8D2E8; font-size: 15px; line-height: 1.45; margin-top: 6px; }}
+                .page-title {{ color: {_token("help-text-title")}; font-size: {HELP_HTML_SIZE.TITLE}px; font-weight: 600; }}
+                .page-subtitle {{ color: {_token("help-text-subtitle")}; font-size: {HELP_HTML_SIZE.SUBTITLE}px; line-height: {HELP_HTML_SPACING.LINE_HEIGHT}; margin-top: {HELP_HTML_SPACING.SUBTITLE_TOP}px; }}
                 h2, h3, p, li, pre {{ white-space: normal; }}
                 h2 {{
-                    color: #F1F4FF; font-size: 22px; font-weight: 600;
-                    margin: 16px 0 8px 0; padding: 0 0 6px 0; border-bottom: 1px solid #243653;
+                    color: {_token("help-text-heading")}; font-size: {HELP_HTML_SIZE.HEADING}px; font-weight: 600;
+                    margin: {HELP_HTML_MARGIN.SECTION_TOP}px 0 {HELP_HTML_MARGIN.SECTION_BOTTOM}px 0; padding: 0 0 {HELP_HTML_SPACING.HEADING_BORDER_BOTTOM}px 0; border-bottom: 1px solid {_token("help-border-strong")};
                 }}
                 h3 {{
-                    color: #ECF1FF; font-size: 17px; font-weight: 600;
-                    margin: 12px 0 6px 0; padding: 0 0 4px 0; border-bottom: 1px solid #1B2A42;
+                    color: {_token("help-text-heading-soft")}; font-size: {HELP_HTML_SIZE.SUBHEADING}px; font-weight: 600;
+                    margin: {HELP_HTML_MARGIN.SUBSECTION_TOP}px 0 {HELP_HTML_MARGIN.SUBSECTION_BOTTOM}px 0; padding: 0 0 {HELP_HTML_SPACING.SUBHEADING_BORDER_BOTTOM}px 0; border-bottom: 1px solid {_token("help-border-soft")};
                 }}
-                p {{ color: #D7DDED; margin: 0 0 8px 0; }}
-                ul {{ color: #D7DDED; margin: 0 0 8px 0; padding: 0 0 0 18px; }}
-                li {{ color: #D7DDED; margin: 3px 0; padding: 0; }}
+                p {{ color: {_token("help-text-main")}; margin: 0 0 {HELP_HTML_SPACING.PARAGRAPH_BOTTOM}px 0; }}
+                ul {{ color: {_token("help-text-main")}; margin: 0 0 {HELP_HTML_SPACING.LIST_BOTTOM}px 0; padding: 0 0 0 {HELP_HTML_SPACING.LIST_LEFT}px; }}
+                li {{ color: {_token("help-text-main")}; margin: {HELP_HTML_SPACING.LIST_ITEM_VERTICAL}px 0; padding: 0; }}
                 pre {{
-                    color: #EEF3FF; margin: 0 0 8px 0; padding: 0;
+                    color: {_token("help-text-code")}; margin: 0 0 {HELP_HTML_SPACING.PARAGRAPH_BOTTOM}px 0; padding: 0;
+                    font-family: {_token(HELP_HTML_FONT.CODE)};
                     white-space: pre-wrap; word-wrap: break-word; border: none; background: transparent;
                 }}
-                code {{ color: #F3F6FF; white-space: normal; background: transparent; }}
+                code {{ color: {_token("help-text-title")}; white-space: normal; background: transparent; font-family: {_token(HELP_HTML_FONT.CODE)}; }}
             </style>
         </head>
         <body>

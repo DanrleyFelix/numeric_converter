@@ -113,18 +113,64 @@ class _PartialExpressionAnalyzer:
         previous = prefix_tokens[-1] if prefix_tokens else None
         for alias in candidates:
             if alias == "NOT":
-                if previous is None or previous.type in {
-                    TokenType.OPERATOR,
-                    TokenType.LPAREN,
-                }:
+                if (
+                    (previous is None or previous.type in {
+                        TokenType.OPERATOR,
+                        TokenType.LPAREN,
+                    })
+                    and self._is_unary_textual_delimited(text, fragment_start, trailing)
+                ):
                     return True
-            elif previous is not None and previous.type in {
-                TokenType.NUMBER,
-                TokenType.IDENTIFIER,
-                TokenType.RPAREN,
-            }:
+            elif (
+                previous is not None
+                and previous.type in {
+                    TokenType.NUMBER,
+                    TokenType.IDENTIFIER,
+                    TokenType.RPAREN,
+                }
+                and self._is_binary_textual_delimited(text, fragment_start)
+            ):
                 return True
         return False
+
+    def _is_unary_textual_delimited(
+        self,
+        text: str,
+        fragment_start: int,
+        trailing: str,
+    ) -> bool:
+        before = self._character_before(text, fragment_start)
+        after = self._character_after(text, fragment_start, trailing)
+        operator_chars = set("+-*/%<>=!&|^~")
+        left_delimited = (
+            before is None
+            or before.isspace()
+            or before == "("
+            or before in operator_chars
+        )
+        right_delimited = after is None or after.isspace() or after == "("
+        return left_delimited and right_delimited
+
+    def _is_binary_textual_delimited(self, text: str, fragment_start: int) -> bool:
+        before = self._character_before(text, fragment_start)
+        left_delimited = before is not None and (before.isspace() or before == ")")
+        return left_delimited
+
+    def _character_before(self, text: str, position: int) -> str | None:
+        if position <= 0:
+            return None
+        return text[position - 1]
+
+    def _character_after(
+        self,
+        text: str,
+        fragment_start: int,
+        trailing: str,
+    ) -> str | None:
+        position = fragment_start + len(trailing)
+        if position >= len(text):
+            return None
+        return text[position]
 
     def _prefix_is_structurally_valid(self, tokens: list[Token]) -> bool:
         if not tokens:

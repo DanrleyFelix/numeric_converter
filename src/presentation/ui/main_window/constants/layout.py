@@ -1,0 +1,20 @@
+class MAIN_WINDOW_SIZE:
+    MIN_WIDTH: int = 670
+    MIN_HEIGHT: int = 640
+    KEY_PANEL_HIDDEN_REDUCTION_RATIO: float = 0.70
+
+
+class MAIN_WINDOW_MARGIN:
+    CONTAINER_LEFT: int = 16
+    CONTAINER_TOP: int = 16
+    CONTAINER_RIGHT: int = 16
+    CONTAINER_BOTTOM: int = 16
+    CENTRAL_LEFT: int = 0
+    CENTRAL_TOP: int = 0
+    CENTRAL_RIGHT: int = 0
+    CENTRAL_BOTTOM: int = 0
+
+
+class MAIN_WINDOW_SPACING:
+    CONTAINER: int = 16
+    CENTRAL: int = 0

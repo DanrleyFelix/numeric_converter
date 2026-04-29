@@ -1,0 +1,23 @@
+class PREFERENCES_DIALOG_SIZE:
+    MIN_WIDTH: int = 620
+    MIN_HEIGHT: int = 430
+    ACTION_BUTTON_WIDTH: int = 160
+    ACTION_BUTTON_HEIGHT: int = 38
+
+
+class PREFERENCES_DIALOG_MARGIN:
+    ROOT_LEFT: int = 24
+    ROOT_TOP: int = 24
+    ROOT_RIGHT: int = 24
+    ROOT_BOTTOM: int = 24
+    BUTTONS_LEFT: int = 0
+    BUTTONS_TOP: int = 12
+    BUTTONS_RIGHT: int = 0
+    BUTTONS_BOTTOM: int = 0
+
+
+class PREFERENCES_DIALOG_SPACING:
+    ROOT: int = 20
+    BUTTONS: int = 12
+    GRID_HORIZONTAL: int = 18
+    GRID_VERTICAL: int = 16

@@ -179,12 +179,12 @@ class Tokenizer:
             next_token = tokens[index + 1] if index + 1 < len(tokens) else None
 
             if alias == "NOT":
-                if self._is_unary_textual_operator(previous, next_token):
+                if self._is_unary_textual_operator(token, previous, next_token):
                     normalized_tokens.append(
                         Token(TokenType.OPERATOR, operator, operator, token.position)
                     )
                     continue
-            elif self._is_binary_textual_operator(previous, next_token):
+            elif self._is_binary_textual_operator(token, previous, next_token):
                 normalized_tokens.append(
                     Token(TokenType.OPERATOR, operator, operator, token.position)
                 )
@@ -196,9 +196,13 @@ class Tokenizer:
 
     def _is_unary_textual_operator(
         self,
+        token: Token,
         previous: Token | None,
         next_token: Token | None,
     ) -> bool:
+        before = self._character_before(token.position)
+        after = self._character_after(token)
+        operator_chars = set("+-*/%<>=!&|^~")
         previous_allows = previous is None or previous.type in {
             TokenType.OPERATOR,
             TokenType.LPAREN,
@@ -208,13 +212,23 @@ class Tokenizer:
             TokenType.IDENTIFIER,
             TokenType.LPAREN,
         }
-        return previous_allows and next_allows
+        left_delimited = (
+            before is None
+            or before.isspace()
+            or before == "("
+            or before in operator_chars
+        )
+        right_delimited = after is not None and (after.isspace() or after == "(")
+        return previous_allows and next_allows and left_delimited and right_delimited
 
     def _is_binary_textual_operator(
         self,
+        token: Token,
         previous: Token | None,
         next_token: Token | None,
     ) -> bool:
+        before = self._character_before(token.position)
+        after = self._character_after(token)
         previous_allows = previous is not None and previous.type in {
             TokenType.NUMBER,
             TokenType.IDENTIFIER,
@@ -225,4 +239,17 @@ class Tokenizer:
             TokenType.IDENTIFIER,
             TokenType.LPAREN,
         }
-        return previous_allows and next_allows
+        left_delimited = before is not None and (before.isspace() or before == ")")
+        right_delimited = after is not None and (after.isspace() or after == "(")
+        return previous_allows and next_allows and left_delimited and right_delimited
+
+    def _character_before(self, position: int) -> str | None:
+        if position <= 0:
+            return None
+        return self.text[position - 1]
+
+    def _character_after(self, token: Token) -> str | None:
+        position = token.position + len(token.raw)
+        if position >= self.length:
+            return None
+        return self.text[position]

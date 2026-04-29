@@ -1,0 +1,60 @@
+QFrame#workspace-table-shell {
+    background-color: $bg-workspace-shell;
+    border: 1px solid $border-workspace-shell;
+    border-radius: 18px;
+}
+
+QWidget#workspace-table-header {
+    background-color: $bg-workspace-header;
+    border: none;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom: 1px solid $border-workspace-header;
+}
+
+QWidget#workspace-table-header-spacer,
+QWidget#workspace-header-labels,
+QScrollArea#workspace-table-body-scroll,
+QWidget#workspace-table-body,
+QWidget#workspace-row {
+    background-color: transparent;
+    border: none;
+}
+
+QLabel#workspace-table-header-cell {
+    background-color: transparent;
+    color: $text-workspace-header;
+    font-size: 17px;
+    font-weight: $fw-regular;
+}
+
+QFrame#workspace-row-card {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-radius: 14px;
+}
+
+QFrame#workspace-row-card:hover {
+    background-color: $bg-workspace-row-hover;
+    border: 1px solid $border-workspace-row-hover;
+}
+
+QLabel#workspace-row-cell {
+    color: $text-main;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QPushButton#workspace-row-remove {
+    background-color: transparent;
+    border: none;
+    border-radius: 0px;
+    color: $text-main;
+    padding: 0;
+}
+
+QPushButton#workspace-row-remove:hover {
+    background-color: transparent;
+    border: none;
+    color: $text-danger;
+}

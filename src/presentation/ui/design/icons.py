@@ -1,48 +1,63 @@
 import qtawesome as qta
 
+from src.presentation.ui.helpers.load_qss import THEME_TOKENS
+
 
 class Icons:
 
     @staticmethod
+    def _icon(name: str, token_name: str, **kwargs):
+        return qta.icon(name, color=THEME_TOKENS[token_name], **kwargs)
+
+    @staticmethod
     def numeric_workbench():
-        return qta.icon("fa5s.project-diagram", color="#357A58")
+        return Icons._icon("fa5s.project-diagram", "icon-brand")
 
     @staticmethod
     def calculator():
-        return qta.icon("fa5s.calculator", color="#466cc3")
+        return Icons._icon("fa5s.calculator", "icon-primary")
 
     @staticmethod
     def decimal():
-        return qta.icon("fa5s.hashtag", color="#466cc3")
+        return Icons._icon("fa5s.hashtag", "icon-primary")
 
     @staticmethod
     def binary():
-        return qta.icon("fa5s.code-branch", color="#466cc3")
+        return Icons._icon("fa5s.code-branch", "icon-primary")
 
     @staticmethod
     def hexadecimal():
-        return qta.icon("fa5s.superscript", color="#466cc3")
+        return Icons._icon("fa5s.superscript", "icon-primary")
 
     @staticmethod
     def command_window():
-        return qta.icon("fa5s.terminal", color="#466cc3")
+        return Icons._icon("fa5s.terminal", "icon-primary")
 
     @staticmethod
     def file():
-        return qta.icon("fa5s.folder-open", color="#EAEAF5")
+        return Icons._icon("fa5s.folder-open", "icon-toolbar")
 
     @staticmethod
     def preferences():
-        return qta.icon("fa5s.cog", color="#EAEAF5")
+        return Icons._icon("fa5s.cog", "icon-toolbar")
 
     @staticmethod
     def help():
-        return qta.icon("fa5s.book-open", color="#EAEAF5")
+        return Icons._icon("fa5s.book-open", "icon-toolbar")
 
     @staticmethod
     def copy():
-        return qta.icon("fa5s.copy", color="#EAEAF5")
+        return Icons._icon("fa5s.copy", "icon-toolbar")
 
     @staticmethod
     def remove():
-        return qta.icon("fa5s.minus", color="#F16F7B")
+        return Icons._icon(
+            "fa5s.trash-alt",
+            "icon-toolbar",
+            color_active=THEME_TOKENS["icon-danger"],
+            color_selected=THEME_TOKENS["icon-danger"],
+        )
+
+    @staticmethod
+    def remove_hover():
+        return Icons._icon("fa5s.trash-alt", "icon-danger")

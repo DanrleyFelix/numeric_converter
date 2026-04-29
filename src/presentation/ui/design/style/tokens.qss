@@ -7,15 +7,33 @@ $bg-toolbar:              #2b2b41;
 $bg-input:                #0F0F1E;
 $bg-panel:                #1A1A27;
 $bg-button:               #0F0F19;
-$bg-button-pressed:       #ff303b80;
-$bg-button-hover:         #26264b;
-$bg-toolbar-button-hover: #373765; 
+$bg-button-pressed:       #2A2D41;
+$bg-button-hover:         #202235;
+$bg-toolbar-button-hover: #4A4E64;
 $bg-button-enter:         #803232; 
 $bg-button-enter-hover:   #9c3636;
 $bg-button-enter-pressed: #c44c4c;
 $bg-button-clear:         #3f7a42;
 $bg-button-clear-hover:   #408b43;
 $bg-button-clear-pressed: #54ac57;
+$bg-menu-item-checked:    #4245606B;
+$bg-state-success-soft:   #6AE8991F;
+$bg-control-checked:      #171A26;
+$bg-control-checked-hover: #1D2230;
+$bg-tooltip:              #111624FA;
+$bg-workspace-shell:      #1A1A27;
+$bg-workspace-header:     #1D1D2C;
+$bg-workspace-row:        #161624;
+$bg-workspace-row-hover:  #1B1B29;
+$bg-workspace-remove:     #281119;
+$bg-workspace-remove-hover: #351720;
+$bg-scrollbar-track:      #0A0B11F5;
+$bg-scrollbar-page:       #101218B3;
+$bg-scrollbar-handle:     #727782FA;
+$bg-scrollbar-handle-hover: #8B909BFA;
+$bg-scrollbar-handle-horizontal: #727782F7;
+$bg-scrollbar-handle-horizontal-hover: #8B909BFA;
+$bg-scrollbar-page-horizontal: #0F0F1959;
 
 /* ===============================
    BORDER-COLORS 
@@ -23,12 +41,30 @@ $bg-button-clear-pressed: #54ac57;
 $border:                  #133874;
 $border-hover:            #214b90;
 $border-focus:            #2e58a6;
+$border-scrollbar:        #20242EF7;
+$border-workspace-shell:  #2A2D36;
+$border-workspace-header: #2B2E38;
+$border-workspace-row:    #232631;
+$border-workspace-row-hover: #2A2D38;
+$border-danger:           #F16F7BE0;
+$border-danger-hover:     #FF8F99FA;
+$border-soft-success:     #46A06A;
+$help-border-strong:      #1E3154;
+$help-border-soft:        #172842;
 
 /* ===============================
    COLORS — TEXT
    =============================== */
 $text-main:               #EAEAF5;
 $text-muted:              #B5B5C5;
+$text-workspace-header:   #D5DCEC;
+$text-danger:             #FF8B96;
+$help-text-main:          #D1D7E4;
+$help-text-title:         #EAEAF5;
+$help-text-subtitle:      #B8BECC;
+$help-text-heading:       #EAEAF5;
+$help-text-heading-soft:  #DDE3F0;
+$help-text-code:          #E4EAF5;
 
 /* ===============================
    COLORS — ACCENTS
@@ -36,6 +72,10 @@ $text-muted:              #B5B5C5;
 $accent-clear:            #4D7640;
 $accent-icon:             #37A35C;
 $accent-stroke:           #224A8A;
+$icon-brand:              #357A58;
+$icon-primary:            #466CC3;
+$icon-toolbar:            #EAEAF5;
+$icon-danger:             #F16F7B;
 
 /* ===============================
    FONTS

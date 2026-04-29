@@ -15,10 +15,13 @@ QToolButton {
 
 QToolButton:hover {
     background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+    border: 1px solid transparent;
 }
 
 QToolButton:pressed {
     background-color: $bg-button-hover;
+    color: $text-main;
 }
 
 QToolButton::menu-indicator {
@@ -43,11 +46,13 @@ QMenu::item {
 
 QMenu::item:selected {
     background-color: $bg-toolbar-button-hover;
+    color: $text-main;
 }
 
 QMenu::item:checked {
-    background-color: rgba(70, 108, 195, 0.22);
+    background-color: $bg-menu-item-checked;
     border: none;
+    color: $text-main;
 }
 
 QMenu::indicator {

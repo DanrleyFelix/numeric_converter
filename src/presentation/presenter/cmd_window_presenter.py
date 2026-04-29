@@ -53,6 +53,13 @@ class CommandWindowPresenter:
 
     @property
     def workspace_variable_rows(self) -> list[tuple[str, str]]:
+        return [
+            (name, value)
+            for name, value, _ in self.workspace_variable_detail_rows
+        ]
+
+    @property
+    def workspace_variable_detail_rows(self) -> list[tuple[str, str, str]]:
         instructions = cmd_window_context.get_history()
         variables = cmd_window_context.get_variables()
 
@@ -70,7 +77,14 @@ class CommandWindowPresenter:
                 continue
             ordered_names.append(name)
 
-        return [(name, str(variables[name])) for name in ordered_names]
+        return [
+            (
+                name,
+                str(variables[name]),
+                self._format_variable_hex(variables[name]),
+            )
+            for name in ordered_names
+        ]
 
     @property
     def workspace_log_rows(self) -> list[tuple[int, str, str]]:
@@ -102,7 +116,10 @@ class CommandWindowPresenter:
         except UnknownVariableError as error:
             self._active_line = sanitized
             self._last_validation_state = False
-            if self._is_standalone_identifier_fragment(sanitized):
+            if (
+                self._is_standalone_identifier_fragment(sanitized)
+                or self._is_trailing_identifier_fragment(sanitized, error)
+            ):
                 return CommandRenderResultDTO(
                     lines=[sanitized],
                     color=COLOR.INCOMPLETE,
@@ -246,6 +263,31 @@ class CommandWindowPresenter:
             return False
         return len(tokens) == 1 and tokens[0].type == TokenType.IDENTIFIER
 
+    def _is_trailing_identifier_fragment(
+        self,
+        text: str,
+        error: UnknownVariableError,
+    ) -> bool:
+        stripped = text.rstrip()
+        if not stripped:
+            return False
+        try:
+            tokens = [
+                token
+                for token in Tokenizer(stripped).tokenize()
+                if token.type != TokenType.EOF
+            ]
+        except Exception:
+            return False
+        if not tokens:
+            return False
+        last = tokens[-1]
+        if last.type != TokenType.IDENTIFIER:
+            return False
+        if error.position != last.position:
+            return False
+        return last.position + len(str(last.raw)) == len(stripped)
+
     def _assignment_name(self, text: str) -> str | None:
         try:
             tokens = [
@@ -263,3 +305,16 @@ class CommandWindowPresenter:
         ):
             return str(tokens[0].raw)
         return None
+
+    def _format_variable_hex(self, value: object) -> str:
+        if isinstance(value, bool):
+            numeric_value = int(value)
+        elif isinstance(value, int):
+            numeric_value = value
+        elif isinstance(value, float) and value.is_integer():
+            numeric_value = int(value)
+        else:
+            return ""
+
+        prefix = "-" if numeric_value < 0 else ""
+        return f"{prefix}0x{abs(numeric_value):X}"

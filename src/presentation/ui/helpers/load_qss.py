@@ -45,6 +45,8 @@ def load_stylesheet(tokens_path: Path, qss_path: Path) -> str:
     return qss
 
 
+THEME_TOKENS = load_tokens(STYLE_DIR / "tokens.qss")
+
 STYLESHEET = load_stylesheet(
     STYLE_DIR / "tokens.qss",
     STYLE_DIR / "main.qss",

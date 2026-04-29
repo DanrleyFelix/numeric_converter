@@ -1,6 +1,11 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
+from src.presentation.ui.components.workspace_table.constants import (
+    WORKSPACE_TABLE_MARGIN,
+    WORKSPACE_TABLE_SIZE,
+    WORKSPACE_TABLE_SPACING,
+)
 from src.presentation.ui.components.workspace_table.row_widget import WorkspaceRowWidget
 from src.presentation.ui.components.workspace_table.rows import WorkspaceRow
 
@@ -8,45 +13,13 @@ from src.presentation.ui.components.workspace_table.rows import WorkspaceRow
 class WorkspaceTableDialog(QDialog):
     removeRequested = Signal(object)
 
-    _SCROLLBAR_QSS = """
-QScrollBar:vertical {
-    background: rgba(8, 12, 20, 0.96);
-    border: 1px solid rgba(25, 47, 88, 0.96);
-    border-radius: 10px;
-    width: 14px;
-    margin: 10px 8px 10px 0px;
-}
-QScrollBar::handle:vertical {
-    background: rgba(39, 84, 162, 0.96);
-    border-radius: 8px;
-    min-height: 28px;
-}
-QScrollBar::handle:vertical:hover {
-    background: rgba(58, 108, 190, 1.0);
-}
-QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical {
-    background: rgba(8, 12, 20, 0.96);
-    border-radius: 10px;
-}
-QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical,
-QScrollBar::up-arrow:vertical,
-QScrollBar::down-arrow:vertical {
-    width: 0px;
-    height: 0px;
-    background: transparent;
-    border: none;
-}
-"""
-
     def __init__(self, title: str, headers: list[str], parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(title)
         self.setModal(False)
-        self.setMinimumSize(700, 400)
-        self.resize(820, 520)
+        self.setMinimumSize(WORKSPACE_TABLE_SIZE.MIN_WIDTH, WORKSPACE_TABLE_SIZE.MIN_HEIGHT)
+        self.resize(WORKSPACE_TABLE_SIZE.DEFAULT_WIDTH, WORKSPACE_TABLE_SIZE.DEFAULT_HEIGHT)
         self.setSizeGripEnabled(True)
         self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
 
@@ -54,12 +27,13 @@ QScrollBar::down-arrow:vertical {
         self._row_widgets: list[WorkspaceRowWidget] = []
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
-
-        title_label = QLabel(title, self)
-        title_label.setObjectName("workspace-table-title")
-        layout.addWidget(title_label)
+        layout.setContentsMargins(
+            WORKSPACE_TABLE_MARGIN.DIALOG_LEFT,
+            WORKSPACE_TABLE_MARGIN.DIALOG_TOP,
+            WORKSPACE_TABLE_MARGIN.DIALOG_RIGHT,
+            WORKSPACE_TABLE_MARGIN.DIALOG_BOTTOM,
+        )
+        layout.setSpacing(WORKSPACE_TABLE_SPACING.DIALOG)
 
         self.shell = QFrame(self)
         self.shell.setObjectName("workspace-table-shell")
@@ -70,17 +44,27 @@ QScrollBar::down-arrow:vertical {
         self.header = QWidget(self.shell)
         self.header.setObjectName("workspace-table-header")
         header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(18, 0, 18, 0)
-        header_layout.setSpacing(14)
+        header_layout.setContentsMargins(
+            WORKSPACE_TABLE_MARGIN.HEADER_LEFT,
+            WORKSPACE_TABLE_MARGIN.HEADER_TOP,
+            WORKSPACE_TABLE_MARGIN.HEADER_RIGHT,
+            WORKSPACE_TABLE_MARGIN.HEADER_BOTTOM,
+        )
+        header_layout.setSpacing(WORKSPACE_TABLE_SPACING.HEADER)
 
         self.header_spacer = QWidget(self.header)
         self.header_spacer.setObjectName("workspace-table-header-spacer")
-        self.header_spacer.setFixedWidth(34)
+        self.header_spacer.setFixedWidth(WORKSPACE_TABLE_SIZE.HEADER_REMOVE_GAP)
         header_layout.addWidget(self.header_spacer, 0)
 
         self.header_labels = QWidget(self.header)
         header_labels_layout = QHBoxLayout(self.header_labels)
-        header_labels_layout.setContentsMargins(16, 14, 16, 14)
+        header_labels_layout.setContentsMargins(
+            WORKSPACE_TABLE_MARGIN.HEADER_LABEL_LEFT,
+            WORKSPACE_TABLE_MARGIN.HEADER_LABEL_TOP,
+            WORKSPACE_TABLE_MARGIN.HEADER_LABEL_RIGHT,
+            WORKSPACE_TABLE_MARGIN.HEADER_LABEL_BOTTOM,
+        )
         header_labels_layout.setSpacing(0)
         self.header_labels.setObjectName("workspace-header-labels")
         for text in self._headers:
@@ -97,13 +81,19 @@ QScrollBar::down-arrow:vertical {
         self.body_scroll.setFrameShape(QFrame.NoFrame)
         self.body_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.body_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.body_scroll.verticalScrollBar().setStyleSheet(self._SCROLLBAR_QSS)
+        self.body_scroll.verticalScrollBar().setObjectName("workspace-table-scrollbar")
 
         self.body = QWidget(self.body_scroll)
         self.body.setObjectName("workspace-table-body")
         self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(18, 16, 18, 16)
-        self.body_layout.setSpacing(10)
+        self.body_layout.setContentsMargins(
+            WORKSPACE_TABLE_MARGIN.BODY_LEFT,
+            WORKSPACE_TABLE_MARGIN.BODY_TOP,
+            WORKSPACE_TABLE_MARGIN.BODY_RIGHT,
+            WORKSPACE_TABLE_MARGIN.BODY_BOTTOM,
+        )
+        self.body_layout.setSpacing(WORKSPACE_TABLE_SPACING.BODY)
+        self.body_layout.setAlignment(Qt.AlignTop)
         self.body_layout.addStretch(1)
         self.body_scroll.setWidget(self.body)
         shell_layout.addWidget(self.body_scroll, 1)
