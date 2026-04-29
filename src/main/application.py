@@ -17,10 +17,11 @@ from src.presentation.repository.workspace_state import (
     WorkspaceStateRepository,
 )
 from src.presentation.ui.main_window import MainWindow
+from src.main.runtime_root import resolve_application_root
 
 
 def create_main_window(root: Path | None = None) -> MainWindow:
-    root = root or Path(__file__).resolve().parents[2]
+    root = root or resolve_application_root()
 
     preferences_service = FormattingPreferencesService(
         FormattingPreferencesRepository(root)

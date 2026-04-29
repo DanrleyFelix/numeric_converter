@@ -1,6 +1,6 @@
 # Numeric WorkBench
 
-Numeric WorkBench is a desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
+Numeric WorkBench v1.0 is a portable desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
 
 It combines two main tools:
 
@@ -25,6 +25,7 @@ It combines two main tools:
 - Sends command results into the converter when the `Convert` toggle is enabled.
 - Provides a key panel for fast command input.
 - Includes an in-app Help window with focused usage documentation.
+- Ships as a portable desktop bundle for Windows, Linux and macOS.
 
 ## Converter
 
@@ -216,18 +217,6 @@ The `Help` toolbar button opens an in-app manual with pages for:
 - key panel;
 - preferences.
 
-## Project Structure
-
-```text
-src/core          domain rules, converter, tokenizer, validator and context
-src/application   contracts, DTOs, services and use cases
-src/controllers   bridges between presenters and use cases
-src/presentation  presenters, repositories, formatters and UI components
-src/main          application composition
-tests             automated tests
-data              local contexts and workspaces
-```
-
 ## Dependencies
 
 ```text
@@ -244,7 +233,65 @@ pytest
 ## Run
 
 ```bash
-python -m src
+python main.py
+```
+
+The root-level [C:\Users\Danrl\Desktop\Danrley\projetos\numeric_converter\main.py](C:\Users\Danrl\Desktop\Danrley\projetos\numeric_converter\main.py) is the official v1.0 app entrypoint.
+
+## Build
+
+Portable bundles are built natively per operating system.
+
+```bash
+make build OS=windows
+make build OS=linux
+make build OS=macos
+```
+
+If your shell does not expose the desired Python interpreter on `PATH`, override it explicitly:
+
+```bash
+make build OS=windows PYTHON=/path/to/python
+```
+
+Build artifacts are emitted into:
+
+```text
+dist/windows
+dist/linux
+dist/macos
+```
+
+Artifact names follow this format:
+
+```text
+numeric-workbench-v1.0-<os>-<architecture>
+```
+
+v1.0 ships portable bundles only. Native installers are intentionally out of scope for this release.
+
+## CI Release Builds
+
+GitHub Actions builds portable artifacts natively on:
+
+- Windows
+- Linux
+- macOS
+
+Each release build job installs dependencies, runs `pytest`, builds the portable artifact and uploads it as a workflow artifact.
+
+## Project Structure
+
+```text
+main.py           official desktop launcher
+build             release build automation and PyInstaller config
+src/core          domain rules, converter, tokenizer, validator and context
+src/application   contracts, DTOs, services and use cases
+src/controllers   bridges between presenters and use cases
+src/presentation  presenters, repositories, formatters and UI components
+src/main          application composition
+tests             automated tests
+data              local contexts and workspaces
 ```
 
 ## Test

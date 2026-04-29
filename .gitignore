@@ -1,3 +1,6 @@
 __pycache__
 .venv
 .agents
+dist
+build/.pyinstaller
+build/generated

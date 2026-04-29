@@ -1,13 +1,16 @@
 import sys
+
 from PySide6.QtWidgets import QApplication
+
 from src.main import create_main_window
 
-def main():
-    app = QApplication(sys.argv)
-    view = create_main_window()
 
-    view.show()
-    sys.exit(app.exec())
-    
+def main() -> int:
+    app = QApplication(sys.argv)
+    window = create_main_window()
+    window.show()
+    return app.exec()
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

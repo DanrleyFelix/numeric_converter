@@ -1,5 +1,9 @@
 import qtawesome as qta
 
+from src.presentation.ui.design.icon_specs import (
+    WINDOW_ICON_GLYPH,
+    WINDOW_ICON_TOKEN,
+)
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 
@@ -27,7 +31,7 @@ class Icons:
 
     @staticmethod
     def hexadecimal():
-        return Icons._icon("fa5s.superscript", "icon-primary")
+        return Icons._icon(WINDOW_ICON_GLYPH, WINDOW_ICON_TOKEN)
 
     @staticmethod
     def command_window():
