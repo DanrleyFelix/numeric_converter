@@ -236,7 +236,7 @@ pytest
 python main.py
 ```
 
-The root-level [C:\Users\Danrl\Desktop\Danrley\projetos\numeric_converter\main.py](C:\Users\Danrl\Desktop\Danrley\projetos\numeric_converter\main.py) is the official v1.0 app entrypoint.
+The repository-root `main.py` file is the official v1.0 app entrypoint.
 
 ## Build
 
