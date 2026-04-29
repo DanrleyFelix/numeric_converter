@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QPushButton, QSizePolicy
 
 from .flow_layout import FlowLayout
+from .key_panel_constants import KEY_PANEL_KEYS, KEY_PANEL_LAYOUT, KEY_PANEL_SIZE
 
 
 class KeyPanel(QFrame):
@@ -12,25 +13,21 @@ class KeyPanel(QFrame):
 
         self.setObjectName("key-panel")
         self.buttons: dict[str, QPushButton] = {}
-        layout = FlowLayout(self, margin=12, h_spacing=12, v_spacing=12)
+        layout = FlowLayout(
+            self,
+            margin=KEY_PANEL_LAYOUT.MARGIN,
+            h_spacing=KEY_PANEL_LAYOUT.H_SPACING,
+            v_spacing=KEY_PANEL_LAYOUT.V_SPACING,
+        )
 
-        keys = [
-            "0", "1", "2", "3", "4", "5", "6", "7",
-            "8", "9", "A", "B", "C", "D", "E", "F",
-            "+", "-", "x", "/", "^", "==", "!=", ">=", "<=",
-            "=", "&", "|", "~", "NOT", "OR", "AND", "XOR", ">>", "<<",
-            "(", ")", "0x", "0b",
-            "CLEAR", "ENTER",
-        ]
-
-        for key in keys:
+        for key in KEY_PANEL_KEYS:
             label = "&&" if key == "&" else key
             button = QPushButton(label)
             if key.lower() in ("clear", "enter"):
                 button.setObjectName(key.lower())
 
-            button.setMinimumHeight(34)
-            button.setMinimumWidth(56)
+            button.setMinimumHeight(KEY_PANEL_SIZE.BUTTON_MIN_HEIGHT)
+            button.setMinimumWidth(KEY_PANEL_SIZE.BUTTON_MIN_WIDTH)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(lambda _, key=key: self.keyPressed.emit(key))

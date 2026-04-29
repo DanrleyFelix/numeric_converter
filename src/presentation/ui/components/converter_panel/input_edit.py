@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
+from src.presentation.ui.components.converter_panel.constants import CONVERTER_PANEL_SIZE
 from src.presentation.ui.components.converter_panel.helpers import (
     display_position_from_raw_index,
     is_valid_char,
@@ -19,7 +20,7 @@ class ConverterInputEdit(QPlainTextEdit):
         self.input_type = input_type
         self._raw_value = ""
         self._desired_raw_cursor_index: int | None = None
-        self.setMinimumHeight(40)
+        self.setMinimumHeight(CONVERTER_PANEL_SIZE.INPUT_MIN_HEIGHT)
         self.setTabChangesFocus(True)
 
     @property

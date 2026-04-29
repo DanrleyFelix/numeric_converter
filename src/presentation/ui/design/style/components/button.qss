@@ -4,7 +4,7 @@ QPushButton {
     font-size: $fs-btn-sm;
     color: $text-main;
     border: 1px solid $border;
-    border-radius: $r-sm;
+    border-radius: $radius-8;
 }
 
 QPushButton:hover {

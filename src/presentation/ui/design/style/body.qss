@@ -1,6 +1,6 @@
 QFrame#body {
     background-color: $bg-panel;
-    border-radius: $r-md;
+    border-radius: $radius-16;
 }
 
 @import "components/base.qss";

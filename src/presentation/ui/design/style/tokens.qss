@@ -124,8 +124,78 @@ $fs-ft-md: 14px;
 $fs-ft-lg: 16px;
 
 /* ===============================
+   SPACING
+   =============================== */
+$space-0: 0px;
+$space-1: 1px;
+$space-2: 2px;
+$space-3: 3px;
+$space-4: 4px;
+$space-6: 6px;
+$space-8: 8px;
+$space-10: 10px;
+$space-12: 12px;
+$space-14: 14px;
+$space-16: 16px;
+$space-18: 18px;
+$space-22: 22px;
+$space-28: 28px;
+$space-30: 30px;
+
+/* ===============================
+   COMPOSED INSETS / MARGINS
+   =============================== */
+$padding-select-field: 6px 8px;
+$padding-input-field: 4px 8px;
+$padding-none: 0px;
+$padding-autocomplete-shell: 6px;
+$padding-autocomplete-item: 8px 12px;
+$padding-command-header-button: 0px 14px;
+$padding-copy-raw-button: 4px;
+$padding-dialog-button: 0px 16px;
+$padding-help-nav-shell: 10px;
+$padding-help-nav-item: 12px 14px;
+$padding-help-page-shell: 30px 4px 22px 28px;
+$padding-menu-shell: 0px;
+$padding-toolbar-button: 0px 18px;
+$padding-toolbar-menu-item: 10px 18px;
+$padding-workspace-remove-button: 0px;
+
+$margin-none: 0px;
+$margin-command-feedback-item: 1px 0px;
+$margin-help-nav-item: 3px 0px;
+$margin-scrollbar-vertical: 10px 2px 10px 0px;
+$margin-scrollbar-horizontal: 0px 6px 6px 6px;
+
+/* ===============================
+   SIZES
+   =============================== */
+$size-control-min-height: 30px;
+$size-command-header-min-width: 96px;
+$size-command-header-min-height: 34px;
+$size-dialog-button-min-width: 120px;
+$size-dialog-button-min-height: 38px;
+$size-copy-raw-button-min: 30px;
+$size-check-indicator: 18px;
+$size-radio-indicator: 18px;
+$size-scrollbar-width: 18px;
+$size-scrollbar-horizontal-height: 12px;
+$size-scrollbar-handle-min-height: 18px;
+$size-scrollbar-handle-max-height: 54px;
+$size-scrollbar-horizontal-handle-min-width: 22px;
+$size-menu-indicator-hidden: 0px;
+
+/* ===============================
    RADIUS
    =============================== */
-$r-sm: 8px;
-$r-md: 16px;
-$r-lg: 24px;
+$radius-0: 0px;
+$radius-4: 4px;
+$radius-6: 6px;
+$radius-8: 8px;
+$radius-9: 9px;
+$radius-10: 10px;
+$radius-12: 12px;
+$radius-14: 14px;
+$radius-16: 16px;
+$radius-18: 18px;
+$radius-24: 24px;

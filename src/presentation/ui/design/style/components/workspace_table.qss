@@ -1,14 +1,14 @@
 QFrame#workspace-table-shell {
     background-color: $bg-workspace-shell;
     border: 1px solid $border-workspace-shell;
-    border-radius: 18px;
+    border-radius: $radius-18;
 }
 
 QWidget#workspace-table-header {
     background-color: $bg-workspace-header;
     border: none;
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
+    border-top-left-radius: $radius-18;
+    border-top-right-radius: $radius-18;
     border-bottom: 1px solid $border-workspace-header;
 }
 
@@ -31,7 +31,7 @@ QLabel#workspace-table-header-cell {
 QFrame#workspace-row-card {
     background-color: $bg-workspace-row;
     border: 1px solid $border-workspace-row;
-    border-radius: 14px;
+    border-radius: $radius-14;
 }
 
 QFrame#workspace-row-card:hover {
@@ -48,9 +48,9 @@ QLabel#workspace-row-cell {
 QPushButton#workspace-row-remove {
     background-color: transparent;
     border: none;
-    border-radius: 0px;
+    border-radius: $radius-0;
     color: $text-main;
-    padding: 0;
+    padding: $padding-workspace-remove-button;
 }
 
 QPushButton#workspace-row-remove:hover {

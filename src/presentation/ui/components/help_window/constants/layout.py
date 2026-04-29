@@ -17,7 +17,7 @@ class HELP_WINDOW_MARGIN:
     PAGE_TOP: int = 6
     PAGE_RIGHT: int = 6
     PAGE_BOTTOM: int = 6
-    VIEWPORT_RIGHT_GUTTER: int = 44
+    VIEWPORT_RIGHT_GUTTER: int = 88
 
 
 class HELP_WINDOW_SPACING:

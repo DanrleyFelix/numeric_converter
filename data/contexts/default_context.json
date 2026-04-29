@@ -2,10 +2,10 @@
     "converter": {
         "from_type": "decimal",
         "fields": {
-            "decimal": "",
-            "binary": "",
-            "hexBE": "",
-            "hexLE": ""
+            "decimal": "2148118280",
+            "binary": "10000000000010011010111100001000",
+            "hexBE": "8009AF08",
+            "hexLE": "08AF0980"
         },
         "message": null
     },
@@ -31,82 +31,6 @@
             {
                 "input": "p1_field_base_addr = 0x801A7B64",
                 "output": "2149219172"
-            },
-            {
-                "input": "IS_CPU_TURN",
-                "output": "2148118997"
-            },
-            {
-                "input": "0x8009B1D5",
-                "output": "2148118997"
-            },
-            {
-                "input": "562544",
-                "output": "562544"
-            },
-            {
-                "input": "gp",
-                "output": "2148118280"
-            },
-            {
-                "input": "gp = 0x8009AF04",
-                "output": "2148118276"
-            },
-            {
-                "input": "gp",
-                "output": "2148118276"
-            },
-            {
-                "input": "gp+2",
-                "output": "2148118278"
-            },
-            {
-                "input": "gp = gp +2",
-                "output": "2148118278"
-            },
-            {
-                "input": "gp = gp +2",
-                "output": "2148118280"
-            },
-            {
-                "input": "gp",
-                "output": "2148118280"
-            },
-            {
-                "input": "ANS",
-                "output": "2148118280"
-            },
-            {
-                "input": "IS_CPU_TURN = gp + 0x717",
-                "output": "2148120095"
-            },
-            {
-                "input": "IS_CPU_TURN = gp + 717",
-                "output": "2148118997"
-            },
-            {
-                "input": "turn_count",
-                "output": "2148118616"
-            },
-            {
-                "input": "gs_pointer_base_slus=0x1c6630",
-                "output": "1861168"
-            },
-            {
-                "input": "gs_pointer_base_slus",
-                "output": "1861168"
-            },
-            {
-                "input": "gs_pointer_base_slus+12",
-                "output": "1861180"
-            },
-            {
-                "input": "a=2",
-                "output": "2"
-            },
-            {
-                "input": "a+2",
-                "output": "4"
             }
         ],
         "instructions": [
@@ -114,29 +38,10 @@
             "IS_CPU_TURN = 0x8009B1D5",
             "p1_hand_base_addr = 0x801A7AD8",
             "p2_hand_base_addr = 0x801A7C7C",
-            "p1_field_base_addr = 0x801A7B64",
-            "IS_CPU_TURN",
-            "0x8009B1D5",
-            "562544",
-            "gp",
-            "gp = 0x8009AF04",
-            "gp",
-            "gp+2",
-            "gp = gp +2",
-            "gp = gp +2",
-            "gp",
-            "ANS",
-            "IS_CPU_TURN = gp + 0x717",
-            "IS_CPU_TURN = gp + 717",
-            "turn_count",
-            "gs_pointer_base_slus=0x1c6630",
-            "gs_pointer_base_slus",
-            "gs_pointer_base_slus+12",
-            "a=2",
-            "a+2"
+            "p1_field_base_addr = 0x801A7B64"
         ],
         "variables": {
-            "ANS": 4,
+            "ANS": 2148118280,
             "gp": 2148118280,
             "turn_count": 2148118616,
             "IS_CPU_TURN": 2148118997,
@@ -144,10 +49,9 @@
             "p2_hand_base_addr": 2149219452,
             "p1_field_base_addr": 2149219172,
             "p2_field_base_addr": 2149219592,
-            "gs_pointer_base_slus": 1861168,
-            "a": 2
+            "index": 28
         },
         "workspace_view_mode": "variables"
     },
-    "key_panel_visible": false
+    "key_panel_visible": true
 }

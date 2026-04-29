@@ -7,13 +7,13 @@ QLabel {
 QPlainTextEdit {
     background-color: $bg-input;
     border: 1px solid $border;
-    border-radius: $r-sm;
+    border-radius: $radius-8;
     font-family: $font-base;
     font-size: $fs-c-md;
     color: $text-main;
-    padding-top: 4px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-top: $space-4;
+    padding-left: $space-8;
+    padding-right: $space-8;
 }
 
 QPlainTextEdit:hover {
@@ -28,17 +28,17 @@ QToolTip {
     background-color: $bg-tooltip;
     color: $text-main;
     border: 1px solid $border;
-    border-radius: 8px;
-    padding: 6px 8px;
+    border-radius: $radius-8;
+    padding: $padding-select-field;
 }
 
 QSpinBox {
     background-color: $bg-input;
     border: 1px solid $border;
-    border-radius: $r-sm;
+    border-radius: $radius-8;
     color: $text-main;
-    min-height: 30px;
-    padding: 4px 8px;
+    min-height: $size-control-min-height;
+    padding: $padding-input-field;
 }
 
 QSpinBox:focus {
@@ -47,15 +47,15 @@ QSpinBox:focus {
 
 QCheckBox,
 QRadioButton {
-    spacing: 10px;
+    spacing: $space-10;
     color: $text-main;
 }
 
 QCheckBox::indicator {
-    width: 18px;
-    height: 18px;
+    width: $size-check-indicator;
+    height: $size-check-indicator;
     border: 1px solid $border;
-    border-radius: 4px;
+    border-radius: $radius-4;
     background-color: $bg-input;
 }
 
@@ -65,10 +65,10 @@ QCheckBox::indicator:checked {
 }
 
 QRadioButton::indicator {
-    width: 18px;
-    height: 18px;
+    width: $size-radio-indicator;
+    height: $size-radio-indicator;
     border: 1px solid $border;
-    border-radius: 9px;
+    border-radius: $radius-9;
     background-color: $bg-input;
 }
 

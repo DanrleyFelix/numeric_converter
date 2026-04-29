@@ -7,7 +7,7 @@ QDialog#workspace-table-dialog {
 QLabel#preferences-title,
 QLabel#help-title,
 QLabel#workspace-table-title {
-    font-size: 24px;
+    font-size: $fs-ml-lg;
     font-weight: $fw-semibold;
     color: $text-main;
 }
@@ -22,16 +22,16 @@ QLabel#help-page-indicator {
 QLabel#preferences-section-title {
     font-size: $fs-c-lg;
     color: $text-main;
-    padding-top: 4px;
+    padding-top: $space-4;
 }
 
 QPushButton#preferences-ok,
 QPushButton#preferences-cancel,
 QPushButton#help-nav-button {
-    min-height: 38px;
-    min-width: 120px;
-    padding: 0 16px;
-    border-radius: 10px;
+    min-height: $size-dialog-button-min-height;
+    min-width: $size-dialog-button-min-width;
+    padding: $padding-dialog-button;
+    border-radius: $radius-10;
 }
 
 QPushButton#preferences-ok,

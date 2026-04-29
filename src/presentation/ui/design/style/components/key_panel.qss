@@ -1,4 +1,4 @@
 QFrame#key-panel {
     background-color: $bg-panel;
-    border-radius: $r-lg;
+    border-radius: $radius-24;
 }

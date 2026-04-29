@@ -1,6 +1,8 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
+from src.presentation.ui.components.footer_constants import FOOTER_LAYOUT, FOOTER_TEXT
+
 
 class Footer(QFrame):
 
@@ -10,14 +12,14 @@ class Footer(QFrame):
         self.setObjectName("footer")
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 0, 10, 0)
-        layout.setSpacing(4)
+        layout.setContentsMargins(FOOTER_LAYOUT.SIDE_MARGIN, 0, FOOTER_LAYOUT.SIDE_MARGIN, 0)
+        layout.setSpacing(FOOTER_LAYOUT.SPACING)
 
-        self.footer = QLabel("All rights reserved. Created by Danrley Felix.")
+        self.footer = QLabel(FOOTER_TEXT.COPYRIGHT)
         self.footer.setObjectName("footer-text")
         self.footer.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        self.status = QLabel("Ready.")
+        self.status = QLabel(FOOTER_TEXT.READY)
         self.status.setObjectName("footer-status")
         self.status.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
