@@ -137,7 +137,7 @@ def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
     window.toolbar.toggle_key_panel_action.setChecked(False)
 
     assert window.minimumWidth() < initial_min_width
-    assert window.minimumWidth() == 700
+    assert window.minimumWidth() == 790
     assert window.minimumHeight() < initial_min_height
 
 
