@@ -17,4 +17,5 @@ class TOOLBAR_TEXT:
     PREFERENCES: str = "Preferences"
     SAVE_WORKSPACE: str = "Save Workspace"
     SHOW_KEY_PANEL: str = "Show Key Panel"
+    AUTO_CONVERT: str = "Auto Convert"
     CONVERTER: str = "Converter"

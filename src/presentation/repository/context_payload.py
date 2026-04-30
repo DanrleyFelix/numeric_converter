@@ -8,6 +8,7 @@ from src.application.dto.application_state import (
     ApplicationContextDTO,
     CommandContextDTO,
     ConverterStateDTO,
+    WindowSizeDTO,
 )
 from src.application.dto.command_entry import CommandEntryDTO
 
@@ -23,6 +24,21 @@ def converter_fields(raw: dict[str, Any]) -> dict[str, str]:
         value = raw.get(key, "")
         fields[key] = "" if value is None else str(value)
     return fields
+
+
+def window_sizes(raw: dict[str, Any]) -> dict[str, WindowSizeDTO]:
+    sizes: dict[str, WindowSizeDTO] = {}
+    for key, value in raw.items():
+        if not isinstance(value, dict):
+            continue
+        width = value.get("width")
+        height = value.get("height")
+        if not isinstance(width, int) or not isinstance(height, int):
+            continue
+        if width <= 0 or height <= 0:
+            continue
+        sizes[str(key)] = WindowSizeDTO(width=width, height=height)
+    return sizes
 
 
 def context_from_payload(payload: dict[str, Any]) -> ApplicationContextDTO:
@@ -46,9 +62,10 @@ def context_from_payload(payload: dict[str, Any]) -> ApplicationContextDTO:
             ],
             instructions=list(command_raw.get("instructions", [])),
             variables=dict(command_raw.get("variables", {"ANS": 0})),
-            workspace_view_mode=command_raw.get("workspace_view_mode", "variables"),
         ),
         key_panel_visible=payload.get("key_panel_visible", True),
+        auto_convert_enabled=payload.get("auto_convert_enabled", False),
+        window_sizes=window_sizes(payload.get("window_sizes", {})),
     )
 
 
@@ -67,9 +84,13 @@ def context_to_payload(context: ApplicationContextDTO) -> dict[str, Any]:
             ],
             "instructions": list(context.command.instructions),
             "variables": dict(context.command.variables),
-            "workspace_view_mode": context.command.workspace_view_mode,
         },
         "key_panel_visible": context.key_panel_visible,
+        "auto_convert_enabled": context.auto_convert_enabled,
+        "window_sizes": {
+            key: {"width": value.width, "height": value.height}
+            for key, value in context.window_sizes.items()
+        },
     }
 
 

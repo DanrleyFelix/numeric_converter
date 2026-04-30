@@ -5,8 +5,7 @@ QLabel#command-feedback {
     padding-left: $space-2;
 }
 
-QPushButton#command-header-button,
-QPushButton#command-convert-toggle {
+QPushButton#command-header-button {
     min-width: $size-command-header-min-width;
     min-height: $size-command-header-min-height;
     padding: $padding-command-header-button;
@@ -16,37 +15,14 @@ QPushButton#command-convert-toggle {
     color: $text-muted;
 }
 
-QPushButton#command-header-button:hover,
-QPushButton#command-convert-toggle:hover {
+QPushButton#command-header-button:hover {
     background-color: $bg-toolbar-button-hover;
     color: $text-main;
 }
 
-QPushButton#command-header-button:focus,
-QPushButton#command-convert-toggle:focus {
+QPushButton#command-header-button:focus {
     outline: none;
     border: 1px solid $border;
-}
-
-QPushButton#command-convert-toggle:checked {
-    background-color: $bg-button;
-    border: 1px solid $border-soft-success;
-    color: $text-main;
-}
-
-QPushButton#command-convert-toggle:checked:hover {
-    background-color: $bg-toolbar-button-hover;
-    border: 1px solid $border-soft-success;
-}
-
-QPushButton#command-convert-toggle:checked:pressed {
-    background-color: $bg-button-hover;
-    border: 1px solid $border-soft-success;
-}
-
-QPushButton#command-convert-toggle:checked:focus {
-    background-color: $bg-button;
-    border: 1px solid $border-soft-success;
 }
 
 QPlainTextEdit#command-editor {

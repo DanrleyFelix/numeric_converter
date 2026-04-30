@@ -57,6 +57,7 @@ class MainWindowLayoutMixin:
         self.toolbar.load_workspace_action.triggered.connect(self._load_workspace)
         self.toolbar.converter_preferences_action.triggered.connect(self._open_preferences)
         self.toolbar.toggle_key_panel_action.toggled.connect(self._on_key_panel_toggled)
+        self.toolbar.auto_convert_action.toggled.connect(self._on_auto_convert_toggled)
         self.toolbar.help_button.clicked.connect(self._open_help)
         self.body.command_panel.show_logs_button.clicked.connect(self._open_logs_window)
         self.body.command_panel.show_variables_button.clicked.connect(self._open_variables_window)
@@ -66,12 +67,18 @@ class MainWindowLayoutMixin:
         self._update_minimum_height(visible)
         self._autosave_state()
 
+    def _on_auto_convert_toggled(self: MainWindow, enabled: bool) -> None:
+        self._auto_convert_enabled = enabled
+        self._autosave_state()
+
     def _update_minimum_height(self: MainWindow, key_panel_visible: bool) -> None:
+        min_width = MAIN_WINDOW_SIZE.MIN_WIDTH
         min_height = MAIN_WINDOW_SIZE.MIN_HEIGHT
         if not key_panel_visible:
+            min_width = MAIN_WINDOW_SIZE.KEY_PANEL_HIDDEN_MIN_WIDTH
             reduction = int(
                 self.key_panel.sizeHint().height()
                 * MAIN_WINDOW_SIZE.KEY_PANEL_HIDDEN_REDUCTION_RATIO
             )
             min_height = max(360, MAIN_WINDOW_SIZE.MIN_HEIGHT - reduction)
-        self.setMinimumSize(MAIN_WINDOW_SIZE.MIN_WIDTH, min_height)
+        self.setMinimumSize(min_width, min_height)

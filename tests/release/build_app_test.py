@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import pytest
+import pytest # type: ignore
 
 from build.build_app import _validate_artifact
 

@@ -28,6 +28,9 @@ class Toolbar(QFrame):
         self.toggle_key_panel_action = QAction(TOOLBAR_TEXT.SHOW_KEY_PANEL, self)
         self.toggle_key_panel_action.setCheckable(True)
         self.toggle_key_panel_action.setChecked(True)
+        self.auto_convert_action = QAction(TOOLBAR_TEXT.AUTO_CONVERT, self)
+        self.auto_convert_action.setCheckable(True)
+        self.auto_convert_action.setChecked(False)
 
         file_menu = QMenu(self)
         file_menu.addAction(self.save_workspace_action)
@@ -36,6 +39,7 @@ class Toolbar(QFrame):
         preferences_menu = QMenu(self)
         preferences_menu.addAction(self.converter_preferences_action)
         preferences_menu.addAction(self.toggle_key_panel_action)
+        preferences_menu.addAction(self.auto_convert_action)
 
         self.file_button = self._build_menu_button(TOOLBAR_TEXT.FILE, "file", Icons.file(), file_menu)
         self.preferences_button = self._build_menu_button(

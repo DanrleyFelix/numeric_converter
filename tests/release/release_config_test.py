@@ -1,4 +1,4 @@
-import pytest
+import pytest # type: ignore
 
 from build import release_config
 

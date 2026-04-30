@@ -74,7 +74,7 @@ class MainWindowCommandMixin:
             result.color,
         )
 
-        if result.color == COLOR.SUCCESS and self.body.command_panel.convert_enabled():
+        if result.color == COLOR.SUCCESS and self._auto_convert_enabled:
             self._convert_command_result()
 
         self._refresh_command_completions()

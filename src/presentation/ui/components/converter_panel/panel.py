@@ -40,6 +40,10 @@ class ConverterPanel(QFrame):
             copy_raw.setIcon(Icons.copy())
             copy_raw.setToolTip(CONVERTER_PANEL_TEXT["copy_raw_tooltip"])
             copy_raw.setCursor(Qt.PointingHandCursor)
+            copy_raw.setFixedSize(
+                CONVERTER_PANEL_LAYOUT.COPY_BUTTON_WIDTH,
+                CONVERTER_PANEL_LAYOUT.COPY_BUTTON_HEIGHT,
+            )
             copy_raw.clicked.connect(editor.copy_raw_to_clipboard)
             self.copy_raw_buttons[kind] = copy_raw
             row.addWidget(label)

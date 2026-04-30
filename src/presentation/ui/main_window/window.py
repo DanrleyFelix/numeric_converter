@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow
 
 from src.application.services.formating_preferences import FormattingPreferencesService
@@ -42,6 +43,8 @@ class MainWindow(
         self._help_window: HelpWindow | None = None
         self._logs_window: WorkspaceTableDialog | None = None
         self._variables_window: WorkspaceTableDialog | None = None
+        self._auto_convert_enabled = False
+        self._window_sizes = {}
         self._syncing_converter = False
         self._syncing_command = False
         self._loaded = False
@@ -57,6 +60,9 @@ class MainWindow(
         self._load_default_state()
         self._loaded = True
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
+        for window in (self._help_window, self._logs_window, self._variables_window):
+            if window is not None:
+                window.close()
         self._autosave_state()
         super().closeEvent(event)

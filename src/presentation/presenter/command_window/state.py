@@ -5,10 +5,7 @@ from numbers import Number
 
 from src.application.dto.application_state import CommandContextDTO
 from src.application.dto.command_entry import CommandEntryDTO
-from src.presentation.presenter.command_window.constants import (
-    COMMAND_WINDOW_LIMITS,
-    COMMAND_WINDOW_VIEW_MODE,
-)
+from src.presentation.presenter.command_window.constants import COMMAND_WINDOW_LIMITS
 from src.presentation.presenter.command_window.editing import append_limited
 
 
@@ -21,7 +18,6 @@ class CommandWindowState:
     last_validation_state: bool = False
     last_result_raw: Number | None = None
     last_result_formatted: str | None = None
-    workspace_view_mode: str = COMMAND_WINDOW_VIEW_MODE.VARIABLES
 
     def reset_after_submission(self) -> None:
         self.active_line = ""
@@ -62,13 +58,6 @@ class CommandWindowState:
         self.active_line = self.active_line[:-1]
         return True
 
-    def set_workspace_view_mode(self, mode: str) -> None:
-        self.workspace_view_mode = (
-            COMMAND_WINDOW_VIEW_MODE.LOG
-            if mode == COMMAND_WINDOW_VIEW_MODE.LOG
-            else COMMAND_WINDOW_VIEW_MODE.VARIABLES
-        )
-
     def export_context(
         self,
         instructions: list[str],
@@ -79,11 +68,9 @@ class CommandWindowState:
             history=list(self.history),
             instructions=instructions,
             variables=variables,
-            workspace_view_mode=self.workspace_view_mode,
         )
 
     def load_context(self, context: CommandContextDTO) -> None:
         self.active_line = context.active_line
         self.history = list(context.history)
         self.reset_runtime_state()
-        self.set_workspace_view_mode(context.workspace_view_mode)

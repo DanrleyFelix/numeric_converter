@@ -17,6 +17,16 @@ def _default_command_variables() -> dict[str, Number]:
     return {"ANS": 0}
 
 
+def _default_window_sizes() -> dict[str, "WindowSizeDTO"]:
+    return {}
+
+
+@dataclass(frozen=True)
+class WindowSizeDTO:
+    width: int
+    height: int
+
+
 @dataclass(frozen=True)
 class ConverterStateDTO:
     from_type: str = "decimal"
@@ -30,7 +40,6 @@ class CommandContextDTO:
     history: list[CommandEntryDTO] = field(default_factory=list)
     instructions: list[str] = field(default_factory=list)
     variables: dict[str, Number] = field(default_factory=_default_command_variables)
-    workspace_view_mode: str = "variables"
 
 
 @dataclass(frozen=True)
@@ -38,6 +47,8 @@ class ApplicationContextDTO:
     converter: ConverterStateDTO = field(default_factory=ConverterStateDTO)
     command: CommandContextDTO = field(default_factory=CommandContextDTO)
     key_panel_visible: bool = True
+    auto_convert_enabled: bool = False
+    window_sizes: dict[str, WindowSizeDTO] = field(default_factory=_default_window_sizes)
 
 
 @dataclass(frozen=True)

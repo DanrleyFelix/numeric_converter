@@ -3,11 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog
 
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import PreferencesDialog
-from src.presentation.ui.main_window.constants import MAIN_WINDOW_TEXT
+from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
 if TYPE_CHECKING:
     from src.presentation.ui.main_window.window import MainWindow
@@ -66,9 +68,23 @@ class MainWindowDialogsMixin:
 
     def _open_help(self: MainWindow) -> None:
         if self._help_window is None:
-            self._help_window = HelpWindow(self)
+            self._help_window = HelpWindow()
+            self._help_window.setWindowIcon(self.windowIcon())
+            self._help_window.setStyleSheet(STYLESHEET)
+            self._help_window.sizePersistRequested.connect(
+                lambda width, height: self._remember_window_size(
+                    MAIN_WINDOW_STATE.HELP_WINDOW_KEY,
+                    width,
+                    height,
+                )
+            )
             self._help_window.destroyed.connect(lambda *_: self._clear_help_window())
+            self._restore_window_size(MAIN_WINDOW_STATE.HELP_WINDOW_KEY, self._help_window)
 
+        if self._help_window.windowState() & Qt.WindowMinimized:
+            self._help_window.setWindowState(
+                self._help_window.windowState() & ~Qt.WindowMinimized
+            )
         self._help_window.show()
         self._help_window.raise_()
         self._help_window.activateWindow()

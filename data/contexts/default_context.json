@@ -2,10 +2,10 @@
     "converter": {
         "from_type": "decimal",
         "fields": {
-            "decimal": "2148118280",
-            "binary": "10000000000010011010111100001000",
-            "hexBE": "8009AF08",
-            "hexLE": "08AF0980"
+            "decimal": "5",
+            "binary": "101",
+            "hexBE": "05",
+            "hexLE": "05"
         },
         "message": null
     },
@@ -31,6 +31,30 @@
             {
                 "input": "p1_field_base_addr = 0x801A7B64",
                 "output": "2149219172"
+            },
+            {
+                "input": "28*3/2 & ANS",
+                "output": "8"
+            },
+            {
+                "input": "150 & 20",
+                "output": "20"
+            },
+            {
+                "input": "150 and 20",
+                "output": "20"
+            },
+            {
+                "input": "150 & 20",
+                "output": "20"
+            },
+            {
+                "input": "0b1001 & 0b0101",
+                "output": "1"
+            },
+            {
+                "input": "0b1001 and 0b0101",
+                "output": "5"
             }
         ],
         "instructions": [
@@ -38,10 +62,16 @@
             "IS_CPU_TURN = 0x8009B1D5",
             "p1_hand_base_addr = 0x801A7AD8",
             "p2_hand_base_addr = 0x801A7C7C",
-            "p1_field_base_addr = 0x801A7B64"
+            "p1_field_base_addr = 0x801A7B64",
+            "28*3/2 & ANS",
+            "150 & 20",
+            "150 and 20",
+            "150 & 20",
+            "0b1001 & 0b0101",
+            "0b1001 and 0b0101"
         ],
         "variables": {
-            "ANS": 2148118280,
+            "ANS": 5,
             "gp": 2148118280,
             "turn_count": 2148118616,
             "IS_CPU_TURN": 2148118997,
@@ -50,8 +80,26 @@
             "p1_field_base_addr": 2149219172,
             "p2_field_base_addr": 2149219592,
             "index": 28
-        },
-        "workspace_view_mode": "variables"
+        }
     },
-    "key_panel_visible": false
+    "key_panel_visible": false,
+    "auto_convert_enabled": true,
+    "window_sizes": {
+        "main_window": {
+            "width": 700,
+            "height": 414
+        },
+        "variables_window": {
+            "width": 700,
+            "height": 400
+        },
+        "logs_window": {
+            "width": 700,
+            "height": 400
+        },
+        "help_window": {
+            "width": 920,
+            "height": 620
+        }
+    }
 }

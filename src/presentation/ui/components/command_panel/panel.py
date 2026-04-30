@@ -20,6 +20,10 @@ class CommandPanel(QFrame):
 
     def __init__(self):
         super().__init__()
+        self.setMinimumSize(
+            COMMAND_PANEL_SIZE.MIN_WIDTH,
+            COMMAND_PANEL_SIZE.MIN_HEIGHT,
+        )
         layout = QVBoxLayout(self)
         layout.setSpacing(COMMAND_PANEL_SPACING.ROOT)
         layout.setContentsMargins(
@@ -43,16 +47,8 @@ class CommandPanel(QFrame):
         self.show_logs_button.setCursor(Qt.PointingHandCursor)
         self.show_logs_button.setFocusPolicy(Qt.NoFocus)
 
-        self.convert_toggle = QPushButton(COMMAND_PANEL_TEXT.CONVERT)
-        self.convert_toggle.setObjectName("command-convert-toggle")
-        self.convert_toggle.setCheckable(True)
-        self.convert_toggle.setChecked(False)
-        self.convert_toggle.setCursor(Qt.PointingHandCursor)
-        self.convert_toggle.setFocusPolicy(Qt.NoFocus)
-
         header_row.addWidget(self.show_variables_button)
         header_row.addWidget(self.show_logs_button)
-        header_row.addWidget(self.convert_toggle)
         header_row.addStretch(1)
 
         feedback_row = QHBoxLayout()
@@ -80,9 +76,6 @@ class CommandPanel(QFrame):
 
     def set_completions(self, values: list[str]) -> None:
         self.editor.set_completions(values)
-
-    def convert_enabled(self) -> bool:
-        return self.convert_toggle.isChecked()
 
     def set_feedback(self, message: str, color: str) -> None:
         self.feedback.setText(message)

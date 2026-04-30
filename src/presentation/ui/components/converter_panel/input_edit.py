@@ -20,6 +20,7 @@ class ConverterInputEdit(QPlainTextEdit):
         self.input_type = input_type
         self._raw_value = ""
         self._desired_raw_cursor_index: int | None = None
+        self.setMinimumWidth(CONVERTER_PANEL_SIZE.INPUT_MIN_WIDTH)
         self.setMinimumHeight(CONVERTER_PANEL_SIZE.INPUT_MIN_HEIGHT)
         self.setTabChangesFocus(True)
 

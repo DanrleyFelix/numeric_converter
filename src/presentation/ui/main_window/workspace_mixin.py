@@ -3,13 +3,16 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Qt
+
 from src.modules.utils import COLOR
 from src.presentation.ui.components import WorkspaceRow, WorkspaceTableDialog
 from src.presentation.ui.components.workspace_table.constants import (
     WORKSPACE_TABLE_HEADERS,
     WORKSPACE_TABLE_TEXT,
 )
-from src.presentation.ui.main_window.constants import MAIN_WINDOW_TEXT
+from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
 if TYPE_CHECKING:
     from src.presentation.ui.main_window.window import MainWindow
@@ -80,14 +83,29 @@ class MainWindowWorkspaceMixin:
         remove_callback: Callable[[object], None],
     ) -> WorkspaceTableDialog:
         if window is None:
-            window = WorkspaceTableDialog(title, list(headers), self)
+            window = WorkspaceTableDialog(title, list(headers))
+            window.setWindowIcon(self.windowIcon())
+            window.setStyleSheet(STYLESHEET)
+            window.sizePersistRequested.connect(
+                lambda width, height, clear_callback=clear_callback: self._remember_window_size(
+                    self._workspace_window_key(clear_callback),
+                    width,
+                    height,
+                )
+            )
             window.destroyed.connect(lambda *_: clear_callback())
             window.removeRequested.connect(remove_callback)
+            self._restore_window_size(
+                self._workspace_window_key(clear_callback),
+                window,
+            )
         return window
 
     def _present_workspace_window(self: MainWindow, window: WorkspaceTableDialog | None) -> None:
         if window is None:
             return
+        if window.windowState() & Qt.WindowMinimized:
+            window.setWindowState(window.windowState() & ~Qt.WindowMinimized)
         window.show()
         window.raise_()
         window.activateWindow()
@@ -111,3 +129,10 @@ class MainWindowWorkspaceMixin:
                 for name, value, hex_value in self._command_presenter.workspace_variable_detail_rows
             ]
         )
+
+    def _workspace_window_key(self: MainWindow, clear_callback: Callable[[], None]) -> str:
+        mapping = {
+            "_clear_logs_window": MAIN_WINDOW_STATE.LOGS_WINDOW_KEY,
+            "_clear_variables_window": MAIN_WINDOW_STATE.VARIABLES_WINDOW_KEY,
+        }
+        return mapping[clear_callback.__name__]

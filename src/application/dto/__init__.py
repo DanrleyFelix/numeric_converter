@@ -4,6 +4,7 @@ from src.application.dto.application_state import (
     ApplicationContextDTO,
     CommandContextDTO,
     ConverterStateDTO,
+    WindowSizeDTO,
     WorkspaceStateDTO,
 )
 
@@ -14,5 +15,6 @@ __all__ = [
     "ConversionResultDTO",
     "ConverterStateDTO",
     "FormattingOutputDTO",
+    "WindowSizeDTO",
     "WorkspaceStateDTO",
 ]

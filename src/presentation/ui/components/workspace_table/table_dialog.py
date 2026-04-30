@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.workspace_table.constants import (
@@ -12,16 +13,21 @@ from src.presentation.ui.components.workspace_table.rows import WorkspaceRow
 
 class WorkspaceTableDialog(QDialog):
     removeRequested = Signal(object)
+    sizePersistRequested = Signal(int, int)
 
     def __init__(self, title: str, headers: list[str], parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(title)
         self.setModal(False)
+        self.setWindowModality(Qt.NonModal)
+        self.setWindowFlag(Qt.Window, True)
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
         self.setMinimumSize(WORKSPACE_TABLE_SIZE.MIN_WIDTH, WORKSPACE_TABLE_SIZE.MIN_HEIGHT)
         self.resize(WORKSPACE_TABLE_SIZE.DEFAULT_WIDTH, WORKSPACE_TABLE_SIZE.DEFAULT_HEIGHT)
         self.setSizeGripEnabled(True)
         self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         self._headers = list(headers)
         self._row_widgets: list[WorkspaceRowWidget] = []
@@ -119,3 +125,7 @@ class WorkspaceTableDialog(QDialog):
             self._row_widgets.append(row_widget)
 
         self.body_layout.addStretch(1)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.sizePersistRequested.emit(self.width(), self.height())
+        super().closeEvent(event)

@@ -1,4 +1,5 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -24,12 +25,18 @@ from src.presentation.ui.components.help_window.styles import render_help_html
 
 
 class HelpWindow(QDialog):
+    sizePersistRequested = Signal(int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("help-window")
         self.setWindowTitle(HELP_WINDOW_TEXT.TITLE)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.setModal(False)
+        self.setWindowModality(Qt.NonModal)
+        self.setWindowFlag(Qt.Window, True)
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
         self.setMinimumSize(HELP_WINDOW_SIZE.MIN_WIDTH, HELP_WINDOW_SIZE.MIN_HEIGHT)
         self.resize(HELP_WINDOW_SIZE.DEFAULT_WIDTH, HELP_WINDOW_SIZE.DEFAULT_HEIGHT)
         root = QVBoxLayout(self)
@@ -131,3 +138,7 @@ class HelpWindow(QDialog):
         index = self.pages.currentIndex()
         if index < self.pages.count() - 1:
             self.navigation.setCurrentRow(index + 1)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.sizePersistRequested.emit(self.width(), self.height())
+        super().closeEvent(event)
