@@ -1,3 +1,10 @@
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![PySide6](https://img.shields.io/badge/PySide6-6.10.1-green)
+![QtAwesome](https://img.shields.io/badge/QtAwesome-1.4.0-8A2BE2)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
+![Build](https://img.shields.io/badge/Build-PyInstaller-orange)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
 # Numeric WorkBench
 
 Numeric WorkBench v1.0 is a portable desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
