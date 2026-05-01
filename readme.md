@@ -7,7 +7,7 @@
 
 # Numeric WorkBench
 
-Numeric WorkBench v1.0 is a portable desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
+Numeric WorkBench is a portable desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
 
 It combines two main tools:
 
@@ -27,11 +27,14 @@ It combines two main tools:
 - Supports decimal, `0b` binary and `0x` hexadecimal literals.
 - Supports assignments with Python-compatible variable names.
 - Provides autocomplete for variables stored in the active context.
+- Lets `Arrow Up` and `Arrow Down` browse command history entries from the log popup before inserting them with `Enter`.
 - Saves and loads workspace files containing the full context.
 - Keeps an automatic default context file.
-- Sends command results into the converter when the `Convert` toggle is enabled.
+- Restores the sizes of the main window, Help, Variables and Logs automatically from the saved workspace context.
+- Sends command results into the converter automatically when `Auto Convert` is enabled.
 - Provides a key panel for fast command input.
 - Includes an in-app Help window with focused usage documentation.
+- Opens `Variables`, `Logs` and `Help` as independent reusable windows without duplicating the same window instance.
 - Ships as a portable desktop bundle for Windows, Linux and macOS.
 
 ## Converter
@@ -156,13 +159,21 @@ NOT 0x0F
 (0x20 + 5) << 2
 ```
 
-Command results appear in the result label above the input. When `Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
+Command results appear in the result label above the input. When `Auto Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
 
 History entries are rendered on one line:
 
 ```text
 x=5665+58*(40-23) => 6651
 ```
+
+### History navigation
+
+Use the keyboard to browse previous successful command inputs from the log:
+
+- `Arrow Up`: shows the previous log entry.
+- `Arrow Down`: shows the next log entry.
+- `Enter`: inserts the currently selected history entry into the command window without executing it immediately.
 
 ## Workspace and Context
 
@@ -172,7 +183,9 @@ Context stores the working state:
 - command history;
 - active command line;
 - converter state;
-- key panel visibility.
+- key panel visibility;
+- auto convert state;
+- window sizes for the main window, Help, Variables and Logs.
 
 Workspace files save the full context:
 
@@ -193,6 +206,8 @@ data/contexts
 
 The default context is saved automatically as the workspace changes.
 
+Window sizes are restored automatically when the app opens again. If no saved size exists yet, the current default window size is used.
+
 ## Key Panel
 
 The key panel writes directly into the command window.
@@ -209,7 +224,10 @@ Special keys:
 - group size;
 - zero padding.
 
-`Preferences > Show Key Panel` toggles the key panel.
+The `Preferences` menu also includes:
+
+- `Show Key Panel`
+- `Auto Convert`
 
 Checked preference items are highlighted with the project theme instead of a default check icon.
 
@@ -243,7 +261,7 @@ pytest
 python main.py
 ```
 
-The repository-root `main.py` file is the official v1.0 app entrypoint.
+The repository-root `main.py` file is the official app entrypoint.
 
 ## Build
 
