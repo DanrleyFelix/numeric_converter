@@ -1,8 +1,9 @@
 from PySide6.QtCore import QRect, Qt, Signal, QStringListModel
 from PySide6.QtGui import QKeyEvent, QPainter, QTextCursor
-from PySide6.QtWidgets import QCompleter, QListView, QPlainTextEdit
+from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit
 
 from src.presentation.ui.components.command_panel.prompt_area import PromptArea
+from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
 class CommandEdit(QPlainTextEdit):
@@ -13,6 +14,9 @@ class CommandEdit(QPlainTextEdit):
         self._prompt_text = ">>"
         self._pad_l = 6
         self._pad_r = 2
+        self._history_entries: list[str] = []
+        self._variable_completions: list[str] = []
+        self._history_mode_active = False
         self._promptArea = PromptArea(self)
         self._completion_model = QStringListModel(self)
         self._completer = QCompleter(self._completion_model, self)
@@ -23,7 +27,14 @@ class CommandEdit(QPlainTextEdit):
         self._completer.activated.connect(self.insert_completion)
         popup = QListView()
         popup.setObjectName("command-completer")
+        popup.setStyleSheet(STYLESHEET)
         popup.setFocusPolicy(Qt.NoFocus)
+        popup.setFrameShape(QFrame.NoFrame)
+        popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        popup.setUniformItemSizes(True)
+        popup.setMouseTracking(True)
+        popup.setSpacing(0)
         self._completer.setPopup(popup)
         self.setContentsMargins(0, 0, 0, 0)
         self.blockCountChanged.connect(self.updatePromptAreaWidth)
@@ -31,7 +42,12 @@ class CommandEdit(QPlainTextEdit):
         self.updatePromptAreaWidth(0)
 
     def set_completions(self, values: list[str]) -> None:
-        self._completion_model.setStringList(values)
+        self._variable_completions = list(values)
+        if not self._history_mode_active:
+            self._completion_model.setStringList(values)
+
+    def set_history_entries(self, values: list[str]) -> None:
+        self._history_entries = list(values)
 
     def promptAreaWidth(self) -> int:
         font_metrics = self.fontMetrics()
@@ -58,9 +74,31 @@ class CommandEdit(QPlainTextEdit):
 
     def keyPressEvent(self, event: QKeyEvent):
         if self._completer.popup().isVisible():
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
+            if self._history_mode_active and event.key() in (Qt.Key_Up, Qt.Key_Down):
+                self._move_history_selection(-1 if event.key() == Qt.Key_Up else 1)
+                event.accept()
+                return
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                completion = self._completer.popup().currentIndex().data()
+                if completion:
+                    self.insert_completion(str(completion))
+                event.accept()
+                return
+            if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
+                if event.key() == Qt.Key_Escape:
+                    self._hide_history_popup()
                 event.ignore()
                 return
+        elif event.key() == Qt.Key_Up:
+            self._show_history_popup()
+            event.accept()
+            return
+        elif event.key() == Qt.Key_Down:
+            event.accept()
+            return
+
+        if self._history_mode_active:
+            self._hide_history_popup()
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
             self.submitted.emit()
             event.accept()
@@ -89,6 +127,13 @@ class CommandEdit(QPlainTextEdit):
             bottom = top + int(self.blockBoundingRect(block).height())
 
     def insert_completion(self, completion: str) -> None:
+        if self._history_mode_active:
+            self.setPlainText(completion)
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            self.setTextCursor(cursor)
+            self._hide_history_popup()
+            return
         prefix = self.text_under_cursor()
         if not prefix:
             return
@@ -103,6 +148,8 @@ class CommandEdit(QPlainTextEdit):
         return cursor.selectedText()
 
     def _update_completer(self) -> None:
+        if self._history_mode_active:
+            return
         prefix = self.text_under_cursor()
         if not prefix or not (prefix[0].isalpha() or prefix[0] == "_"):
             self._completer.popup().hide()
@@ -120,3 +167,35 @@ class CommandEdit(QPlainTextEdit):
             + 24
         )
         self._completer.complete(rect)
+
+    def _show_history_popup(self) -> None:
+        entries = [entry for entry in reversed(self._history_entries) if entry]
+        if not entries:
+            return
+        self._history_mode_active = True
+        self._completion_model.setStringList(entries)
+        self._completer.setCompletionPrefix("")
+        popup = self._completer.popup()
+        popup.setCurrentIndex(self._completion_model.index(0, 0))
+        rect = self.cursorRect()
+        rect.translate(0, self.fontMetrics().height() + 4)
+        rect.setWidth(
+            popup.sizeHintForColumn(0)
+            + popup.verticalScrollBar().sizeHint().width()
+            + 24
+        )
+        self._completer.complete(rect)
+
+    def _move_history_selection(self, step: int) -> None:
+        popup = self._completer.popup()
+        current = popup.currentIndex().row()
+        count = self._completion_model.rowCount()
+        target = max(0, min(count - 1, current + step))
+        popup.setCurrentIndex(self._completion_model.index(target, 0))
+
+    def _hide_history_popup(self) -> None:
+        if not self._history_mode_active:
+            return
+        self._history_mode_active = False
+        self._completion_model.setStringList(self._variable_completions)
+        self._completer.popup().hide()

@@ -50,6 +50,10 @@ class CommandWindowPresenter:
         return sorted(cmd_window_context.get_variables().keys())
 
     @property
+    def history_inputs(self) -> list[str]:
+        return [entry.input for entry in self._state.history]
+
+    @property
     def workspace_variable_detail_rows(self) -> list[tuple[str, str, str]]:
         return build_workspace_variable_detail_rows(
             cmd_window_context.get_history(),

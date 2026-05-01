@@ -5,6 +5,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QPlainTextEdit, QPushButton, QTextBrowser
 
 from src.application.dto.formatting_context import FormattingOutputDTO
@@ -129,6 +130,17 @@ def test_command_panel_shows_workspace_buttons_without_convert_toggle():
     assert not hasattr(window.body.command_panel, "convert_toggle")
 
 
+def test_command_autocomplete_popup_uses_app_styling_and_scrollbar_policies():
+    window = _window()
+    popup = window.body.command_panel.editor._completer.popup()
+
+    assert popup.objectName() == "command-completer"
+    assert popup.styleSheet() != ""
+    assert popup.frameShape() == popup.Shape.NoFrame
+    assert popup.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert popup.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
+
+
 def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
     window = _window()
     initial_min_width = window.minimumWidth()
@@ -191,6 +203,50 @@ def test_workspace_windows_show_rows_and_support_removal():
 
     window._logs_window.row_widgets[0].remove_button.click()
     assert [entry.input for entry in window._command_presenter.history] == ["alpha+3"]
+
+
+def test_arrow_up_down_browse_log_history_and_enter_accepts_without_submitting():
+    window = _window()
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    window.body.command_panel.set_input_text("beta=7")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor = window.body.command_panel.editor
+
+    QTest.keyClick(editor, Qt.Key_Up)
+    _app().processEvents()
+    popup = editor._completer.popup()
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "beta=7"
+    assert window.body.command_panel.current_input() == ""
+
+    QTest.keyClick(editor, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha=5"
+    assert window.body.command_panel.current_input() == ""
+
+    QTest.keyClick(editor, Qt.Key_Enter)
+    _app().processEvents()
+    assert window.body.command_panel.current_input() == "alpha=5"
+    assert [entry.input for entry in window._command_presenter.history] == ["alpha=5", "beta=7"]
+
+    QTest.keyClick(editor, Qt.Key_Up)
+    _app().processEvents()
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "beta=7"
+
+    QTest.keyClick(editor, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha=5"
+
+    QTest.keyClick(editor, Qt.Key_Enter)
+    _app().processEvents()
+    assert window.body.command_panel.current_input() == "alpha=5"
 
 
 def test_auto_convert_sends_successful_command_result_to_converter():
@@ -287,7 +343,7 @@ def test_window_size_and_auto_convert_are_restored_from_saved_context():
     restored._open_logs_window()
 
     assert restored._auto_convert_enabled is True
-    assert restored.size().width() == 980
+    assert restored.size().width() == 910
     assert restored.size().height() == 680
     assert restored._help_window is not None
     assert restored._help_window.size().width() == 980

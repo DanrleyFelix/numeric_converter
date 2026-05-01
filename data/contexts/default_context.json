@@ -2,10 +2,10 @@
     "converter": {
         "from_type": "decimal",
         "fields": {
-            "decimal": "5",
-            "binary": "101",
-            "hexBE": "05",
-            "hexLE": "05"
+            "decimal": "2",
+            "binary": "10",
+            "hexBE": "02",
+            "hexLE": "02"
         },
         "message": null
     },
@@ -37,24 +37,36 @@
                 "output": "8"
             },
             {
-                "input": "150 & 20",
-                "output": "20"
+                "input": "0x1<<1",
+                "output": "2"
             },
             {
-                "input": "150 and 20",
-                "output": "20"
+                "input": "0b100<<2",
+                "output": "16"
             },
             {
-                "input": "150 & 20",
-                "output": "20"
+                "input": "16>>2",
+                "output": "4"
             },
             {
-                "input": "0b1001 & 0b0101",
-                "output": "1"
+                "input": "16>>0b01",
+                "output": "8"
             },
             {
-                "input": "0b1001 and 0b0101",
-                "output": "5"
+                "input": "67/2",
+                "output": "33.5"
+            },
+            {
+                "input": "768/3",
+                "output": "256"
+            },
+            {
+                "input": "768/5",
+                "output": "153.6"
+            },
+            {
+                "input": "768/7",
+                "output": "109.71428571428571"
             }
         ],
         "instructions": [
@@ -64,37 +76,39 @@
             "p2_hand_base_addr = 0x801A7C7C",
             "p1_field_base_addr = 0x801A7B64",
             "28*3/2 & ANS",
-            "150 & 20",
-            "150 and 20",
-            "150 & 20",
-            "0b1001 & 0b0101",
-            "0b1001 and 0b0101"
+            "0x1<<1",
+            "0b100<<2",
+            "16>>2",
+            "16>>0b01",
+            "67/2",
+            "768/3",
+            "768/5",
+            "768/7"
         ],
         "variables": {
-            "ANS": 5,
+            "ANS": 109.71428571428571,
             "gp": 2148118280,
             "turn_count": 2148118616,
             "IS_CPU_TURN": 2148118997,
             "p1_hand_base_addr": 2149219032,
             "p2_hand_base_addr": 2149219452,
             "p1_field_base_addr": 2149219172,
-            "p2_field_base_addr": 2149219592,
-            "index": 28
+            "p2_field_base_addr": 2149219592
         }
     },
     "key_panel_visible": false,
-    "auto_convert_enabled": true,
+    "auto_convert_enabled": false,
     "window_sizes": {
         "main_window": {
-            "width": 790,
-            "height": 414
+            "width": 657,
+            "height": 433
         },
         "variables_window": {
             "width": 700,
             "height": 400
         },
         "logs_window": {
-            "width": 700,
+            "width": 743,
             "height": 400
         },
         "help_window": {

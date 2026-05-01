@@ -132,6 +132,7 @@ class MainWindowCommandMixin:
 
     def _refresh_command_completions(self: MainWindow) -> None:
         self.body.command_panel.set_completions(self._command_presenter.variable_names)
+        self.body.command_panel.editor.set_history_entries(self._command_presenter.history_inputs)
 
     def _map_key_panel_input(self: MainWindow, key: str) -> str:
         if key == "x":

@@ -40,12 +40,19 @@ QListView#command-completer {
     padding: $padding-autocomplete-shell;
     border-radius: $radius-10;
     outline: none;
+    show-decoration-selected: 1;
 }
 
 QListView#command-completer::item {
     padding: $padding-autocomplete-item;
     margin: $margin-command-feedback-item;
     border-radius: $radius-6;
+    background: transparent;
+}
+
+QListView#command-completer::item:hover {
+    background-color: $bg-button-hover;
+    color: $text-main;
 }
 
 QListView#command-completer::item:selected {
