@@ -13,6 +13,8 @@ class MAIN_WINDOW_TEXT:
     UNABLE_TO_CONVERT_RESULT: str = "Unable to convert command result."
     COMMAND_RESULT_SENT: str = "Command result sent to converter."
     PREFERENCES_UPDATED: str = "Preferences updated."
+    BINARY_WORKBENCH_READY: str = "Binary Workbench opened."
+    DONOR_READY: str = "Donor options are not configured yet."
     LOG_REMOVED: str = "Log entry removed."
     VARIABLE_REMOVED_TEMPLATE: str = 'Variable "{name}" removed.'
     WORKSPACE_SAVED_TEMPLATE: str = "Workspace saved to {name}."

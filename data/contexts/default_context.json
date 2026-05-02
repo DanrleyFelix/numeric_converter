@@ -67,6 +67,18 @@
             {
                 "input": "768/7",
                 "output": "109.71428571428571"
+            },
+            {
+                "input": "p1_field_base_addr",
+                "output": "2149219172"
+            },
+            {
+                "input": "p1_field_base_addr",
+                "output": "2149219172"
+            },
+            {
+                "input": "6 & 3",
+                "output": "2"
             }
         ],
         "instructions": [
@@ -83,10 +95,13 @@
             "67/2",
             "768/3",
             "768/5",
-            "768/7"
+            "768/7",
+            "p1_field_base_addr",
+            "p1_field_base_addr",
+            "6 & 3"
         ],
         "variables": {
-            "ANS": 109.71428571428571,
+            "ANS": 2,
             "gp": 2148118280,
             "turn_count": 2148118616,
             "IS_CPU_TURN": 2148118997,
@@ -97,7 +112,7 @@
         }
     },
     "key_panel_visible": false,
-    "auto_convert_enabled": false,
+    "auto_convert_enabled": true,
     "window_sizes": {
         "main_window": {
             "width": 657,

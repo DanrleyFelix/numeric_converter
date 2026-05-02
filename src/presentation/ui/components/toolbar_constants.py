@@ -11,11 +11,15 @@ class TOOLBAR_LAYOUT:
 
 
 class TOOLBAR_TEXT:
+    DONOR: str = "Donor"
     FILE: str = "File"
     HELP: str = "Help"
+    USER_GUIDE: str = "User Guide"
     LOAD_WORKSPACE: str = "Load Workspace"
     PREFERENCES: str = "Preferences"
+    TOOLS: str = "Tools"
     SAVE_WORKSPACE: str = "Save Workspace"
     SHOW_KEY_PANEL: str = "Show Key Panel"
     AUTO_CONVERT: str = "Auto Convert"
     CONVERTER: str = "Converter"
+    BINARY_WORKBENCH: str = "Binary Workbench"

@@ -55,10 +55,12 @@ class MainWindowLayoutMixin:
 
         self.toolbar.save_workspace_action.triggered.connect(self._save_workspace)
         self.toolbar.load_workspace_action.triggered.connect(self._load_workspace)
+        self.toolbar.binary_workbench_action.triggered.connect(self._open_binary_workbench)
         self.toolbar.converter_preferences_action.triggered.connect(self._open_preferences)
         self.toolbar.toggle_key_panel_action.toggled.connect(self._on_key_panel_toggled)
         self.toolbar.auto_convert_action.toggled.connect(self._on_auto_convert_toggled)
-        self.toolbar.help_button.clicked.connect(self._open_help)
+        self.toolbar.user_guide_action.triggered.connect(self._open_help)
+        self.toolbar.donor_action.triggered.connect(self._open_donor)
         self.body.command_panel.show_logs_button.clicked.connect(self._open_logs_window)
         self.body.command_panel.show_variables_button.clicked.connect(self._open_variables_window)
 

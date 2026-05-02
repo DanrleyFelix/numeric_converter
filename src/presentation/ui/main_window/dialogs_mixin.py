@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog
 
+from src.presentation.ui.components import BinaryWorkbenchWindow
+from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import PreferencesDialog
 from src.presentation.ui.helpers.load_qss import STYLESHEET
@@ -16,6 +18,37 @@ if TYPE_CHECKING:
 
 
 class MainWindowDialogsMixin:
+    def _open_binary_workbench(self: MainWindow) -> None:
+        if self._binary_workbench_window is None:
+            self._binary_workbench_window = BinaryWorkbenchWindow()
+            self._binary_workbench_window.setWindowIcon(self.windowIcon())
+            self._binary_workbench_window.setStyleSheet(STYLESHEET)
+            self._binary_workbench_window.destroyed.connect(
+                lambda *_: self._clear_binary_workbench_window()
+            )
+
+        if self._binary_workbench_window.windowState() & Qt.WindowMinimized:
+            self._binary_workbench_window.setWindowState(
+                self._binary_workbench_window.windowState() & ~Qt.WindowMinimized
+            )
+        self._binary_workbench_window.show()
+        self._binary_workbench_window.raise_()
+        self._binary_workbench_window.activateWindow()
+        self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_READY)
+
+    def _open_donor(self: MainWindow) -> None:
+        if self._donor_window is None:
+            self._donor_window = DonorWindow()
+            self._donor_window.setWindowIcon(self.windowIcon())
+            self._donor_window.setStyleSheet(STYLESHEET)
+            self._donor_window.destroyed.connect(lambda *_: self._clear_donor_window())
+
+        if self._donor_window.windowState() & Qt.WindowMinimized:
+            self._donor_window.setWindowState(self._donor_window.windowState() & ~Qt.WindowMinimized)
+        self._donor_window.show()
+        self._donor_window.raise_()
+        self._donor_window.activateWindow()
+
     def _save_workspace(self: MainWindow) -> None:
         path, _ = QFileDialog.getSaveFileName(
             self,
@@ -91,3 +124,9 @@ class MainWindowDialogsMixin:
 
     def _clear_help_window(self: MainWindow) -> None:
         self._help_window = None
+
+    def _clear_binary_workbench_window(self: MainWindow) -> None:
+        self._binary_workbench_window = None
+
+    def _clear_donor_window(self: MainWindow) -> None:
+        self._donor_window = None

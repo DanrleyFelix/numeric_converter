@@ -4,9 +4,26 @@ QDialog#workspace-table-dialog {
     background-color: $bg-panel;
 }
 
+QMainWindow#binary-workbench-window {
+    background-color: $bg-panel;
+}
+
+QMainWindow#donor-window {
+    background-color: $bg-panel;
+}
+
+QWidget#binary-workbench-shell {
+    background-color: $bg-panel;
+}
+
+QWidget#donor-shell {
+    background-color: $bg-panel;
+}
+
 QLabel#preferences-title,
 QLabel#help-title,
-QLabel#workspace-table-title {
+QLabel#workspace-table-title,
+QLabel#binary-workbench-title {
     font-size: $fs-ml-lg;
     font-weight: $fw-semibold;
     color: $text-main;
@@ -14,9 +31,35 @@ QLabel#workspace-table-title {
 
 QLabel#preferences-subtitle,
 QLabel#help-subtitle,
-QLabel#help-page-indicator {
+QLabel#help-page-indicator,
+QLabel#binary-workbench-subtitle {
     font-size: $fs-c-md;
     color: $text-muted;
+}
+
+QLabel#donor-subtitle {
+    font-size: $fs-c-md;
+    color: $text-muted;
+}
+
+QLabel#donor-section-title {
+    font-size: $fs-c-lg;
+    color: $text-main;
+}
+
+QLabel#donor-value {
+    font-size: $fs-c-md;
+    color: $text-main;
+    background-color: transparent;
+}
+
+QLabel#donor-value a {
+    color: $text-workspace-header;
+    text-decoration: none;
+}
+
+QLabel#donor-value a:hover {
+    color: $text-main;
 }
 
 QLabel#preferences-section-title {

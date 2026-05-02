@@ -1,0 +1,97 @@
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QToolButton
+
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TEXT,
+)
+from src.presentation.ui.components.toolbar_constants import TOOLBAR_LAYOUT, TOOLBAR_SIZE
+from src.presentation.ui.design.icons import Icons
+
+
+class BinaryWorkbenchToolbar(QFrame):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("toolbar")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, TOOLBAR_LAYOUT.RIGHT_MARGIN, 0)
+        layout.setSpacing(TOOLBAR_LAYOUT.SPACING)
+
+        self.open_binary_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_BINARY, self)
+        self.open_assembly_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_ASSEMBLY_CODE, self)
+        self.new_scratch_action = QAction(BINARY_WORKBENCH_TEXT.NEW_SCRATCH_CODE, self)
+        self.open_internal_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_INTERNAL_FILE, self)
+        self.symbols_action = QAction(BINARY_WORKBENCH_TEXT.SYMBOLS, self)
+        self.regions_action = QAction(BINARY_WORKBENCH_TEXT.REGIONS, self)
+        self.lba_filesystem_action = QAction(BINARY_WORKBENCH_TEXT.LBA_FILESYSTEM, self)
+        self.labels_action = QAction(BINARY_WORKBENCH_TEXT.LABELS, self)
+        self.encoding_tables_action = QAction(BINARY_WORKBENCH_TEXT.ENCODING_TABLES, self)
+        self.bytes_formatter_action = QAction(BINARY_WORKBENCH_TEXT.BYTES_FORMATTER, self)
+        self.reference_offsets_action = QAction(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS, self)
+        self.visible_columns_action = QAction(BINARY_WORKBENCH_TEXT.VISIBLE_COLUMNS, self)
+        self.hex_view_action = QAction(BINARY_WORKBENCH_TEXT.HEX_VIEW, self)
+        self.go_to_action = QAction(BINARY_WORKBENCH_TEXT.GO_TO, self)
+        self.find_action = QAction(BINARY_WORKBENCH_TEXT.FIND, self)
+        self.replace_action = QAction(BINARY_WORKBENCH_TEXT.REPLACE, self)
+        self.select_block_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_BLOCK, self)
+        self.select_all_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_ALL, self)
+        self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
+        self.go_to_action.setShortcut(QKeySequence("Ctrl+G"))
+        self.find_action.setShortcut(QKeySequence("Ctrl+F"))
+        self.replace_action.setShortcut(QKeySequence("Ctrl+R"))
+        self.select_block_action.setShortcut(QKeySequence("Ctrl+E"))
+        self.select_all_action.setShortcut(QKeySequence("Ctrl+A"))
+
+        layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.FILE, Icons.file(), [
+            self.open_binary_action,
+            self.open_assembly_action,
+            self.new_scratch_action,
+            self.open_internal_action,
+        ]))
+        layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.ENVIRONMENT, Icons.environment(), [
+            self.symbols_action,
+            self.regions_action,
+            self.lba_filesystem_action,
+            self.labels_action,
+            self.encoding_tables_action,
+        ]))
+        layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.PREFERENCES, Icons.preferences(), [
+            self.bytes_formatter_action,
+            self.reference_offsets_action,
+            self.visible_columns_action,
+        ]))
+        layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.SEARCH, Icons.search(), [
+            self.go_to_action,
+            self.find_action,
+            self.replace_action,
+            self.select_block_action,
+            self.select_all_action,
+        ]))
+        layout.addWidget(self._build_action_button(BINARY_WORKBENCH_TEXT.HELP, Icons.help(), self.help_action))
+        layout.addStretch(1)
+
+    def _build_menu_button(self, text: str, icon, actions: list[QAction]) -> QToolButton:
+        menu = QMenu(self)
+        for action in actions:
+            menu.addAction(action)
+        button = self._build_base_button(text, icon)
+        button.setPopupMode(QToolButton.InstantPopup)
+        button.setMenu(menu)
+        return button
+
+    def _build_action_button(self, text: str, icon, action: QAction) -> QToolButton:
+        button = self._build_base_button(text, icon)
+        button.clicked.connect(action.trigger)
+        return button
+
+    def _build_base_button(self, text: str, icon) -> QToolButton:
+        button = QToolButton()
+        button.setText(f"  {text}")
+        button.setIcon(icon)
+        button.setIconSize(QSize(TOOLBAR_SIZE.ICON_SIZE, TOOLBAR_SIZE.ICON_SIZE))
+        button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        button.setMinimumHeight(TOOLBAR_SIZE.ACTION_MIN_HEIGHT)
+        button.setMinimumWidth(TOOLBAR_SIZE.ACTION_MIN_WIDTH)
+        button.setAutoRaise(True)
+        button.setCursor(Qt.PointingHandCursor)
+        return button

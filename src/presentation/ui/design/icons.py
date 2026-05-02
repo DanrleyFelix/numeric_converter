@@ -81,8 +81,20 @@ class Icons:
         return Icons._icon("file", "icon-toolbar")
 
     @staticmethod
+    def donor():
+        return Icons._icon("donor", "icon-toolbar")
+
+    @staticmethod
+    def environment():
+        return Icons._icon("environment", "icon-toolbar")
+
+    @staticmethod
     def preferences():
         return Icons._icon("preferences", "icon-toolbar")
+
+    @staticmethod
+    def tools():
+        return Icons._icon("tools", "icon-toolbar")
 
     @staticmethod
     def help():
@@ -104,6 +116,10 @@ class Icons:
     @staticmethod
     def remove_hover():
         return Icons._icon("remove", "icon-danger")
+
+    @staticmethod
+    def search():
+        return Icons._icon("search", "icon-toolbar")
 
 
 def _pixmap(glyph_name: str, token_name: str, size: int) -> QPixmap:

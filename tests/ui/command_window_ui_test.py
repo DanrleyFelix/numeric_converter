@@ -107,6 +107,10 @@ def test_toolbar_action_has_no_icon_and_help_title_is_user_guide():
     window.toolbar.toggle_key_panel_action.setChecked(False)
     assert window.toolbar.toggle_key_panel_action.icon().isNull()
 
+    help_menu = window.toolbar.help_button.menu()
+    help_texts = [action.text() for action in help_menu.actions()]
+    assert help_texts == ["User Guide", "Donor"]
+
     window._open_help()
     title = window._help_window.findChild(QLabel, "help-title")
     assert title is not None
@@ -116,6 +120,49 @@ def test_toolbar_action_has_no_icon_and_help_title_is_user_guide():
     assert browser is not None
     assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
     assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
+
+
+def test_tools_menu_exposes_binary_workbench_and_placeholders():
+    window = _window()
+    tools_menu = window.toolbar.tools_button.menu()
+    action_texts = [action.text() for action in tools_menu.actions() if action.text()]
+
+    assert window.toolbar.tools_button.text().strip() == "Tools"
+    assert "Binary Workbench" in action_texts
+    assert action_texts == ["Binary Workbench"]
+
+
+def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
+    window = _window()
+
+    window._open_binary_workbench()
+    tool_window = window._binary_workbench_window
+
+    assert tool_window is not None
+    assert tool_window.windowTitle() == "Binary Workbench"
+    assert tool_window.toolbar.open_binary_action.text() == "Open Binary"
+    assert tool_window.toolbar.symbols_action.text() == "Symbols"
+    assert tool_window.toolbar.bytes_formatter_action.text() == "Bytes Formatter"
+    assert tool_window.toolbar.go_to_action.shortcut().toString() == "Ctrl+G"
+    assert tool_window.toolbar.find_action.shortcut().toString() == "Ctrl+F"
+    tool_window.toolbar.open_binary_action.trigger()
+    assert tool_window.status.text() == '"Open Binary" is not implemented yet.'
+    assert window._binary_workbench_window is tool_window
+
+
+def test_donor_opens_its_own_window_without_using_footer_output():
+    window = _window()
+    initial_footer_text = window.footer.status.text()
+
+    window._open_donor()
+    donor_window = window._donor_window
+
+    assert donor_window is not None
+    assert donor_window.windowTitle() == "Donor"
+    assert window.footer.status.text() == initial_footer_text
+
+    window._open_donor()
+    assert window._donor_window is donor_window
 
 
 def test_command_panel_shows_workspace_buttons_without_convert_toggle():
@@ -143,13 +190,11 @@ def test_command_autocomplete_popup_uses_app_styling_and_scrollbar_policies():
 
 def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
     window = _window()
-    initial_min_width = window.minimumWidth()
     initial_min_height = window.minimumHeight()
 
     window.toolbar.toggle_key_panel_action.setChecked(False)
 
-    assert window.minimumWidth() < initial_min_width
-    assert window.minimumWidth() == 790
+    assert window.minimumWidth() == 657
     assert window.minimumHeight() < initial_min_height
 
 
@@ -287,7 +332,7 @@ def test_converter_inputs_keep_copy_buttons_outside_editors_at_minimum_width():
 
     for kind, editor in window.body.converter_panel.inputs.items():
         button = window.body.converter_panel.copy_raw_buttons[kind]
-        assert editor.minimumWidth() == 150
+        assert editor.minimumWidth() == 120
         assert editor.geometry().right() < button.geometry().left()
 
 

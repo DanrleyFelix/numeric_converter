@@ -31,6 +31,9 @@ class Toolbar(QFrame):
         self.auto_convert_action = QAction(TOOLBAR_TEXT.AUTO_CONVERT, self)
         self.auto_convert_action.setCheckable(True)
         self.auto_convert_action.setChecked(False)
+        self.binary_workbench_action = QAction(TOOLBAR_TEXT.BINARY_WORKBENCH, self)
+        self.user_guide_action = QAction(TOOLBAR_TEXT.USER_GUIDE, self)
+        self.donor_action = QAction(TOOLBAR_TEXT.DONOR, self)
 
         file_menu = QMenu(self)
         file_menu.addAction(self.save_workspace_action)
@@ -41,16 +44,35 @@ class Toolbar(QFrame):
         preferences_menu.addAction(self.toggle_key_panel_action)
         preferences_menu.addAction(self.auto_convert_action)
 
+        tools_menu = QMenu(self)
+        tools_menu.addAction(self.binary_workbench_action)
+
+        help_menu = QMenu(self)
+        help_menu.addAction(self.user_guide_action)
+        help_menu.addAction(self.donor_action)
+
         self.file_button = self._build_menu_button(TOOLBAR_TEXT.FILE, "file", Icons.file(), file_menu)
+        self.tools_button = self._build_menu_button(
+            TOOLBAR_TEXT.TOOLS,
+            "tools",
+            Icons.tools(),
+            tools_menu,
+        )
         self.preferences_button = self._build_menu_button(
             TOOLBAR_TEXT.PREFERENCES,
             "preferences",
             Icons.preferences(),
             preferences_menu,
         )
-        self.help_button = self._build_action_button(TOOLBAR_TEXT.HELP, "help", Icons.help())
+        self.help_button = self._build_menu_button(
+            TOOLBAR_TEXT.HELP,
+            "help",
+            Icons.help(),
+            help_menu,
+        )
 
         layout.addWidget(self.file_button)
+        layout.addWidget(self.tools_button)
         layout.addWidget(self.preferences_button)
         layout.addWidget(self.help_button)
         layout.addStretch()

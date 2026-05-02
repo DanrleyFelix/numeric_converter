@@ -7,7 +7,8 @@ from src.application.services.formating_preferences import FormattingPreferences
 from src.application.services.workspace_state_service import WorkspaceStateService
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter
-from src.presentation.ui.components import WorkspaceTableDialog
+from src.presentation.ui.components import BinaryWorkbenchWindow, WorkspaceTableDialog
+from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.design.icons import Icons
 from src.presentation.ui.helpers.load_qss import STYLESHEET
@@ -41,6 +42,8 @@ class MainWindow(
         self._state_service = state_service
         self._preferences_service = preferences_service
         self._help_window: HelpWindow | None = None
+        self._binary_workbench_window: BinaryWorkbenchWindow | None = None
+        self._donor_window: DonorWindow | None = None
         self._logs_window: WorkspaceTableDialog | None = None
         self._variables_window: WorkspaceTableDialog | None = None
         self._auto_convert_enabled = False
@@ -61,7 +64,13 @@ class MainWindow(
         self._loaded = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        for window in (self._help_window, self._logs_window, self._variables_window):
+        for window in (
+            self._help_window,
+            self._binary_workbench_window,
+            self._donor_window,
+            self._logs_window,
+            self._variables_window,
+        ):
             if window is not None:
                 window.close()
         self._autosave_state()
