@@ -1,5 +1,5 @@
 import pytest # type: ignore
-from src.application.use_cases.evaluator_use_case import EvaluatorUseCase
+from src.modules.use_cases import EvaluatorUseCase
 from src.core.command_window.evaluator.evaluator import Evaluator
 from src.core.command_window.context import cmd_window_context
 from src.core.command_window.tokenizer.token import Token, TokenType

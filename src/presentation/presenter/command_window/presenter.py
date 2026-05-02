@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from src.application.contracts.cmd_window_contract import ICommandWindowController
-from src.application.contracts.preferences_contract import IOutputFormatter
-from src.application.dto.application_state import CommandContextDTO
-from src.application.dto.command_entry import CommandEntryDTO
-from src.application.dto.command_render_result import CommandRenderResultDTO
+from src.controllers.cmd_window_controller import CommandWindowController
 from src.core.command_window.context import cmd_window_context
 from src.core.command_window.expression_inspector import (
     has_trailing_identifier_fragment,
     is_standalone_identifier_fragment,
 )
 from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
+from src.modules.dtos import CommandContextDTO, CommandEntryDTO, CommandRenderResultDTO
+from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.command_window.editing import trim_invalid_suffix
 from src.presentation.presenter.command_window.rendering import (
     render_invalid_expression,
@@ -30,8 +28,8 @@ from src.presentation.presenter.command_window.workspace_rows import (
 class CommandWindowPresenter:
     def __init__(
         self,
-        controller: ICommandWindowController,
-        formatter: IOutputFormatter,
+        controller: CommandWindowController,
+        formatter: OutputFormatter,
     ):
         self._controller = controller
         self._formatter = formatter

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.dtos import FormattingOutputDTO
 from src.presentation.ui.components.preferences_dialog.constants import (
     PREFERENCES_DIALOG_MARGIN,
     PREFERENCES_DIALOG_SIZE,

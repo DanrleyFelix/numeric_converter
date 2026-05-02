@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QPlainTextEdit, QPushButton, QTextBrowser
 
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.dtos import FormattingOutputDTO
 from src.main import create_main_window
 from src.modules.utils import COLOR
 from src.presentation.ui.components.preferences_dialog import PreferencesDialog
@@ -153,8 +153,11 @@ def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
     assert tool_window.toolbar.advanced_configuration_action.text() == "Advanced Configuration"
     assert tool_window.toolbar.go_to_action.shortcut().toString() == "Ctrl+G"
     assert tool_window.toolbar.find_action.shortcut().toString() == "Ctrl+F"
-    tool_window.toolbar.open_binary_action.trigger()
-    assert tool_window.status.text() == '"Open Binary" is not implemented yet.'
+    assert tool_window.findChild(QLabel, "binary-workbench-title") is None
+    assert "border-top-left-radius: 0px;" in tool_window.styleSheet()
+    tool_window.toolbar.new_scratch_action.trigger()
+    assert tool_window.tabs.count() == 1
+    assert tool_window.export_state().tabs[0].display_name == "scratch_1.asm"
     assert window._binary_workbench_window is tool_window
 
 

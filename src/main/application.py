@@ -1,13 +1,11 @@
 from pathlib import Path
 
-from src.application.services.formating_preferences import FormattingPreferencesService
-from src.application.services.workspace_state_service import WorkspaceStateService
-from src.application.use_cases.converter_use_case import ConverterUseCase
-from src.application.use_cases.evaluator_use_case import EvaluatorUseCase
 from src.controllers.cmd_window_controller import CommandWindowController
 from src.controllers.converter_controller import ConverterController
 from src.core.command_window.evaluator.evaluator import Evaluator
 from src.core.command_window.validator.validator import ExpressionValidator
+from src.modules.services import FormattingPreferencesService, WorkspaceStateService
+from src.modules.use_cases import ConverterUseCase, EvaluatorUseCase
 from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter

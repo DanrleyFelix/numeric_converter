@@ -1,9 +1,6 @@
 from pathlib import Path
 
-from src.application.dto.application_state import (
-    ApplicationContextDTO,
-    WorkspaceStateDTO,
-)
+from src.modules.dtos import ApplicationContextDTO, WorkspaceStateDTO
 from src.presentation.repository.context_payload import (
     context_from_payload,
     context_to_payload,

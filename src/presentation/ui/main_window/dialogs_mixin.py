@@ -20,12 +20,28 @@ if TYPE_CHECKING:
 class MainWindowDialogsMixin:
     def _open_binary_workbench(self: MainWindow) -> None:
         if self._binary_workbench_window is None:
-            self._binary_workbench_window = BinaryWorkbenchWindow()
+            self._binary_workbench_window = BinaryWorkbenchWindow(self._binary_workbench_state)
             self._binary_workbench_window.setWindowIcon(self.windowIcon())
             self._binary_workbench_window.setStyleSheet(STYLESHEET)
+            self._binary_workbench_window.stateChanged.connect(
+                self._remember_binary_workbench_state
+            )
+            self._binary_workbench_window.sizePersistRequested.connect(
+                lambda width, height: self._remember_window_size(
+                    MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY,
+                    width,
+                    height,
+                )
+            )
             self._binary_workbench_window.destroyed.connect(
                 lambda *_: self._clear_binary_workbench_window()
             )
+            self._restore_window_size(
+                MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY,
+                self._binary_workbench_window,
+            )
+        else:
+            self._binary_workbench_window.load_state(self._binary_workbench_state)
 
         if self._binary_workbench_window.windowState() & Qt.WindowMinimized:
             self._binary_workbench_window.setWindowState(

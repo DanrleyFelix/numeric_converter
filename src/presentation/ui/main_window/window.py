@@ -3,8 +3,8 @@ from __future__ import annotations
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow
 
-from src.application.services.formating_preferences import FormattingPreferencesService
-from src.application.services.workspace_state_service import WorkspaceStateService
+from src.modules.dtos import BinaryWorkbenchStateDTO
+from src.modules.services import FormattingPreferencesService, WorkspaceStateService
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter
 from src.presentation.ui.components import BinaryWorkbenchWindow, WorkspaceTableDialog
@@ -41,6 +41,7 @@ class MainWindow(
         self._command_presenter = command_presenter
         self._state_service = state_service
         self._preferences_service = preferences_service
+        self._binary_workbench_state = BinaryWorkbenchStateDTO()
         self._help_window: HelpWindow | None = None
         self._binary_workbench_window: BinaryWorkbenchWindow | None = None
         self._donor_window: DonorWindow | None = None

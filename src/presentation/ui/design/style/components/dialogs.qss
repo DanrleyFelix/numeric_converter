@@ -20,6 +20,42 @@ QWidget#donor-shell {
     background-color: $bg-panel;
 }
 
+QTabWidget#binary-workbench-tabs::pane {
+    background-color: $bg-workspace-shell;
+    border: 1px solid $border-workspace-shell;
+    border-radius: $radius-0;
+    margin-top: $space-8;
+}
+
+QTabBar#binary-workbench-tab-bar {
+    background-color: transparent;
+}
+
+QTabBar#binary-workbench-tab-bar::tab {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-bottom: none;
+    border-top-left-radius: $radius-0;
+    border-top-right-radius: $radius-0;
+    color: $text-muted;
+    min-width: 120px;
+    min-height: 34px;
+    padding: $space-8 $space-12;
+    margin-right: $space-8;
+}
+
+QTabBar#binary-workbench-tab-bar::tab:selected {
+    background-color: $bg-workspace-header;
+    border-color: $border-workspace-shell;
+    color: $text-main;
+}
+
+QTabBar#binary-workbench-tab-bar::tab:hover:!selected {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+    color: $text-main;
+}
+
 QLabel#preferences-title,
 QLabel#help-title,
 QLabel#workspace-table-title,
@@ -40,6 +76,79 @@ QLabel#binary-workbench-subtitle {
 QLabel#donor-subtitle {
     font-size: $fs-c-md;
     color: $text-muted;
+}
+
+QLabel#binary-workbench-section-title {
+    font-size: $fs-c-lg;
+    color: $text-main;
+}
+
+QLabel#binary-workbench-value {
+    font-size: $fs-c-md;
+    color: $text-muted;
+    background-color: transparent;
+}
+
+QFrame#binary-workbench-offsets {
+    background-color: $bg-workspace-header;
+    border: 1px solid $border-workspace-header;
+    border-radius: $radius-12;
+}
+
+QLabel#binary-workbench-offset-label,
+QLabel#binary-workbench-selection {
+    color: $text-workspace-header;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QPushButton#binary-workbench-offset,
+QPushButton#binary-workbench-offset-control {
+    min-height: $size-control-min-height;
+    background-color: $bg-button;
+    border: 1px solid $border;
+    border-radius: $radius-8;
+    padding: $padding-select-field;
+}
+
+QPushButton#binary-workbench-offset:hover,
+QPushButton#binary-workbench-offset-control:hover {
+    background-color: $bg-button-hover;
+    border-color: $border-hover;
+}
+
+QPushButton#binary-workbench-offset:checked {
+    background-color: $bg-button-pressed;
+    border-color: $border-focus;
+}
+
+QTableWidget#binary-workbench-grid {
+    background-color: $bg-workspace-shell;
+    alternate-background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-shell;
+    border-radius: $radius-12;
+    gridline-color: transparent;
+    selection-background-color: $bg-button-pressed;
+    selection-color: $text-main;
+    outline: none;
+}
+
+QTableWidget#binary-workbench-grid::item {
+    border: none;
+    padding: $space-8;
+}
+
+QTableWidget#binary-workbench-grid::item:selected {
+    background-color: $bg-button-pressed;
+    color: $text-main;
+}
+
+QTableWidget#binary-workbench-grid QHeaderView::section {
+    background-color: $bg-workspace-header;
+    color: $text-workspace-header;
+    border: none;
+    border-bottom: 1px solid $border-workspace-header;
+    padding: $space-8;
 }
 
 QLabel#donor-section-title {

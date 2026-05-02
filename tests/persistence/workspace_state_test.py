@@ -1,12 +1,15 @@
 from pathlib import Path
 
-from src.application.dto.application_state import (
+from src.modules.dtos import (
     ApplicationContextDTO,
+    BinaryWorkbenchRowDTO,
+    BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
     CommandContextDTO,
     ConverterStateDTO,
     WorkspaceStateDTO,
 )
-from src.application.dto.command_entry import CommandEntryDTO
+from src.modules.dtos import CommandEntryDTO
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
     WorkspaceStateRepository,
@@ -31,6 +34,24 @@ def test_application_context_roundtrip(tmp_path: Path):
             history=[CommandEntryDTO(input="a = 1", output="1")],
             instructions=["a = 1"],
             variables={"ANS": 1, "a": 1},
+        ),
+        binary_workbench=BinaryWorkbenchStateDTO(
+            tabs=[
+                BinaryWorkbenchTabContextDTO(
+                    tab_id="binary-1",
+                    kind="binary",
+                    display_name="sample.bin",
+                    source_path="C:/tmp/sample.bin",
+                    rows=[
+                        BinaryWorkbenchRowDTO(
+                            offsets={"File": "0x00000000", "RAM": "0x80010000"},
+                            instruction="word 0x00000000",
+                            bytes_text="00 00 00 00",
+                        )
+                    ],
+                )
+            ],
+            active_tab_id="binary-1",
         ),
         key_panel_visible=False,
     )
@@ -61,6 +82,23 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
                 history=[CommandEntryDTO(input="answer=42", output="42")],
                 instructions=["answer=42"],
                 variables={"ANS": 42, "answer": 42},
+            ),
+            binary_workbench=BinaryWorkbenchStateDTO(
+                tabs=[
+                    BinaryWorkbenchTabContextDTO(
+                        tab_id="scratch-1",
+                        kind="scratch",
+                        display_name="Scratch 1",
+                        rows=[
+                            BinaryWorkbenchRowDTO(
+                                offsets={"File": "0x00000000", "RAM": "0x80010000"},
+                                instruction="word 0x246301F4",
+                                bytes_text="F4 01 63 24",
+                            )
+                        ],
+                    )
+                ],
+                active_tab_id="scratch-1",
             ),
             key_panel_visible=True,
         ),

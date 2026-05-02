@@ -4,7 +4,7 @@ import pytest # type: ignore
 from src.presentation.repository.preferences_formatter import (
     FormattingPreferencesRepository,
     DEFAULT_FORMATTER)
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.dtos import FormattingOutputDTO
 
 
 ROOT_PATH = Path(__file__).parent.parent.parent

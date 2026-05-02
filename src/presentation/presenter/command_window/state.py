@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from numbers import Number
 
-from src.application.dto.application_state import CommandContextDTO
-from src.application.dto.command_entry import CommandEntryDTO
+from src.modules.dtos import CommandContextDTO, CommandEntryDTO
 from src.presentation.presenter.command_window.constants import COMMAND_WINDOW_LIMITS
 from src.presentation.presenter.command_window.editing import append_limited
 

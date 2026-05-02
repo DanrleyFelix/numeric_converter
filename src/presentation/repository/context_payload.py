@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
-from src.application.dto.application_state import (
+from src.modules.dtos import (
     ApplicationContextDTO,
     CommandContextDTO,
+    CommandEntryDTO,
     ConverterStateDTO,
     WindowSizeDTO,
 )
-from src.application.dto.command_entry import CommandEntryDTO
+from src.modules.utils import normalize_json_path, read_json, write_json
+from src.presentation.repository.binary_workbench_payload import (
+    binary_workbench_state_from_payload,
+    binary_workbench_state_to_payload,
+)
 
 
 def converter_fields(raw: dict[str, Any]) -> dict[str, str]:
@@ -63,6 +66,9 @@ def context_from_payload(payload: dict[str, Any]) -> ApplicationContextDTO:
             instructions=list(command_raw.get("instructions", [])),
             variables=dict(command_raw.get("variables", {"ANS": 0})),
         ),
+        binary_workbench=binary_workbench_state_from_payload(
+            payload.get("binary_workbench", {})
+        ),
         key_panel_visible=payload.get("key_panel_visible", True),
         auto_convert_enabled=payload.get("auto_convert_enabled", False),
         window_sizes=window_sizes(payload.get("window_sizes", {})),
@@ -85,6 +91,9 @@ def context_to_payload(context: ApplicationContextDTO) -> dict[str, Any]:
             "instructions": list(context.command.instructions),
             "variables": dict(context.command.variables),
         },
+        "binary_workbench": binary_workbench_state_to_payload(
+            context.binary_workbench
+        ),
         "key_panel_visible": context.key_panel_visible,
         "auto_convert_enabled": context.auto_convert_enabled,
         "window_sizes": {
@@ -93,25 +102,3 @@ def context_to_payload(context: ApplicationContextDTO) -> dict[str, Any]:
         },
     }
 
-
-def read_json(path: Path) -> dict[str, Any] | None:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=4, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    return path
-
-
-def normalize_json_path(path: Path, directory: Path) -> Path:
-    normalized = path.with_suffix(".json") if path.suffix.lower() != ".json" else path
-    if not normalized.is_absolute() or directory not in normalized.parents:
-        normalized = directory / normalized.name
-    return normalized

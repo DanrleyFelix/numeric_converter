@@ -1,5 +1,5 @@
 from src.presentation.formatters.converter_output import OutputFormatter
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.dtos import FormattingOutputDTO
 
 
 def test_group_string_basic_cases():

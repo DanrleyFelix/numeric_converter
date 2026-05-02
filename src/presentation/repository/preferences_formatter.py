@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from src.application.dto.formatting_context import FormattingOutputDTO
+
+from src.modules.dtos import FormattingOutputDTO
 
 DEFAULT_FORMATTER: dict[str, FormattingOutputDTO] = {
     "decimal": FormattingOutputDTO(4, True),

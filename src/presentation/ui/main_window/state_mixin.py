@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSignalBlocker
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSignalBlocker, QSize
 
-from src.application.dto import ApplicationContextDTO, ConverterStateDTO, WindowSizeDTO
+from src.modules.dtos import (
+    ApplicationContextDTO,
+    BinaryWorkbenchStateDTO,
+    ConverterStateDTO,
+    WindowSizeDTO,
+)
 from src.modules.utils import COLOR
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_TEXT
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
@@ -15,7 +19,6 @@ if TYPE_CHECKING:
 
 
 class MainWindowStateMixin:
-
     def _load_default_state(self: MainWindow) -> None:
         context = self._state_service.load_default_context()
         self._apply_context(context)
@@ -30,6 +33,7 @@ class MainWindowStateMixin:
                 message=self._converter_presenter.last_error_message,
             ),
             command=self._command_presenter.export_context(),
+            binary_workbench=self._collect_binary_workbench_state(),
             key_panel_visible=self.key_panel.isVisible(),
             auto_convert_enabled=self._auto_convert_enabled,
             window_sizes=self._collect_window_sizes(),
@@ -38,9 +42,10 @@ class MainWindowStateMixin:
     def _apply_context(self: MainWindow, context: ApplicationContextDTO) -> None:
         self._window_sizes = dict(context.window_sizes)
         self._auto_convert_enabled = context.auto_convert_enabled
+        self._binary_workbench_state = context.binary_workbench
         self._command_presenter.load_context(context.command)
         self._refresh_workspace_windows()
-
+        self._sync_binary_workbench_window_state()
         self._syncing_command = True
         with QSignalBlocker(self.body.command_panel.editor):
             self.body.command_panel.set_input_text(context.command.active_line)
@@ -78,21 +83,13 @@ class MainWindowStateMixin:
             width=self.width(),
             height=self.height(),
         )
-        self._collect_secondary_window_size(
-            MAIN_WINDOW_STATE.HELP_WINDOW_KEY,
-            self._help_window,
-            window_sizes,
-        )
-        self._collect_secondary_window_size(
-            MAIN_WINDOW_STATE.VARIABLES_WINDOW_KEY,
-            self._variables_window,
-            window_sizes,
-        )
-        self._collect_secondary_window_size(
-            MAIN_WINDOW_STATE.LOGS_WINDOW_KEY,
-            self._logs_window,
-            window_sizes,
-        )
+        for key, window in (
+            (MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY, self._binary_workbench_window),
+            (MAIN_WINDOW_STATE.HELP_WINDOW_KEY, self._help_window),
+            (MAIN_WINDOW_STATE.VARIABLES_WINDOW_KEY, self._variables_window),
+            (MAIN_WINDOW_STATE.LOGS_WINDOW_KEY, self._logs_window),
+        ):
+            self._collect_secondary_window_size(key, window, window_sizes)
         return window_sizes
 
     def _collect_secondary_window_size(
@@ -124,3 +121,19 @@ class MainWindowStateMixin:
         resize = getattr(window, "resize", None)
         if callable(resize):
             resize(QSize(size.width, size.height))
+
+    def _collect_binary_workbench_state(self: MainWindow) -> BinaryWorkbenchStateDTO:
+        if self._binary_workbench_window is not None:
+            self._binary_workbench_state = self._binary_workbench_window.export_state()
+        return self._binary_workbench_state
+
+    def _remember_binary_workbench_state(self: MainWindow, state: object) -> None:
+        if not isinstance(state, BinaryWorkbenchStateDTO):
+            return
+        self._binary_workbench_state = state
+        self._autosave_state()
+
+    def _sync_binary_workbench_window_state(self: MainWindow) -> None:
+        if self._binary_workbench_window is None:
+            return
+        self._binary_workbench_window.load_state(self._binary_workbench_state)

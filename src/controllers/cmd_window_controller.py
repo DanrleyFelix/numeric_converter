@@ -1,20 +1,13 @@
 from numbers import Number
 from typing import List
 
-from src.core.command_window.tokenizer import Tokenizer, Token
-from src.application.contracts.cmd_window_contract import (
-    IExpressionValidator,
-    IEvaluatorUseCase)
-from src.application.contracts.cmd_window_contract import ValidationState
+from src.core.command_window.tokenizer import Token, Tokenizer
+from src.core.command_window.validator.validator import ValidationState
+from src.modules.use_cases import EvaluatorUseCase
 
 
 class CommandWindowController:
-
-    def __init__(
-        self,
-        validator: IExpressionValidator,
-        evaluator_use_case: IEvaluatorUseCase):
-
+    def __init__(self, validator, evaluator_use_case: EvaluatorUseCase):
         self._validator = validator
         self._evaluator = evaluator_use_case
         self._tokens: List[Token] = []
