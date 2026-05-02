@@ -21,11 +21,22 @@ class BinaryWorkbenchToolbar(QFrame):
         self.open_assembly_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_ASSEMBLY_CODE, self)
         self.new_scratch_action = QAction(BINARY_WORKBENCH_TEXT.NEW_SCRATCH_CODE, self)
         self.open_internal_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_INTERNAL_FILE, self)
+        self.create_version_action = QAction(BINARY_WORKBENCH_TEXT.CREATE_VERSION, self)
+        self.att_current_version_action = QAction(BINARY_WORKBENCH_TEXT.ATT_CURRENT_VERSION, self)
+        self.load_version_action = QAction(BINARY_WORKBENCH_TEXT.LOAD_VERSION, self)
+        self.save_binary_file_action = QAction(BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, self)
         self.symbols_action = QAction(BINARY_WORKBENCH_TEXT.SYMBOLS, self)
         self.regions_action = QAction(BINARY_WORKBENCH_TEXT.REGIONS, self)
         self.lba_filesystem_action = QAction(BINARY_WORKBENCH_TEXT.LBA_FILESYSTEM, self)
         self.labels_action = QAction(BINARY_WORKBENCH_TEXT.LABELS, self)
         self.encoding_tables_action = QAction(BINARY_WORKBENCH_TEXT.ENCODING_TABLES, self)
+        self.cpu_arch_action = QAction(BINARY_WORKBENCH_TEXT.CPU_ARCH, self)
+        self.navigation_mode_action = QAction(BINARY_WORKBENCH_TEXT.NAVIGATION_MODE, self)
+        self.view_action = QAction(BINARY_WORKBENCH_TEXT.VIEW, self)
+        self.advanced_configuration_action = QAction(
+            BINARY_WORKBENCH_TEXT.ADVANCED_CONFIGURATION,
+            self,
+        )
         self.bytes_formatter_action = QAction(BINARY_WORKBENCH_TEXT.BYTES_FORMATTER, self)
         self.reference_offsets_action = QAction(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS, self)
         self.visible_columns_action = QAction(BINARY_WORKBENCH_TEXT.VISIBLE_COLUMNS, self)
@@ -47,6 +58,10 @@ class BinaryWorkbenchToolbar(QFrame):
             self.open_assembly_action,
             self.new_scratch_action,
             self.open_internal_action,
+            self.create_version_action,
+            self.att_current_version_action,
+            self.load_version_action,
+            self.save_binary_file_action,
         ]))
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.ENVIRONMENT, Icons.environment(), [
             self.symbols_action,
@@ -59,6 +74,10 @@ class BinaryWorkbenchToolbar(QFrame):
             self.bytes_formatter_action,
             self.reference_offsets_action,
             self.visible_columns_action,
+            self.cpu_arch_action,
+            self.navigation_mode_action,
+            self.view_action,
+            self.advanced_configuration_action,
         ]))
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.SEARCH, Icons.search(), [
             self.go_to_action,
