@@ -66,6 +66,8 @@ class BINARY_WORKBENCH_TEXT:
     SYMBOL_NAME: str = "Name"
     SYMBOL_VALUE: str = "Value"
     SYMBOL_ADD: str = "+ Add"
+    LBA_FILE_NAME: str = "File Name"
+    LBA_START: str = "LBA Start"
     REFERENCE_OFFSETS_SUBTITLE: str = "Configure up to three extra offset columns."
     REFERENCE_NAME: str = "Name"
     REFERENCE_BASE: str = "Base at File 0x0"
@@ -147,6 +149,12 @@ class BINARY_WORKBENCH_LAYOUT:
     WHEEL_SCROLL_DIVISOR: int = 8
     DEFAULT_BLOCK_SIZE: int = 2048
     DEFAULT_CACHE_MAX_BLOCKS: int = 8000
+    SELECT_ALL_MAX_BYTES: int = 4096
+    SYMBOL_KIND_WIDTH: int = 160
+    SYMBOL_FIELD_WIDTH: int = 160
+    SYMBOL_ACTION_WIDTH: int = 160
+    SYMBOL_INPUT_HEIGHT: int = 46
+    EDITOR_TAB_SPACES: int = 3
     PAGE_ROWS: int = 16
     PAGINATION_ITEM_WIDTH: int = 34
     PAGINATION_ELLIPSIS_WIDTH: int = 48

@@ -16,7 +16,7 @@ _I_OPCODES["sltiu"] = 0x0B
 _BRANCH_OPCODES = {"beq": 0x04, "bne": 0x05, "blez": 0x06, "bgtz": 0x07}
 _SPECIAL_BRANCH_RT = {"bltz": 0x00, "bgez": 0x01}
 _J_OPCODES = {"j": 0x02, "jal": 0x03}
-_R_FUNCTS = {"addu": 0x21, "subu": 0x23}
+_R_FUNCTS = {"add": 0x20, "addu": 0x21, "subu": 0x23}
 
 
 class PsxMipsR3000ACodec(CPUArchCodec):

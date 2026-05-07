@@ -74,7 +74,6 @@ class BinaryWorkbenchToolbar(QFrame):
             self.go_to_action,
             self.find_action,
             self.select_block_action,
-            self.select_all_action,
         ]))
         layout.addWidget(self._build_action_button(BINARY_WORKBENCH_TEXT.HELP, Icons.help(), self.help_action))
         layout.addStretch(1)

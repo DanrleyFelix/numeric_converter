@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import QPoint, Qt, QTimer, Signal
+from PySide6.QtCore import QPoint, QStringListModel, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QTextCursor
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QScrollBar, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QPlainTextEdit, QScrollBar, QSizePolicy, QToolTip, QVBoxLayout, QWidget
 
 from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
 from src.modules.dtos import BinaryWorkbenchRowDTO
@@ -13,12 +13,15 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 _BYTE_TOKEN = re.compile(r"[0-9A-Fa-f]{2}")
 _HEX_TOKEN = re.compile(r"0x[0-9A-Fa-f]+")
 _REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
+_COMPLETION_TOKEN = re.compile(r"[@_]?[A-Za-z_][A-Za-z0-9_]*")
+_VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")
+_EQUATE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*")
 _BRANCHES = {"beq", "bne", "bgtz", "blez", "bltz", "bgez", "beqz", "bnez"}
 _JUMPS = {"j", "jal", "jr", "jalr"}
 _KNOWN_MNEMONICS = {
     *_BRANCHES,
     *_JUMPS,
-    "addiu", "addu", "subu", "ori", "lui", "lw", "sw", "lh", "lhu", "sh",
+    "add", "addiu", "addu", "subu", "ori", "lui", "lw", "sw", "lh", "lhu", "sh",
     "lb", "lbu", "sb", "sltiu", "nop", "word", ".word", ".byte", ".half",
 }
 _ROW_BYTES = 4
@@ -26,10 +29,17 @@ _ROW_BYTES = 4
 
 class _WorkbenchEditor(QPlainTextEdit):
     focused = Signal()
+    selectAllRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._shared_scrollbar: QScrollBar | None = None
+        self._completion_model = QStringListModel(self)
+        self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": []}
+        self._symbol_tooltips: dict[str, str] = {}
+        self._completer = QCompleter(self._completion_model, self)
+        self._completer.setWidget(self)
+        self._completer.activated.connect(self._insert_completion)
         self._selection_scroll_delta = 0
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
@@ -42,6 +52,7 @@ class _WorkbenchEditor(QPlainTextEdit):
         if event.buttons() & Qt.LeftButton:
             self._update_selection_scroll(event.position().toPoint())
             return
+        self._show_symbol_tooltip(event)
         self._stop_selection_scroll()
 
     def mouseReleaseEvent(self, event) -> None:
@@ -53,6 +64,14 @@ class _WorkbenchEditor(QPlainTextEdit):
         super().focusInEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
+            self.selectAllRequested.emit()
+            event.accept()
+            return
+        if event.key() == Qt.Key_Tab:
+            self.insertPlainText(" " * BINARY_WORKBENCH_LAYOUT.EDITOR_TAB_SPACES)
+            event.accept()
+            return
         if self._shared_scrollbar is None:
             super().keyPressEvent(event)
             return
@@ -70,6 +89,24 @@ class _WorkbenchEditor(QPlainTextEdit):
             event.accept()
             return
         super().keyPressEvent(event)
+        self._refresh_completions()
+
+    def set_symbol_helpers(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> None:
+        self._completion_items = {
+            "label": sorted(labels),
+            "variable": sorted(f"_{name.lstrip('_')}" for name in variables),
+            "equate": sorted(f"@{name.lstrip('@')}" for name in equates),
+        }
+        self._symbol_tooltips = {
+            **_tooltip_values(labels),
+            **_tooltip_values({f"_{name.lstrip('_')}": value for name, value in variables.items()}),
+            **_tooltip_values({f"@{name.lstrip('@')}": value for name, value in equates.items()}),
+        }
 
     def _move_cursor_to_edge(self, top: bool) -> None:
         cursor = self.textCursor()
@@ -121,6 +158,56 @@ class _WorkbenchEditor(QPlainTextEdit):
         selection.setPosition(cursor.position(), QTextCursor.KeepAnchor)
         self.setTextCursor(selection)
 
+    def _refresh_completions(self) -> None:
+        prefix = self._current_completion_prefix()
+        candidates = self._candidates_for_prefix(prefix)
+        if not prefix or not candidates:
+            self._completer.popup().hide()
+            return
+        self._completion_model.setStringList(candidates)
+        self._completer.setCompletionPrefix(prefix)
+        self._completer.complete(self.cursorRect())
+
+    def _current_completion_prefix(self) -> str:
+        cursor = self.textCursor()
+        block = cursor.block().text()
+        column = cursor.positionInBlock()
+        for match in _COMPLETION_TOKEN.finditer(block):
+            if match.start() <= column <= match.end():
+                return block[match.start() : column]
+        return ""
+
+    def _candidates_for_prefix(self, prefix: str) -> list[str]:
+        if prefix.startswith("_"):
+            return [item for item in self._completion_items["variable"] if item.startswith(prefix)]
+        if prefix.startswith("@"):
+            return [item for item in self._completion_items["equate"] if item.startswith(prefix)]
+        return [item for item in self._completion_items["label"] if item.startswith(prefix)]
+
+    def _insert_completion(self, completion: str) -> None:
+        prefix = self._current_completion_prefix()
+        cursor = self.textCursor()
+        for _ in prefix:
+            cursor.deletePreviousChar()
+        cursor.insertText(completion)
+        self.setTextCursor(cursor)
+
+    def _show_symbol_tooltip(self, event) -> None:
+        text = self._symbol_tooltips.get(self._token_at_position(event.position().toPoint()))
+        if text:
+            QToolTip.showText(event.globalPosition().toPoint(), text, self)
+            return
+        QToolTip.hideText()
+
+    def _token_at_position(self, position: QPoint) -> str:
+        cursor = self.cursorForPosition(position)
+        block = cursor.block().text()
+        column = cursor.positionInBlock()
+        for match in _COMPLETION_TOKEN.finditer(block):
+            if match.start() <= column <= match.end():
+                return match.group()
+        return ""
+
 
 class _BytesHighlighter(QSyntaxHighlighter):
     def highlightBlock(self, text: str) -> None:
@@ -131,30 +218,60 @@ class _BytesHighlighter(QSyntaxHighlighter):
 
 
 class _InstructionHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent) -> None:
+        super().__init__(parent)
+        self._labels: dict[str, str] = {}
+        self._variables: dict[str, str] = {}
+        self._equates: dict[str, str] = {}
+
+    def set_symbols(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> None:
+        self._labels = dict(labels)
+        self._variables = {f"_{name.lstrip('_')}": value for name, value in variables.items()}
+        self._equates = {f"@{name.lstrip('@')}": value for name, value in equates.items()}
+        self.rehighlight()
+
     def highlightBlock(self, text: str) -> None:
         comment_start = text.find(";")
-        code = text if comment_start < 0 else text[:comment_start]
-        code = _strip_label(code)
+        raw_code = text if comment_start < 0 else text[:comment_start]
+        code_start, code = _code_without_label(raw_code)
         mnemonic = re.search(r"\S+", code)
         if _invalid_instruction(code):
             self.setFormat(0, len(text), _format("#FF8B96"))
             return
         if mnemonic:
-            self.setFormat(mnemonic.start(), mnemonic.end() - mnemonic.start(), _format(_mnemonic_color(mnemonic.group())))
+            self.setFormat(code_start + mnemonic.start(), mnemonic.end() - mnemonic.start(), _format(_mnemonic_color(mnemonic.group())))
         for match in _REGISTER_TOKEN.finditer(code):
             if mnemonic and mnemonic.start() <= match.start() < mnemonic.end():
                 continue
-            self.setFormat(match.start(), match.end() - match.start(), _format(_register_color(match.group())))
+            self.setFormat(code_start + match.start(), match.end() - match.start(), _format(_register_color(match.group())))
         for match in _HEX_TOKEN.finditer(code):
-            self.setFormat(match.start(), match.end() - match.start(), _format("#7FD6A4"))
+            self.setFormat(code_start + match.start(), match.end() - match.start(), _format("#7FD6A4"))
+        self._highlight_symbols(text, code, code_start)
         if comment_start >= 0:
             self.setFormat(comment_start, len(text) - comment_start, _format("#7F879B"))
+
+    def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
+        for match in _VARIABLE_TOKEN.finditer(code):
+            if match.group() in self._variables:
+                self.setFormat(code_start + match.start(), match.end() - match.start(), _format("#C084FC"))
+        for match in _EQUATE_TOKEN.finditer(code):
+            if match.group() in self._equates:
+                self.setFormat(code_start + match.start(), match.end() - match.start(), _format("#FFB86C"))
+        for name in self._labels:
+            for match in re.finditer(rf"\b{re.escape(name)}\b", original):
+                self.setFormat(match.start(), match.end() - match.start(), _format("#FFD166"))
 
 
 class BinaryWorkbenchGrid(QWidget):
     rowsChanged = Signal(list)
     selectionSummaryChanged = Signal(str)
     visibleWindowRequested = Signal(int, int, int)
+    selectAllRequested = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -168,6 +285,9 @@ class BinaryWorkbenchGrid(QWidget):
         self._virtual = False
         self._total_size = 0
         self._group_bytes = 1
+        self._labels: dict[str, str] = {}
+        self._variables: dict[str, str] = {}
+        self._equates: dict[str, str] = {}
         self._last_editor_kind: str | None = None
         self._visible_start_offset = 0
         self._last_visible_offset = 0
@@ -196,6 +316,18 @@ class BinaryWorkbenchGrid(QWidget):
         self._rows = list(rows)
         self._visible_start_offset = start_offset
         self._render()
+
+    def set_symbols(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> None:
+        self._labels = dict(labels)
+        self._variables = dict(variables)
+        self._equates = dict(equates)
+        self._instruction_highlighter.set_symbols(labels, variables, equates)
+        self.instructions.set_symbol_helpers(labels, variables, equates)
 
     def visible_size(self) -> int:
         return self._visible_row_count() * _ROW_BYTES
@@ -242,6 +374,15 @@ class BinaryWorkbenchGrid(QWidget):
         self.instructions.setFocus()
         self._emit_selection_summary()
 
+    def select_all_content(self) -> None:
+        if self._virtual:
+            self._select_all_focused_editor()
+            return
+        self._rows = list(self._all_rows)
+        self._visible_start_offset = 0
+        self._render()
+        self._select_all_focused_editor()
+
     def assembly_text(self) -> str:
         return self.instructions.toPlainText()
 
@@ -279,7 +420,7 @@ class BinaryWorkbenchGrid(QWidget):
         self.bytes_shell, self.bytes = self._panel(BINARY_WORKBENCH_TEXT.BYTES, "binary-workbench-bytes-panel", False, BINARY_WORKBENCH_LAYOUT.EDITOR_BYTES_WIDTH)
         self.instructions_shell, self.instructions = self._panel(BINARY_WORKBENCH_TEXT.INSTRUCTION, "binary-workbench-instructions-panel", False)
         _BytesHighlighter(self.bytes.document())
-        _InstructionHighlighter(self.instructions.document())
+        self._instruction_highlighter = _InstructionHighlighter(self.instructions.document())
         self.bytes.textChanged.connect(self._on_bytes_changed)
         self.instructions.textChanged.connect(self._on_instructions_changed)
         self.bytes.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES))
@@ -331,7 +472,14 @@ class BinaryWorkbenchGrid(QWidget):
         for index, line in enumerate(lines[: len(updated)]):
             row = updated[index]
             address = _address_from_row(row)
-            data = _parse_bytes(line) if editing_bytes else self._codec.assemble(line, address)
+            assembly = _assembly_for_encoding(
+                line,
+                address,
+                self._labels,
+                self._variables,
+                self._equates,
+            )
+            data = _parse_bytes(line) if editing_bytes else self._codec.assemble(assembly, address)
             if data is None:
                 return
             updated[index] = BinaryWorkbenchRowDTO(
@@ -405,9 +553,16 @@ class BinaryWorkbenchGrid(QWidget):
         editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         editor.document().setDocumentMargin(BINARY_WORKBENCH_LAYOUT.EDITOR_DOCUMENT_MARGIN)
         editor.set_shared_scrollbar(self.scrollbar)
+        editor.selectAllRequested.connect(self.selectAllRequested.emit)
         if width is not None:
             editor.setFixedWidth(width)
         return editor
+
+    def _select_all_focused_editor(self) -> None:
+        editor = self.bytes if self.focused_editor_kind() == BINARY_WORKBENCH_TEXT.BYTES else self.instructions
+        editor.selectAll()
+        editor.setFocus()
+        self._emit_selection_summary()
 
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
         self._updating = True
@@ -520,6 +675,42 @@ def _address_from_row(row: BinaryWorkbenchRowDTO) -> int:
     return 0x80010000 + int(row.offsets.get("File", "0x0"), 16)
 
 
+def _assembly_for_encoding(
+    text: str,
+    address: int,
+    labels: dict[str, str],
+    variables: dict[str, str],
+    equates: dict[str, str],
+) -> str:
+    code = _strip_label(text.split(";", 1)[0]).strip()
+    for name, value in variables.items():
+        code = code.replace(f"_{name.lstrip('_')}", value)
+    for name, value in equates.items():
+        code = code.replace(f"@{name.lstrip('@')}", value)
+    for name, value in labels.items():
+        code = re.sub(
+            rf"\b{re.escape(name)}\b",
+            f"0x{0x80010000 + _safe_int(value, address):X}",
+            code,
+        )
+    return code
+
+
+def _safe_int(value: str, fallback: int = 0) -> int:
+    try:
+        return int(value, 0)
+    except ValueError:
+        return fallback
+
+
+def _tooltip_values(values: dict[str, str]) -> dict[str, str]:
+    tooltips: dict[str, str] = {}
+    for name, value in values.items():
+        number = _safe_int(value)
+        tooltips[name] = f"{number} | 0x{number:X}"
+    return tooltips
+
+
 def _format(color: str) -> QTextCharFormat:
     style = QTextCharFormat()
     style.setForeground(QColor(color))
@@ -541,12 +732,18 @@ def _register_color(token: str) -> str:
 
 
 def _strip_label(text: str) -> str:
+    _, code = _code_without_label(text)
+    return code
+
+
+def _code_without_label(text: str) -> tuple[int, str]:
     if ":" not in text:
-        return text
+        return 0, text
     left, right = text.split(":", 1)
     if left.strip() and " " not in left.strip():
-        return right.strip()
-    return text
+        stripped = right.lstrip()
+        return len(left) + 1 + (len(right) - len(stripped)), stripped
+    return 0, text
 
 
 def _invalid_instruction(text: str) -> bool:

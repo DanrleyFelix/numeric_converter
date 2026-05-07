@@ -209,13 +209,16 @@ class BinaryWorkbenchTabs(QTabWidget):
         current = self.current_context()
         if current is None:
             return
+        page = self.currentWidget()
+        rows = page.grid.export_rows() if isinstance(page, BinaryWorkbenchEditorPage) else current.rows
         updated = BinaryWorkbenchTabContextDTO(
             **{
                 **current.__dict__,
                 "variables": variables,
                 "equates": equates,
                 "labels": labels,
-                "symbol_offsets": _symbol_offsets(current.rows, variables, equates, labels),
+                "rows": rows,
+                "symbol_offsets": _symbol_offsets(rows, variables, equates, labels),
             }
         )
         self._set_current_context(updated)
@@ -367,6 +370,11 @@ class BinaryWorkbenchTabs(QTabWidget):
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.select_block(start_offset, end_offset)
+
+    def select_all_content(self) -> None:
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.select_all_content()
 
     def find_text(self, mode: str, query: str) -> bool:
         results = self.find_offsets(mode, query)
@@ -539,8 +547,11 @@ def _symbol_offsets(
     values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
     for row in rows:
         offset = row.offsets.get("File", "0x00000000")
-        for name in values:
-            if name in row.instruction:
+        for name in variables:
+            if f"_{name.lstrip('_')}" in row.instruction:
+                values[name].append(offset)
+        for name in equates:
+            if f"@{name.lstrip('@')}" in row.instruction:
                 values[name].append(offset)
     for name, offset in labels.items():
         values[name] = [offset]

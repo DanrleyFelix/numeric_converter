@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from src.modules.dtos import BinaryWorkbenchStateDTO
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -20,6 +20,7 @@ from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchVersionNameDialog,
     BinaryWorkbenchVersionPickerDialog,
 )
+from src.presentation.ui.components.binary_workbench.native_dialogs import ask_close_tab_with_native_system_dialog
 from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchAdvancedConfigDialog,
     BinaryWorkbenchBytesFormatterDialog,
@@ -94,10 +95,12 @@ class BinaryWorkbenchWindow(QMainWindow):
         self.toolbar.go_to_action.triggered.connect(self._open_go_to)
         self.toolbar.find_action.triggered.connect(self._open_find)
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)
+        self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
         self.addActions([
             self.toolbar.go_to_action,
             self.toolbar.find_action,
             self.toolbar.select_block_action,
+            self.toolbar.select_all_action,
             self.toolbar.open_file_action,
             self.toolbar.new_scratch_action,
             self.toolbar.save_binary_file_action,
@@ -347,22 +350,7 @@ class BinaryWorkbenchWindow(QMainWindow):
         self.tabs.close_tab(index)
 
     def _native_close_question(self) -> QMessageBox.StandardButton:
-        app = QApplication.instance()
-        previous_style = app.styleSheet() if app is not None else ""
-        if app is not None:
-            app.setStyleSheet("")
-        try:
-            return QMessageBox.question(
-                self,
-                BINARY_WORKBENCH_TEXT.TITLE,
-                BINARY_WORKBENCH_TEXT.SAVE_BEFORE_CLOSE,
-                QMessageBox.StandardButton.Save
-                | QMessageBox.StandardButton.Discard
-                | QMessageBox.StandardButton.Cancel,
-            )
-        finally:
-            if app is not None:
-                app.setStyleSheet(previous_style)
+        return ask_close_tab_with_native_system_dialog(self)
 
     def _save_current_tab_for_close(self) -> bool:
         current = self.tabs.current_context()
@@ -384,6 +372,5 @@ class BinaryWorkbenchWindow(QMainWindow):
             self.toolbar.regions_action,
             self.toolbar.encoding_tables_action,
             self.toolbar.view_action,
-            self.toolbar.select_all_action,
             self.toolbar.help_action,
         )

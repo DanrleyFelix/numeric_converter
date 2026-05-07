@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
+from src.core.binary_workbench.mips_r3000a import extract_labels_from_instructions
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -34,6 +35,7 @@ class BinaryWorkbenchEditorPage(QWidget):
         self.grid.rowsChanged.connect(self._on_rows_changed)
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
+        self.grid.selectAllRequested.connect(self.select_all_content)
         self._reader: CachedBinaryReader | None = None
         self._loading_visible_rows = False
         self._pending_selection: tuple[int, int] | None = None
@@ -53,6 +55,7 @@ class BinaryWorkbenchEditorPage(QWidget):
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context
         self._reader = self._reader_for_context(context)
+        self.grid.set_symbols(context.labels, context.variables, context.equates)
         self.grid.set_default_editor_kind(_default_editor_kind(context))
         if self._reader is not None:
             self.grid.load_rows(
@@ -79,7 +82,7 @@ class BinaryWorkbenchEditorPage(QWidget):
         if self._reader is not None:
             self._update_overlay(rows)
             return
-        self._update_context({"rows": rows})
+        self._update_context(_symbol_updates(self._context, rows))
 
     def _load_visible_rows(self, offset: int, size: int, direction: int) -> None:
         if self._loading_visible_rows or self._reader is None:
@@ -128,7 +131,7 @@ class BinaryWorkbenchEditorPage(QWidget):
             **{
                 **self._context.__dict__,
                 "byte_overlays": overlays,
-                "rows": rows,
+                **_symbol_updates(self._context, rows),
             }
         )
         self.contextChanged.emit(self._context)
@@ -156,6 +159,15 @@ class BinaryWorkbenchEditorPage(QWidget):
             self.grid.select_instruction_offsets(start_offset, end_offset)
             return
         self.grid.select_offsets(start_offset, end_offset)
+
+    def select_all_content(self) -> None:
+        if self._reader is not None:
+            self._load_visible_rows(
+                0,
+                min(self._reader.file_size, BINARY_WORKBENCH_LAYOUT.SELECT_ALL_MAX_BYTES),
+                1,
+            )
+        self.grid.select_all_content()
 
     def find_text(self, mode: str, query: str) -> bool:
         results = self.find_offsets(mode, query)
@@ -198,9 +210,10 @@ class BinaryWorkbenchEditorPage(QWidget):
         needle = query.strip().lower()
         if not needle:
             return []
+        rows = self.grid.export_rows() or self._context.rows
         return [
             int(row.offsets.get("File", "0x0"), 16)
-            for row in self._context.rows
+            for row in rows
             if needle in row.instruction.lower()
         ]
 
@@ -260,6 +273,39 @@ def _find_in_rows(rows: list, needle: bytes, go_to) -> list[int]:
         if needle.hex(" ").upper() in row.bytes_text:
             results.append(int(row.offsets.get("File", "0x0"), 16))
     return results
+
+
+def _symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[str, object]:
+    labels = {
+        **context.labels,
+        **extract_labels_from_instructions([row.instruction for row in rows]),
+    }
+    return {
+        "rows": rows,
+        "labels": labels,
+        "symbol_offsets": _symbol_offsets(rows, context.variables, context.equates, labels),
+    }
+
+
+def _symbol_offsets(
+    rows: list,
+    variables: dict[str, str],
+    equates: dict[str, str],
+    labels: dict[str, str],
+) -> dict[str, list[str]]:
+    values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
+    for row in rows:
+        offset = row.offsets.get("File", "0x00000000")
+        instruction = row.instruction
+        for name in variables:
+            if f"_{name.lstrip('_')}" in instruction:
+                values[name].append(offset)
+        for name in equates:
+            if f"@{name.lstrip('@')}" in instruction:
+                values[name].append(offset)
+    for name, offset in labels.items():
+        values[name] = [offset]
+    return values
 
 
 def _default_editor_kind(context: BinaryWorkbenchTabContextDTO) -> str:

@@ -4,14 +4,16 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QPlainTextEdit, QScrollBar, QTabBar
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QComboBox, QLineEdit, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment import BinaryWorkbenchSymbolsDialog
+from src.presentation.ui.components.binary_workbench.file_dialogs import BinaryWorkbenchLbaFilesystemDialog
+from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
 
 
@@ -565,6 +567,143 @@ def test_binary_workbench_save_uses_last_focused_editor_after_focus_moves(tmp_pa
     assert tool.tabs.focused_editor_kind() == BINARY_WORKBENCH_TEXT.INSTRUCTION
 
 
+def test_binary_workbench_search_menu_hides_select_all_action(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    search_button = next(
+        button for button in tool.toolbar.findChildren(QToolButton) if button.text().strip() == "Search"
+    )
+    action_names = [action.text() for action in search_button.menu().actions()]
+
+    assert BINARY_WORKBENCH_TEXT.SELECT_ALL not in action_names
+    assert tool.toolbar.select_all_action.shortcut().toString() == "Ctrl+A"
+
+
+def test_binary_workbench_ctrl_a_selects_entire_binary_content(tmp_path: Path):
+    binary_path = tmp_path / "wide.bin"
+    binary_path.write_bytes(bytes(range(256)) * 20)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid.bytes.setFocus()  # type: ignore[attr-defined]
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key_A, Qt.KeyboardModifier.ControlModifier)
+    QApplication.sendEvent(page.grid.bytes, event)  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert "Length: 4096 bytes" in page.summary.text()  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_symbols_rows_keep_editable_kind_dropdown():
+    _app()
+    dialog = BinaryWorkbenchSymbolsDialog({"var": "20"}, {}, {})
+    combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
+
+    assert len(combos) >= 2
+    combos[1].setCurrentText("Label")
+    variables, _, labels = dialog.values()
+
+    assert variables == {}
+    assert labels == {"var": "20"}
+
+
+def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
+    _app()
+    dialog = BinaryWorkbenchSymbolsDialog({"var": "20"}, {}, {"label_1": "0x34"})
+    dialog.show()
+    _app().processEvents()
+    combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
+    fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
+    add_button = dialog.findChildren(QPushButton, "preferences-ok")[0]
+    first_row_fields = fields[2:4]
+
+    assert {combo.width() for combo in combos} == {160}
+    assert {field.width() for field in fields} == {160}
+    assert {combo.height() for combo in combos} == {46}
+    assert {field.height() for field in fields} == {46}
+    assert add_button.width() == 160
+    assert combos[1].mapTo(dialog, QPoint()).x() == combos[0].mapTo(dialog, QPoint()).x()
+    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == fields[0].mapTo(dialog, QPoint()).x()
+    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
+
+
+def test_binary_workbench_lba_filesystem_uses_editable_rows():
+    _app()
+    dialog = BinaryWorkbenchLbaFilesystemDialog([BinaryWorkbenchInternalFileDTO("SLUS", 24)])
+    dialog.show()
+    _app().processEvents()
+    fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
+    body = dialog.findChild(QWidget, "workspace-table-body")
+    rows = dialog.findChildren(QWidget, "workspace-row")
+
+    assert len(fields) == 4
+    assert body is not None
+    assert rows
+    assert {field.width() for field in fields} == {160}
+    assert {field.height() for field in fields} == {46}
+    assert fields[2].mapTo(dialog, QPoint()).x() == fields[0].mapTo(dialog, QPoint()).x()
+    assert fields[3].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
+    fields[2].setText("WA_MRG.MRG")
+    fields[3].setText("10010")
+    mappings = dialog.mappings()
+
+    assert mappings[0].name == "WA_MRG.MRG"
+    assert mappings[0].start_lba == 10010
+
+
+def test_binary_workbench_symbols_resolve_labels_and_multiple_offsets(tmp_path: Path):
+    assembly_path = tmp_path / "symbols.asm"
+    assembly_path.write_text(
+        "label1: add $v1, $v0, _variable1\n"
+        "add $v1, $v0, @equate1\n"
+        "j label1\n"
+        "add $v1, $v0, _variable1\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(assembly_path)
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {"label1": "0x00000000"})
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.symbol_offsets["label1"] == ["0x00000000"]
+    assert current.symbol_offsets["variable1"] == ["0x00000000", "0x0000000C"]
+    assert current.symbol_offsets["equate1"] == ["0x00000004"]
+    dialog = BinaryWorkbenchGoToDialog(current)
+    dialog.target.setCurrentText(BINARY_WORKBENCH_TEXT.VARIABLE_TARGET)
+    dialog.value.setText("variable1")
+    dialog.refresh_results()
+
+    assert dialog.results.count() == 2
+    assert dialog.selected_offsets() == [0, 12]
+
+
+def test_binary_workbench_instruction_tab_inserts_three_spaces(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.clear()
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Tab, Qt.KeyboardModifier.NoModifier)
+    QApplication.sendEvent(editor, event)
+
+    assert editor.toPlainText() == "   "
+
+
 def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -578,3 +717,9 @@ def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: P
     _app().processEvents()
 
     assert tool.tabs.has_unsaved_changes(0) is True
+
+
+def test_binary_workbench_native_close_dialog_maps_windows_buttons():
+    assert _map_windows_response(6).name == "Save"
+    assert _map_windows_response(7).name == "Discard"
+    assert _map_windows_response(2).name == "Cancel"
