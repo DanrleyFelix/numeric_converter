@@ -141,6 +141,7 @@ class CommandEdit(QPlainTextEdit):
         cursor.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, len(prefix))
         cursor.insertText(completion)
         self.setTextCursor(cursor)
+        self._completer.popup().hide()
 
     def text_under_cursor(self) -> str:
         cursor = self.textCursor()

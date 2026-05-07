@@ -140,15 +140,13 @@ def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
 
     assert tool_window is not None
     assert tool_window.windowTitle() == "Binary Workbench"
-    assert tool_window.toolbar.open_binary_action.text() == "Open Binary"
+    assert tool_window.toolbar.open_binary_action.text() == "Open File"
     assert tool_window.toolbar.create_version_action.text() == "Create a Version"
-    assert tool_window.toolbar.att_current_version_action.text() == "Att Current Version"
+    assert tool_window.toolbar.att_current_version_action.text() == "Att Version"
     assert tool_window.toolbar.load_version_action.text() == "Load a Version"
-    assert tool_window.toolbar.save_binary_file_action.text() == "Save Binary File"
+    assert tool_window.toolbar.save_binary_file_action.text() == "Save File"
     assert tool_window.toolbar.symbols_action.text() == "Symbols"
     assert tool_window.toolbar.bytes_formatter_action.text() == "Bytes Formatter"
-    assert tool_window.toolbar.cpu_arch_action.text() == "CPU Arch"
-    assert tool_window.toolbar.navigation_mode_action.text() == "Navigation Mode"
     assert tool_window.toolbar.view_action.text() == "View"
     assert tool_window.toolbar.advanced_configuration_action.text() == "Advanced Configuration"
     assert tool_window.toolbar.go_to_action.shortcut().toString() == "Ctrl+G"
@@ -303,6 +301,29 @@ def test_arrow_up_down_browse_log_history_and_enter_accepts_without_submitting()
     QTest.keyClick(editor, Qt.Key_Enter)
     _app().processEvents()
     assert window.body.command_panel.current_input() == "alpha=5"
+
+
+def test_enter_accepts_variable_autocomplete_and_hides_popup():
+    window = _window()
+    editor = window.body.command_panel.editor
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor.setFocus()
+    QTest.keyClicks(editor, "al")
+    _app().processEvents()
+    popup = editor._completer.popup()
+
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(editor, Qt.Key_Enter)
+    _app().processEvents()
+
+    assert window.body.command_panel.current_input() == "alpha"
+    assert popup.isVisible() is False
 
 
 def test_auto_convert_sends_successful_command_result_to_converter():

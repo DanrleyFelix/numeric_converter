@@ -1,0 +1,13 @@
+class BINARY_WORKBENCH_FILE_DIALOG_TEXT:
+    LBA_TITLE: str = "LBA File System"
+    LBA_SUBTITLE: str = "Configure internal files using one mapping per line: name = start_lba."
+    INTERNAL_TITLE: str = "Open Internal File"
+    INTERNAL_SUBTITLE: str = "Select a configured internal file to open it as an independent tab."
+    VERSION_CREATE_TITLE: str = "Create Version"
+    VERSION_UPDATE_TITLE: str = "Att Version"
+    VERSION_SUBTITLE: str = "Choose a name for the current version snapshot."
+    VERSION_LOAD_TITLE: str = "Load Version"
+    VERSION_LOAD_SUBTITLE: str = "Select a saved version to load into the active binary tab."
+    VERSION_NAME_LABEL: str = "Version name"
+    INTERNAL_NAME_LABEL: str = "Internal file"
+    OK: str = "OK"

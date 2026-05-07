@@ -6,10 +6,18 @@ from typing import Any
 def _default_visible_columns() -> dict[str, bool]:
     return {
         "File": True,
-        "RAM": True,
-        "SLUS": False,
         "Instruction": True,
         "Bytes": True,
+    }
+
+
+def _default_binary_workbench_directories() -> dict[str, str]:
+    return {
+        "open_file": "",
+        "open_binary": "",
+        "open_assembly": "",
+        "save_file": "",
+        "save_assembly": "",
     }
 
 
@@ -57,6 +65,7 @@ class WindowSizeDTO:
 class BinaryWorkbenchViewPreferencesDTO:
     visible_columns: dict[str, bool] = field(default_factory=_default_visible_columns)
     decoded_text_tables: list[str] = field(default_factory=list)
+    group_bytes: int = 1
 
 
 @dataclass(frozen=True)
@@ -67,23 +76,45 @@ class BinaryWorkbenchRowDTO:
 
 
 @dataclass(frozen=True)
+class BinaryWorkbenchInternalFileDTO:
+    name: str
+    start_lba: int
+
+
+@dataclass(frozen=True)
+class BinaryWorkbenchVersionDTO:
+    name: str
+    rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class BinaryWorkbenchTabContextDTO:
     tab_id: str
     kind: str
     display_name: str
     source_path: str | None = None
     cpu_arch: str = "PSX - Mips R3000A"
+    read_mode: str = "auto"
     navigation_mode: str = "Offset"
     reference_offsets: list[str] = field(default_factory=list)
+    reference_offset_bases: dict[str, str] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
     equates: dict[str, str] = field(default_factory=dict)
     variables: dict[str, str] = field(default_factory=dict)
-    internal_files: list[str] = field(default_factory=list)
+    symbol_offsets: dict[str, list[str]] = field(default_factory=dict)
+    search_cache: dict[str, list[str]] = field(default_factory=dict)
+    internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
     named_regions: list[str] = field(default_factory=list)
-    versions: list[str] = field(default_factory=list)
+    versions: list[BinaryWorkbenchVersionDTO] = field(default_factory=list)
+    active_version_name: str | None = None
     last_open_offset: str = "0x00000000"
     navigation_history: list[str] = field(default_factory=list)
+    original_rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
     rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
+    file_size: int = 0
+    block_size: int = 2048
+    cache_max_blocks: int = 8000
+    byte_overlays: dict[str, str] = field(default_factory=dict)
     view_preferences: BinaryWorkbenchViewPreferencesDTO = field(
         default_factory=BinaryWorkbenchViewPreferencesDTO
     )
@@ -94,6 +125,8 @@ class BinaryWorkbenchStateDTO:
     tabs: list[BinaryWorkbenchTabContextDTO] = field(default_factory=list)
     active_tab_id: str | None = None
     share_view_preferences: bool = False
+    recent_files: list[str] = field(default_factory=list)
+    directories: dict[str, str] = field(default_factory=_default_binary_workbench_directories)
 
 
 @dataclass(frozen=True)

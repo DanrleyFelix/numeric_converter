@@ -52,15 +52,41 @@ def test_application_context_roundtrip(tmp_path: Path):
                 )
             ],
             active_tab_id="binary-1",
+            recent_files=["C:/tmp/sample.bin"],
+            directories={"open_binary": "C:/tmp", "open_assembly": "", "save_file": "C:/tmp", "save_assembly": ""},
         ),
         key_panel_visible=False,
     )
 
     saved_path = repository.save(context, Path("session_one"))
     loaded = repository.load(saved_path)
+    expected = ApplicationContextDTO(
+        **{
+            **context.__dict__,
+            "binary_workbench": BinaryWorkbenchStateDTO(
+                tabs=[
+                    BinaryWorkbenchTabContextDTO(
+                        **{
+                            **context.binary_workbench.tabs[0].__dict__,
+                            "rows": [],
+                            "original_rows": [],
+                            "reference_offsets": ["File"],
+                            "reference_offset_bases": {"File": "0x00000000"},
+                        }
+                    )
+                ],
+                active_tab_id="binary-1",
+                recent_files=["C:/tmp/sample.bin"],
+                directories={
+                    **BinaryWorkbenchStateDTO().directories,
+                    **context.binary_workbench.directories,
+                },
+            ),
+        }
+    )
 
     assert saved_path == repository.directory / "session_one.json"
-    assert loaded == context
+    assert loaded == expected
 
 
 def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
@@ -99,6 +125,8 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
                     )
                 ],
                 active_tab_id="scratch-1",
+                recent_files=["C:/tmp/scratch.asm"],
+                directories={"open_binary": "", "open_assembly": "C:/tmp", "save_file": "", "save_assembly": ""},
             ),
             key_panel_visible=True,
         ),
@@ -106,6 +134,30 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
 
     saved_path = repository.save(workspace, Path("full_workspace"))
     loaded = repository.load(saved_path)
+    expected = WorkspaceStateDTO(
+        context=ApplicationContextDTO(
+            **{
+                **workspace.context.__dict__,
+                "binary_workbench": BinaryWorkbenchStateDTO(
+                    tabs=[
+                        BinaryWorkbenchTabContextDTO(
+                            **{
+                                **workspace.context.binary_workbench.tabs[0].__dict__,
+                                "reference_offsets": ["File"],
+                                "reference_offset_bases": {"File": "0x00000000"},
+                            }
+                        )
+                    ],
+                    active_tab_id="scratch-1",
+                    recent_files=["C:/tmp/scratch.asm"],
+                    directories={
+                        **BinaryWorkbenchStateDTO().directories,
+                        **workspace.context.binary_workbench.directories,
+                    },
+                ),
+            }
+        )
+    )
 
     assert saved_path == repository.directory / "full_workspace.json"
-    assert loaded == workspace
+    assert loaded == expected

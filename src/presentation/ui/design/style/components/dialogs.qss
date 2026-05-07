@@ -20,15 +20,34 @@ QWidget#donor-shell {
     background-color: $bg-panel;
 }
 
+QTabWidget#binary-workbench-tabs {
+    background-color: transparent;
+    border: none;
+}
+
+QTabWidget#binary-workbench-tabs::tab-bar {
+    alignment: left;
+    left: 0px;
+}
+
 QTabWidget#binary-workbench-tabs::pane {
-    background-color: $bg-workspace-shell;
-    border: 1px solid $border-workspace-shell;
+    background-color: transparent;
+    border: none;
     border-radius: $radius-0;
-    margin-top: $space-8;
+    margin-top: $space-0;
 }
 
 QTabBar#binary-workbench-tab-bar {
+    qproperty-drawBase: 0;
     background-color: transparent;
+    border: none;
+    font-size: 10px;
+}
+
+QTabBar#binary-workbench-tab-bar::base {
+    background-color: transparent;
+    border: none;
+    height: 0px;
 }
 
 QTabBar#binary-workbench-tab-bar::tab {
@@ -38,10 +57,13 @@ QTabBar#binary-workbench-tab-bar::tab {
     border-top-left-radius: $radius-0;
     border-top-right-radius: $radius-0;
     color: $text-muted;
-    min-width: 120px;
-    min-height: 34px;
-    padding: $space-8 $space-12;
-    margin-right: $space-8;
+    min-width: 150px;
+    max-width: 150px;
+    min-height: 22px;
+    max-height: 22px;
+    padding: $space-4 $space-8;
+    margin-right: $space-4;
+    font-size: 10px;
 }
 
 QTabBar#binary-workbench-tab-bar::tab:selected {
@@ -53,6 +75,23 @@ QTabBar#binary-workbench-tab-bar::tab:selected {
 QTabBar#binary-workbench-tab-bar::tab:hover:!selected {
     background-color: $bg-workspace-row-hover;
     border-color: $border-workspace-row-hover;
+    color: $text-main;
+}
+
+QPushButton#binary-workbench-tab-close {
+    min-width: 10px;
+    max-width: 10px;
+    min-height: 10px;
+    max-height: 10px;
+    padding: $space-0;
+    background-color: transparent;
+    border: none;
+    color: $text-main;
+    font-size: 10px;
+}
+
+QPushButton#binary-workbench-tab-close:hover {
+    background-color: $bg-button-enter;
     color: $text-main;
 }
 
@@ -89,66 +128,114 @@ QLabel#binary-workbench-value {
     background-color: transparent;
 }
 
-QFrame#binary-workbench-offsets {
-    background-color: $bg-workspace-header;
-    border: 1px solid $border-workspace-header;
-    border-radius: $radius-12;
-}
-
-QLabel#binary-workbench-offset-label,
-QLabel#binary-workbench-selection {
+QLabel#binary-workbench-selection,
+QLabel#binary-workbench-page-indicator {
     color: $text-workspace-header;
     font-size: $fs-c-md;
     background-color: transparent;
 }
 
-QPushButton#binary-workbench-offset,
-QPushButton#binary-workbench-offset-control {
-    min-height: $size-control-min-height;
-    background-color: $bg-button;
-    border: 1px solid $border;
-    border-radius: $radius-8;
-    padding: $padding-select-field;
+QLabel#binary-workbench-footer-status {
+    color: $text-success;
+    font-size: $fs-c-md;
+    background-color: transparent;
 }
 
-QPushButton#binary-workbench-offset:hover,
-QPushButton#binary-workbench-offset-control:hover {
-    background-color: $bg-button-hover;
-    border-color: $border-hover;
+QWidget#binary-workbench-editor-shell {
+    background-color: transparent;
 }
 
-QPushButton#binary-workbench-offset:checked {
-    background-color: $bg-button-pressed;
-    border-color: $border-focus;
+QWidget#binary-workbench-editor-canvas {
+    background-color: transparent;
+    border: none;
 }
 
-QTableWidget#binary-workbench-grid {
+QWidget#binary-workbench-column-shell {
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-column-label {
+    font-size: $fs-c-md;
+    color: $text-workspace-header;
+    background-color: transparent;
+    padding-left: $space-4;
+}
+
+QPlainTextEdit#binary-workbench-offsets-panel,
+QPlainTextEdit#binary-workbench-bytes-panel,
+QPlainTextEdit#binary-workbench-instructions-panel {
     background-color: $bg-workspace-shell;
-    alternate-background-color: $bg-workspace-row;
     border: 1px solid $border-workspace-shell;
     border-radius: $radius-12;
-    gridline-color: transparent;
-    selection-background-color: $bg-button-pressed;
-    selection-color: $text-main;
-    outline: none;
+    color: $text-main;
+    selection-background-color: $bg-workspace-row-hover;
 }
 
-QTableWidget#binary-workbench-grid::item {
-    border: none;
-    padding: $space-8;
+QPlainTextEdit#binary-workbench-offsets-panel {
+    color: $text-workspace-header;
 }
 
-QTableWidget#binary-workbench-grid::item:selected {
-    background-color: $bg-button-pressed;
+QLineEdit#binary-workbench-symbols-edit,
+QLineEdit#binary-workbench-dialog-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    min-height: 32px;
+    padding: $space-6 $space-10;
+}
+
+QLineEdit#binary-workbench-dialog-input:focus {
+    border: 1px solid $border-focus;
+}
+
+QComboBox#binary-workbench-dialog-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    min-height: 32px;
+    padding: $space-6 $space-10;
+}
+
+QListWidget#binary-workbench-search-results {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    padding: $space-6;
+}
+
+QListWidget#binary-workbench-search-results::item:selected {
+    background-color: $bg-workspace-row-hover;
     color: $text-main;
 }
 
-QTableWidget#binary-workbench-grid QHeaderView::section {
-    background-color: $bg-workspace-header;
+QStatusBar#binary-workbench-statusbar {
+    background-color: $bg-panel;
     color: $text-workspace-header;
-    border: none;
-    border-bottom: 1px solid $border-workspace-header;
-    padding: $space-8;
+    padding-left: $space-0;
+    padding-bottom: $space-0;
+    min-height: $size-control-min-height;
+}
+
+QSpinBox,
+QComboBox {
+    background-color: $bg-input;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $radius-10;
+    min-height: 32px;
+    padding: $space-6 $space-10;
+}
+
+QComboBox QAbstractItemView,
+QSpinBox QAbstractItemView {
+    background-color: $bg-panel;
+    color: $text-main;
+    border: 1px solid $border;
+    selection-background-color: $bg-toolbar-button-hover;
+    selection-color: $text-main;
 }
 
 QLabel#donor-section-title {

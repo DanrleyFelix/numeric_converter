@@ -3,6 +3,8 @@ from src.core.binary_workbench.mips_r3000a.row_builder import (
     build_rows_from_bytes,
     build_rows_from_instructions,
     build_scratch_rows,
+    extract_labels_from_instructions,
+    rebuild_rows_with_offsets,
 )
 
 
@@ -11,4 +13,6 @@ __all__ = [
     "build_rows_from_bytes",
     "build_rows_from_instructions",
     "build_scratch_rows",
+    "extract_labels_from_instructions",
+    "rebuild_rows_with_offsets",
 ]

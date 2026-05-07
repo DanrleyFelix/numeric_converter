@@ -58,6 +58,7 @@ $help-border-soft:        #172842;
 $text-main:               #EAEAF5;
 $text-muted:              #B5B5C5;
 $text-workspace-header:   #D5DCEC;
+$text-success:            #46A06A;
 $text-danger:             #FF8B96;
 $help-text-main:          #D1D7E4;
 $help-text-title:         #EAEAF5;
@@ -138,7 +139,9 @@ $space-12: 12px;
 $space-14: 14px;
 $space-16: 16px;
 $space-18: 18px;
+$space-20: 20px;
 $space-22: 22px;
+$space-24: 24px;
 $space-28: 28px;
 $space-30: 30px;
 
@@ -184,6 +187,7 @@ $size-scrollbar-handle-min-height: 18px;
 $size-scrollbar-handle-max-height: 54px;
 $size-scrollbar-horizontal-handle-min-width: 22px;
 $size-menu-indicator-hidden: 0px;
+$size-binary-statusbar-min-height: 55px;
 
 /* ===============================
    RADIUS
