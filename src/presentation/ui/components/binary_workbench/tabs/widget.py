@@ -28,6 +28,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.factory import (
     create_assembly_tab,
     create_binary_tab,
@@ -144,7 +145,10 @@ class BinaryWorkbenchTabs(QTabWidget):
             "block_size": block_size,
             "cache_max_blocks": cache_max_blocks,
         }
-        if current.source_path and current.kind in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.ASSEMBLY}:
+        if (
+            current.source_path
+            and current.kind in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.ASSEMBLY}
+        ):
             rows = reload_source_rows(
                 Path(current.source_path),
                 read_mode,
@@ -154,7 +158,9 @@ class BinaryWorkbenchTabs(QTabWidget):
             )
             updates["original_rows"] = rows
             updates["rows"] = rows
-        self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates}))
+        self._set_current_context(
+            BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates})
+        )
 
     def set_current_group_bytes(self, value: int) -> None:
         current = self.current_context()
@@ -175,7 +181,10 @@ class BinaryWorkbenchTabs(QTabWidget):
         if current is None:
             return
         updates: dict[str, object] = {"read_mode": value}
-        if current.source_path and current.kind in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.ASSEMBLY}:
+        if (
+            current.source_path
+            and current.kind in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.ASSEMBLY}
+        ):
             original_rows = reload_source_rows(
                 Path(current.source_path),
                 value,
@@ -184,20 +193,27 @@ class BinaryWorkbenchTabs(QTabWidget):
                 current.reference_offset_bases,
             )
             rows = original_rows
-            if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY and current.active_version_name:
+            if (
+                current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY
+                and current.active_version_name
+            ):
                 version = next((item for item in current.versions if item.name == current.active_version_name), None)
                 if version is not None:
                     rows = apply_version_rows(original_rows, version.rows)
             updates["original_rows"] = original_rows
             updates["rows"] = rows
-        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates})
+        updated = BinaryWorkbenchTabContextDTO(
+            **{**current.__dict__, **updates}
+        )
         self._set_current_context(updated)
 
     def set_current_internal_files(self, internal_files: list[BinaryWorkbenchInternalFileDTO]) -> None:
         current = self.current_context()
         if current is None:
             return
-        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, "internal_files": internal_files})
+        updated = BinaryWorkbenchTabContextDTO(
+            **{**current.__dict__, "internal_files": internal_files}
+        )
         self._set_current_context(updated)
 
     def set_current_symbols(
@@ -210,7 +226,11 @@ class BinaryWorkbenchTabs(QTabWidget):
         if current is None:
             return
         page = self.currentWidget()
-        rows = page.grid.export_rows() if isinstance(page, BinaryWorkbenchEditorPage) else current.rows
+        rows = (
+            page.grid.export_rows()
+            if isinstance(page, BinaryWorkbenchEditorPage)
+            else current.rows
+        )
         updated = BinaryWorkbenchTabContextDTO(
             **{
                 **current.__dict__,
@@ -218,7 +238,7 @@ class BinaryWorkbenchTabs(QTabWidget):
                 "equates": equates,
                 "labels": labels,
                 "rows": rows,
-                "symbol_offsets": _symbol_offsets(rows, variables, equates, labels),
+                "symbol_offsets": symbol_offsets(rows, variables, equates, labels),
             }
         )
         self._set_current_context(updated)
@@ -236,13 +256,23 @@ class BinaryWorkbenchTabs(QTabWidget):
             ),
         )
         versions = [item for item in current.versions if item.name != name]
-        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name})
+        updated = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": [*versions, version],
+                "active_version_name": name,
+            }
+        )
         self._set_current_context(updated)
         return True
 
     def update_current_version(self, name: str) -> bool:
         current = self.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not current.active_version_name:
+        if (
+            current is None
+            or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
+            or not current.active_version_name
+        ):
             return False
         version = BinaryWorkbenchVersionDTO(
             name=name,
@@ -253,7 +283,13 @@ class BinaryWorkbenchTabs(QTabWidget):
             ),
         )
         versions = [item for item in current.versions if item.name != current.active_version_name]
-        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name})
+        updated = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": [*versions, version],
+                "active_version_name": name,
+            }
+        )
         self._set_current_context(updated)
         return True
 
@@ -536,23 +572,3 @@ def _tab_text(value: str) -> str:
 
 def _rows_to_bytes(rows: list[BinaryWorkbenchRowDTO]) -> bytes:
     return b"".join(bytes.fromhex(row.bytes_text.replace(" ", "")) for row in rows)
-
-
-def _symbol_offsets(
-    rows: list[BinaryWorkbenchRowDTO],
-    variables: dict[str, str],
-    equates: dict[str, str],
-    labels: dict[str, str],
-) -> dict[str, list[str]]:
-    values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
-    for row in rows:
-        offset = row.offsets.get("File", "0x00000000")
-        for name in variables:
-            if f"_{name.lstrip('_')}" in row.instruction:
-                values[name].append(offset)
-        for name in equates:
-            if f"@{name.lstrip('@')}" in row.instruction:
-                values[name].append(offset)
-    for name, offset in labels.items():
-        values[name] = [offset]
-    return values

@@ -280,9 +280,164 @@
                     "decoded_text_tables": [],
                     "group_bytes": 1
                 }
+            },
+            {
+                "tab_id": "95614ab45bd64a73bf525e4dbf35937c",
+                "kind": "scratch",
+                "display_name": "scratch_1.asm",
+                "source_path": null,
+                "cpu_arch": "PSX - Mips R3000A",
+                "read_mode": "assembly",
+                "navigation_mode": "Offset",
+                "reference_offsets": [
+                    "File"
+                ],
+                "reference_offset_bases": {
+                    "File": "0x00000000"
+                },
+                "labels": {},
+                "equates": {},
+                "variables": {},
+                "symbol_offsets": {},
+                "search_cache": {},
+                "internal_files": [],
+                "named_regions": [],
+                "versions": [],
+                "active_version_name": null,
+                "last_open_offset": "0x00000000",
+                "navigation_history": [],
+                "file_size": 0,
+                "block_size": 2048,
+                "cache_max_blocks": 8000,
+                "byte_overlays": {},
+                "original_rows": [
+                    {
+                        "offsets": {
+                            "File": "0x00000000"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000004"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000008"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x0000000C"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000010"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000014"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000018"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x0000001C"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    }
+                ],
+                "rows": [
+                    {
+                        "offsets": {
+                            "File": "0x00000000"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000004"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000008"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x0000000C"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000010"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000014"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000018"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x0000001C"
+                        },
+                        "instruction": "nop",
+                        "bytes_text": "00 00 00 00"
+                    }
+                ],
+                "view_preferences": {
+                    "visible_columns": {
+                        "File": true,
+                        "Instruction": true,
+                        "Bytes": true
+                    },
+                    "decoded_text_tables": [],
+                    "group_bytes": 1
+                }
             }
         ],
-        "active_tab_id": "3c21f4af7437436a9ff09b516b3c2722",
+        "active_tab_id": "95614ab45bd64a73bf525e4dbf35937c",
         "share_view_preferences": false,
         "recent_files": [
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\call_umi.asm",

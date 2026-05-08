@@ -15,6 +15,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
+from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
 
 class BinaryWorkbenchEditorPage(QWidget):
@@ -140,7 +141,11 @@ class BinaryWorkbenchEditorPage(QWidget):
         self.summary.setText(text or BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
 
     def _visible_columns(self) -> list[str]:
-        offsets = [name for name in self._context.reference_offsets if self._context.view_preferences.visible_columns.get(name, True)]
+        offsets = [
+            name
+            for name in self._context.reference_offsets
+            if self._context.view_preferences.visible_columns.get(name, True)
+        ]
         return [*offsets, BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION]
 
     def go_to_offset(self, offset: int) -> None:
@@ -283,29 +288,8 @@ def _symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[s
     return {
         "rows": rows,
         "labels": labels,
-        "symbol_offsets": _symbol_offsets(rows, context.variables, context.equates, labels),
+        "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),
     }
-
-
-def _symbol_offsets(
-    rows: list,
-    variables: dict[str, str],
-    equates: dict[str, str],
-    labels: dict[str, str],
-) -> dict[str, list[str]]:
-    values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
-    for row in rows:
-        offset = row.offsets.get("File", "0x00000000")
-        instruction = row.instruction
-        for name in variables:
-            if f"_{name.lstrip('_')}" in instruction:
-                values[name].append(offset)
-        for name in equates:
-            if f"@{name.lstrip('@')}" in instruction:
-                values[name].append(offset)
-    for name, offset in labels.items():
-        values[name] = [offset]
-    return values
 
 
 def _default_editor_kind(context: BinaryWorkbenchTabContextDTO) -> str:
