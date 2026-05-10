@@ -4,8 +4,10 @@ from typing import Any
 
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
+    BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
+    BinaryWorkbenchSymbolsDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
     BinaryWorkbenchViewPreferencesDTO,
@@ -32,12 +34,18 @@ def _view_preferences(raw: object) -> BinaryWorkbenchViewPreferencesDTO:
         visible_columns=_visible_columns(raw.get("visible_columns")),
         decoded_text_tables=normalize_string_list(raw.get("decoded_text_tables")),
         group_bytes=_group_bytes(raw.get("group_bytes")),
+        uppercase_bytes=_bool(raw.get("uppercase_bytes"), True),
+        uppercase_instructions=_bool(raw.get("uppercase_instructions"), True),
     )
 
 
 def _group_bytes(raw: object) -> int:
     value = raw if isinstance(raw, int) else 1
     return value if value in {1, 2, 4} else 1
+
+
+def _bool(raw: object, default: bool) -> bool:
+    return raw if isinstance(raw, bool) else default
 
 
 def _positive_int(raw: object, default: int) -> int:
@@ -93,6 +101,54 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
     return versions
 
 
+def _lba_filesystems(raw: object) -> list[BinaryWorkbenchLbaFilesystemDTO]:
+    if not isinstance(raw, list):
+        return []
+    filesystems: list[BinaryWorkbenchLbaFilesystemDTO] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        filesystems.append(
+            BinaryWorkbenchLbaFilesystemDTO(
+                name=name,
+                file_identifiers=normalize_string_list(item.get("file_identifiers")),
+                sector_size=_lba_sector_size(item.get("sector_size")),
+                internal_files=_internal_files(item.get("internal_files")),
+            )
+        )
+    return filesystems
+
+
+def _symbols(raw: object) -> list[BinaryWorkbenchSymbolsDTO]:
+    if not isinstance(raw, list):
+        return []
+    symbols: list[BinaryWorkbenchSymbolsDTO] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        symbols.append(
+            BinaryWorkbenchSymbolsDTO(
+                name=name,
+                file_identifiers=normalize_string_list(item.get("file_identifiers")),
+                variables=normalize_string_map(item.get("variables")),
+                equates=normalize_string_map(item.get("equates")),
+                labels=normalize_string_map(item.get("labels")),
+            )
+        )
+    return symbols
+
+
+def _lba_sector_size(raw: object) -> int:
+    value = raw if isinstance(raw, int) else 2352
+    return value if value in {2048, 2334, 2352} else 2352
+
+
 def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     if not isinstance(raw, dict):
         return None
@@ -123,6 +179,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         symbol_offsets=_string_list_map(raw.get("symbol_offsets")),
         search_cache=_string_list_map(raw.get("search_cache")),
         internal_files=_internal_files(raw.get("internal_files")),
+        lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
         versions=_versions(raw.get("versions")),
         active_version_name=str(raw.get("active_version_name"))
@@ -152,6 +209,8 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
             **BinaryWorkbenchStateDTO().directories,
             **normalize_string_map(raw.get("directories")),
         },
+        lba_filesystems=_lba_filesystems(raw.get("lba_filesystems")),
+        symbols=_symbols(raw.get("symbols")),
     )
 
 
@@ -183,6 +242,7 @@ def binary_workbench_state_to_payload(
                     {"name": item.name, "start_lba": item.start_lba}
                     for item in tab.internal_files
                 ],
+                "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
                 "versions": [
                     {
@@ -225,6 +285,8 @@ def binary_workbench_state_to_payload(
                     "visible_columns": dict(tab.view_preferences.visible_columns),
                     "decoded_text_tables": list(tab.view_preferences.decoded_text_tables),
                     "group_bytes": tab.view_preferences.group_bytes,
+                    "uppercase_bytes": tab.view_preferences.uppercase_bytes,
+                    "uppercase_instructions": tab.view_preferences.uppercase_instructions,
                 },
             }
             for tab in state.tabs
@@ -233,6 +295,28 @@ def binary_workbench_state_to_payload(
         "share_view_preferences": state.share_view_preferences,
         "recent_files": list(state.recent_files),
         "directories": dict(state.directories),
+        "lba_filesystems": [
+            {
+                "name": item.name,
+                "file_identifiers": list(item.file_identifiers),
+                "sector_size": item.sector_size,
+                "internal_files": [
+                    {"name": internal.name, "start_lba": internal.start_lba}
+                    for internal in item.internal_files
+                ],
+            }
+            for item in state.lba_filesystems
+        ],
+        "symbols": [
+            {
+                "name": item.name,
+                "file_identifiers": list(item.file_identifiers),
+                "variables": dict(item.variables),
+                "equates": dict(item.equates),
+                "labels": dict(item.labels),
+            }
+            for item in state.symbols
+        ],
     }
 
 

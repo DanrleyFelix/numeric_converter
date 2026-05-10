@@ -30,10 +30,12 @@ class PsxMipsR3000ACodec(CPUArchCodec):
             return b"\x00\x00\x00\x00"
         if normalized.lower() == "nop":
             return b"\x00\x00\x00\x00"
-        if normalized.lower().startswith(("word 0x", ".word 0x")):
+        lower = normalized.lower()
+        if lower.startswith(("word 0x", ".word 0x")):
             try:
-                return int(normalized.split("0x", 1)[1], 16).to_bytes(4, "little")
-            except ValueError:
+                hex_start = lower.index("0x") + 2
+                return int(normalized[hex_start:], 16).to_bytes(4, "little")
+            except (ValueError, IndexError):
                 return None
         if self._keystone is not None:
             try:

@@ -1,0 +1,76 @@
+from pathlib import Path
+
+from src.core.binary_workbench.block_reader import CachedBinaryReader
+from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
+from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
+from src.presentation.ui.components.binary_workbench.editor.page_context_updates import (
+    symbol_updates,
+)
+
+
+class EditorPageBinaryLoadingMixin:
+    def _load_visible_rows(self, offset: int, size: int, direction: int) -> None:
+        if self._loading_visible_rows or self._reader is None:
+            return
+        self._loading_visible_rows = True
+        visible_offset = max(0, offset)
+        self._reader.prefetch_for_offset(visible_offset, direction)
+        data = self._reader.read(visible_offset, size, overlay_bytes(self._context.byte_overlays))
+        rows = build_rows_from_bytes(
+            data,
+            list(self._context.reference_offsets),
+            visible_offset,
+            dict(self._context.reference_offset_bases),
+        )
+        self.grid.render_rows(rows, visible_offset)
+        self._select_pending_offset()
+        self._loading_visible_rows = False
+        self._context = BinaryWorkbenchTabContextDTO(
+            **{
+                **self._context.__dict__,
+                "rows": rows,
+                "file_size": self._reader.file_size,
+                "last_open_offset": f"0x{visible_offset:08X}",
+            }
+        )
+        self.contextChanged.emit(self._context)
+
+    def _update_overlay(self, rows: list) -> None:
+        if self._reader is None:
+            return
+        overlays = dict(self._context.byte_overlays)
+        for row in rows:
+            offset = int(row.offsets.get("File", "0x0"), 16)
+            current = bytes.fromhex(row.bytes_text.replace(" ", ""))
+            original = self._reader.read(offset, len(current), {})
+            key = f"0x{offset:08X}"
+            overlays.pop(key, None) if current == original else overlays.__setitem__(key, row.bytes_text)
+        self._context = BinaryWorkbenchTabContextDTO(
+            **{
+                **self._context.__dict__,
+                "byte_overlays": overlays,
+                **symbol_updates(self._context, rows),
+            }
+        )
+        self.contextChanged.emit(self._context)
+
+    def _reader_for_context(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> CachedBinaryReader | None:
+        if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+            return None
+        if context.read_mode == "assembly" or not context.source_path:
+            return None
+        path = Path(context.source_path)
+        if not path.exists():
+            return None
+        return CachedBinaryReader(path, context.block_size, context.cache_max_blocks)
+
+
+def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:
+    return {
+        int(offset, 16): bytes.fromhex(bytes_text.replace(" ", ""))
+        for offset, bytes_text in values.items()
+    }

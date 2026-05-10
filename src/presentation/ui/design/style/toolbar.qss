@@ -11,12 +11,17 @@ QToolButton {
     color: $text-main;
     padding: $padding-toolbar-button;
     margin: $margin-none;
+    outline: none;
 }
 
 QToolButton:hover {
     background-color: $bg-toolbar-button-hover;
     color: $text-main;
     border: 1px solid transparent;
+}
+
+QToolButton:focus {
+    outline: none;
 }
 
 QToolButton:pressed {

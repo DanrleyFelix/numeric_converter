@@ -10,5 +10,7 @@ class BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT:
 
 class BINARY_WORKBENCH_BYTES_FORMATTER_TEXT:
     TITLE: str = "Bytes Formatter"
-    SUBTITLE: str = "Configure how bytes are grouped in the active binary context."
+    SUBTITLE: str = "Configure typing and grouping for the active binary context."
     GROUP_BYTES_LABEL: str = "Group Bytes"
+    UPPERCASE_BYTES_LABEL: str = "Auto-uppercase Bytes"
+    UPPERCASE_INSTRUCTIONS_LABEL: str = "Auto-uppercase Instructions"

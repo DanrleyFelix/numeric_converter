@@ -10,7 +10,7 @@
         "message": null
     },
     "command": {
-        "active_line": "gp",
+        "active_line": "",
         "history": [
             {
                 "input": "gp = 0x8009AF08",
@@ -159,12 +159,12 @@
     "binary_workbench": {
         "tabs": [
             {
-                "tab_id": "3c21f4af7437436a9ff09b516b3c2722",
+                "tab_id": "7fc1eb6ec9ae47c583298b61d20dec4d",
                 "kind": "binary",
-                "display_name": "WA_MRG.MRG",
-                "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\WA_MRG.MRG",
+                "display_name": "SLUS_014.11",
+                "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
                 "cpu_arch": "PSX - Mips R3000A",
-                "read_mode": "Auto",
+                "read_mode": "bytes",
                 "navigation_mode": "Offset",
                 "reference_offsets": [
                     "File"
@@ -172,119 +172,103 @@
                 "reference_offset_bases": {
                     "File": "0x00000000"
                 },
-                "labels": {
-                    "label_1": "0x34"
+                "labels": {},
+                "equates": {
+                    "test1": "30"
                 },
-                "equates": {},
                 "variables": {
                     "test": "20"
                 },
                 "symbol_offsets": {
                     "test": [],
-                    "label_1": [
-                        "0x34"
-                    ]
+                    "test1": []
                 },
                 "search_cache": {},
                 "internal_files": [],
+                "lba_sector_size": 2352,
                 "named_regions": [],
-                "versions": [
-                    {
-                        "name": "dark hole",
-                        "rows": [
-                            {
-                                "offsets": {
-                                    "File": "0x0000000C"
-                                },
-                                "instruction": "",
-                                "bytes_text": "36 26 00 18"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x0000001C"
-                                },
-                                "instruction": "",
-                                "bytes_text": "38 3A 1D 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x00000024"
-                                },
-                                "instruction": "",
-                                "bytes_text": "3E 3C 1D 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x00000040"
-                                },
-                                "instruction": "",
-                                "bytes_text": "37 37 1A 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x00000048"
-                                },
-                                "instruction": "",
-                                "bytes_text": "03 0C 1C 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x0000004C"
-                                },
-                                "instruction": "",
-                                "bytes_text": "3E 3E 1C 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x0000006C"
-                                },
-                                "instruction": "",
-                                "bytes_text": "16 05 1F 3C"
-                            },
-                            {
-                                "offsets": {
-                                    "File": "0x00000074"
-                                },
-                                "instruction": "",
-                                "bytes_text": "16 19 14 3C"
-                            }
-                        ]
-                    }
-                ],
-                "active_version_name": "dark hole",
+                "versions": [],
+                "active_version_name": null,
                 "last_open_offset": "0x00000000",
                 "navigation_history": [],
-                "file_size": 37748736,
-                "block_size": 512,
+                "file_size": 1902592,
+                "block_size": 2048,
                 "cache_max_blocks": 8000,
                 "byte_overlays": {
-                    "0x0000000C": "36 26 00 18",
-                    "0x0000001C": "38 3A 1D 3C",
-                    "0x00000024": "3E 3C 1D 3C",
-                    "0x00000040": "37 37 1A 3C",
-                    "0x00000048": "03 0C 1C 3C",
-                    "0x0000004C": "3E 3E 1C 3C",
-                    "0x0000006C": "16 05 1F 3C",
-                    "0x00000074": "16 19 14 3C"
+                    "0x00000060": "74 65 72 74",
+                    "0x00000024": "14 00 31 26"
                 },
                 "original_rows": [],
                 "rows": [],
                 "view_preferences": {
                     "visible_columns": {
                         "File": true,
-                        "RAM": true,
-                        "SLUS": false,
                         "Instruction": true,
                         "Bytes": true
                     },
                     "decoded_text_tables": [],
-                    "group_bytes": 1
+                    "group_bytes": 1,
+                    "uppercase_bytes": true,
+                    "uppercase_instructions": true
+                }
+            },
+            {
+                "tab_id": "83679853cba44ee6ae86664e252e69d1",
+                "kind": "binary",
+                "display_name": "Yu-Gi-Oh! Forbidden Memories (USA).bin",
+                "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
+                "cpu_arch": "PSX - Mips R3000A",
+                "read_mode": "bytes",
+                "navigation_mode": "Offset",
+                "reference_offsets": [
+                    "File"
+                ],
+                "reference_offset_bases": {
+                    "File": "0x00000000"
+                },
+                "labels": {},
+                "equates": {},
+                "variables": {},
+                "symbol_offsets": {},
+                "search_cache": {},
+                "internal_files": [
+                    {
+                        "name": "slus",
+                        "start_lba": 24
+                    }
+                ],
+                "lba_sector_size": 2352,
+                "named_regions": [],
+                "versions": [],
+                "active_version_name": null,
+                "last_open_offset": "0x00000000",
+                "navigation_history": [],
+                "file_size": 517872768,
+                "block_size": 2048,
+                "cache_max_blocks": 8000,
+                "byte_overlays": {},
+                "original_rows": [],
+                "rows": [],
+                "view_preferences": {
+                    "visible_columns": {
+                        "File": true,
+                        "Instruction": true,
+                        "Bytes": true
+                    },
+                    "decoded_text_tables": [],
+                    "group_bytes": 1,
+                    "uppercase_bytes": true,
+                    "uppercase_instructions": true
                 }
             }
         ],
-        "active_tab_id": "3c21f4af7437436a9ff09b516b3c2722",
+        "active_tab_id": "7fc1eb6ec9ae47c583298b61d20dec4d",
         "share_view_preferences": false,
         "recent_files": [
+            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
+            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
+            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\WA_MRG.MRG",
+            "C:\\Users\\Danrl\\Downloads\\test.bin",
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\call_umi.asm",
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\dark_hole.asm",
             "C:\\Users\\Danrl\\Downloads\\dark.txt",
@@ -292,18 +276,71 @@
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\Drillroid.asm",
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\ygo - tool droplist editor\\files\\1_original_game\\my_mod\\SLUS_014.11",
             "C:\\Users\\Danrl\\Downloads\\test.asm",
-            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
-            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\WA_MRG.MRG",
-            "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\double_summon.asm"
         ],
         "directories": {
-            "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
+            "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",
             "open_binary": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",
             "open_assembly": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
             "save_file": "C:\\Users\\Danrl\\Downloads",
-            "save_assembly": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects"
-        }
+            "save_assembly": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
+            "lba_filesystem": "C:\\Users\\Danrl\\Downloads",
+            "symbols": ""
+        },
+        "lba_filesystems": [
+            {
+                "name": "Yu-Gi-Oh! Forbidden Memories (USA).bin",
+                "file_identifiers": [
+                    "path:c:\\users\\danrl\\desktop\\danrley\\projetos\\modding\\arquivos_separados\\yu-gi-oh! forbidden memories (usa).bin",
+                    "name:yu-gi-oh! forbidden memories (usa).bin"
+                ],
+                "sector_size": 2352,
+                "internal_files": [
+                    {
+                        "name": "slus",
+                        "start_lba": 24
+                    }
+                ]
+            },
+            {
+                "name": "WA_MRG.MRG",
+                "file_identifiers": [
+                    "path:c:\\users\\danrl\\desktop\\danrley\\projetos\\modding\\arquivos_separados\\wa_mrg.mrg",
+                    "name:wa_mrg.mrg"
+                ],
+                "sector_size": 2352,
+                "internal_files": [
+                    {
+                        "name": "field",
+                        "start_lba": 1000
+                    }
+                ]
+            }
+        ],
+        "symbols": [
+            {
+                "name": "Yu-Gi-Oh! Forbidden Memories (USA).bin",
+                "file_identifiers": [
+                    "path:c:\\users\\danrl\\desktop\\danrley\\projetos\\modding\\arquivos_separados\\yu-gi-oh! forbidden memories (usa).bin",
+                    "name:yu-gi-oh! forbidden memories (usa).bin"
+                ],
+                "variables": {},
+                "equates": {},
+                "labels": {}
+            },
+            {
+                "name": "SLUS_014.11",
+                "file_identifiers": [
+                    "path:c:\\users\\danrl\\desktop\\danrley\\projetos\\modding\\arquivos_separados\\slus_014.11",
+                    "name:slus_014.11",
+                    "path:c:\\users\\danrl\\desktop\\danrley\\projetos\\modding\\arquivos_separados\\yu-gi-oh! forbidden memories (usa).bin",
+                    "name:yu-gi-oh! forbidden memories (usa).bin"
+                ],
+                "variables": {},
+                "equates": {},
+                "labels": {}
+            }
+        ]
     },
     "key_panel_visible": false,
     "auto_convert_enabled": true,

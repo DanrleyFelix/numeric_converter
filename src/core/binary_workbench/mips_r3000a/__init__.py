@@ -6,6 +6,14 @@ from src.core.binary_workbench.mips_r3000a.row_builder import (
     extract_labels_from_instructions,
     rebuild_rows_with_offsets,
 )
+from src.core.binary_workbench.mips_r3000a.preprocessor import (
+    preprocess_instruction,
+    raw_mips_instruction,
+)
+from src.core.binary_workbench.mips_r3000a.hazard_validator import (
+    MipsHazard,
+    validate_mips_hazards,
+)
 
 
 __all__ = [
@@ -15,4 +23,8 @@ __all__ = [
     "build_scratch_rows",
     "extract_labels_from_instructions",
     "rebuild_rows_with_offsets",
+    "preprocess_instruction",
+    "raw_mips_instruction",
+    "MipsHazard",
+    "validate_mips_hazards",
 ]

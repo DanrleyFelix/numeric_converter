@@ -12,12 +12,12 @@ def symbol_offsets(
     values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
     for row in rows:
         offset = row.offsets.get("File", "0x00000000")
-        instruction = row.instruction
+        instruction = row.instruction.upper()
         for name in variables:
-            if f"_{name.lstrip('_')}" in instruction:
+            if f"_{name.lstrip('_')}".upper() in instruction:
                 values[name].append(offset)
         for name in equates:
-            if f"@{name.lstrip('@')}" in instruction:
+            if f"@{name.lstrip('@')}".upper() in instruction:
                 values[name].append(offset)
     for name, offset in labels.items():
         values[name] = [offset]

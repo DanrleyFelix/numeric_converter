@@ -25,6 +25,8 @@ class BinaryWorkbenchInternalFileDialog(QDialog):
             self.items.setCurrentRow(0)
         ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.OK, self)
         ok.setObjectName("preferences-ok")
+        ok.setFocusPolicy(Qt.NoFocus)
+        ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
         layout.addWidget(title)
         layout.addWidget(subtitle)

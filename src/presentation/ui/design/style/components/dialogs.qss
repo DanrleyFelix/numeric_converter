@@ -41,6 +41,7 @@ QTabBar#binary-workbench-tab-bar {
     qproperty-drawBase: 0;
     background-color: transparent;
     border: none;
+    outline: none;
     font-size: 10px;
 }
 
@@ -64,12 +65,14 @@ QTabBar#binary-workbench-tab-bar::tab {
     padding: $space-4 $space-8;
     margin-right: $space-4;
     font-size: 10px;
+    outline: none;
 }
 
 QTabBar#binary-workbench-tab-bar::tab:selected {
     background-color: $bg-workspace-header;
     border-color: $border-workspace-shell;
     color: $text-main;
+    outline: none;
 }
 
 QTabBar#binary-workbench-tab-bar::tab:hover:!selected {
@@ -162,6 +165,7 @@ QLabel#binary-workbench-column-label {
 }
 
 QPlainTextEdit#binary-workbench-offsets-panel,
+QPlainTextEdit#binary-workbench-raw-instructions-panel,
 QPlainTextEdit#binary-workbench-bytes-panel,
 QPlainTextEdit#binary-workbench-instructions-panel {
     background-color: $bg-workspace-shell;
@@ -196,6 +200,13 @@ QComboBox#binary-workbench-dialog-input {
     border-radius: $radius-10;
     min-height: 32px;
     padding: $space-6 $space-10;
+}
+
+QComboBox#binary-workbench-dialog-input::drop-down {
+    background-color: transparent;
+    border: none;
+    border-top-right-radius: $radius-10;
+    border-bottom-right-radius: $radius-10;
 }
 
 QListWidget#binary-workbench-search-results {
@@ -282,4 +293,11 @@ QPushButton#preferences-ok:hover,
 QPushButton#preferences-cancel:hover,
 QPushButton#help-nav-button:hover {
     background-color: $bg-toolbar-button-hover;
+}
+
+QPushButton#binary-workbench-tab-close:focus,
+QPushButton#preferences-ok:focus,
+QPushButton#preferences-cancel:focus,
+QPushButton#help-nav-button:focus {
+    outline: none;
 }

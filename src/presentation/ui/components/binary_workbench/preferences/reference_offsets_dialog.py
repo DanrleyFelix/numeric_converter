@@ -32,6 +32,8 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
             self._append_row(layout, "", "0x00000000", False)
         ok = QPushButton("OK", self)
         ok.setObjectName("preferences-ok")
+        ok.setFocusPolicy(Qt.NoFocus)
+        ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
         layout.addWidget(ok, 0, Qt.AlignRight)
 
@@ -64,6 +66,7 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         base_field.setPlaceholderText(BINARY_WORKBENCH_TEXT.REFERENCE_BASE)
         visible_box = QCheckBox(BINARY_WORKBENCH_TEXT.REFERENCE_VISIBLE, self)
         visible_box.setChecked(visible)
+        visible_box.setCursor(Qt.PointingHandCursor)
         row.addWidget(name_field, 2)
         row.addWidget(base_field, 2)
         row.addWidget(visible_box, 1)

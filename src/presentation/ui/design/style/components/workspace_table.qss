@@ -54,7 +54,19 @@ QPushButton#workspace-row-remove {
 }
 
 QPushButton#workspace-row-remove:hover {
+    background-color: $bg-workspace-remove-hover;
+    border: none;
+    color: $text-danger;
+}
+
+QPushButton#workspace-row-remove:pressed {
     background-color: transparent;
+    border: none;
+    color: $text-main;
+}
+
+QPushButton#workspace-row-remove:hover:pressed {
+    background-color: $bg-workspace-remove-hover;
     border: none;
     color: $text-danger;
 }

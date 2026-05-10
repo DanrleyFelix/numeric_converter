@@ -4,40 +4,18 @@ import re
 
 from PySide6.QtGui import QColor, QTextCharFormat
 
+from src.core.binary_workbench.mips_r3000a import preprocess_instruction
 from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
+    PSX_MIPS_KNOWN_MNEMONICS,
+)
 
 BYTE_TOKEN = re.compile(r"[0-9A-Fa-f]{2}")
 HEX_TOKEN = re.compile(r"0x[0-9A-Fa-f]+")
 REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
-COMPLETION_TOKEN = re.compile(r"[@_]?[A-Za-z_][A-Za-z0-9_]*")
+COMPLETION_TOKEN = re.compile(r"[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")
 EQUATE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*")
-BRANCHES = {"beq", "bne", "bgtz", "blez", "bltz", "bgez", "beqz", "bnez"}
-JUMPS = {"j", "jal", "jr", "jalr"}
-KNOWN_MNEMONICS = {
-    *BRANCHES,
-    *JUMPS,
-    "add",
-    "addiu",
-    "addu",
-    "subu",
-    "ori",
-    "lui",
-    "lw",
-    "sw",
-    "lh",
-    "lhu",
-    "sh",
-    "lb",
-    "lbu",
-    "sb",
-    "sltiu",
-    "nop",
-    "word",
-    ".word",
-    ".byte",
-    ".half",
-}
 ROW_BYTES = 4
 RAM_BASE = 0x80010000
 
@@ -53,18 +31,7 @@ def assembly_for_encoding(
     variables: dict[str, str],
     equates: dict[str, str],
 ) -> str:
-    code = strip_label(text.split(";", 1)[0]).strip()
-    for name, value in variables.items():
-        code = code.replace(f"_{name.lstrip('_')}", value)
-    for name, value in equates.items():
-        code = code.replace(f"@{name.lstrip('@')}", value)
-    for name, value in labels.items():
-        code = re.sub(
-            rf"\b{re.escape(name)}\b",
-            f"0x{RAM_BASE + safe_int(value, address):X}",
-            code,
-        )
-    return code
+    return preprocess_instruction(text, address, labels, variables, equates)
 
 
 def safe_int(value: str, fallback: int = 0) -> int:
@@ -88,20 +55,6 @@ def text_format(color: str) -> QTextCharFormat:
     return style
 
 
-def mnemonic_color(token: str) -> str:
-    mnemonic = token.strip().lower()
-    return "#F08080" if mnemonic in BRANCHES or mnemonic in JUMPS else "#A0DC45"
-
-
-def register_color(token: str) -> str:
-    register = token.lstrip("$").lower()
-    if register.startswith(("a", "v")):
-        return "#D4AF37"
-    if register.startswith(("t", "s")) and register != "sp":
-        return "#41C1EC"
-    return "#00CFFF"
-
-
 def strip_label(text: str) -> str:
     _, code = code_without_label(text)
     return code
@@ -122,20 +75,45 @@ def invalid_instruction(text: str) -> bool:
     if not code:
         return False
     mnemonic = code.split()[0].lower()
-    return mnemonic not in KNOWN_MNEMONICS
-
-
-def parse_bytes(text: str) -> bytes | None:
-    raw = text.replace(" ", "").strip()
-    if len(raw) != 8:
-        return None
-    try:
-        return bytes.fromhex(raw)
-    except ValueError:
-        return None
+    return mnemonic not in PSX_MIPS_KNOWN_MNEMONICS
 
 
 def group_bytes_text(text: str, group_size: int) -> str:
-    raw = text.replace(" ", "")
+    raw = "".join(text.split()).upper()
+    return format_byte_groups(raw, group_size)
+
+
+def normalize_bytes_text(text: str, group_size: int, uppercase: bool) -> str:
+    raw = _normalized_byte_line(text, uppercase)
+    return "\n".join(
+        format_byte_groups(raw[index : index + (ROW_BYTES * 2)], group_size)
+        for index in range(0, len(raw), ROW_BYTES * 2)
+    )
+
+
+def _normalized_byte_line(line: str, uppercase: bool) -> str:
+    raw = "".join(line.split())
+    return raw.upper() if uppercase else raw
+
+
+def normalize_instruction_text(text: str, uppercase: bool) -> str:
+    normalized = text.upper() if uppercase else text
+    return re.sub(r"(?<=0)X", "x", normalized)
+
+
+def format_byte_groups(raw: str, group_size: int) -> str:
     width = group_size * 2
     return " ".join(raw[index : index + width] for index in range(0, len(raw), width))
+
+
+def byte_cursor_position(text: str, raw_index: int) -> int:
+    if raw_index <= 0:
+        return 0
+    count = 0
+    for position, char in enumerate(text):
+        if char.isspace():
+            continue
+        count += 1
+        if count >= raw_index:
+            return position + 1
+    return len(text)

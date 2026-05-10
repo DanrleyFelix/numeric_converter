@@ -2,8 +2,11 @@ from pathlib import Path
 
 from src.modules.dtos import (
     ApplicationContextDTO,
+    BinaryWorkbenchInternalFileDTO,
+    BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
+    BinaryWorkbenchSymbolsDTO,
     BinaryWorkbenchTabContextDTO,
     CommandContextDTO,
     ConverterStateDTO,
@@ -54,6 +57,23 @@ def test_application_context_roundtrip(tmp_path: Path):
             active_tab_id="binary-1",
             recent_files=["C:/tmp/sample.bin"],
             directories={"open_binary": "C:/tmp", "open_assembly": "", "save_file": "C:/tmp", "save_assembly": ""},
+            lba_filesystems=[
+                BinaryWorkbenchLbaFilesystemDTO(
+                    name="disc-map",
+                    file_identifiers=["name:sample.bin"],
+                    sector_size=2048,
+                    internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
+                )
+            ],
+            symbols=[
+                BinaryWorkbenchSymbolsDTO(
+                    name="shared-symbols",
+                    file_identifiers=["name:sample.bin"],
+                    variables={"variable1": "20"},
+                    equates={"equate1": "0x34"},
+                    labels={"label1": "0x00000000"},
+                )
+            ],
         ),
         key_panel_visible=False,
     )
@@ -81,6 +101,8 @@ def test_application_context_roundtrip(tmp_path: Path):
                     **BinaryWorkbenchStateDTO().directories,
                     **context.binary_workbench.directories,
                 },
+                lba_filesystems=list(context.binary_workbench.lba_filesystems),
+                symbols=list(context.binary_workbench.symbols),
             ),
         }
     )

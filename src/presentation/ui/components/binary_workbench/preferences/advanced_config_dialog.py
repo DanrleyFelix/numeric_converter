@@ -31,6 +31,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         arch_label = QLabel(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.CPU_ARCH_LABEL, self)
         arch_label.setObjectName("preferences-section-title")
         self.combo = QComboBox(self)
+        self.combo.setCursor(Qt.PointingHandCursor)
         self.combo.addItem(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.OPTION_PSX_MIPS_R3000A)
         self.combo.setCurrentText(
             current_arch or BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.OPTION_PSX_MIPS_R3000A
@@ -38,6 +39,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         read_mode_label = QLabel(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.READ_MODE_LABEL, self)
         read_mode_label.setObjectName("preferences-section-title")
         self.read_mode_combo = QComboBox(self)
+        self.read_mode_combo.setCursor(Qt.PointingHandCursor)
         self.read_mode_combo.addItems(
             [
                 BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
@@ -62,6 +64,8 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         )
         ok = QPushButton("OK", self)
         ok.setObjectName("preferences-ok")
+        ok.setFocusPolicy(Qt.NoFocus)
+        ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
         layout.addWidget(title)
         layout.addWidget(subtitle)

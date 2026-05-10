@@ -9,9 +9,24 @@ from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QComboBox, QLineEdit, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND, BINARY_WORKBENCH_TEXT
+from src.modules.dtos import (
+    BinaryWorkbenchInternalFileDTO,
+    BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchTabContextDTO,
+)
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.environment import BinaryWorkbenchSymbolsDialog
+from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
+    PSX_MIPS_HIGHLIGHTER,
+)
+from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
+    psx_mips_highlight_color,
+)
+from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.file_dialogs import BinaryWorkbenchLbaFilesystemDialog
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
@@ -189,7 +204,7 @@ def test_binary_workbench_uses_separate_offset_columns_and_editable_panels(tmp_p
     assert instruction_panel.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
     assert isinstance(close_button, QPushButton)
     assert close_button.text() == "X"
-    assert headers == ["File", "Bytes", "Instruction"]
+    assert headers == ["File", "Raw Instructions", "Bytes", "Instruction"]
     assert summary.text() == "Selected: none | Length: 0 bytes"
     assert body_scroll is not None
 
@@ -212,6 +227,50 @@ def test_binary_workbench_instruction_and_bytes_edit_roundtrip(tmp_path: Path):
     assert surface.instructions.toPlainText().splitlines()[0] != ""
 
 
+def test_binary_workbench_raw_instructions_show_preprocessed_mips(tmp_path: Path):
+    assembly_path = tmp_path / "symbols.asm"
+    assembly_path.write_text(
+        "loop: addiu $s1, $zero, _variable1 ; comment\n"
+        "addiu $s2, $zero, @equate1\n"
+        "j loop\n"
+        "li $v0, 1\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(assembly_path)
+    current = tool.tabs.current_context()
+    assert current is not None
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, current.labels)
+    page = tool.tabs.currentWidget()
+    raw_lines = page.grid.raw_instructions.toPlainText().split("\n")  # type: ignore[attr-defined]
+    rows = tool.tabs.current_context().rows  # type: ignore[union-attr]
+
+    assert raw_lines == ["addiu $s1, $zero, 20", "addiu $s2, $zero, 0x34", "j 0x80010000", ""]
+    assert rows[0].bytes_text == "14 00 11 24"
+    assert rows[1].bytes_text == "34 00 12 24"
+
+
+def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "lw $s1, 0($s0)\naddiu $s2, $s1, 1\nj 0x80010000\njal 0x80010010"
+    )
+    _app().processEvents()
+
+    assert page.grid.raw_instructions.isReadOnly() is True  # type: ignore[attr-defined]
+    assert len(page.grid.raw_instructions.extraSelections()) == 2  # type: ignore[attr-defined]
+
+
 def test_binary_workbench_reads_asm_sources_as_text_by_default(tmp_path: Path):
     assembly_path = tmp_path / "double_summon.asm"
     assembly_path.write_text("addiu v1, v1, 0x1F4\nlhu v1, 0xC(s1)\n", encoding="utf-8")
@@ -226,8 +285,28 @@ def test_binary_workbench_reads_asm_sources_as_text_by_default(tmp_path: Path):
 
     assert current is not None and current.read_mode == "assembly"
     assert page is not None
-    assert page.grid.instructions.toPlainText().splitlines()[0] == "addiu v1, v1, 0x1F4"  # type: ignore[attr-defined]
+    assert page.grid.instructions.toPlainText().splitlines()[0] == "ADDIU V1, V1, 0x1F4"  # type: ignore[attr-defined]
     assert page.grid.bytes.toPlainText().splitlines()[0] != ""  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_applies_uppercase_when_loading_binary_windows(tmp_path: Path):
+    binary_path = tmp_path / "scrolling.bin"
+    binary_path.write_bytes(b"\xF4\x01\x63\x24" * 128)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+
+    assert page is not None
+    assert "ADDIU" in page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+    scrollbar = page.grid.scrollbar  # type: ignore[attr-defined]
+    scrollbar.setValue(scrollbar.maximum())
+    _app().processEvents()
+
+    assert "ADDIU" in page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_tabs_use_truncated_labels_and_tooltips(tmp_path: Path):
@@ -366,7 +445,7 @@ def test_binary_workbench_saves_assembly_copy_and_persists_directory(tmp_path: P
     _app().processEvents()
 
     assert tool.tabs.save_current_assembly_copy(output_path) is True
-    assert "addiu $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
+    assert "ADDIU $SP,$SP,-0x10" in output_path.read_text(encoding="utf-8")
     assert tool.export_state().directories["save_assembly"] == str(output_path.parent)
 
 
@@ -385,7 +464,7 @@ def test_binary_workbench_reference_offsets_adds_visible_offset_column(tmp_path:
     headers = [label.text() for label in tool.findChildren(QLabel, "binary-workbench-column-label")]
     offset_panels = tool.findChildren(QPlainTextEdit, "binary-workbench-offsets-panel")
 
-    assert headers == ["File", "ram_offset", "Bytes", "Instruction"]
+    assert headers == ["File", "ram_offset", "Raw Instructions", "Bytes", "Instruction"]
     assert len(offset_panels) == 2
     assert offset_panels[1].toPlainText().splitlines()[0] == "0x80010000"
 
@@ -405,6 +484,23 @@ def test_binary_workbench_go_to_dialog_resolves_extra_offsets(tmp_path: Path):
     dialog.value.setText("0x80010040")
 
     assert dialog.selected_offsets() == [0x40]
+
+
+def test_binary_workbench_go_to_resolves_lba_filesystem_name(tmp_path: Path):
+    _app()
+    dialog = BinaryWorkbenchGoToDialog(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="tab",
+            kind="binary",
+            display_name="disc.bin",
+            internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
+            lba_sector_size=2048,
+        )
+    )
+    dialog.target.setCurrentText(BINARY_WORKBENCH_TEXT.INTERNAL_FILE_TARGET)
+    dialog.value.setText("slus")
+
+    assert dialog.selected_offsets() == [24 * 2048]
 
 
 def test_binary_workbench_go_to_supports_unaligned_offsets_and_labels(tmp_path: Path):
@@ -549,7 +645,25 @@ def test_binary_workbench_ctrl_s_persists_open_assembly_source(tmp_path: Path):
     _app().processEvents()
 
     assert tool.tabs.save_current_source_file() is True
-    assert assembly_path.read_text(encoding="utf-8") == "addiu $sp,$sp,-0x10"
+    assert assembly_path.read_text(encoding="utf-8") == "ADDIU $SP,$SP,-0x10"
+
+
+def test_binary_workbench_save_current_assembly_source_uses_assembly_status(tmp_path: Path):
+    assembly_path = tmp_path / "call_umi.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("jal 0x80010000")  # type: ignore[attr-defined]
+    _app().processEvents()
+    tool._save_current_tab()
+
+    assert assembly_path.read_text(encoding="utf-8") == "JAL 0x80010000"
+    assert tool.footer_status.text() == 'Saved assembly/code file "call_umi.asm".'
 
 
 def test_binary_workbench_save_uses_last_focused_editor_after_focus_moves(tmp_path: Path):
@@ -606,7 +720,7 @@ def test_binary_workbench_symbols_rows_keep_editable_kind_dropdown():
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
 
     assert len(combos) >= 2
-    combos[1].setCurrentText("Label")
+    combos[-1].setCurrentText("Label")
     variables, _, labels = dialog.values()
 
     assert variables == {}
@@ -621,16 +735,21 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
     fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
     add_button = dialog.findChildren(QPushButton, "preferences-ok")[0]
-    first_row_fields = fields[2:4]
+    first_row_fields = fields[3:5]
 
-    assert {combo.width() for combo in combos} == {160}
-    assert {field.width() for field in fields} == {160}
+    assert fields[0].width() == 158
+    assert dialog.minimumWidth() == 680
+    assert dialog.width() == 760
+    assert {combo.width() for combo in combos} == {132}
+    assert {field.width() for field in fields[1:]} == {132}
     assert {combo.height() for combo in combos} == {46}
     assert {field.height() for field in fields} == {46}
     assert add_button.width() == 160
-    assert combos[1].mapTo(dialog, QPoint()).x() == combos[0].mapTo(dialog, QPoint()).x()
-    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == fields[0].mapTo(dialog, QPoint()).x()
-    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
+    assert combos[2].mapTo(dialog, QPoint()).x() == combos[1].mapTo(dialog, QPoint()).x()
+    assert fields[5].mapTo(dialog, QPoint()).x() == first_row_fields[0].mapTo(dialog, QPoint()).x()
+    assert fields[6].mapTo(dialog, QPoint()).x() == first_row_fields[1].mapTo(dialog, QPoint()).x()
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() < 190
 
 
 def test_binary_workbench_lba_filesystem_uses_editable_rows():
@@ -639,22 +758,88 @@ def test_binary_workbench_lba_filesystem_uses_editable_rows():
     dialog.show()
     _app().processEvents()
     fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
+    combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
     body = dialog.findChild(QWidget, "workspace-table-body")
     rows = dialog.findChildren(QWidget, "workspace-row")
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
 
-    assert len(fields) == 4
+    assert len(fields) == 5
+    assert dialog.minimumWidth() == 760
+    assert dialog.width() == 820
     assert body is not None
     assert rows
-    assert {field.width() for field in fields} == {160}
+    assert fields[0].width() == 288
+    assert {field.width() for field in fields[1:]} == {240}
+    assert {combo.width() for combo in combos} == {240}
     assert {field.height() for field in fields} == {46}
-    assert fields[2].mapTo(dialog, QPoint()).x() == fields[0].mapTo(dialog, QPoint()).x()
+    assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["Save"].mapTo(dialog, QPoint()).y()
+    assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["OK"].mapTo(dialog, QPoint()).y()
+    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() < 190
     assert fields[3].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
-    fields[2].setText("WA_MRG.MRG")
-    fields[3].setText("10010")
+    assert fields[4].mapTo(dialog, QPoint()).x() == fields[2].mapTo(dialog, QPoint()).x()
+    fields[3].setText("WA_MRG.MRG")
+    fields[4].setText("10010")
     mappings = dialog.mappings()
 
     assert mappings[0].name == "WA_MRG.MRG"
     assert mappings[0].start_lba == 10010
+
+
+def test_binary_workbench_lba_filesystem_dialog_loads_json_library(tmp_path: Path):
+    _app()
+    library_path = tmp_path / "disc-map.json"
+    library_path.write_text(
+        '{"name":"disc-map","sector_size":2048,"internal_files":[{"name":"SLUS","start_lba":24}]}',
+        encoding="utf-8",
+    )
+    dialog = BinaryWorkbenchLbaFilesystemDialog([])
+
+    assert dialog.load_library_json(library_path) is True
+
+    assert dialog.selected_lba_sector_size() == 2048
+    assert dialog.loaded_library_name() == "disc-map"
+    assert dialog.mappings() == [BinaryWorkbenchInternalFileDTO("SLUS", 24)]
+
+
+def test_binary_workbench_lba_filesystem_dialog_saves_json_library(tmp_path: Path):
+    _app()
+    library_path = tmp_path / "disc-map.json"
+    dialog = BinaryWorkbenchLbaFilesystemDialog(
+        [BinaryWorkbenchInternalFileDTO("SLUS", 24)],
+        2048,
+        default_library_name="disc-map",
+    )
+
+    assert dialog.save_library_json(library_path) is True
+
+    assert dialog.result() == 0
+    assert dialog.should_save_library() is True
+    assert dialog.saved_library_name() == "disc-map"
+    assert '"sector_size": 2048' in library_path.read_text(encoding="utf-8")
+    assert '"start_lba": 24' in library_path.read_text(encoding="utf-8")
+
+
+def test_binary_workbench_persists_lba_filesystem_for_same_filename(tmp_path: Path):
+    first = tmp_path / "one" / "disc.bin"
+    second = tmp_path / "two" / "disc.bin"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_bytes(bytes(4096))
+    second.write_bytes(bytes(4096))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(first)
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("slus", 24)], 2048)
+    tool.tabs.save_current_lba_filesystem("shared-disc")
+    tool.open_binary_path(second)
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.lba_sector_size == 2048
+    assert current.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
 
 
 def test_binary_workbench_symbols_resolve_labels_and_multiple_offsets(tmp_path: Path):
@@ -688,6 +873,157 @@ def test_binary_workbench_symbols_resolve_labels_and_multiple_offsets(tmp_path: 
     assert dialog.selected_offsets() == [0, 12]
 
 
+def test_binary_workbench_symbols_dialog_loads_json_library(tmp_path: Path):
+    _app()
+    library_path = tmp_path / "shared-symbols.json"
+    library_path.write_text(
+        (
+            '{"name":"shared-symbols","variables":{"variable1":"20"},'
+            '"equates":{"equate1":"0x34"},"labels":{"label1":"0x00000000"}}'
+        ),
+        encoding="utf-8",
+    )
+    dialog = BinaryWorkbenchSymbolsDialog({}, {}, {})
+
+    assert dialog.load_library_json(library_path) is True
+
+    assert dialog.values() == (
+        {"variable1": "20"},
+        {"equate1": "0x34"},
+        {"label1": "0x00000000"},
+    )
+    assert dialog.loaded_library_name() == "shared-symbols"
+
+
+def test_binary_workbench_symbols_dialog_saves_json_library(tmp_path: Path):
+    _app()
+    library_path = tmp_path / "shared-symbols.json"
+    dialog = BinaryWorkbenchSymbolsDialog(
+        {"variable1": "20"},
+        {"equate1": "0x34"},
+        {"label1": "0x00000000"},
+        default_library_name="shared-symbols",
+    )
+
+    assert dialog.save_library_json(library_path) is True
+
+    payload = library_path.read_text(encoding="utf-8")
+    assert dialog.result() == 0
+    assert dialog.should_save_library() is True
+    assert dialog.saved_library_name() == "shared-symbols"
+    assert '"variable1": "20"' in payload
+    assert '"equate1": "0x34"' in payload
+    assert '"label1": "0x00000000"' in payload
+
+
+def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
+    _app()
+    editor = WorkbenchEditor()
+    editor.set_symbol_helpers({"label1": "0x0"}, {"variable1": "20"}, {"equate1": "0x34"})
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Underscore, Qt.NoModifier, "_"))
+
+    assert editor._current_completion_prefix() == "_"
+    assert editor._completion_model.stringList() == ["_variable1"]
+    assert editor._candidates_for_prefix("_") == ["_variable1"]
+    assert editor._candidates_for_prefix("_VAR") == ["_variable1"]
+    assert editor._candidates_for_prefix("@") == ["@equate1"]
+    assert editor._candidates_for_prefix("@EQU") == ["@equate1"]
+
+
+def test_binary_workbench_symbol_completion_popup_selects_first_match():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.resize(320, 120)
+    editor.show()
+    editor.set_symbol_helpers({}, {"variable1": "20"}, {"equate1": "0x34"})
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Underscore, Qt.NoModifier, "_"))
+    app.processEvents()
+
+    popup = editor._completer.popup()
+    assert popup.currentIndex().data() == "_variable1"
+    assert popup.width() >= BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MIN_WIDTH
+
+
+def test_binary_workbench_symbol_completion_accepts_current_symbol():
+    _app()
+    editor = WorkbenchEditor()
+    editor.set_symbol_helpers({}, {"variable1": "20"}, {})
+    editor.setPlainText("_VAR")
+    cursor = editor.textCursor()
+    cursor.setPosition(4)
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+    editor._completer.popup().show()
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Tab, Qt.NoModifier))
+
+    assert editor.toPlainText() == "_variable1"
+
+
+def test_binary_workbench_symbol_completion_enter_keeps_cursor_line():
+    _app()
+    editor = WorkbenchEditor()
+    editor.set_symbol_helpers({}, {"variable1": "20"}, {})
+    editor.setPlainText("NOP\nADDIU $S1, $S1, _\nNOP\nNOP")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("NOP\nADDIU $S1, $S1, _"))
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+    moved = editor.textCursor()
+    moved.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(moved)
+    editor._completer.popup().show()
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier))
+
+    assert editor.toPlainText().splitlines()[1] == "ADDIU $S1, $S1, _variable1"
+    assert editor.textCursor().blockNumber() == 1
+
+
+def test_binary_workbench_highlighter_groups_use_distinct_colors():
+    colors = [
+        PSX_MIPS_HIGHLIGHTER["label"],
+        PSX_MIPS_HIGHLIGHTER["equate"],
+        PSX_MIPS_HIGHLIGHTER["variable"],
+        psx_mips_highlight_color("mnemonic", "beq"),
+        psx_mips_highlight_color("mnemonic", "j"),
+        psx_mips_highlight_color("mnemonic", "lw"),
+        psx_mips_highlight_color("mnemonic", "mfhi"),
+        psx_mips_highlight_color("mnemonic", "addiu"),
+        psx_mips_highlight_color("registers", "s0"),
+        psx_mips_highlight_color("registers", "a0"),
+        psx_mips_highlight_color("registers", "sp"),
+        psx_mips_highlight_color("registers", "ra"),
+    ]
+
+    assert len(colors) == len(set(colors))
+
+
+def test_binary_workbench_persists_symbols_for_same_filename(tmp_path: Path):
+    first = tmp_path / "one" / "shared.asm"
+    second = tmp_path / "two" / "shared.asm"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_text("nop\n", encoding="utf-8")
+    second.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(first)
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {"label1": "0x00000000"})
+    tool.tabs.save_current_symbols("shared-symbols")
+    tool.open_assembly_path(second)
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.variables == {"variable1": "20"}
+    assert current.equates == {"equate1": "0x34"}
+    assert current.labels["label1"] == "0x00000000"
+
+
 def test_binary_workbench_instruction_tab_inserts_three_spaces(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -717,6 +1053,69 @@ def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: P
     _app().processEvents()
 
     assert tool.tabs.has_unsaved_changes(0) is True
+
+
+def test_binary_workbench_detects_deleted_instruction_rows(tmp_path: Path):
+    assembly_path = tmp_path / "trimmed.asm"
+    assembly_path.write_text("nop\naddiu $sp,$sp,-0x10\njr $ra\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("nop\njr $ra")  # type: ignore[attr-defined]
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert len(current.rows) == 2
+    assert tool.tabs.has_unsaved_changes(0) is True
+
+
+def test_binary_workbench_bytes_editor_auto_formats_and_uppercases(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.bytes.setPlainText("aa55ccdd")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert page.grid.bytes.toPlainText() == "AA 55 CC DD"  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_instruction_hex_prefix_keeps_lowercase_x(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("jal 0x80010000")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert page.grid.instructions.toPlainText() == "JAL 0x80010000"  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_bytes_formatter_has_separate_uppercase_preferences(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    tool.tabs.set_current_bytes_formatter(2, False, False)
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.view_preferences.group_bytes == 2
+    assert current.view_preferences.uppercase_bytes is False
+    assert current.view_preferences.uppercase_instructions is False
 
 
 def test_binary_workbench_native_close_dialog_maps_windows_buttons():

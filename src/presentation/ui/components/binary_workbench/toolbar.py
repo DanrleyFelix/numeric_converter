@@ -102,4 +102,5 @@ class BinaryWorkbenchToolbar(QFrame):
         button.setMinimumWidth(TOOLBAR_SIZE.ACTION_MIN_WIDTH)
         button.setAutoRaise(True)
         button.setCursor(Qt.PointingHandCursor)
+        button.setFocusPolicy(Qt.NoFocus)
         return button

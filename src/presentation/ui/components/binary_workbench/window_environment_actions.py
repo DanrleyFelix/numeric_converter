@@ -1,0 +1,95 @@
+from pathlib import Path
+
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
+    BINARY_WORKBENCH_TIMING,
+)
+from src.presentation.ui.components.binary_workbench.environment import BinaryWorkbenchSymbolsDialog
+from src.presentation.ui.components.binary_workbench.file_dialogs import (
+    BinaryWorkbenchInternalFileDialog,
+    BinaryWorkbenchLbaFilesystemDialog,
+)
+from src.presentation.ui.components.binary_workbench.preferences import (
+    BinaryWorkbenchAdvancedConfigDialog,
+    BinaryWorkbenchBytesFormatterDialog,
+    BinaryWorkbenchReferenceOffsetsDialog,
+)
+
+
+class BinaryWorkbenchWindowEnvironmentMixin:
+    def _open_advanced_configuration(self) -> None:
+        current = self.tabs.current_context()
+        dialog = BinaryWorkbenchAdvancedConfigDialog(
+            current.cpu_arch if current else "",
+            current.read_mode if current else BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
+            current.block_size if current else BINARY_WORKBENCH_LAYOUT.DEFAULT_BLOCK_SIZE,
+            current.cache_max_blocks if current else BINARY_WORKBENCH_LAYOUT.DEFAULT_CACHE_MAX_BLOCKS,
+            self,
+        )
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.tabs.set_current_advanced_config(dialog.selected_arch(), dialog.selected_read_mode(), dialog.selected_block_size(), dialog.selected_cache_max_blocks())
+
+    def _open_lba_filesystem(self) -> None:
+        current = self.tabs.current_context()
+        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            return
+        dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, self.tabs.export_state().lba_filesystems, current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
+        dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
+            if dialog.should_save_library() or dialog.loaded_library_name():
+                self.tabs.save_current_lba_filesystem(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+
+    def _open_symbols(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchSymbolsDialog(
+            current.variables,
+            current.equates,
+            current.labels,
+            self.tabs.export_state().symbols,
+            current.display_name,
+            self.tabs.directory_for(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY),
+            self,
+        )
+        dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        variables, equates, labels = dialog.values()
+        self.tabs.set_current_symbols(variables, equates, labels)
+        if dialog.should_save_library() or dialog.loaded_library_name():
+            self.tabs.save_current_symbols(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+
+    def _open_bytes_formatter(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchBytesFormatterDialog(current.view_preferences.group_bytes, current.view_preferences.uppercase_bytes, current.view_preferences.uppercase_instructions, self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.tabs.set_current_bytes_formatter(dialog.selected_group_bytes(), dialog.selected_uppercase_bytes(), dialog.selected_uppercase_instructions())
+
+    def _open_reference_offsets(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchReferenceOffsetsDialog(current.reference_offsets, current.reference_offset_bases, current.view_preferences.visible_columns, self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            offsets, bases, visible = dialog.values()
+            self.tabs.set_current_reference_offsets(offsets, bases, visible)
+
+    def _open_internal_file(self) -> None:
+        current = self.tabs.current_context()
+        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            return
+        if not current.internal_files:
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_FILES_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            return
+        dialog = BinaryWorkbenchInternalFileDialog(current.internal_files, self)
+        if dialog.exec() == dialog.DialogCode.Accepted and dialog.selected_name() is not None:
+            self.tabs.open_internal_tab(dialog.selected_name())

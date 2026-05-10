@@ -1,5 +1,6 @@
 import ctypes
 import sys
+from collections.abc import Callable
 
 from PySide6.QtWidgets import QMessageBox, QWidget
 
@@ -17,9 +18,17 @@ _MB_SETFOREGROUND = 0x00010000
 
 
 def ask_close_tab_with_native_system_dialog(parent: QWidget) -> QMessageBox.StandardButton:
-    if sys.platform == "win32":
-        return _ask_windows_close_tab(parent)
-    return _ask_qt_fallback(parent)
+    return _close_tab_question_for_platform()(parent)
+
+
+def _close_tab_question_for_platform() -> Callable[[QWidget], QMessageBox.StandardButton]:
+    if _uses_windows_native_dialog():
+        return _ask_windows_close_tab
+    return _ask_qt_fallback
+
+
+def _uses_windows_native_dialog() -> bool:
+    return sys.platform == "win32" and hasattr(ctypes, "windll")
 
 
 def _ask_windows_close_tab(parent: QWidget) -> QMessageBox.StandardButton:

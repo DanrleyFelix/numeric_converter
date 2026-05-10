@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
+from src.core.binary_workbench.mips_r3000a.preprocessor import (
+    preprocess_instruction,
+    strip_comment,
+    strip_label,
+)
 
 _RAM_BASE = 0x80010000
 _ROW_BYTES = 4
@@ -40,7 +45,7 @@ def build_rows_from_instructions(
     instructions = [_display_instruction(line) for line in lines if _normalized(line)]
     for index, instruction in enumerate(instructions):
         offset = index * _ROW_BYTES
-        assembly = _resolve_labels(_strip_label(instruction), labels)
+        assembly = preprocess_instruction(instruction, _RAM_BASE + offset, labels, {}, {})
         encoded = codec.assemble(assembly, _RAM_BASE + offset) or b"\x00\x00\x00\x00"
         rows.append(
             BinaryWorkbenchRowDTO(
@@ -113,7 +118,7 @@ def _offset_values(
 
 
 def _normalized(text: str) -> str:
-    return text.split(";", 1)[0].strip()
+    return strip_comment(text).strip()
 
 
 def _display_instruction(text: str) -> str:
@@ -121,7 +126,7 @@ def _display_instruction(text: str) -> str:
 
 
 def _strip_label(text: str) -> str:
-    return _split_label(text)[1] or text
+    return strip_label(text)
 
 
 def _split_label(text: str) -> tuple[str | None, str]:
@@ -133,9 +138,3 @@ def _split_label(text: str) -> tuple[str | None, str]:
         return None, text
     return candidate, right.strip()
 
-
-def _resolve_labels(instruction: str, labels: dict[str, str]) -> str:
-    result = instruction
-    for name, offset in labels.items():
-        result = result.replace(name, f"0x{_RAM_BASE + int(offset, 16):X}")
-    return result

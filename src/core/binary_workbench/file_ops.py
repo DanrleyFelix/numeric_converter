@@ -100,6 +100,7 @@ def extract_internal_file_bytes(
     source_path: Path,
     target: BinaryWorkbenchInternalFileDTO,
     internal_files: list[BinaryWorkbenchInternalFileDTO],
+    sector_size: int = _SECTOR_SIZE,
 ) -> bytes:
     source = source_path.read_bytes()
     sorted_files = sorted(internal_files, key=lambda item: item.start_lba)
@@ -107,12 +108,14 @@ def extract_internal_file_bytes(
         (item for item in sorted_files if item.start_lba > target.start_lba),
         None,
     )
-    start = target.start_lba * _SECTOR_SIZE
-    end = (next_file.start_lba * _SECTOR_SIZE) if next_file else len(source)
+    start = target.start_lba * sector_size
+    end = (next_file.start_lba * sector_size) if next_file else len(source)
     sectors = source[start:end]
+    if sector_size != _SECTOR_SIZE:
+        return sectors
     payload = bytearray()
-    for index in range(0, len(sectors), _SECTOR_SIZE):
-        sector = sectors[index : index + _SECTOR_SIZE]
+    for index in range(0, len(sectors), sector_size):
+        sector = sectors[index : index + sector_size]
         payload.extend(sector[_SECTOR_DATA_OFFSET : _SECTOR_DATA_OFFSET + _SECTOR_DATA_SIZE])
     return bytes(payload)
 

@@ -1,0 +1,101 @@
+from pathlib import Path
+
+from src.modules.dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchTabContextDTO
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_STATE, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.presentation.ui.components.binary_workbench.tabs.factory import restorable_state
+from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload
+
+
+class TabStateMixin:
+    def export_state(self) -> BinaryWorkbenchStateDTO:
+        return self._state
+
+    def load_state(self, state: BinaryWorkbenchStateDTO) -> None:
+        self.clear()
+        self._state = restorable_state(state)
+        for tab in self._state.tabs:
+            self._add_tab_page(tab)
+        if self.count():
+            self.setCurrentIndex(self._active_index())
+        self.stateChanged.emit(self._state)
+
+    def directory_for(self, action_key: str) -> str:
+        return self._state.directories.get(action_key, "")
+
+    def set_directory(self, action_key: str, path: Path) -> None:
+        self._state = BinaryWorkbenchStateDTO(
+            **{**state_payload(self._state), "directories": {**self._state.directories, action_key: str(path)}}
+        )
+        self.stateChanged.emit(self._state)
+
+    def current_context(self) -> BinaryWorkbenchTabContextDTO | None:
+        index = self.currentIndex()
+        return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
+
+    def context_at(self, index: int) -> BinaryWorkbenchTabContextDTO | None:
+        return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
+
+    def has_unsaved_changes(self, index: int) -> bool:
+        context = self.context_at(index)
+        if context is None:
+            return False
+        if context.kind == "binary":
+            return bool(context.byte_overlays)
+        return context.rows != context.original_rows
+
+    def close_tab(self, index: int) -> None:
+        if not 0 <= index < len(self._state.tabs):
+            return
+        closed = self._state.tabs[index]
+        remaining = [tab for idx, tab in enumerate(self._state.tabs) if idx != index]
+        self.removeTab(index)
+        active = remaining[min(index, len(remaining) - 1)].tab_id if remaining else None
+        self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": remaining, "active_tab_id": active})
+        self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_CLOSED_TEMPLATE.format(name=closed.display_name))
+        self.stateChanged.emit(self._state)
+
+    def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        self._state = BinaryWorkbenchStateDTO(
+            **{**state_payload(self._state), "tabs": [*self._state.tabs, context], "active_tab_id": context.tab_id}
+        )
+        self._add_tab_page(context)
+        self.setCurrentIndex(self.count() - 1)
+        self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_OPENED_TEMPLATE.format(name=context.display_name))
+        self.stateChanged.emit(self._state)
+
+    def _replace_context(self, tab_id: str, context: object) -> None:
+        if not isinstance(context, BinaryWorkbenchTabContextDTO):
+            return
+        tabs = [context if tab.tab_id == tab_id else tab for tab in self._state.tabs]
+        self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": tabs})
+        self.stateChanged.emit(self._state)
+
+    def _set_current_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        index = self.currentIndex()
+        if not 0 <= index < len(self._state.tabs):
+            return
+        self._replace_context(context.tab_id, context)
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.load_context(context)
+
+    def _sync_active_tab(self, index: int) -> None:
+        if not 0 <= index < len(self._state.tabs):
+            return
+        self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "active_tab_id": self._state.tabs[index].tab_id})
+        self.stateChanged.emit(self._state)
+
+    def _active_index(self) -> int:
+        return next((idx for idx, tab in enumerate(self._state.tabs) if tab.tab_id == self._state.active_tab_id), 0)
+
+    def _remember_file_path(self, action_key: str, path: Path) -> None:
+        recent = [str(path), *[item for item in self._state.recent_files if item != str(path)]]
+        self._state = BinaryWorkbenchStateDTO(
+            **{
+                **state_payload(self._state),
+                "recent_files": recent[: BINARY_WORKBENCH_STATE.RECENT_FILES_LIMIT],
+                "directories": {**self._state.directories, action_key: str(path.parent)},
+            }
+        )
+        self.stateChanged.emit(self._state)

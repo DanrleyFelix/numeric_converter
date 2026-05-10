@@ -1,25 +1,66 @@
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QComboBox, QDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QComboBox, QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
 
+from src.modules.dtos import BinaryWorkbenchSymbolsDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
-from src.presentation.ui.design.icons import Icons
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_json import (
+    SymbolsDialogJsonMixin,
+)
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_layout import (
+    SymbolsDialogLayoutMixin,
+)
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_rows import (
+    SymbolsDialogRowsMixin,
+)
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
+    symbol_label,
+)
 
 
-class BinaryWorkbenchSymbolsDialog(QDialog):
+class BinaryWorkbenchSymbolsDialog(
+    SymbolsDialogJsonMixin,
+    SymbolsDialogLayoutMixin,
+    SymbolsDialogRowsMixin,
+    QDialog,
+):
+    directoryChanged = Signal(str)
+
     def __init__(
         self,
         variables: dict[str, str],
         equates: dict[str, str],
         labels: dict[str, str],
+        libraries: list[BinaryWorkbenchSymbolsDTO] | None = None,
+        default_library_name: str = "",
+        default_directory: str = "",
         parent=None,
     ) -> None:
+        if parent is None and libraries is not None and not isinstance(libraries, list):
+            parent = libraries
+            libraries = None
+        if parent is None and default_directory and not isinstance(default_directory, str):
+            parent = default_directory
+            default_directory = ""
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SYMBOLS_TITLE)
-        self.setMinimumSize(780, 420)
-        self.resize(920, 560)
+        self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_MIN_HEIGHT)
+        self.resize(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_HEIGHT)
+        self._libraries = {item.name: item for item in libraries or []}
+        self._symbols_directory = default_directory
+        self._save_requested = False
+        self._saved_library_name = ""
+        self._loaded_library_name = ""
         self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget]] = []
+        self._build_dialog(variables, equates, labels, default_library_name)
+
+    def _build_dialog(
+        self,
+        variables: dict[str, str],
+        equates: dict[str, str],
+        labels: dict[str, str],
+        default_library_name: str,
+    ) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 30, 20, 20)
         self.shell = QFrame(self)
@@ -27,129 +68,32 @@ class BinaryWorkbenchSymbolsDialog(QDialog):
         shell_layout = QVBoxLayout(self.shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        shell_layout.addWidget(_label(BINARY_WORKBENCH_TEXT.SYMBOLS_TITLE, "workspace-table-title", self.shell))
-        shell_layout.addWidget(_label(BINARY_WORKBENCH_TEXT.SYMBOLS_SUBTITLE, "help-subtitle", self.shell))
+        self._add_header(shell_layout)
+        self._build_library_controls(shell_layout, default_library_name)
         self._build_entry(shell_layout)
-        self.scroll = QScrollArea(self.shell)
-        self.scroll.setObjectName("workspace-table-body-scroll")
-        self.scroll.verticalScrollBar().setObjectName("workspace-table-scrollbar")
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.body = QWidget(self.scroll)
-        self.body.setObjectName("workspace-table-body")
-        self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(0, 10, 0, 10)
-        self.body_layout.setSpacing(10)
-        self.body_layout.setAlignment(Qt.AlignTop)
-        self.scroll.setWidget(self.body)
+        self._build_scroll_body(shell_layout)
         self._load_rows(variables, equates, labels)
-        shell_layout.addWidget(self.scroll, 1)
-        ok = QPushButton("OK", self.shell)
-        ok.setObjectName("preferences-ok")
-        ok.clicked.connect(self.accept)
-        shell_layout.addWidget(ok, 0, Qt.AlignRight)
+        self.status = self._status_label()
+        shell_layout.addWidget(self.status)
+        self._build_footer_actions(shell_layout)
         layout.addWidget(self.shell, 1)
 
-    def values(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
-        targets = {"Variable": {}, "Equate": {}, "Label": {}}
-        for kind, name, value, _ in self._rows:
-            if name.text().strip() and value.text().strip():
-                targets[kind.currentText()][name.text().strip()] = value.text().strip()
-        return targets["Variable"], targets["Equate"], targets["Label"]
+    def should_save_library(self) -> bool:
+        return self._save_requested
 
-    def _build_entry(self, parent: QVBoxLayout) -> None:
-        entry = QWidget(self.shell)
-        row = QHBoxLayout(entry)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(10)
-        self.kind = QComboBox(self.shell)
-        self.kind.setObjectName("binary-workbench-dialog-input")
-        self.kind.addItems(["Variable", "Equate", "Label"])
-        _size_symbol_input(self.kind, BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH)
-        self.name = _input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.shell)
-        self.value = _input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, self.shell)
-        add = QPushButton(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, self.shell)
-        add.setObjectName("preferences-ok")
-        add.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH)
-        add.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
-        add.clicked.connect(self._append_from_entry)
-        row.addWidget(_field(BINARY_WORKBENCH_TEXT.SYMBOL_TYPE, self.kind), 0)
-        row.addWidget(_field(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.name), 0)
-        row.addWidget(_field(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, self.value), 0)
-        row.addWidget(add, 0, Qt.AlignBottom)
-        parent.addWidget(entry, 0, Qt.AlignLeft)
+    def library_name(self) -> str:
+        return self.library_name_input.text().strip()
 
-    def _load_rows(self, variables: dict[str, str], equates: dict[str, str], labels: dict[str, str]) -> None:
-        for kind, items in (("Variable", variables), ("Equate", equates), ("Label", labels)):
-            for name, value in items.items():
-                self._append_row(kind, str(name), str(value))
+    def loaded_library_name(self) -> str:
+        return self._loaded_library_name
 
-    def _append_from_entry(self) -> None:
-        self._append_row(self.kind.currentText(), self.name.text(), self.value.text())
-        self.name.clear()
-        self.value.clear()
+    def saved_library_name(self) -> str:
+        return self._saved_library_name
 
-    def _append_row(self, kind: str, name: str, value: str) -> None:
-        row = QWidget(self.body)
-        row.setObjectName("workspace-row")
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        kind_combo = _kind_combo(row, kind)
-        name_edit = _input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name)
-        value_edit = _input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value)
-        remove = QPushButton(row)
-        remove.setObjectName("workspace-row-remove")
-        remove.setIcon(Icons.remove())
-        remove.setIconSize(QSize(WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE, WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE))
-        remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
-        remove.clicked.connect(lambda: self._remove_row(row))
-        layout.addWidget(kind_combo, 0)
-        layout.addWidget(name_edit, 0)
-        layout.addWidget(value_edit, 0)
-        layout.addWidget(remove, 0, Qt.AlignVCenter)
-        self._rows.append((kind_combo, name_edit, value_edit, row))
-        self.body_layout.addWidget(row, 0, Qt.AlignLeft)
+    def _status_label(self):
+        label = self._dialog_label("", "help-subtitle")
+        label.setWordWrap(True)
+        return label
 
-    def _remove_row(self, row: QWidget) -> None:
-        self._rows = [item for item in self._rows if item[3] is not row]
-        row.deleteLater()
-
-
-def _input(placeholder: str, parent: QWidget, value: str = "") -> QLineEdit:
-    editor = QLineEdit(value, parent)
-    editor.setObjectName("binary-workbench-dialog-input")
-    editor.setPlaceholderText(placeholder)
-    _size_symbol_input(editor, BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH)
-    return editor
-
-
-def _kind_combo(parent: QWidget, value: str) -> QComboBox:
-    combo = QComboBox(parent)
-    combo.setObjectName("binary-workbench-dialog-input")
-    combo.addItems(["Variable", "Equate", "Label"])
-    combo.setCurrentText(value)
-    _size_symbol_input(combo, BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH)
-    return combo
-
-
-def _size_symbol_input(widget: QWidget, width: int) -> None:
-    widget.setFixedWidth(width)
-    widget.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
-
-
-def _label(text: str, object_name: str, parent: QWidget) -> QLabel:
-    label = QLabel(text, parent)
-    label.setObjectName(object_name)
-    return label
-
-
-def _field(text: str, widget: QWidget) -> QWidget:
-    field = QWidget(widget.parentWidget())
-    field.setFixedWidth(widget.width())
-    layout = QVBoxLayout(field)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    layout.addWidget(_label(text, "preferences-section-title", field))
-    layout.addWidget(widget, 0, Qt.AlignLeft)
-    return field
+    def _dialog_label(self, text: str, object_name: str):
+        return symbol_label(text, object_name, self.shell)

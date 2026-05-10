@@ -12,9 +12,11 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     VARIABLE_TOKEN,
     code_without_label,
     invalid_instruction,
-    mnemonic_color,
-    register_color,
     text_format,
+)
+from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
+    psx_mips_highlight_color,
+    psx_mips_required_highlight_color,
 )
 
 
@@ -54,31 +56,37 @@ class InstructionHighlighter(QSyntaxHighlighter):
         code_start, code = code_without_label(raw_code)
         mnemonic = re.search(r"\S+", code)
         if invalid_instruction(code):
-            self.setFormat(0, len(text), text_format("#FF8B96"))
+            self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("invalid_instruction")))
             return
         if mnemonic:
+            mnemonic_color = psx_mips_highlight_color("mnemonic", mnemonic.group())
+            if mnemonic_color is None:
+                return
             self.setFormat(
                 code_start + mnemonic.start(),
                 mnemonic.end() - mnemonic.start(),
-                text_format(mnemonic_color(mnemonic.group())),
+                text_format(mnemonic_color),
             )
         for match in REGISTER_TOKEN.finditer(code):
             if mnemonic and mnemonic.start() <= match.start() < mnemonic.end():
                 continue
+            register_color = psx_mips_highlight_color("registers", match.group())
+            if register_color is None:
+                continue
             self.setFormat(
                 code_start + match.start(),
                 match.end() - match.start(),
-                text_format(register_color(match.group())),
+                text_format(register_color),
             )
         for match in HEX_TOKEN.finditer(code):
             self.setFormat(
                 code_start + match.start(),
                 match.end() - match.start(),
-                text_format("#7FD6A4"),
+                text_format(psx_mips_required_highlight_color("hex")),
             )
         self._highlight_symbols(text, code, code_start)
         if comment_start >= 0:
-            self.setFormat(comment_start, len(text) - comment_start, text_format("#7F879B"))
+            self.setFormat(comment_start, len(text) - comment_start, text_format(psx_mips_required_highlight_color("comment")))
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
         for match in VARIABLE_TOKEN.finditer(code):
@@ -86,15 +94,15 @@ class InstructionHighlighter(QSyntaxHighlighter):
                 self.setFormat(
                     code_start + match.start(),
                     match.end() - match.start(),
-                    text_format("#C084FC"),
+                    text_format(psx_mips_required_highlight_color("variable")),
                 )
         for match in EQUATE_TOKEN.finditer(code):
             if match.group() in self._equates:
                 self.setFormat(
                     code_start + match.start(),
                     match.end() - match.start(),
-                    text_format("#FFB86C"),
+                    text_format(psx_mips_required_highlight_color("equate")),
                 )
         for name in self._labels:
             for match in re.finditer(rf"\b{re.escape(name)}\b", original):
-                self.setFormat(match.start(), match.end() - match.start(), text_format("#FFD166"))
+                self.setFormat(match.start(), match.end() - match.start(), text_format(psx_mips_required_highlight_color("label")))

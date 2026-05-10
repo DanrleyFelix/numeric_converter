@@ -18,6 +18,8 @@ def _default_binary_workbench_directories() -> dict[str, str]:
         "open_assembly": "",
         "save_file": "",
         "save_assembly": "",
+        "lba_filesystem": "",
+        "symbols": "",
     }
 
 
@@ -66,6 +68,8 @@ class BinaryWorkbenchViewPreferencesDTO:
     visible_columns: dict[str, bool] = field(default_factory=_default_visible_columns)
     decoded_text_tables: list[str] = field(default_factory=list)
     group_bytes: int = 1
+    uppercase_bytes: bool = True
+    uppercase_instructions: bool = True
 
 
 @dataclass(frozen=True)
@@ -88,6 +92,23 @@ class BinaryWorkbenchVersionDTO:
 
 
 @dataclass(frozen=True)
+class BinaryWorkbenchLbaFilesystemDTO:
+    name: str
+    file_identifiers: list[str] = field(default_factory=list)
+    sector_size: int = 2352
+    internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class BinaryWorkbenchSymbolsDTO:
+    name: str
+    file_identifiers: list[str] = field(default_factory=list)
+    variables: dict[str, str] = field(default_factory=dict)
+    equates: dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class BinaryWorkbenchTabContextDTO:
     tab_id: str
     kind: str
@@ -104,6 +125,7 @@ class BinaryWorkbenchTabContextDTO:
     symbol_offsets: dict[str, list[str]] = field(default_factory=dict)
     search_cache: dict[str, list[str]] = field(default_factory=dict)
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
+    lba_sector_size: int = 2352
     named_regions: list[str] = field(default_factory=list)
     versions: list[BinaryWorkbenchVersionDTO] = field(default_factory=list)
     active_version_name: str | None = None
@@ -127,6 +149,8 @@ class BinaryWorkbenchStateDTO:
     share_view_preferences: bool = False
     recent_files: list[str] = field(default_factory=list)
     directories: dict[str, str] = field(default_factory=_default_binary_workbench_directories)
+    lba_filesystems: list[BinaryWorkbenchLbaFilesystemDTO] = field(default_factory=list)
+    symbols: list[BinaryWorkbenchSymbolsDTO] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
