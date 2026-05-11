@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QWidget
 
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_editing import GridEditingMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_layout import GridLayoutMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_offsets import GridOffsetsMixin
@@ -25,6 +26,7 @@ class BinaryWorkbenchGrid(
     GridResizingMixin,
     GridRenderingMixin,
     GridRawInstructionsMixin,
+    GridCommitMixin,
     GridEditingMixin,
     GridSelectionMixin,
     GridSelectionRangesMixin,
@@ -35,6 +37,7 @@ class BinaryWorkbenchGrid(
     selectionSummaryChanged = Signal(str)
     visibleWindowRequested = Signal(int, int, int)
     selectAllRequested = Signal()
+    immediateSymbolRequested = Signal(str, str)
 
     def __init__(self, codec: CPUArchCodec) -> None:
         super().__init__()
@@ -54,6 +57,7 @@ class BinaryWorkbenchGrid(
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
         self._last_editor_kind: str | None = None
+        self._dirty_editor_kind: str | None = None
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._build_ui()

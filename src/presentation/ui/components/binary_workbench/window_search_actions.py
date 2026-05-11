@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.search import (
 
 class BinaryWorkbenchWindowSearchMixin:
     def _open_go_to(self) -> None:
+        self.tabs.commit_current_editor_text()
         current = self.tabs.current_context()
         if current is None:
             return

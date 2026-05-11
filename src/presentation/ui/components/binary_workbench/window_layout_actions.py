@@ -19,6 +19,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.save_binary_file_action.triggered.connect(self._save_current_tab)
         self.toolbar.lba_filesystem_action.triggered.connect(self._open_lba_filesystem)
         self.toolbar.symbols_action.triggered.connect(self._open_symbols)
+        self.toolbar.labels_action.triggered.connect(self._open_labels)
         self.toolbar.bytes_formatter_action.triggered.connect(self._open_bytes_formatter)
         self.toolbar.reference_offsets_action.triggered.connect(self._open_reference_offsets)
         self.toolbar.go_to_action.triggered.connect(self._open_go_to)

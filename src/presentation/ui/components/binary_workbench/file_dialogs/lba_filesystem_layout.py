@@ -67,7 +67,7 @@ class LbaFilesystemLayoutMixin:
         self.name = lba_input(BINARY_WORKBENCH_TEXT.LBA_FILE_NAME, self.shell)
         self.lba = lba_input(BINARY_WORKBENCH_TEXT.LBA_START, self.shell)
         add = lba_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", self.shell)
-        add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+        add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(lba_field(BINARY_WORKBENCH_TEXT.LBA_FILE_NAME, self.name), 0)
         row.addWidget(lba_field(BINARY_WORKBENCH_TEXT.LBA_START, self.lba), 0)

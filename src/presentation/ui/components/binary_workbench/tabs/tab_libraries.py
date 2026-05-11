@@ -7,6 +7,9 @@ from src.modules.dtos import (
     BinaryWorkbenchTabContextDTO,
 )
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    labels_from_rows,
+)
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import (
     current_identifiers,
@@ -58,6 +61,7 @@ class TabLibrariesMixin:
         current = self.current_context()
         if current is None:
             return
+        labels = labels_from_rows(current.rows)
         page = self.currentWidget()
         rows = (
             page.grid.rows_encoded_with_symbols(variables, equates, labels)
@@ -88,7 +92,7 @@ class TabLibrariesMixin:
             file_identifiers=merged_file_identifiers(existing.file_identifiers if existing else [], identifiers),
             variables=dict(current.variables),
             equates=dict(current.equates),
-            labels=dict(current.labels),
+            labels={},
         )
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "symbols": [*[item for item in self._state.symbols if item.name != saved.name], saved]}
@@ -99,5 +103,5 @@ class TabLibrariesMixin:
         symbols = next((item for item in self._state.symbols if item.name == name), None)
         if symbols is None:
             return False
-        self.set_current_symbols(dict(symbols.variables), dict(symbols.equates), dict(symbols.labels))
+        self.set_current_symbols(dict(symbols.variables), dict(symbols.equates), {})
         return True

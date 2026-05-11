@@ -12,14 +12,14 @@ from src.presentation.ui.components.workspace_table.constants.layout import WORK
 
 class SymbolsDialogRowsMixin:
     def values(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
-        targets = {"Variable": {}, "Equate": {}, "Label": {}}
+        targets = {"Variable": {}, "Equate": {}}
         for kind, name, value, _ in self._rows:
             if name.text().strip() and value.text().strip():
                 targets[kind.currentText()][name.text().strip()] = value.text().strip()
-        return targets["Variable"], targets["Equate"], targets["Label"]
+        return targets["Variable"], targets["Equate"], {}
 
     def _load_rows(self, variables: dict[str, str], equates: dict[str, str], labels: dict[str, str]) -> None:
-        for kind, items in (("Variable", variables), ("Equate", equates), ("Label", labels)):
+        for kind, items in (("Variable", variables), ("Equate", equates)):
             for name, value in items.items():
                 self._append_row(kind, str(name), str(value))
 
@@ -51,7 +51,14 @@ class SymbolsDialogRowsMixin:
         layout.addWidget(remove, 0, Qt.AlignVCenter)
         self._rows.append((kind_combo, name_edit, value_edit, row))
         self.body_layout.addWidget(row, 0, Qt.AlignLeft)
+        self._apply_filter()
 
     def _remove_row(self, row: QWidget) -> None:
         self._rows = [item for item in self._rows if item[3] is not row]
         row.deleteLater()
+
+    def _apply_filter(self) -> None:
+        query = self.filter_input.text().strip().lower()
+        for kind, name, value, row in self._rows:
+            haystack = f"{kind.currentText()} {name.text()} {value.text()}".lower()
+            row.setVisible(not query or query in haystack)

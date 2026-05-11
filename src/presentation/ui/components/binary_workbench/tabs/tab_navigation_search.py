@@ -3,10 +3,20 @@ from src.presentation.ui.components.binary_workbench.editor import BinaryWorkben
 
 
 class TabNavigationSearchMixin:
+    def commit_current_editor_text(self) -> None:
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.commit_current_editor_text()
+
     def go_to_offset(self, offset: int) -> None:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.go_to_offset(offset)
+
+    def go_to_instruction_offset(self, offset: int) -> None:
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.go_to_instruction_offset(offset)
 
     def select_block(self, start_offset: int, end_offset: int) -> None:
         page = self.currentWidget()

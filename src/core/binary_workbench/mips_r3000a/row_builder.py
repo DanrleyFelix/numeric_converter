@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
+from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
+    expand_pseudo_instruction,
+    expand_pseudo_instructions,
+)
 from src.core.binary_workbench.mips_r3000a.preprocessor import (
     preprocess_instruction,
     strip_comment,
-    strip_label,
 )
 
 _RAM_BASE = 0x80010000
@@ -42,7 +45,11 @@ def build_rows_from_instructions(
     codec = PsxMipsR3000ACodec()
     rows: list[BinaryWorkbenchRowDTO] = []
     labels = extract_labels_from_instructions(lines)
-    instructions = [_display_instruction(line) for line in lines if _normalized(line)]
+    instructions = [
+        instruction
+        for instruction in expand_pseudo_instructions([_display_instruction(line) for line in lines])
+        if _instruction_code(instruction)
+    ]
     for index, instruction in enumerate(instructions):
         offset = index * _ROW_BYTES
         assembly = preprocess_instruction(instruction, _RAM_BASE + offset, labels, {}, {})
@@ -61,14 +68,12 @@ def extract_labels_from_instructions(lines: list[str]) -> dict[str, str]:
     labels: dict[str, str] = {}
     offset = 0
     for line in lines:
-        normalized = _normalized(line)
-        if not normalized:
-            continue
-        label, instruction = _split_label(normalized)
-        if label:
-            labels[label] = f"0x{offset:08X}"
-        if instruction:
-            offset += _ROW_BYTES
+        for expanded in expand_pseudo_instruction(_normalized(line)):
+            label, instruction = _split_label(expanded)
+            if label:
+                labels[label] = f"0x{offset:08X}"
+            if instruction:
+                offset += _ROW_BYTES
     return labels
 
 
@@ -125,10 +130,6 @@ def _display_instruction(text: str) -> str:
     return _normalized(text).strip()
 
 
-def _strip_label(text: str) -> str:
-    return strip_label(text)
-
-
 def _split_label(text: str) -> tuple[str | None, str]:
     if _LABEL_SEPARATOR not in text:
         return None, text
@@ -138,3 +139,6 @@ def _split_label(text: str) -> tuple[str | None, str]:
         return None, text
     return candidate, right.strip()
 
+
+def _instruction_code(text: str) -> str:
+    return _split_label(_normalized(text))[1]

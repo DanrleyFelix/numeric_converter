@@ -22,7 +22,7 @@ def symbol_input(
 def symbol_kind_combo(parent: QWidget, value: str) -> QComboBox:
     combo = QComboBox(parent)
     combo.setObjectName("binary-workbench-dialog-input")
-    combo.addItems(["Variable", "Equate", "Label"])
+    combo.addItems(["Variable", "Equate"])
     combo.setCurrentText(value)
     combo.setCursor(Qt.PointingHandCursor)
     size_symbol_input(combo, BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH)

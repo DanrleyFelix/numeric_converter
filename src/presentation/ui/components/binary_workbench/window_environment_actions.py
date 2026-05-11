@@ -7,7 +7,10 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
 )
-from src.presentation.ui.components.binary_workbench.environment import BinaryWorkbenchSymbolsDialog
+from src.presentation.ui.components.binary_workbench.environment import (
+    BinaryWorkbenchLabelsDialog,
+    BinaryWorkbenchSymbolsDialog,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchInternalFileDialog,
     BinaryWorkbenchLbaFilesystemDialog,
@@ -60,10 +63,19 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
-        variables, equates, labels = dialog.values()
-        self.tabs.set_current_symbols(variables, equates, labels)
+        variables, equates, _ = dialog.values()
+        self.tabs.set_current_symbols(variables, equates, current.labels)
         if dialog.should_save_library() or dialog.loaded_library_name():
             self.tabs.save_current_symbols(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+
+    def _open_labels(self) -> None:
+        self.tabs.commit_current_editor_text()
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchLabelsDialog(current.labels, self)
+        dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
+        dialog.exec()
 
     def _open_bytes_formatter(self) -> None:
         current = self.tabs.current_context()

@@ -25,8 +25,8 @@ class SymbolsDialogJsonMixin:
     def save_library_json(self, path: Path) -> bool:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
         library_name = self.library_name() or target.stem
-        variables, equates, labels = self.values()
-        write_json(target, symbols_payload(library_name, variables, equates, labels))
+        variables, equates, _ = self.values()
+        write_json(target, symbols_payload(library_name, variables, equates))
         self._save_requested = True
         self._saved_library_name = library_name
         self.library_name_input.setText(library_name)
@@ -72,12 +72,12 @@ def symbols_from_json_payload(payload: dict[str, object] | None, fallback_name: 
         name=_text_value(raw.get("name")) or fallback_name,
         variables=_string_map(raw.get("variables")),
         equates=_string_map(raw.get("equates")),
-        labels=_string_map(raw.get("labels")),
+        labels={},
     )
 
 
-def symbols_payload(name: str, variables: dict[str, str], equates: dict[str, str], labels: dict[str, str]) -> dict[str, object]:
-    return {"name": name, "variables": variables, "equates": equates, "labels": labels}
+def symbols_payload(name: str, variables: dict[str, str], equates: dict[str, str]) -> dict[str, object]:
+    return {"name": name, "variables": variables, "equates": equates}
 
 
 def symbols_filename(name: str) -> str:

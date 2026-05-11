@@ -29,6 +29,7 @@ class GridRenderingMixin:
         self._virtual = virtual
         self._total_size = total_size if virtual else len(rows) * ROW_BYTES
         self._all_rows = [] if virtual else list(rows)
+        self._dirty_editor_kind = None
         self._visible_start_offset = start_offset
         self._last_visible_offset = start_offset
         self._configure_scrollbar()
@@ -56,10 +57,15 @@ class GridRenderingMixin:
 
     def set_visible_offset(self, offset: int) -> None:
         target = min(max(0, offset), self.scrollbar.maximum())
+        if not self._virtual and self._offset_is_visible(target):
+            return
         if self.scrollbar.value() == target:
             self._on_scrollbar_changed(target)
             return
         self.scrollbar.setValue(target)
+
+    def _offset_is_visible(self, offset: int) -> bool:
+        return self._visible_start_offset <= offset < self._visible_start_offset + (len(self._rows) * ROW_BYTES)
 
     def _render(self) -> None:
         self._resize_editors()

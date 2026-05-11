@@ -1,6 +1,8 @@
-from src.core.binary_workbench.mips_r3000a import extract_labels_from_instructions
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    labels_from_rows,
+)
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
 
@@ -28,10 +30,7 @@ class EditorPageContextMixin:
 
 
 def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[str, object]:
-    labels = {
-        **context.labels,
-        **extract_labels_from_instructions([row.instruction for row in rows]),
-    }
+    labels = labels_from_rows(rows)
     return {
         "rows": rows,
         "labels": labels,

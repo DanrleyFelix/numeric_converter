@@ -1,4 +1,5 @@
 from src.core.binary_workbench.mips_r3000a import (
+    expand_pseudo_instruction,
     preprocess_instruction,
     raw_mips_instruction,
     validate_mips_hazards,
@@ -23,6 +24,15 @@ def test_mips_preprocessor_resolves_symbols_and_removes_noise():
     assert raw_mips_instruction("j loop", 0x80010004, labels, variables, equates) == "j 0x80010010"
     assert raw_mips_instruction("nop", 0x80010008, labels, variables, equates) == "nop"
     assert raw_mips_instruction("li $v0, 1", 0x80010008, labels, variables, equates) == ""
+
+
+def test_mips_pseudo_instructions_expand_to_core_instructions():
+    assert expand_pseudo_instruction("li $v0, 1") == ["addiu $v0, $zero, 1"]
+    assert expand_pseudo_instruction("move $a0, $s1") == ["addu $a0, $s1, $zero"]
+    assert expand_pseudo_instruction("loop: b loop") == ["loop: beq $zero, $zero, loop"]
+    assert expand_pseudo_instruction("li $s0, 0x80010000") == [
+        "lui $s0, 0x8001",
+    ]
 
 
 def test_mips_hazard_validator_reports_load_use_and_jump_sequence():

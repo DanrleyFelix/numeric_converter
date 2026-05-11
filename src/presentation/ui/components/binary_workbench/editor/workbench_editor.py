@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QStringListModel, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QStringListModel, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
+from src.presentation.ui.components.binary_workbench.editor.editor_immediate_menu import (
+    EditorImmediateMenuMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.editor_selection_scroll import (
     EditorSelectionScrollMixin,
 )
@@ -15,9 +18,10 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
-class WorkbenchEditor(EditorCompletionMixin, EditorSelectionScrollMixin, QPlainTextEdit):
+class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorSelectionScrollMixin, QPlainTextEdit):
     focused = Signal()
     selectAllRequested = Signal()
+    immediateSymbolRequested = Signal(str, str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -26,6 +30,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorSelectionScrollMixin, QPlainT
         self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": []}
         self._symbol_tooltips: dict[str, str] = {}
         self._completion_cursor_position: int | None = None
+        self._immediate_symbol_menu_enabled = False
         self._completer = QCompleter(self._completion_model, self)
         self._completer.setWidget(self)
         self._completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -48,6 +53,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorSelectionScrollMixin, QPlainT
         popup.setUniformItemSizes(True)
         popup.setMouseTracking(True)
         popup.setSpacing(0)
+        popup.installEventFilter(self)
         self._completer.setPopup(popup)
 
     def set_shared_scrollbar(self, scrollbar: QScrollBar) -> None:
@@ -121,3 +127,16 @@ class WorkbenchEditor(EditorCompletionMixin, EditorSelectionScrollMixin, QPlainT
         if not (self.textCursor().hasSelection() and self.hasFocus()):
             self._stop_selection_scroll()
         super().leaveEvent(event)
+
+    def eventFilter(self, watched, event) -> bool:
+        popup = self._completer.popup()
+        if watched is popup and event.type() == QEvent.Type.KeyPress:
+            if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab}:
+                self._accept_current_completion()
+                event.accept()
+                return True
+            if event.key() == Qt.Key_Escape:
+                popup.hide()
+                event.accept()
+                return True
+        return super().eventFilter(watched, event)

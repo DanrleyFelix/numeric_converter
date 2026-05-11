@@ -42,6 +42,8 @@ class GridLayoutMixin:
     def _connect_editors(self) -> None:
         self.bytes.textChanged.connect(self._on_bytes_changed)
         self.instructions.textChanged.connect(self._on_instructions_changed)
+        self.instructions.set_immediate_symbol_menu_enabled(True)
+        self.instructions.immediateSymbolRequested.connect(self.immediateSymbolRequested)
         self.bytes.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES))
         self.instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION))
         self.bytes.cursorPositionChanged.connect(self._emit_selection_summary)

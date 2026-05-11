@@ -193,6 +193,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         block_size=_positive_int(raw.get("block_size"), 2048),
         cache_max_blocks=_positive_int(raw.get("cache_max_blocks"), 8000),
         byte_overlays=normalize_string_map(raw.get("byte_overlays")),
+        instruction_overlays=normalize_string_map(raw.get("instruction_overlays")),
         view_preferences=_view_preferences(raw.get("view_preferences")),
     )
 
@@ -265,6 +266,7 @@ def binary_workbench_state_to_payload(
                 "block_size": tab.block_size,
                 "cache_max_blocks": tab.cache_max_blocks,
                 "byte_overlays": dict(tab.byte_overlays),
+                "instruction_overlays": dict(tab.instruction_overlays),
                 "original_rows": [] if _is_virtual_binary(tab) else [
                     {
                         "offsets": dict(row.offsets),

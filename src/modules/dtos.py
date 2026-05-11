@@ -137,6 +137,7 @@ class BinaryWorkbenchTabContextDTO:
     block_size: int = 2048
     cache_max_blocks: int = 8000
     byte_overlays: dict[str, str] = field(default_factory=dict)
+    instruction_overlays: dict[str, str] = field(default_factory=dict)
     view_preferences: BinaryWorkbenchViewPreferencesDTO = field(
         default_factory=BinaryWorkbenchViewPreferencesDTO
     )

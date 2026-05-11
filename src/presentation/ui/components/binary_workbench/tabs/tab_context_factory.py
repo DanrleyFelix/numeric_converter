@@ -36,7 +36,7 @@ def create_binary_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWorkb
     saved_symbols = matching_symbols(state, path)
     variables = dict(saved_symbols.variables) if saved_symbols else {}
     equates = dict(saved_symbols.equates) if saved_symbols else {}
-    labels = dict(saved_symbols.labels) if saved_symbols else {}
+    labels: dict[str, str] = {}
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
         kind=BINARY_WORKBENCH_TAB_KIND.BINARY,
@@ -69,7 +69,7 @@ def create_assembly_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWor
     saved_symbols = matching_symbols(state, path)
     variables = dict(saved_symbols.variables) if saved_symbols else {}
     equates = dict(saved_symbols.equates) if saved_symbols else {}
-    labels = {**labels_from_path(path, read_mode), **(dict(saved_symbols.labels) if saved_symbols else {})}
+    labels = labels_from_path(path, read_mode)
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
         kind=BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,

@@ -6,7 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QComboBox, QLineEdit, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QComboBox, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.dtos import (
@@ -19,12 +19,18 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
 )
-from src.presentation.ui.components.binary_workbench.environment import BinaryWorkbenchSymbolsDialog
+from src.presentation.ui.components.binary_workbench.environment import (
+    BinaryWorkbenchLabelsDialog,
+    BinaryWorkbenchSymbolsDialog,
+)
 from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
     PSX_MIPS_HIGHLIGHTER,
 )
 from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
     psx_mips_highlight_color,
+)
+from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
+    use_white_menu_icons,
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.file_dialogs import BinaryWorkbenchLbaFilesystemDialog
@@ -249,7 +255,12 @@ def test_binary_workbench_raw_instructions_show_preprocessed_mips(tmp_path: Path
     raw_lines = page.grid.raw_instructions.toPlainText().split("\n")  # type: ignore[attr-defined]
     rows = tool.tabs.current_context().rows  # type: ignore[union-attr]
 
-    assert raw_lines == ["addiu $s1, $zero, 20", "addiu $s2, $zero, 0x34", "j 0x80010000", ""]
+    assert raw_lines == [
+        "addiu $s1, $zero, 20",
+        "addiu $s2, $zero, 0x34",
+        "j 0x80010000",
+        "addiu $v0, $zero, 1",
+    ]
     assert rows[0].bytes_text == "14 00 11 24"
     assert rows[1].bytes_text == "34 00 12 24"
 
@@ -269,6 +280,27 @@ def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
 
     assert page.grid.raw_instructions.isReadOnly() is True  # type: ignore[attr-defined]
     assert len(page.grid.raw_instructions.extraSelections()) == 2  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_instructions_expand_pseudo_and_raw_stays_lowercase(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("li $v0, 1\nmove $a0, $s1")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert page.grid.instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
+        "ADDIU $V0, $ZERO, 1",
+        "ADDU $A0, $S1, $ZERO",
+    ]
+    assert page.grid.raw_instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
+        "addiu $v0, $zero, 1",
+        "addu $a0, $s1, $zero",
+    ]
 
 
 def test_binary_workbench_reads_asm_sources_as_text_by_default(tmp_path: Path):
@@ -714,17 +746,17 @@ def test_binary_workbench_ctrl_a_selects_entire_binary_content(tmp_path: Path):
     assert "Length: 4096 bytes" in page.summary.text()  # type: ignore[attr-defined]
 
 
-def test_binary_workbench_symbols_rows_keep_editable_kind_dropdown():
+def test_binary_workbench_symbols_rows_keep_variable_equate_dropdown():
     _app()
     dialog = BinaryWorkbenchSymbolsDialog({"var": "20"}, {}, {})
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
 
     assert len(combos) >= 2
-    combos[-1].setCurrentText("Label")
+    assert [combos[-1].itemText(index) for index in range(combos[-1].count())] == ["Variable", "Equate"]
     variables, _, labels = dialog.values()
 
-    assert variables == {}
-    assert labels == {"var": "20"}
+    assert variables == {"var": "20"}
+    assert labels == {}
 
 
 def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
@@ -735,21 +767,123 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
     fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
     add_button = dialog.findChildren(QPushButton, "preferences-ok")[0]
-    first_row_fields = fields[3:5]
+    first_row_fields = fields[-2:]
 
     assert fields[0].width() == 158
+    assert fields[1].width() == 158
     assert dialog.minimumWidth() == 680
     assert dialog.width() == 760
     assert {combo.width() for combo in combos} == {132}
-    assert {field.width() for field in fields[1:]} == {132}
+    assert {field.width() for field in fields[2:]} == {132}
     assert {combo.height() for combo in combos} == {46}
     assert {field.height() for field in fields} == {46}
-    assert add_button.width() == 160
-    assert combos[2].mapTo(dialog, QPoint()).x() == combos[1].mapTo(dialog, QPoint()).x()
-    assert fields[5].mapTo(dialog, QPoint()).x() == first_row_fields[0].mapTo(dialog, QPoint()).x()
-    assert fields[6].mapTo(dialog, QPoint()).x() == first_row_fields[1].mapTo(dialog, QPoint()).x()
+    assert add_button.width() == BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH
+    assert combos[1].mapTo(dialog, QPoint()).x() == combos[0].mapTo(dialog, QPoint()).x()
+    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == fields[2].mapTo(dialog, QPoint()).x()
+    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == fields[3].mapTo(dialog, QPoint()).x()
     buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
     assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() < 190
+
+
+def test_binary_workbench_labels_dialog_filters_and_navigates():
+    _app()
+    dialog = BinaryWorkbenchLabelsDialog({"loop": "0x00000008", "exit": "0x00000020"})
+    selected: list[int] = []
+    dialog.goToRequested.connect(selected.append)
+    dialog.filter_input.setText("loop")
+    _app().processEvents()
+    buttons = [button for button in dialog.findChildren(QPushButton) if button.text() == BINARY_WORKBENCH_TEXT.GO_TO]
+
+    assert len([row for row, _, _ in dialog._rows if not row.isHidden()]) == 1
+    buttons[0].click()
+
+    assert selected == [0x8]
+
+
+def test_binary_workbench_go_to_label_preserves_instruction_symbols(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    page.grid.instructions.setPlainText("loop: ADDIU $S1, $ZERO, _VARIABLE1\nJ loop\nADDIU $S2, $ZERO, @EQUATE1")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    page.go_to_instruction_offset(0)
+    text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+
+    assert "LOOP:" in text
+    assert "_VARIABLE1" in text
+    assert "@EQUATE1" in text
+
+
+def test_binary_workbench_go_to_offset_preserves_instruction_symbols(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    page.grid.instructions.setPlainText("LOOP: ADDIU $S1, $ZERO, _VARIABLE1\nJ LOOP\nADDIU $S2, $ZERO, @EQUATE1")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    page.go_to_offset(0)
+    text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+
+    assert "LOOP:" in text
+    assert "_VARIABLE1" in text
+    assert "@EQUATE1" in text
+
+
+def test_binary_workbench_go_to_after_stale_bytes_focus_preserves_symbols(tmp_path: Path):
+    binary_path = tmp_path / "long.bin"
+    binary_path.write_bytes(b"\x00\x00\x00\x00" * 200)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    page.grid.instructions.setPlainText("LOOP: ADDIU $S1, $ZERO, _VARIABLE1\nJ LOOP\nADDIU $S2, $ZERO, @EQUATE1")  # type: ignore[attr-defined]
+    _app().processEvents()
+    page.grid._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)  # type: ignore[attr-defined]
+
+    page.go_to_offset(0x100)
+    page.go_to_instruction_offset(0)
+    text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.instruction_overlays["0x00000000"].startswith("LOOP:")
+    assert "LOOP:" in text
+    assert "_VARIABLE1" in text
+    assert "@EQUATE1" in text
+
+
+def test_binary_workbench_context_menu_uses_white_icons():
+    _app()
+    menu = QMenu()
+    action = menu.addAction("Undo")
+
+    use_white_menu_icons(menu)
+
+    pixmap = action.icon().pixmap(BINARY_WORKBENCH_LAYOUT.CONTEXT_MENU_ICON_SIZE)
+    image = pixmap.toImage()
+    white_pixels = [
+        image.pixelColor(x, y)
+        for x in range(image.width())
+        for y in range(image.height())
+        if image.pixelColor(x, y).alpha() > 0
+    ]
+    assert not pixmap.isNull()
+    assert all(pixel.red() == 255 and pixel.green() == 255 and pixel.blue() == 255 for pixel in white_pixels)
 
 
 def test_binary_workbench_lba_filesystem_uses_editable_rows():
@@ -890,7 +1024,7 @@ def test_binary_workbench_symbols_dialog_loads_json_library(tmp_path: Path):
     assert dialog.values() == (
         {"variable1": "20"},
         {"equate1": "0x34"},
-        {"label1": "0x00000000"},
+        {},
     )
     assert dialog.loaded_library_name() == "shared-symbols"
 
@@ -913,7 +1047,7 @@ def test_binary_workbench_symbols_dialog_saves_json_library(tmp_path: Path):
     assert dialog.saved_library_name() == "shared-symbols"
     assert '"variable1": "20"' in payload
     assert '"equate1": "0x34"' in payload
-    assert '"label1": "0x00000000"' in payload
+    assert '"label1": "0x00000000"' not in payload
 
 
 def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
@@ -981,6 +1115,29 @@ def test_binary_workbench_symbol_completion_enter_keeps_cursor_line():
     assert editor.textCursor().blockNumber() == 1
 
 
+def test_binary_workbench_grid_completion_enter_keeps_instruction_line(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    tool.tabs.set_current_symbols({"variable1": "20"}, {}, {})
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("NOP\nADDIU $S1, $S1, _\nNOP\nNOP")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("NOP\nADDIU $S1, $S1, _"))
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+
+    QApplication.sendEvent(editor._completer.popup(), QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.textCursor().blockNumber() == 1
+    assert "ADDIU $S1, $S1, _VARIABLE1" in editor.toPlainText()
+
+
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
     colors = [
         PSX_MIPS_HIGHLIGHTER["label"],
@@ -1013,7 +1170,7 @@ def test_binary_workbench_persists_symbols_for_same_filename(tmp_path: Path):
 
     assert tool is not None
     tool.open_assembly_path(first)
-    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {"label1": "0x00000000"})
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
     tool.tabs.save_current_symbols("shared-symbols")
     tool.open_assembly_path(second)
     current = tool.tabs.current_context()
@@ -1021,7 +1178,7 @@ def test_binary_workbench_persists_symbols_for_same_filename(tmp_path: Path):
     assert current is not None
     assert current.variables == {"variable1": "20"}
     assert current.equates == {"equate1": "0x34"}
-    assert current.labels["label1"] == "0x00000000"
+    assert current.labels == {}
 
 
 def test_binary_workbench_instruction_tab_inserts_three_spaces(tmp_path: Path):
@@ -1038,6 +1195,27 @@ def test_binary_workbench_instruction_tab_inserts_three_spaces(tmp_path: Path):
     QApplication.sendEvent(editor, event)
 
     assert editor.toPlainText() == "   "
+
+
+def test_binary_workbench_instruction_editor_preserves_space_and_tab_indentation(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("ADDIU")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("ADDIU"))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Space, Qt.NoModifier, " "))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Tab, Qt.NoModifier))
+
+    assert editor.toPlainText() == "ADDIU    "
+    assert editor.textCursor().position() == len("ADDIU    ")
 
 
 def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: Path):

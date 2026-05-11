@@ -14,6 +14,10 @@ from src.core.binary_workbench.mips_r3000a.hazard_validator import (
     MipsHazard,
     validate_mips_hazards,
 )
+from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
+    expand_pseudo_instruction,
+    expand_pseudo_instructions,
+)
 
 
 __all__ = [
@@ -27,4 +31,6 @@ __all__ = [
     "raw_mips_instruction",
     "MipsHazard",
     "validate_mips_hazards",
+    "expand_pseudo_instruction",
+    "expand_pseudo_instructions",
 ]

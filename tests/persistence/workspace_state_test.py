@@ -144,6 +144,7 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
                                 bytes_text="F4 01 63 24",
                             )
                         ],
+                        instruction_overlays={"0x00000000": "LOOP: ADDIU $S1, $ZERO, _VARIABLE1"},
                     )
                 ],
                 active_tab_id="scratch-1",

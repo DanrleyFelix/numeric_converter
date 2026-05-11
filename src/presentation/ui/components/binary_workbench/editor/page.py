@@ -20,6 +20,9 @@ from src.presentation.ui.components.binary_workbench.editor.page_binary_loading 
 from src.presentation.ui.components.binary_workbench.editor.page_context_updates import (
     EditorPageContextMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import (
+    EditorPageImmediateSymbolsMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.page_search import (
     EditorPageSearchMixin,
 )
@@ -33,6 +36,7 @@ if TYPE_CHECKING:
 class BinaryWorkbenchEditorPage(
     EditorPageBinaryLoadingMixin,
     EditorPageContextMixin,
+    EditorPageImmediateSymbolsMixin,
     EditorPageSearchMixin,
     QWidget,
 ):
@@ -53,6 +57,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.rowsChanged.connect(self._on_rows_changed)
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
+        self.grid.immediateSymbolRequested.connect(self._add_immediate_symbol)
         self.grid.selectAllRequested.connect(self.select_all_content)
         self._reader: CachedBinaryReader | None = None
         self._loading_visible_rows = False
@@ -104,12 +109,6 @@ class BinaryWorkbenchEditorPage(
 
     def set_cpu_arch(self, value: str) -> None:
         self._update_context({"cpu_arch": value})
-
-    def go_to_offset(self, offset: int) -> None:
-        self._pending_selection = (offset, offset)
-        self.grid.set_visible_offset(offset)
-        if self._reader is None:
-            self._select_pending_offset()
 
     def select_block(self, start_offset: int, end_offset: int) -> None:
         if self._reader is not None:

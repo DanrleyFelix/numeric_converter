@@ -24,7 +24,15 @@ class SymbolsDialogLayoutMixin:
             default_library_name,
             BINARY_WORKBENCH_LAYOUT.SYMBOL_LIBRARY_NAME_WIDTH,
         )
+        self.filter_input = symbol_input(
+            BINARY_WORKBENCH_TEXT.FILTER,
+            library,
+            "",
+            BINARY_WORKBENCH_LAYOUT.SYMBOL_FILTER_WIDTH,
+        )
+        self.filter_input.textChanged.connect(self._apply_filter)
         row.addWidget(symbol_field("Library Name", self.library_name_input), 0)
+        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.FILTER, self.filter_input), 0)
         parent.addWidget(library, 0, Qt.AlignLeft)
 
     def _build_footer_actions(self, parent: QVBoxLayout) -> None:
@@ -55,7 +63,7 @@ class SymbolsDialogLayoutMixin:
         self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.shell)
         self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, self.shell)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", self.shell)
-        add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+        add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_TYPE, self.kind), 0)
         row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.name), 0)

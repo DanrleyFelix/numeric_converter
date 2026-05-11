@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
@@ -72,9 +72,9 @@ class EditorCompletionMixin:
             completion = _first_completion(self._completion_model.stringList())
         if not completion:
             return False
-        self._insert_completion(str(completion))
-        self._completion_cursor_position = None
         popup.hide()
+        self._insert_completion(str(completion))
+        self.setFocus()
         return True
 
     def _completion_popup_width(self) -> int:
@@ -95,11 +95,22 @@ class EditorCompletionMixin:
             self.setTextCursor(cursor)
         prefix = self._current_completion_prefix()
         cursor = self.textCursor()
+        position = cursor.position() - len(prefix) + len(completion)
+        cursor.beginEditBlock()
         for _ in prefix:
             cursor.deletePreviousChar()
         cursor.insertText(completion)
+        cursor.endEditBlock()
         self.setTextCursor(cursor)
         self._completion_cursor_position = None
+        self._restore_completion_cursor(position)
+        QTimer.singleShot(0, lambda: self._restore_completion_cursor(position))
+
+    def _restore_completion_cursor(self, position: int) -> None:
+        cursor = self.textCursor()
+        cursor.setPosition(min(position, self.document().characterCount() - 1))
+        self.setTextCursor(cursor)
+        self.ensureCursorVisible()
 
     def _show_symbol_tooltip(self, event) -> None:
         text = self._symbol_tooltips.get(self._token_at_position(event.position().toPoint()))

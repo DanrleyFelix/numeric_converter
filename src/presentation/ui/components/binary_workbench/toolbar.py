@@ -26,6 +26,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.load_version_action = QAction(BINARY_WORKBENCH_TEXT.LOAD_VERSION, self)
         self.save_binary_file_action = QAction(BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, self)
         self.symbols_action = QAction(BINARY_WORKBENCH_TEXT.SYMBOLS, self)
+        self.labels_action = QAction(BINARY_WORKBENCH_TEXT.LABELS, self)
         self.regions_action = QAction(BINARY_WORKBENCH_TEXT.REGIONS, self)
         self.lba_filesystem_action = QAction(BINARY_WORKBENCH_TEXT.LBA_FILESYSTEM, self)
         self.encoding_tables_action = QAction(BINARY_WORKBENCH_TEXT.ENCODING_TABLES, self)
@@ -60,6 +61,7 @@ class BinaryWorkbenchToolbar(QFrame):
         ]))
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.ENVIRONMENT, Icons.environment(), [
             self.symbols_action,
+            self.labels_action,
             self.regions_action,
             self.lba_filesystem_action,
             self.encoding_tables_action,

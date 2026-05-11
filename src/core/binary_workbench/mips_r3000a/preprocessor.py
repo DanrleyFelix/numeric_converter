@@ -36,7 +36,7 @@ def raw_mips_instruction(
     equates: dict[str, str],
 ) -> str:
     code = preprocess_instruction(text, address, labels, variables, equates)
-    return code if is_core_mips_instruction(code) else ""
+    return code.lower() if is_core_mips_instruction(code) else ""
 
 
 def strip_comment(text: str) -> str:
@@ -72,7 +72,7 @@ def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
     result = text
     for name, value in labels.items():
         target = RAM_BASE + _safe_int(value, fallback)
-        result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:X}", result, flags=re.IGNORECASE)
+        result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
     return result
 
 

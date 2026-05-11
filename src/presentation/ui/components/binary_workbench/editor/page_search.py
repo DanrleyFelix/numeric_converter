@@ -5,6 +5,24 @@ from src.presentation.ui.components.binary_workbench.editor.page_binary_loading 
 
 
 class EditorPageSearchMixin:
+    def commit_current_editor_text(self) -> None:
+        self.grid.commit_current_editor_text()
+
+    def go_to_offset(self, offset: int) -> None:
+        self.commit_current_editor_text()
+        self._pending_selection = (offset, offset)
+        self.grid.set_visible_offset(offset)
+        if self._reader is None:
+            self._select_pending_offset()
+
+    def go_to_instruction_offset(self, offset: int) -> None:
+        self.commit_current_editor_text()
+        self._pending_selection = (offset, offset)
+        self.grid.set_visible_offset(offset)
+        if self._reader is None:
+            self.grid.select_instruction_offsets(offset, offset)
+            self._pending_selection = None
+
     def find_text(self, mode: str, query: str) -> bool:
         results = self.find_offsets(mode, query)
         if results:

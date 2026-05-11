@@ -172,16 +172,25 @@
                 "reference_offset_bases": {
                     "File": "0x00000000"
                 },
-                "labels": {},
+                "labels": {
+                    "L1": "0x00000018"
+                },
                 "equates": {
-                    "test1": "30"
+                    "test1": "30",
+                    "equate_minus_10": "-0x10"
                 },
                 "variables": {
-                    "test": "20"
+                    "test": "20",
+                    "variable_minus_10": "-0x10"
                 },
                 "symbol_offsets": {
                     "test": [],
-                    "test1": []
+                    "variable_minus_10": [],
+                    "test1": [],
+                    "equate_minus_10": [],
+                    "L1": [
+                        "0x00000018"
+                    ]
                 },
                 "search_cache": {},
                 "internal_files": [],
@@ -196,7 +205,34 @@
                 "cache_max_blocks": 8000,
                 "byte_overlays": {
                     "0x00000060": "74 65 72 74",
-                    "0x00000024": "14 00 31 26"
+                    "0x00000024": "16 00 31 26"
+                },
+                "instruction_overlays": {
+                    "0x00000014": "NOP",
+                    "0x00000018": "L1: LB $AT, 0x0($ZERO)",
+                    "0x0000001C": "WORD 0x001D0000",
+                    "0x00000020": "NOP",
+                    "0x00000024": "ADDIU $S1, $S1, 0x16",
+                    "0x00000028": "NOP",
+                    "0x0000002C": "NOP",
+                    "0x00000030": "LB $RA, -0x10($ZERO)",
+                    "0x00000034": "NOP",
+                    "0x00000038": "NOP",
+                    "0x0000003C": "NOP",
+                    "0x00000040": "NOP",
+                    "0x00000044": "NOP",
+                    "0x00000048": "NOP",
+                    "0x0000004C": "WORD 0x796E6F53",
+                    "0x00000050": "WORD 0x6D6F4320",
+                    "0x00000054": "WORD 0x65747570",
+                    "0x00000058": "WORD 0x6E452072",
+                    "0x0000005C": "WORD 0x74726574",
+                    "0x00000060": "WORD 0x74726574",
+                    "0x00000064": "WORD 0x20746E65",
+                    "0x00000068": "SLTIU $V1, $S3, 0x6E49",
+                    "0x0000006C": "WORD 0x726F6620",
+                    "0x00000070": "WORD 0x726F4E20",
+                    "0x00000074": "WORD 0x41206874"
                 },
                 "original_rows": [],
                 "rows": [],
@@ -247,6 +283,7 @@
                 "block_size": 2048,
                 "cache_max_blocks": 8000,
                 "byte_overlays": {},
+                "instruction_overlays": {},
                 "original_rows": [],
                 "rows": [],
                 "view_preferences": {
@@ -262,7 +299,7 @@
                 }
             }
         ],
-        "active_tab_id": "7fc1eb6ec9ae47c583298b61d20dec4d",
+        "active_tab_id": "83679853cba44ee6ae86664e252e69d1",
         "share_view_preferences": false,
         "recent_files": [
             "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",

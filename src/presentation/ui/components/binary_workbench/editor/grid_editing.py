@@ -1,5 +1,10 @@
 from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.core.binary_workbench.mips_r3000a import expand_pseudo_instructions
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    labels_from_lines_at_rows,
+    labels_from_rows,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     ROW_BYTES,
     address_from_row,
@@ -15,12 +20,14 @@ class GridEditingMixin:
         if self._updating:
             return
         self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
+        self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.BYTES
         self._sync_rows(self._normalized_bytes_lines(), True)
 
     def _on_instructions_changed(self) -> None:
         if self._updating:
             return
         self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
+        self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
         self._sync_rows(self._normalized_instruction_lines(), False)
 
     def _sync_rows(self, lines: list[str], editing_bytes: bool) -> None:
@@ -31,6 +38,8 @@ class GridEditingMixin:
         if updated is None:
             return
         self._rows = updated
+        if not editing_bytes:
+            self._set_editing_labels(labels_from_rows(updated))
         if not self._virtual:
             start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
             self._all_rows[start : start + old_count] = updated
@@ -42,6 +51,15 @@ class GridEditingMixin:
         self._set_editor_text(target, values)
         self._render_raw_instructions()
         self._emit_selection_summary()
+        self._dirty_editor_kind = None
+
+    def _set_editing_labels(self, labels: dict[str, str]) -> None:
+        was_updating = self._updating
+        self._updating = True
+        self._labels = labels
+        self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+        self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
+        self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:
         raw = "".join("".join(lines).split())
@@ -88,12 +106,13 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
-        labels = self._labels if labels is None else labels
+        source_rows = [self._row_at(index) for index in range(len(lines))]
+        labels = labels_from_lines_at_rows(lines, source_rows) if labels is None else labels
         variables = self._variables if variables is None else variables
         equates = self._equates if equates is None else equates
         rows: list[BinaryWorkbenchRowDTO] = []
         for index, line in enumerate(lines):
-            row = self._row_at(index)
+            row = source_rows[index]
             address = address_from_row(row)
             assembly = assembly_for_encoding(line, address, labels, variables, equates)
             data = self._codec.assemble(assembly, address)
@@ -116,6 +135,8 @@ class GridEditingMixin:
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()
         normalized = normalize_instruction_text(text, self._uppercase_instructions)
+        normalized = "\n".join(expand_pseudo_instructions(normalized.splitlines()))
+        normalized = normalize_instruction_text(normalized, self._uppercase_instructions)
         if normalized != text:
             position = self.instructions.textCursor().position()
             self._set_editor_text(self.instructions, normalized.splitlines())
