@@ -1449,10 +1449,10 @@ def test_binary_workbench_instruction_uppercase_affects_only_mnemonics(tmp_path:
     tool.tabs.new_scratch_tab()
     tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
     page = tool.tabs.currentWidget()
-    page.grid.instructions.setPlainText("Label_1: addiu $s1,$s1,_variable1 ; keep Me")  # type: ignore[attr-defined]
+    page.grid.instructions.setPlainText("Label_1: addiu $s1,$s1,0x1f4 ; keep 0xbeef")  # type: ignore[attr-defined]
     _app().processEvents()
 
-    assert page.grid.instructions.toPlainText() == "Label_1: ADDIU $s1,$s1,_variable1 ; keep Me"  # type: ignore[attr-defined]
+    assert page.grid.instructions.toPlainText() == "Label_1: ADDIU $s1,$s1,0x1F4 ; keep 0xbeef"  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_bytes_formatter_has_separate_uppercase_preferences(tmp_path: Path):

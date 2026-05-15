@@ -383,105 +383,112 @@
                         "offsets": {
                             "File": "0x00000010"
                         },
+                        "instruction": "",
+                        "bytes_text": "00 00 00 00"
+                    },
+                    {
+                        "offsets": {
+                            "File": "0x00000014"
+                        },
                         "instruction": "SW $a1, 0x4($sp)",
                         "bytes_text": "04 00 A5 AF"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000014"
+                            "File": "0x00000018"
                         },
                         "instruction": "SW $ra, 0x8($sp)",
                         "bytes_text": "08 00 BF AF"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000018"
+                            "File": "0x0000001C"
                         },
                         "instruction": "LUI $t0, 0x801A",
                         "bytes_text": "1A 80 08 3C"
                     },
                     {
                         "offsets": {
-                            "File": "0x0000001C"
+                            "File": "0x00000020"
                         },
                         "instruction": "ORI $t0, $t0, 0x7BD4",
                         "bytes_text": "D4 7B 08 35"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000020"
+                            "File": "0x00000024"
                         },
                         "instruction": "SUBU $t1, $t0, $v0",
                         "bytes_text": "23 48 02 01"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000024"
+                            "File": "0x00000028"
                         },
                         "instruction": "SLTIU $t0, $t1, 0x71",
                         "bytes_text": "71 00 28 2D"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000028"
+                            "File": "0x0000002C"
                         },
                         "instruction": "BNE $t0, $zero, 0x80000004",
-                        "bytes_text": "F6 BF 00 15"
+                        "bytes_text": "F5 BF 00 15"
                     },
                     {
                         "offsets": {
-                            "File": "0x0000002C"
+                            "File": "0x00000030"
                         },
                         "instruction": "LHU $t0, 0xC($v0)",
                         "bytes_text": "0C 00 48 94"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000030"
+                            "File": "0x00000034"
                         },
                         "instruction": "ADDIU $t1, $zero, 0x1B3",
                         "bytes_text": "B3 01 09 24"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000034"
+                            "File": "0x00000038"
                         },
                         "instruction": "BNE $t0, $t1, 0x80000000",
-                        "bytes_text": "F2 BF 09 15"
+                        "bytes_text": "F1 BF 09 15"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000038"
+                            "File": "0x0000003C"
                         },
                         "instruction": "ADDIU $a0, $zero, 0x14E",
                         "bytes_text": "4E 01 04 24"
                     },
                     {
                         "offsets": {
-                            "File": "0x0000003C"
+                            "File": "0x00000040"
                         },
                         "instruction": "JAL 0x26BA4",
                         "bytes_text": "E9 9A 00 0C"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000040"
+                            "File": "0x00000044"
                         },
                         "instruction": "ADDIU $a1, $zero, 0x1",
                         "bytes_text": "01 00 05 24"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000044"
+                            "File": "0x00000048"
                         },
                         "instruction": "LW $a0, 0x0($sp)",
                         "bytes_text": "00 00 A4 8F"
                     },
                     {
                         "offsets": {
-                            "File": "0x00000048"
+                            "File": "0x0000004C"
                         },
-                        "instruction": "lw $a1, 0x5($a1)",
+                        "instruction": "LW $a1, 0x5($a1)",
                         "bytes_text": "05 00 A5 8C"
                     }
                 ],

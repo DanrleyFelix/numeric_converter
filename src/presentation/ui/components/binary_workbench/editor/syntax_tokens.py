@@ -105,7 +105,8 @@ def normalize_instruction_text(text: str, uppercase: bool) -> str:
 def _normalize_instruction_line(line: str) -> str:
     code, separator, comment = line.partition(";")
     label, label_separator, body = _partition_label(code)
-    return f"{label}{label_separator}{_uppercase_mnemonic(body)}{separator}{comment}"
+    body = _uppercase_hex_values(_uppercase_mnemonic(body))
+    return f"{label}{label_separator}{body}{separator}{comment}"
 
 
 def _partition_label(text: str) -> tuple[str, str, str]:
@@ -123,6 +124,10 @@ def _uppercase_mnemonic(text: str) -> str:
     if match is None:
         return text
     return f"{text[: match.start()]}{match.group(0).upper()}{text[match.end() :]}"
+
+
+def _uppercase_hex_values(text: str) -> str:
+    return HEX_TOKEN.sub(lambda match: f"0x{match.group(0)[2:].upper()}", text)
 
 
 def format_byte_groups(raw: str, group_size: int) -> str:
