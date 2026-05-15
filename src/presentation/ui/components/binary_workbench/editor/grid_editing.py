@@ -1,5 +1,6 @@
-from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a import expand_pseudo_instructions
+from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
+from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_lines_at_rows,
@@ -19,16 +20,24 @@ class GridEditingMixin:
     def _on_bytes_changed(self) -> None:
         if self._updating:
             return
-        self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
-        self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.BYTES
-        self._sync_rows(self._normalized_bytes_lines(), True)
+        self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
 
     def _on_instructions_changed(self) -> None:
         if self._updating:
             return
-        self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
-        self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
-        self._sync_rows(self._normalized_instruction_lines(), False)
+        self._sync_user_rows(self._normalized_instruction_lines(), BINARY_WORKBENCH_TEXT.INSTRUCTION)
+
+    def edit_origin_kind(self) -> str | None:
+        return self._edit_origin_kind
+
+    def _sync_user_rows(self, lines: list[str], origin: str) -> None:
+        self._set_last_editor(origin)
+        self._dirty_editor_kind = origin
+        self._edit_origin_kind = origin
+        try:
+            self._sync_rows(lines, origin == BINARY_WORKBENCH_TEXT.BYTES)
+        finally:
+            self._edit_origin_kind = None
 
     def _sync_rows(self, lines: list[str], editing_bytes: bool) -> None:
         if self._updating:
@@ -37,6 +46,8 @@ class GridEditingMixin:
         updated = self._byte_rows_from_lines(lines) if editing_bytes else self._instruction_rows_from_lines(lines)
         if updated is None:
             return
+        if editing_bytes:
+            updated = preserve_symbolic_rows(updated, self._rows, self._labels, self._variables, self._equates, self._codec)
         self._rows = updated
         if not editing_bytes:
             self._set_editing_labels(labels_from_rows(updated))

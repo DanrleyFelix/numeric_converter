@@ -15,6 +15,7 @@ class BinaryWorkbenchWindowVersionMixin:
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.version_name():
             return
         if self.tabs.create_version(dialog.version_name()):
+            self.tabs.save_current_workspace()
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_CREATED_TEMPLATE.format(name=dialog.version_name()), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
@@ -26,6 +27,7 @@ class BinaryWorkbenchWindowVersionMixin:
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.version_name():
             return
         if self.tabs.update_current_version(dialog.version_name()):
+            self.tabs.save_current_workspace()
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=dialog.version_name()), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)

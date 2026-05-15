@@ -3,6 +3,9 @@ from src.core.binary_workbench.file_ops import (
     build_version_rows_from_overlay,
     overlay_from_version_rows,
 )
+from src.core.binary_workbench.version_overlays import (
+    byte_overlays_from_instruction_overlays,
+)
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
 
@@ -37,10 +40,26 @@ class TabVersionsMixin:
         version = next((item for item in current.versions if item.name == name), None)
         if version is None:
             return False
-        rows = apply_version_rows(current.original_rows, version.rows)
+        byte_overlays = overlay_from_version_rows(version.rows)
+        instruction_overlays = dict(version.instruction_overlays)
+        if instruction_overlays:
+            byte_overlays.update(
+                byte_overlays_from_instruction_overlays(
+                    instruction_overlays,
+                    current.variables,
+                    current.equates,
+                )
+            )
+        rows = apply_version_rows(current.original_rows, version.rows) if version.rows else current.rows
         self._set_current_context(
             BinaryWorkbenchTabContextDTO(
-                **{**current.__dict__, "rows": rows, "byte_overlays": overlay_from_version_rows(version.rows), "active_version_name": name}
+                **{
+                    **current.__dict__,
+                    "rows": rows,
+                    "byte_overlays": byte_overlays,
+                    "instruction_overlays": instruction_overlays,
+                    "active_version_name": name,
+                }
             )
         )
         return True
@@ -57,4 +76,5 @@ class TabVersionsMixin:
                 list(current.reference_offsets),
                 dict(current.reference_offset_bases),
             ),
+            instruction_overlays=dict(current.instruction_overlays),
         )

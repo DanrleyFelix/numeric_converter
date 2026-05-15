@@ -18,6 +18,7 @@ class LbaFilesystemJsonMixin:
         self._clear_rows()
         self.library_name_input.setText(library.name)
         self._loaded_library_name = library.name
+        self._loaded_library_path = str(path)
         self.sector_size.setCurrentText(f"{library.sector_size} bytes")
         for item in library.internal_files:
             self._append_row(item.name, str(item.start_lba))
@@ -30,6 +31,7 @@ class LbaFilesystemJsonMixin:
         write_json(target, filesystem_payload(library_name, self.selected_lba_sector_size(), self.mappings()))
         self._save_requested = True
         self._saved_library_name = library_name
+        self._saved_library_path = str(target)
         self.library_name_input.setText(library_name)
         self._remember_library_directory(target)
         self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_SAVED_TEMPLATE.format(path=str(target)))

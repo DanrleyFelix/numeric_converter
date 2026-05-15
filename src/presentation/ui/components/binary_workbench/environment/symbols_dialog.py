@@ -50,7 +50,9 @@ class BinaryWorkbenchSymbolsDialog(
         self._symbols_directory = default_directory
         self._save_requested = False
         self._saved_library_name = ""
+        self._saved_library_path = ""
         self._loaded_library_name = ""
+        self._loaded_library_path = ""
         self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget]] = []
         self._build_dialog(variables, equates, labels, default_library_name)
 
@@ -89,6 +91,12 @@ class BinaryWorkbenchSymbolsDialog(
 
     def saved_library_name(self) -> str:
         return self._saved_library_name
+
+    def saved_library_path(self) -> str:
+        return self._saved_library_path
+
+    def loaded_library_path(self) -> str:
+        return self._loaded_library_path
 
     def _status_label(self):
         label = self._dialog_label("", "help-subtitle")

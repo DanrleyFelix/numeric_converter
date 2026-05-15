@@ -3,7 +3,6 @@ from pathlib import Path
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_STATE,
-    BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
 )
@@ -14,11 +13,17 @@ from src.presentation.ui.components.binary_workbench.environment import (
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchInternalFileDialog,
     BinaryWorkbenchLbaFilesystemDialog,
+    BinaryWorkbenchMemoryRegionsDialog,
 )
 from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchAdvancedConfigDialog,
     BinaryWorkbenchBytesFormatterDialog,
     BinaryWorkbenchReferenceOffsetsDialog,
+)
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    LBA_FILESYSTEM,
+    MEMORY_REGIONS,
+    SYMBOLS,
 )
 
 
@@ -37,15 +42,19 @@ class BinaryWorkbenchWindowEnvironmentMixin:
 
     def _open_lba_filesystem(self) -> None:
         current = self.tabs.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        if current is None or not current.source_path:
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, self.tabs.export_state().lba_filesystems, current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
         if dialog.exec() == dialog.DialogCode.Accepted:
             self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
+            module_path = dialog.saved_library_path() or dialog.loaded_library_path()
+            if module_path:
+                self.tabs.set_current_module_path(LBA_FILESYSTEM, Path(module_path))
             if dialog.should_save_library() or dialog.loaded_library_name():
                 self.tabs.save_current_lba_filesystem(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+            self.tabs.save_current_workspace()
 
     def _open_symbols(self) -> None:
         current = self.tabs.current_context()
@@ -65,8 +74,12 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             return
         variables, equates, _ = dialog.values()
         self.tabs.set_current_symbols(variables, equates, current.labels)
+        module_path = dialog.saved_library_path() or dialog.loaded_library_path()
+        if module_path:
+            self.tabs.set_current_module_path(SYMBOLS, Path(module_path))
         if dialog.should_save_library() or dialog.loaded_library_name():
             self.tabs.save_current_symbols(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+        self.tabs.save_current_workspace()
 
     def _open_labels(self) -> None:
         self.tabs.commit_current_editor_text()
@@ -76,6 +89,22 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog = BinaryWorkbenchLabelsDialog(current.labels, self)
         dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
         dialog.exec()
+
+    def _open_memory_regions(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchMemoryRegionsDialog(
+            current.memory_regions,
+            self.tabs.directory_for(BINARY_WORKBENCH_STATE.MEMORY_REGIONS_DIRECTORY),
+            self,
+        )
+        dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.MEMORY_REGIONS_DIRECTORY, Path(value)))
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.tabs.set_current_memory_regions(dialog.regions())
+            if dialog.json_path():
+                self.tabs.set_current_module_path(MEMORY_REGIONS, Path(dialog.json_path()))
+            self.tabs.save_current_workspace()
 
     def _open_bytes_formatter(self) -> None:
         current = self.tabs.current_context()
@@ -96,8 +125,8 @@ class BinaryWorkbenchWindowEnvironmentMixin:
 
     def _open_internal_file(self) -> None:
         current = self.tabs.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        if current is None or not current.source_path:
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         if not current.internal_files:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_FILES_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)

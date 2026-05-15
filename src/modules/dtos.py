@@ -19,7 +19,10 @@ def _default_binary_workbench_directories() -> dict[str, str]:
         "save_file": "",
         "save_assembly": "",
         "lba_filesystem": "",
+        "memory_regions": "",
         "symbols": "",
+        "versions": "",
+        "encoding_tables": "",
     }
 
 
@@ -86,9 +89,17 @@ class BinaryWorkbenchInternalFileDTO:
 
 
 @dataclass(frozen=True)
+class BinaryWorkbenchMemoryRegionDTO:
+    name: str
+    start_offset: int
+    end_offset: int
+
+
+@dataclass(frozen=True)
 class BinaryWorkbenchVersionDTO:
     name: str
     rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
+    instruction_overlays: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -127,8 +138,13 @@ class BinaryWorkbenchTabContextDTO:
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
     lba_sector_size: int = 2352
     named_regions: list[str] = field(default_factory=list)
+    memory_regions: list[BinaryWorkbenchMemoryRegionDTO] = field(default_factory=list)
     versions: list[BinaryWorkbenchVersionDTO] = field(default_factory=list)
     active_version_name: str | None = None
+    workspace_path: str | None = None
+    module_paths: dict[str, str] = field(default_factory=dict)
+    module_directories: dict[str, str] = field(default_factory=dict)
+    module_checksums: dict[str, str] = field(default_factory=dict)
     last_open_offset: str = "0x00000000"
     navigation_history: list[str] = field(default_factory=list)
     original_rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)

@@ -4,10 +4,12 @@ from src.modules.dtos import (
     ApplicationContextDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchSymbolsDTO,
     BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
     CommandContextDTO,
     ConverterStateDTO,
     WorkspaceStateDTO,
@@ -16,6 +18,9 @@ from src.modules.dtos import CommandEntryDTO
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
     WorkspaceStateRepository,
+)
+from src.presentation.repository.binary_workbench_workspace import (
+    BinaryWorkbenchWorkspaceRepository,
 )
 
 
@@ -184,3 +189,78 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
 
     assert saved_path == repository.directory / "full_workspace.json"
     assert loaded == expected
+
+
+def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
+    source = tmp_path / "disc.bin"
+    source.write_bytes(bytes.fromhex("00 00 00 00"))
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    tab = BinaryWorkbenchTabContextDTO(
+        tab_id="tab",
+        kind="binary",
+        display_name=source.name,
+        source_path=str(source),
+        variables={"variable1": "20"},
+        equates={"equate1": "0x34"},
+        internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
+        memory_regions=[BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)],
+        versions=[
+            BinaryWorkbenchVersionDTO(
+                "v1",
+                instruction_overlays={
+                    "0x00000000": "Label_1: ADDIU $S1, $S1, _variable1"
+                },
+            )
+        ],
+        active_version_name="v1",
+    )
+
+    saved = repository.save_tab_workspace(tab, repository.directory / "ygo_fm_wicked.json")
+    manifest = repository.directory / "ygo_fm_wicked.json"
+    version_file = repository.directory / "Versions" / "ygo_fm_wicked_v1.json"
+    loaded = repository.load_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="fresh",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+        ),
+        manifest,
+    )
+
+    assert saved.workspace_path == str(manifest)
+    assert manifest.exists()
+    assert version_file.exists()
+    assert '"offset": 0' in version_file.read_text(encoding="utf-8")
+    assert loaded.variables == {"variable1": "20"}
+    assert loaded.equates == {"equate1": "0x34"}
+    assert loaded.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
+    assert loaded.memory_regions == [
+        BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)
+    ]
+    assert loaded.active_version_name == "v1"
+    assert loaded.instruction_overlays["0x00000000"].startswith("Label_1:")
+    assert loaded.byte_overlays["0x00000000"] != "00 00 00 00"
+
+
+def test_binary_workbench_workspace_matches_exact_directory_and_filename(tmp_path: Path):
+    first = tmp_path / "one" / "disc.bin"
+    second = tmp_path / "two" / "disc.bin"
+    first.parent.mkdir()
+    second.parent.mkdir()
+    first.write_bytes(b"\x00\x00\x00\x00")
+    second.write_bytes(b"\x00\x00\x00\x00")
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+
+    repository.save_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="tab",
+            kind="binary",
+            display_name=first.name,
+            source_path=str(first),
+        ),
+        repository.directory / "disc_workspace.json",
+    )
+
+    assert repository.find_for_source(first) == repository.directory / "disc_workspace.json"
+    assert repository.find_for_source(second) is None

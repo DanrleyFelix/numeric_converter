@@ -43,7 +43,11 @@ class BinaryWorkbenchWindow(
     sizePersistRequested = Signal(int, int)
     stateChanged = Signal(object)
 
-    def __init__(self, state: BinaryWorkbenchStateDTO):
+    def __init__(
+        self,
+        state: BinaryWorkbenchStateDTO,
+        workspace_directory: Path | None = None,
+    ):
         super().__init__()
         self.setObjectName("binary-workbench-window")
         self.setAttribute(Qt.WA_DeleteOnClose, True)
@@ -51,7 +55,7 @@ class BinaryWorkbenchWindow(
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
         self.resize(BINARY_WORKBENCH_LAYOUT.WINDOW_WIDTH, BINARY_WORKBENCH_LAYOUT.WINDOW_HEIGHT)
         self.toolbar = BinaryWorkbenchToolbar()
-        self.tabs = BinaryWorkbenchTabs(state)
+        self.tabs = BinaryWorkbenchTabs(state, workspace_directory)
         self.footer_status = QLabel(BINARY_WORKBENCH_TEXT.STATUS_IDLE, self)
         self.footer_status.setObjectName("binary-workbench-footer-status")
         self.statusBar().hide()
@@ -77,6 +81,9 @@ class BinaryWorkbenchWindow(
     def open_assembly_path(self, path: Path) -> None:
         self.tabs.open_assembly_path(path)
 
+    def open_workspace_path(self, path: Path) -> bool:
+        return self.tabs.open_workspace_path(path)
+
     def new_scratch_tab(self) -> None:
         self.tabs.new_scratch_tab()
 
@@ -90,7 +97,6 @@ class BinaryWorkbenchWindow(
 
     def _placeholder_actions(self):
         return (
-            self.toolbar.regions_action,
             self.toolbar.encoding_tables_action,
             self.toolbar.view_action,
             self.toolbar.help_action,

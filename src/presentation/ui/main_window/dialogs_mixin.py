@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog
 
+from src.modules.utils import read_json
+from src.presentation.repository.binary_workbench_workspace.constants import SCHEMA_VERSION
 from src.presentation.ui.components import BinaryWorkbenchWindow
 from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
@@ -20,7 +22,10 @@ if TYPE_CHECKING:
 class MainWindowDialogsMixin:
     def _open_binary_workbench(self: MainWindow) -> None:
         if self._binary_workbench_window is None:
-            self._binary_workbench_window = BinaryWorkbenchWindow(self._binary_workbench_state)
+            self._binary_workbench_window = BinaryWorkbenchWindow(
+                self._binary_workbench_state,
+                self._state_service.workspace_directory,
+            )
             self._binary_workbench_window.setWindowIcon(self.windowIcon())
             self._binary_workbench_window.setStyleSheet(STYLESHEET)
             self._binary_workbench_window.stateChanged.connect(
@@ -74,6 +79,13 @@ class MainWindowDialogsMixin:
         )
         if not path:
             return
+        if self._binary_workbench_window is not None and self._binary_workbench_window.tabs.current_context() is not None:
+            if self._binary_workbench_window.tabs.save_current_workspace(Path(path)):
+                self.footer.set_status(
+                    MAIN_WINDOW_TEXT.WORKSPACE_SAVED_TEMPLATE.format(name=Path(path).name)
+                )
+                self._autosave_state()
+                return
         saved_path = self._state_service.save_workspace(self._collect_context(), Path(path))
         self.footer.set_status(
             MAIN_WINDOW_TEXT.WORKSPACE_SAVED_TEMPLATE.format(name=saved_path.name)
@@ -88,6 +100,15 @@ class MainWindowDialogsMixin:
         )
         if not path:
             return
+        payload = read_json(Path(path))
+        if payload and payload.get("schema_version") == SCHEMA_VERSION:
+            self._open_binary_workbench()
+            if self._binary_workbench_window is not None and self._binary_workbench_window.open_workspace_path(Path(path)):
+                self.footer.set_status(
+                    MAIN_WINDOW_TEXT.WORKSPACE_LOADED_TEMPLATE.format(name=Path(path).name)
+                )
+                self._autosave_state()
+                return
         workspace = self._state_service.load_workspace(Path(path))
         self._apply_context(workspace.context)
         self._refresh_command_completions()

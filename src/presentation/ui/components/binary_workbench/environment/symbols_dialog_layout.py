@@ -3,7 +3,6 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QVBoxLayout, QWi
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
-    size_symbol_input,
     symbol_button,
     symbol_field,
     symbol_input,

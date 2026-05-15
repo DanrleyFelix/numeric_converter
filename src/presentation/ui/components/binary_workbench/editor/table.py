@@ -58,6 +58,7 @@ class BinaryWorkbenchGrid(
         self._equates: dict[str, str] = {}
         self._last_editor_kind: str | None = None
         self._dirty_editor_kind: str | None = None
+        self._edit_origin_kind: str | None = None
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._build_ui()

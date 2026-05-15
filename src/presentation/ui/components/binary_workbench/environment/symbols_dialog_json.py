@@ -18,6 +18,7 @@ class SymbolsDialogJsonMixin:
         self._clear_rows()
         self.library_name_input.setText(library.name)
         self._loaded_library_name = library.name
+        self._loaded_library_path = str(path)
         self._load_rows(library.variables, library.equates, library.labels)
         self._remember_symbols_directory(path)
         return True
@@ -29,6 +30,7 @@ class SymbolsDialogJsonMixin:
         write_json(target, symbols_payload(library_name, variables, equates))
         self._save_requested = True
         self._saved_library_name = library_name
+        self._saved_library_path = str(target)
         self.library_name_input.setText(library_name)
         self._remember_symbols_directory(target)
         self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.SYMBOLS_SAVED_TEMPLATE.format(path=str(target)))

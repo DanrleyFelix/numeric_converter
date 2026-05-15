@@ -97,8 +97,32 @@ def _normalized_byte_line(line: str, uppercase: bool) -> str:
 
 
 def normalize_instruction_text(text: str, uppercase: bool) -> str:
-    normalized = text.upper() if uppercase else text
-    return re.sub(r"(?<=0)X", "x", normalized)
+    if not uppercase:
+        return text
+    return "\n".join(_normalize_instruction_line(line) for line in text.split("\n"))
+
+
+def _normalize_instruction_line(line: str) -> str:
+    code, separator, comment = line.partition(";")
+    label, label_separator, body = _partition_label(code)
+    return f"{label}{label_separator}{_uppercase_mnemonic(body)}{separator}{comment}"
+
+
+def _partition_label(text: str) -> tuple[str, str, str]:
+    left, separator, right = text.partition(":")
+    if not separator:
+        return "", "", text
+    candidate = left.strip()
+    if candidate and " " not in candidate and "\t" not in candidate:
+        return left, separator, right
+    return "", "", text
+
+
+def _uppercase_mnemonic(text: str) -> str:
+    match = re.search(r"[A-Za-z.][A-Za-z0-9_.]*", text)
+    if match is None:
+        return text
+    return f"{text[: match.start()]}{match.group(0).upper()}{text[match.end() :]}"
 
 
 def format_byte_groups(raw: str, group_size: int) -> str:

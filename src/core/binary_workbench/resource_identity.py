@@ -6,7 +6,9 @@ from pathlib import Path
 def file_resource_identifiers(path: Path | None, display_name: str = "") -> list[str]:
     names: list[str] = []
     if path is not None:
-        names.append(f"path:{str(path.resolve()).lower()}")
+        resolved = path.resolve()
+        names.append(f"path:{str(resolved).lower()}")
+        names.append(f"directory:{str(resolved.parent).lower()}")
         names.append(f"name:{path.name.lower()}")
     elif display_name:
         names.append(f"name:{display_name.lower()}")
@@ -19,7 +21,11 @@ def matching_file_identifiers(
     display_name: str = "",
 ) -> bool:
     current = set(file_resource_identifiers(path, display_name))
-    return bool(current.intersection(saved))
+    saved_set = set(saved)
+    saved_paths = {value for value in saved_set if value.startswith("path:")}
+    if saved_paths:
+        return bool(current.intersection(saved_paths))
+    return bool(current.intersection(saved_set))
 
 
 def merged_file_identifiers(current: list[str], extra: list[str]) -> list[str]:

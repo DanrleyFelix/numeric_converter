@@ -9,6 +9,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     apply_instruction_overlays,
+    file_offset,
     merged_instruction_labels,
     rows_from_overlays,
     update_instruction_overlays,
@@ -74,6 +75,15 @@ class EditorPageBinaryLoadingMixin:
         self.contextChanged.emit(self._context)
 
     def _instruction_overlays_for_rows(self, rows: list) -> dict[str, str]:
+        origin = self.grid.edit_origin_kind()
+        if origin == BINARY_WORKBENCH_TEXT.INSTRUCTION:
+            return update_instruction_overlays(self._context.instruction_overlays, rows)
+        if origin == BINARY_WORKBENCH_TEXT.BYTES:
+            return instruction_overlays_with_changed_rows(
+                self._context.instruction_overlays,
+                rows,
+                self._context.rows,
+            )
         if self.grid.focused_editor_kind() != BINARY_WORKBENCH_TEXT.INSTRUCTION:
             return dict(self._context.instruction_overlays)
         return update_instruction_overlays(self._context.instruction_overlays, rows)
@@ -97,3 +107,17 @@ def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:
         int(offset, 16): bytes.fromhex(bytes_text.replace(" ", ""))
         for offset, bytes_text in values.items()
     }
+
+
+def instruction_overlays_with_changed_rows(
+    overlays: dict[str, str],
+    rows: list,
+    previous_rows: list,
+) -> dict[str, str]:
+    updated = dict(overlays)
+    previous_bytes = {file_offset(row): row.bytes_text for row in previous_rows}
+    for row in rows:
+        offset = file_offset(row)
+        if previous_bytes.get(offset) != row.bytes_text:
+            updated[offset] = row.instruction
+    return updated

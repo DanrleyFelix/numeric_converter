@@ -5,6 +5,7 @@ from typing import Any
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchSymbolsDTO,
@@ -87,6 +88,30 @@ def _internal_files(raw: object) -> list[BinaryWorkbenchInternalFileDTO]:
     return files
 
 
+def _memory_regions(raw: object) -> list[BinaryWorkbenchMemoryRegionDTO]:
+    if not isinstance(raw, list):
+        return []
+    regions: list[BinaryWorkbenchMemoryRegionDTO] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        start_offset = _int_offset(item.get("start_offset"))
+        end_offset = _int_offset(item.get("end_offset"))
+        if not isinstance(name, str) or not name:
+            continue
+        if start_offset is None or end_offset is None:
+            continue
+        regions.append(
+            BinaryWorkbenchMemoryRegionDTO(
+                name=name,
+                start_offset=start_offset,
+                end_offset=end_offset,
+            )
+        )
+    return regions
+
+
 def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
     if not isinstance(raw, list):
         return []
@@ -97,8 +122,31 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
         name = item.get("name")
         if not isinstance(name, str) or not name:
             continue
-        versions.append(BinaryWorkbenchVersionDTO(name=name, rows=_rows(item.get("rows"))))
+        versions.append(
+            BinaryWorkbenchVersionDTO(
+                name=name,
+                rows=_rows(item.get("rows")),
+                instruction_overlays=_instruction_overlays(item.get("instructions")),
+            )
+        )
     return versions
+
+
+def _instruction_overlays(raw: object) -> dict[str, str]:
+    if isinstance(raw, dict):
+        return {_offset_hex(key): str(value) for key, value in raw.items()}
+    if not isinstance(raw, list):
+        return {}
+    overlays: dict[str, str] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        offset = _int_offset(item.get("offset"))
+        instruction = item.get("instruction")
+        if offset is None or not isinstance(instruction, str):
+            continue
+        overlays[f"0x{offset:08X}"] = instruction
+    return overlays
 
 
 def _lba_filesystems(raw: object) -> list[BinaryWorkbenchLbaFilesystemDTO]:
@@ -149,6 +197,23 @@ def _lba_sector_size(raw: object) -> int:
     return value if value in {2048, 2334, 2352} else 2352
 
 
+def _int_offset(raw: object) -> int | None:
+    if isinstance(raw, int):
+        return raw if raw >= 0 else None
+    if isinstance(raw, str):
+        try:
+            value = int(raw, 0)
+        except ValueError:
+            return None
+        return value if value >= 0 else None
+    return None
+
+
+def _offset_hex(raw: object) -> str:
+    value = _int_offset(raw)
+    return f"0x{value:08X}" if value is not None else str(raw)
+
+
 def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     if not isinstance(raw, dict):
         return None
@@ -181,10 +246,17 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         internal_files=_internal_files(raw.get("internal_files")),
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
+        memory_regions=_memory_regions(raw.get("memory_regions")),
         versions=_versions(raw.get("versions")),
         active_version_name=str(raw.get("active_version_name"))
         if isinstance(raw.get("active_version_name"), str)
         else None,
+        workspace_path=str(raw.get("workspace_path"))
+        if isinstance(raw.get("workspace_path"), str)
+        else None,
+        module_paths=normalize_string_map(raw.get("module_paths")),
+        module_directories=normalize_string_map(raw.get("module_directories")),
+        module_checksums=normalize_string_map(raw.get("module_checksums")),
         last_open_offset=str(raw.get("last_open_offset", "0x00000000")),
         navigation_history=normalize_string_list(raw.get("navigation_history")),
         original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
@@ -245,6 +317,14 @@ def binary_workbench_state_to_payload(
                 ],
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
+                "memory_regions": [
+                    {
+                        "name": item.name,
+                        "start_offset": item.start_offset,
+                        "end_offset": item.end_offset,
+                    }
+                    for item in tab.memory_regions
+                ],
                 "versions": [
                     {
                         "name": version.name,
@@ -256,10 +336,23 @@ def binary_workbench_state_to_payload(
                             }
                             for row in version.rows
                         ],
+                        "instructions": [
+                            {
+                                "offset": int(offset, 16),
+                                "instruction": instruction,
+                            }
+                            for offset, instruction in sorted(
+                                version.instruction_overlays.items()
+                            )
+                        ],
                     }
                     for version in tab.versions
                 ],
                 "active_version_name": tab.active_version_name,
+                "workspace_path": tab.workspace_path,
+                "module_paths": dict(tab.module_paths),
+                "module_directories": dict(tab.module_directories),
+                "module_checksums": dict(tab.module_checksums),
                 "last_open_offset": tab.last_open_offset,
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,

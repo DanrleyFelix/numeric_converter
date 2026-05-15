@@ -5,6 +5,7 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import restorable_state
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload
+from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import DIRECTORY_KEYS
 
 
 class TabStateMixin:
@@ -21,9 +22,24 @@ class TabStateMixin:
         self.stateChanged.emit(self._state)
 
     def directory_for(self, action_key: str) -> str:
-        return self._state.directories.get(action_key, "")
+        if value := self._state.directories.get(action_key, ""):
+            return value
+        return self.workspace_module_directory(action_key)
 
     def set_directory(self, action_key: str, path: Path) -> None:
+        module_key = DIRECTORY_KEYS.get(action_key)
+        current = self.current_context()
+        if module_key and current is not None:
+            current = BinaryWorkbenchTabContextDTO(
+                **{
+                    **current.__dict__,
+                    "module_directories": {
+                        **current.module_directories,
+                        module_key: str(path),
+                    },
+                }
+            )
+            self._replace_context(current.tab_id, current)
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "directories": {**self._state.directories, action_key: str(path)}}
         )
@@ -41,8 +57,8 @@ class TabStateMixin:
         if context is None:
             return False
         if context.kind == "binary":
-            return bool(context.byte_overlays)
-        return context.rows != context.original_rows
+            return self._has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
+        return context.rows != context.original_rows or self._has_workspace_module_changes(context)
 
     def close_tab(self, index: int) -> None:
         if not 0 <= index < len(self._state.tabs):

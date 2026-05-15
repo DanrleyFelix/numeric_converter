@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QTabWidget
 
 from src.modules.dtos import BinaryWorkbenchStateDTO
+from src.presentation.repository.binary_workbench_workspace import (
+    BinaryWorkbenchWorkspaceRepository,
+)
 from src.presentation.ui.components.binary_workbench.tabs.tab_configuration import (
     TabConfigurationMixin,
 )
@@ -21,6 +26,9 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_page_management im
 )
 from src.presentation.ui.components.binary_workbench.tabs.tab_state import TabStateMixin
 from src.presentation.ui.components.binary_workbench.tabs.tab_versions import TabVersionsMixin
+from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import (
+    TabWorkspaceMixin,
+)
 
 
 class BinaryWorkbenchTabs(
@@ -30,6 +38,7 @@ class BinaryWorkbenchTabs(
     TabConfigurationMixin,
     TabLibrariesMixin,
     TabVersionsMixin,
+    TabWorkspaceMixin,
     TabFileSavingMixin,
     TabNavigationSearchMixin,
     QTabWidget,
@@ -38,7 +47,11 @@ class BinaryWorkbenchTabs(
     statusChanged = Signal(str)
     closeRequested = Signal(int)
 
-    def __init__(self, state: BinaryWorkbenchStateDTO) -> None:
+    def __init__(
+        self,
+        state: BinaryWorkbenchStateDTO,
+        workspace_directory: Path | None = None,
+    ) -> None:
         super().__init__()
         self.setObjectName("binary-workbench-tabs")
         self.setFocusPolicy(Qt.NoFocus)
@@ -48,6 +61,9 @@ class BinaryWorkbenchTabs(
         self.tabBar().setDrawBase(False)
         self.setTabsClosable(True)
         self.setDocumentMode(True)
+        self._workspace_repository = BinaryWorkbenchWorkspaceRepository(
+            workspace_directory or Path.cwd()
+        )
         self._state = BinaryWorkbenchStateDTO()
         self.currentChanged.connect(self._sync_active_tab)
         self.tabCloseRequested.connect(self.closeRequested.emit)

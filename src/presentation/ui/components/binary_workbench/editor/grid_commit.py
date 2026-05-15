@@ -12,10 +12,22 @@ class GridCommitMixin:
             return
         if self._dirty_editor_kind == BINARY_WORKBENCH_TEXT.BYTES:
             rows = self._byte_rows_from_lines(self.bytes.toPlainText().splitlines())
-            self._commit_visible_rows(rows, True)
+            self._commit_origin_rows(rows, BINARY_WORKBENCH_TEXT.BYTES, True)
             return
         rows = self._instruction_rows_from_lines(self.instructions.toPlainText().splitlines())
-        self._commit_visible_rows(rows, False)
+        self._commit_origin_rows(rows, BINARY_WORKBENCH_TEXT.INSTRUCTION, False)
+
+    def _commit_origin_rows(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None,
+        origin: str,
+        editing_bytes: bool,
+    ) -> None:
+        self._edit_origin_kind = origin
+        try:
+            self._commit_visible_rows(rows, editing_bytes)
+        finally:
+            self._edit_origin_kind = None
 
     def _commit_visible_rows(self, rows: list[BinaryWorkbenchRowDTO] | None, editing_bytes: bool) -> None:
         if rows is None:

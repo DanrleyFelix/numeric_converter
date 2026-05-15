@@ -12,6 +12,7 @@ from src.main import create_main_window
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchTabContextDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -33,7 +34,10 @@ from src.presentation.ui.components.binary_workbench.editor.context_menu_icons i
     use_white_menu_icons,
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
-from src.presentation.ui.components.binary_workbench.file_dialogs import BinaryWorkbenchLbaFilesystemDialog
+from src.presentation.ui.components.binary_workbench.file_dialogs import (
+    BinaryWorkbenchLbaFilesystemDialog,
+    BinaryWorkbenchMemoryRegionsDialog,
+)
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
 
@@ -233,6 +237,66 @@ def test_binary_workbench_instruction_and_bytes_edit_roundtrip(tmp_path: Path):
     assert surface.instructions.toPlainText().splitlines()[0] != ""
 
 
+def test_binary_workbench_bytes_edit_updates_instruction_and_raw_panels(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    surface = page.grid  # type: ignore[attr-defined]
+    surface.bytes.setPlainText("F4 01 63 24")
+    _app().processEvents()
+    instruction = surface.instructions.toPlainText().splitlines()[0]
+    raw_instruction = surface.raw_instructions.toPlainText().splitlines()[0]
+
+    assert instruction.startswith("ADDIU")
+    assert "0x1F4" in instruction
+    assert raw_instruction.startswith("addiu")
+    assert "0x1f4" in raw_instruction
+
+
+def test_binary_workbench_user_bytes_edit_preserves_matching_symbols(tmp_path: Path):
+    binary_path = tmp_path / "source.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00 00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    tool.tabs.set_current_symbols({"variable1": "0x1F4"}, {"equate1": "0x34"}, {})
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "Entry: addiu $v1,$zero,_variable1\naddiu $s2,$zero,@equate1"
+    )
+    _app().processEvents()
+
+    current = tool.tabs.current_context()
+    assert current is not None
+    assert "_variable1" in current.instruction_overlays["0x00000000"]
+
+    page.grid.bytes.setPlainText("F4 01 63 24\n34 00 52 26")  # type: ignore[attr-defined]
+    _app().processEvents()
+    page.go_to_offset(0)
+    _app().processEvents()
+    current = tool.tabs.current_context()
+    instructions = page.grid.instructions.toPlainText().splitlines()  # type: ignore[attr-defined]
+    raw_instructions = page.grid.raw_instructions.toPlainText().splitlines()  # type: ignore[attr-defined]
+
+    assert current is not None
+    assert current.labels == {"Entry": "0x00000000"}
+    assert current.instruction_overlays["0x00000000"].startswith("Entry:")
+    assert "_variable1" in current.instruction_overlays["0x00000000"]
+    assert "@equate1" in current.instruction_overlays["0x00000004"]
+    assert instructions[0].startswith("Entry: ADDIU")
+    assert "_variable1" in instructions[0]
+    assert "@equate1" in instructions[1]
+    assert "_variable1" not in raw_instructions[0]
+    assert "@equate1" not in raw_instructions[1]
+
+
 def test_binary_workbench_raw_instructions_show_preprocessed_mips(tmp_path: Path):
     assembly_path = tmp_path / "symbols.asm"
     assembly_path.write_text(
@@ -294,8 +358,8 @@ def test_binary_workbench_instructions_expand_pseudo_and_raw_stays_lowercase(tmp
     _app().processEvents()
 
     assert page.grid.instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
-        "ADDIU $V0, $ZERO, 1",
-        "ADDU $A0, $S1, $ZERO",
+        "ADDIU $v0, $zero, 1",
+        "ADDU $a0, $s1, $zero",
     ]
     assert page.grid.raw_instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
         "addiu $v0, $zero, 1",
@@ -317,7 +381,7 @@ def test_binary_workbench_reads_asm_sources_as_text_by_default(tmp_path: Path):
 
     assert current is not None and current.read_mode == "assembly"
     assert page is not None
-    assert page.grid.instructions.toPlainText().splitlines()[0] == "ADDIU V1, V1, 0x1F4"  # type: ignore[attr-defined]
+    assert page.grid.instructions.toPlainText().splitlines()[0] == "ADDIU v1, v1, 0x1F4"  # type: ignore[attr-defined]
     assert page.grid.bytes.toPlainText().splitlines()[0] != ""  # type: ignore[attr-defined]
 
 
@@ -419,6 +483,24 @@ def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path
     assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
 
 
+def test_binary_workbench_lba_filesystem_allows_non_binary_file_backed_tabs(tmp_path: Path):
+    assembly_path = tmp_path / "source.asm"
+    assembly_path.write_bytes(bytes(2048) + bytes.fromhex("AA BB CC DD"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO(name="chunk", start_lba=1)], 2048)
+    tool.tabs.open_internal_tab("chunk")
+    state = tool.export_state()
+
+    assert state.tabs[-1].kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
+    assert state.tabs[-1].display_name == "chunk"
+    assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
+
+
 def test_binary_workbench_versioning_saves_modified_copy_without_touching_original(tmp_path: Path):
     binary_path = tmp_path / "source.bin"
     binary_path.write_bytes(bytes.fromhex("00 00 00 00 11 22 33 44"))
@@ -463,6 +545,44 @@ def test_binary_workbench_save_file_uses_current_active_version_overlay(tmp_path
     assert output_path.read_bytes() == bytes.fromhex("AA BB CC DD")
 
 
+def test_binary_workbench_workspace_restores_instruction_version_by_exact_source(tmp_path: Path):
+    binary_path = tmp_path / "source.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00 00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("Label_1: addiu $s1,$s1,_variable1")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert tool.tabs.create_version("v1") is True
+    assert tool.tabs.save_current_workspace() is True
+
+    version_path = tmp_path / "data" / "workspaces" / "Versions" / "source_v1.json"
+    payload = version_path.read_text(encoding="utf-8")
+    assert '"offset": 0' in payload
+    assert "Label_1:" in payload
+
+    restored = _window(tmp_path)
+    restored._open_binary_workbench()
+    restored_tool = restored._binary_workbench_window
+
+    assert restored_tool is not None
+    restored_tool.open_binary_path(binary_path)
+    current = restored_tool.tabs.current_context()
+
+    assert current is not None
+    assert current.active_version_name == "v1"
+    assert current.variables == {"variable1": "20"}
+    assert current.equates == {"equate1": "0x34"}
+    assert current.labels == {"Label_1": "0x00000000"}
+    assert current.instruction_overlays["0x00000000"].startswith("Label_1:")
+
+
 def test_binary_workbench_saves_assembly_copy_and_persists_directory(tmp_path: Path):
     output_path = tmp_path / "edited.asm"
     window = _window(tmp_path)
@@ -477,7 +597,7 @@ def test_binary_workbench_saves_assembly_copy_and_persists_directory(tmp_path: P
     _app().processEvents()
 
     assert tool.tabs.save_current_assembly_copy(output_path) is True
-    assert "ADDIU $SP,$SP,-0x10" in output_path.read_text(encoding="utf-8")
+    assert "ADDIU $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
     assert tool.export_state().directories["save_assembly"] == str(output_path.parent)
 
 
@@ -677,7 +797,7 @@ def test_binary_workbench_ctrl_s_persists_open_assembly_source(tmp_path: Path):
     _app().processEvents()
 
     assert tool.tabs.save_current_source_file() is True
-    assert assembly_path.read_text(encoding="utf-8") == "ADDIU $SP,$SP,-0x10"
+    assert assembly_path.read_text(encoding="utf-8") == "ADDIU $sp,$sp,-0x10"
 
 
 def test_binary_workbench_save_current_assembly_source_uses_assembly_status(tmp_path: Path):
@@ -815,7 +935,7 @@ def test_binary_workbench_go_to_label_preserves_instruction_symbols(tmp_path: Pa
     page.go_to_instruction_offset(0)
     text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
 
-    assert "LOOP:" in text
+    assert "loop:" in text
     assert "_VARIABLE1" in text
     assert "@EQUATE1" in text
 
@@ -953,7 +1073,25 @@ def test_binary_workbench_lba_filesystem_dialog_saves_json_library(tmp_path: Pat
     assert '"start_lba": 24' in library_path.read_text(encoding="utf-8")
 
 
-def test_binary_workbench_persists_lba_filesystem_for_same_filename(tmp_path: Path):
+def test_binary_workbench_memory_regions_dialog_saves_decimal_offsets(tmp_path: Path):
+    _app()
+    library_path = tmp_path / "regions.json"
+    dialog = BinaryWorkbenchMemoryRegionsDialog(
+        [BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)]
+    )
+
+    assert dialog.save_json(library_path) is True
+
+    payload = library_path.read_text(encoding="utf-8")
+    assert '"start_offset": 1844224' in payload
+    assert '"end_offset": 1844479' in payload
+    assert dialog.load_json(library_path) is True
+    assert dialog.regions() == [
+        BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)
+    ]
+
+
+def test_binary_workbench_lba_filesystem_does_not_match_different_directory(tmp_path: Path):
     first = tmp_path / "one" / "disc.bin"
     second = tmp_path / "two" / "disc.bin"
     first.parent.mkdir()
@@ -972,8 +1110,8 @@ def test_binary_workbench_persists_lba_filesystem_for_same_filename(tmp_path: Pa
     current = tool.tabs.current_context()
 
     assert current is not None
-    assert current.lba_sector_size == 2048
-    assert current.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
+    assert current.lba_sector_size == 2352
+    assert current.internal_files == []
 
 
 def test_binary_workbench_symbols_resolve_labels_and_multiple_offsets(tmp_path: Path):
@@ -1135,7 +1273,7 @@ def test_binary_workbench_grid_completion_enter_keeps_instruction_line(tmp_path:
     _app().processEvents()
 
     assert editor.textCursor().blockNumber() == 1
-    assert "ADDIU $S1, $S1, _VARIABLE1" in editor.toPlainText()
+    assert "ADDIU $S1, $S1, _variable1" in editor.toPlainText()
 
 
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
@@ -1157,7 +1295,7 @@ def test_binary_workbench_highlighter_groups_use_distinct_colors():
     assert len(colors) == len(set(colors))
 
 
-def test_binary_workbench_persists_symbols_for_same_filename(tmp_path: Path):
+def test_binary_workbench_symbols_do_not_match_different_directory(tmp_path: Path):
     first = tmp_path / "one" / "shared.asm"
     second = tmp_path / "two" / "shared.asm"
     first.parent.mkdir()
@@ -1176,8 +1314,8 @@ def test_binary_workbench_persists_symbols_for_same_filename(tmp_path: Path):
     current = tool.tabs.current_context()
 
     assert current is not None
-    assert current.variables == {"variable1": "20"}
-    assert current.equates == {"equate1": "0x34"}
+    assert current.variables == {}
+    assert current.equates == {}
     assert current.labels == {}
 
 
@@ -1233,6 +1371,28 @@ def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: P
     assert tool.tabs.has_unsaved_changes(0) is True
 
 
+def test_binary_workbench_detects_workspace_module_changes_before_closing_tab(tmp_path: Path):
+    binary_path = tmp_path / "source.bin"
+    binary_path.write_bytes(bytes(4096))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    assert tool.tabs.has_unsaved_changes(0) is False
+
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("slus", 24)])
+    tool.tabs.set_current_memory_regions(
+        [BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)]
+    )
+
+    assert tool.tabs.has_unsaved_changes(0) is True
+    assert tool.tabs.save_current_workspace() is True
+    assert tool.tabs.has_unsaved_changes(0) is False
+
+
 def test_binary_workbench_detects_deleted_instruction_rows(tmp_path: Path):
     assembly_path = tmp_path / "trimmed.asm"
     assembly_path.write_text("nop\naddiu $sp,$sp,-0x10\njr $ra\n", encoding="utf-8")
@@ -1278,6 +1438,21 @@ def test_binary_workbench_instruction_hex_prefix_keeps_lowercase_x(tmp_path: Pat
     _app().processEvents()
 
     assert page.grid.instructions.toPlainText() == "JAL 0x80010000"  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_instruction_uppercase_affects_only_mnemonics(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("Label_1: addiu $s1,$s1,_variable1 ; keep Me")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert page.grid.instructions.toPlainText() == "Label_1: ADDIU $s1,$s1,_variable1 ; keep Me"  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_bytes_formatter_has_separate_uppercase_preferences(tmp_path: Path):
