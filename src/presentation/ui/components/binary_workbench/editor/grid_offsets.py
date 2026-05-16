@@ -12,14 +12,14 @@ class GridOffsetsMixin:
     def _offsets_for_row(self, index: int) -> dict[str, str]:
         file_offset = self._visible_start_offset + (index * ROW_BYTES)
         bases = self._offset_bases()
-        names = self._columns or [BINARY_WORKBENCH_TEXT.FILE_OFFSET]
+        names = self._columns or [BINARY_WORKBENCH_TEXT.FILE]
         return {name: f"0x{bases.get(name, 0) + file_offset:08X}" for name in names}
 
     def _offset_bases(self) -> dict[str, int]:
         if not self._rows:
-            return {BINARY_WORKBENCH_TEXT.FILE_OFFSET: 0}
+            return {BINARY_WORKBENCH_TEXT.FILE: 0}
         first = self._rows[0]
-        file_offset = offset_int(first.offsets.get(BINARY_WORKBENCH_TEXT.FILE_OFFSET))
+        file_offset = offset_int(first.offsets.get(BINARY_WORKBENCH_TEXT.FILE) or first.offsets.get(BINARY_WORKBENCH_TEXT.FILE_OFFSET))
         return {
             name: offset_int(value) - file_offset
             for name, value in first.offsets.items()
