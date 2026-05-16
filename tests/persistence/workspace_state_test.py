@@ -1,30 +1,33 @@
+import json
 from pathlib import Path
 
 from src.modules.dtos import (
     ApplicationContextDTO,
     BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
-    BinaryWorkbenchSymbolsDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
     CommandContextDTO,
+    CommandEntryDTO,
     ConverterStateDTO,
+    ProgramContextDTO,
+    WindowSizeDTO,
     WorkspaceStateDTO,
-)
-from src.modules.dtos import CommandEntryDTO
-from src.presentation.repository.workspace_state import (
-    ApplicationContextRepository,
-    WorkspaceStateRepository,
 )
 from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
 )
+from src.presentation.repository.workspace_state import (
+    ApplicationContextRepository,
+    BinaryWorkbenchContextRepository,
+    ProgramContextRepository,
+    WorkspaceStateRepository,
+)
 
 
-def test_application_context_roundtrip(tmp_path: Path):
+def test_application_context_roundtrip_uses_numeric_workbench_context_path(tmp_path: Path):
     repository = ApplicationContextRepository(tmp_path)
     context = ApplicationContextDTO(
         converter=ConverterStateDTO(
@@ -43,80 +46,90 @@ def test_application_context_roundtrip(tmp_path: Path):
             instructions=["a = 1"],
             variables={"ANS": 1, "a": 1},
         ),
-        binary_workbench=BinaryWorkbenchStateDTO(
-            tabs=[
-                BinaryWorkbenchTabContextDTO(
-                    tab_id="binary-1",
-                    kind="binary",
-                    display_name="sample.bin",
-                    source_path="C:/tmp/sample.bin",
-                    rows=[
-                        BinaryWorkbenchRowDTO(
-                            offsets={"File": "0x00000000", "RAM": "0x80010000"},
-                            instruction="word 0x00000000",
-                            bytes_text="00 00 00 00",
-                        )
-                    ],
-                )
-            ],
-            active_tab_id="binary-1",
-            recent_files=["C:/tmp/sample.bin"],
-            directories={"open_binary": "C:/tmp", "open_assembly": "", "save_file": "C:/tmp", "save_assembly": ""},
-            lba_filesystems=[
-                BinaryWorkbenchLbaFilesystemDTO(
-                    name="disc-map",
-                    file_identifiers=["name:sample.bin"],
-                    sector_size=2048,
-                    internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
-                )
-            ],
-            symbols=[
-                BinaryWorkbenchSymbolsDTO(
-                    name="shared-symbols",
-                    file_identifiers=["name:sample.bin"],
-                    variables={"variable1": "20"},
-                    equates={"equate1": "0x34"},
-                    labels={"label1": "0x00000000"},
-                )
-            ],
-        ),
-        key_panel_visible=False,
+        window_sizes={"main_window": WindowSizeDTO(width=900, height=600)},
     )
 
     saved_path = repository.save(context, Path("session_one"))
     loaded = repository.load(saved_path)
-    expected = ApplicationContextDTO(
-        **{
-            **context.__dict__,
-            "binary_workbench": BinaryWorkbenchStateDTO(
-                tabs=[
-                    BinaryWorkbenchTabContextDTO(
-                        **{
-                            **context.binary_workbench.tabs[0].__dict__,
-                            "rows": [],
-                            "original_rows": [],
-                            "reference_offsets": ["File"],
-                            "reference_offset_bases": {"File": "0x00000000"},
-                        }
-                    )
-                ],
-                active_tab_id="binary-1",
-                recent_files=["C:/tmp/sample.bin"],
-                directories={
-                    **BinaryWorkbenchStateDTO().directories,
-                    **context.binary_workbench.directories,
-                },
-                lba_filesystems=list(context.binary_workbench.lba_filesystems),
-                symbols=list(context.binary_workbench.symbols),
-            ),
-        }
-    )
 
     assert saved_path == repository.directory / "session_one.json"
-    assert loaded == expected
+    assert loaded == context
 
 
-def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
+def test_binary_workbench_context_roundtrip_excludes_program_and_preferences(tmp_path: Path):
+    repository = BinaryWorkbenchContextRepository(tmp_path)
+    state = BinaryWorkbenchStateDTO(
+        tabs=[
+            BinaryWorkbenchTabContextDTO(
+                tab_id="binary-1",
+                kind="binary",
+                display_name="sample.bin",
+                source_path="C:/tmp/sample.bin",
+                rows=[
+                    BinaryWorkbenchRowDTO(
+                        offsets={"File": "0x00000004", "RAM": "0x80010004"},
+                        instruction="JAL 0x1D9200",
+                        bytes_text="80 64 07 0C",
+                    )
+                ],
+            )
+        ],
+        active_tab_id="binary-1",
+        window_size=WindowSizeDTO(width=1200, height=720),
+    )
+
+    saved_path = repository.save(state)
+    payload = json.loads(saved_path.read_text(encoding="utf-8"))
+    loaded = repository.load(saved_path)
+
+    assert saved_path == repository.default_path()
+    assert "recent_files" not in payload
+    assert "navigation_mode" not in payload["tabs"][0]
+    assert "block_size" not in payload["tabs"][0]
+    assert "cache_max_blocks" not in payload["tabs"][0]
+    assert "group_bytes" not in payload["tabs"][0]["view_preferences"]
+    assert payload["tabs"][0]["rows"] == [
+        {
+            "offset": "0x00000004",
+            "instruction": "JAL 0x1D9200",
+            "bytes_text": "80 64 07 0C",
+        }
+    ]
+    assert loaded == BinaryWorkbenchStateDTO(
+        tabs=[
+            BinaryWorkbenchTabContextDTO(
+                **{
+                    **state.tabs[0].__dict__,
+                    "rows": [
+                        BinaryWorkbenchRowDTO(
+                            offsets={"File": "0x00000004"},
+                            instruction="JAL 0x1D9200",
+                            bytes_text="80 64 07 0C",
+                        )
+                    ],
+                    "reference_offsets": ["File"],
+                    "reference_offset_bases": {"File": "0x00000000"},
+                }
+            )
+        ],
+        active_tab_id="binary-1",
+        window_size=WindowSizeDTO(width=1200, height=720),
+    )
+
+
+def test_program_context_roundtrip_tracks_recent_and_last_binary_workspace(tmp_path: Path):
+    repository = ProgramContextRepository(tmp_path)
+    context = ProgramContextDTO(
+        recent_files=["C:/tmp/sample.bin"],
+        last_binary_workspaces={"path:c:/tmp/sample.bin": "C:/workspaces/sample.json"},
+    )
+
+    repository.save(context)
+
+    assert repository.load() == context
+
+
+def test_workspace_state_roundtrip_saves_numeric_context(tmp_path: Path):
     repository = WorkspaceStateRepository(tmp_path)
     workspace = WorkspaceStateDTO(
         context=ApplicationContextDTO(
@@ -136,59 +149,14 @@ def test_workspace_state_roundtrip_saves_context(tmp_path: Path):
                 instructions=["answer=42"],
                 variables={"ANS": 42, "answer": 42},
             ),
-            binary_workbench=BinaryWorkbenchStateDTO(
-                tabs=[
-                    BinaryWorkbenchTabContextDTO(
-                        tab_id="scratch-1",
-                        kind="scratch",
-                        display_name="Scratch 1",
-                        rows=[
-                            BinaryWorkbenchRowDTO(
-                                offsets={"File": "0x00000000", "RAM": "0x80010000"},
-                                instruction="word 0x246301F4",
-                                bytes_text="F4 01 63 24",
-                            )
-                        ],
-                        instruction_overlays={"0x00000000": "LOOP: ADDIU $S1, $ZERO, _VARIABLE1"},
-                    )
-                ],
-                active_tab_id="scratch-1",
-                recent_files=["C:/tmp/scratch.asm"],
-                directories={"open_binary": "", "open_assembly": "C:/tmp", "save_file": "", "save_assembly": ""},
-            ),
-            key_panel_visible=True,
         ),
     )
 
     saved_path = repository.save(workspace, Path("full_workspace"))
     loaded = repository.load(saved_path)
-    expected = WorkspaceStateDTO(
-        context=ApplicationContextDTO(
-            **{
-                **workspace.context.__dict__,
-                "binary_workbench": BinaryWorkbenchStateDTO(
-                    tabs=[
-                        BinaryWorkbenchTabContextDTO(
-                            **{
-                                **workspace.context.binary_workbench.tabs[0].__dict__,
-                                "reference_offsets": ["File"],
-                                "reference_offset_bases": {"File": "0x00000000"},
-                            }
-                        )
-                    ],
-                    active_tab_id="scratch-1",
-                    recent_files=["C:/tmp/scratch.asm"],
-                    directories={
-                        **BinaryWorkbenchStateDTO().directories,
-                        **workspace.context.binary_workbench.directories,
-                    },
-                ),
-            }
-        )
-    )
 
     assert saved_path == repository.directory / "full_workspace.json"
-    assert loaded == expected
+    assert loaded == workspace
 
 
 def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
@@ -213,6 +181,7 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
             )
         ],
         active_version_name="v1",
+        version_dirty=True,
     )
 
     saved = repository.save_tab_workspace(tab, repository.directory / "ygo_fm_wicked.json")
@@ -229,9 +198,10 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
     )
 
     assert saved.workspace_path == str(manifest)
+    assert saved.version_dirty is False
     assert manifest.exists()
     assert version_file.exists()
-    assert '"offset": 0' in version_file.read_text(encoding="utf-8")
+    assert '"0x00000000"' in version_file.read_text(encoding="utf-8")
     assert loaded.variables == {"variable1": "20"}
     assert loaded.equates == {"equate1": "0x34"}
     assert loaded.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
@@ -264,3 +234,32 @@ def test_binary_workbench_workspace_matches_exact_directory_and_filename(tmp_pat
 
     assert repository.find_for_source(first) == repository.directory / "disc_workspace.json"
     assert repository.find_for_source(second) is None
+
+
+def test_binary_workbench_workspace_uses_preferred_manifest_when_multiple_match(tmp_path: Path):
+    source = tmp_path / "disc.bin"
+    source.write_bytes(b"\x00\x00\x00\x00")
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+
+    first = repository.save_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="one",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+        ),
+        repository.directory / "first.json",
+    )
+    second = repository.save_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="two",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+        ),
+        repository.directory / "second.json",
+    )
+
+    assert repository.find_for_source(source) is None
+    assert repository.find_for_source(source, Path(first.workspace_path or "")) == Path(first.workspace_path or "")
+    assert repository.find_for_source(source, Path(second.workspace_path or "")) == Path(second.workspace_path or "")

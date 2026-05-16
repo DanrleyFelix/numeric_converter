@@ -15,23 +15,6 @@ def file_resource_identifiers(path: Path | None, display_name: str = "") -> list
     return _unique(names)
 
 
-def matching_file_identifiers(
-    saved: list[str],
-    path: Path | None,
-    display_name: str = "",
-) -> bool:
-    current = set(file_resource_identifiers(path, display_name))
-    saved_set = set(saved)
-    saved_paths = {value for value in saved_set if value.startswith("path:")}
-    if saved_paths:
-        return bool(current.intersection(saved_paths))
-    return bool(current.intersection(saved_set))
-
-
-def merged_file_identifiers(current: list[str], extra: list[str]) -> list[str]:
-    return _unique([*current, *extra])
-
-
 def _unique(values: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []

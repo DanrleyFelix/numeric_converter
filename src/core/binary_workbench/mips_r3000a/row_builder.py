@@ -11,7 +11,6 @@ from src.core.binary_workbench.mips_r3000a.preprocessor import (
     strip_comment,
 )
 
-_RAM_BASE = 0x80010000
 _ROW_BYTES = 4
 _LABEL_SEPARATOR = ":"
 
@@ -30,7 +29,7 @@ def build_rows_from_bytes(
         rows.append(
             BinaryWorkbenchRowDTO(
                 offsets=_offset_values(offset, offset_names, offset_bases),
-                instruction=codec.disassemble(chunk, _RAM_BASE + offset),
+                instruction=codec.disassemble(chunk, offset),
                 bytes_text=codec.bytes_text(chunk),
             )
         )
@@ -52,8 +51,8 @@ def build_rows_from_instructions(
     ]
     for index, instruction in enumerate(instructions):
         offset = index * _ROW_BYTES
-        assembly = preprocess_instruction(instruction, _RAM_BASE + offset, labels, {}, {})
-        encoded = codec.assemble(assembly, _RAM_BASE + offset) or b"\x00\x00\x00\x00"
+        assembly = preprocess_instruction(instruction, offset, labels, {}, {})
+        encoded = codec.assemble(assembly, offset) or b"\x00\x00\x00\x00"
         rows.append(
             BinaryWorkbenchRowDTO(
                 offsets=_offset_values(offset, offset_names, offset_bases),
@@ -87,7 +86,7 @@ def build_scratch_rows(
     return [
         BinaryWorkbenchRowDTO(
             offsets=_offset_values(index * _ROW_BYTES, offset_names, offset_bases),
-            instruction=codec.disassemble(zero, _RAM_BASE + (index * _ROW_BYTES)),
+            instruction=codec.disassemble(zero, (index * _ROW_BYTES)),
             bytes_text=codec.bytes_text(zero),
         )
         for index in range(count)

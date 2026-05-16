@@ -9,8 +9,6 @@ OPERATORS = {"+", "-", "*", "/", "%", "**",
     "<<", ">>", "==", "!=", "<", ">", "<=", ">=",
     "&", "|", "^", "~", "&&", "||", "!", "="}
 ASSIGNMENT_OPERATOR = {"="}
-BITWISE_OPERATORS = {"<<", ">>"}
-LOGICAL_OPERATORS = {"&", "|", "^", "~", "&&", "||", "!"}
 CONDITIONAL_OPERATORS = {"==", "!=", "<", ">", "<=", ">="}
 ARITHMETIC_OPERATORS = {"*", "-", "+", "/", "**"}
 UNARY_OPERATORS = {"!", "~", "+", "-"}
@@ -25,8 +23,6 @@ TEXTUAL_OPERATORS = {
 MULTI_CHAR_OPERATORS = sorted(OPERATORS, key=len, reverse=True)
 
 ERROR_INVALID_EXPRESSION = ("Invalid expression. Use BACKSPACE or X key to delete it.")
-ERROR_DIVISION_BY_ZERO = "Division by zero."
-ERROR_UNKNOWN_TOKEN = "Unknown token."
 
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 WHITESPACE_RE = re.compile(r"\s+")

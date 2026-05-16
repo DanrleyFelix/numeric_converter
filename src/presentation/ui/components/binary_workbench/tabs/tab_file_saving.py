@@ -36,7 +36,13 @@ class TabFileSavingMixin:
             return False
         target = output_path if output_path.suffix.lower() == ".asm" else output_path.with_suffix(".asm")
         if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY and current.source_path:
-            save_binary_as_assembly(Path(current.source_path), target, current.block_size, current.cache_max_blocks, current.byte_overlays)
+            save_binary_as_assembly(
+                Path(current.source_path),
+                target,
+                self._preferences.block_size,
+                self._preferences.cache_max_blocks,
+                current.byte_overlays,
+            )
         else:
             target.write_text(self._current_assembly_text(current), encoding="utf-8")
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_ASSEMBLY_DIRECTORY, target)

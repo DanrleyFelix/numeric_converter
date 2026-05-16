@@ -71,5 +71,9 @@ J_OPCODES: dict[str, int] = {
 R_FUNCTS: dict[str, int] = {
     "add": 0x20,
     "addu": 0x21,
-    "subu": 0x23,
+    "subu": 0x23}
+
+R_JUMP_FUNCTS: dict[str, int] = {
+    "jr": 0x08,
+    "jalr": 0x09,
 }

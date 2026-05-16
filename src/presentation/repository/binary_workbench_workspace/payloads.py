@@ -18,6 +18,7 @@ from src.presentation.repository.binary_workbench_payload import (
     _rows,
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
+from src.core.binary_workbench.resource_identity import file_resource_identifiers
 
 
 def checksum(payload: dict[str, Any]) -> str:
@@ -27,7 +28,11 @@ def checksum(payload: dict[str, Any]) -> str:
 
 def source_payload(path: Path) -> dict[str, str]:
     resolved = path.resolve()
-    return {"directory": str(resolved.parent), "filename": resolved.name}
+    return {
+        "directory": str(resolved.parent),
+        "filename": resolved.name,
+        "identifier": file_resource_identifiers(resolved)[0],
+    }
 
 
 def source_matches(payload: object, path: Path) -> bool:
@@ -81,10 +86,9 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
     }
     return {
         "name": version.name,
-        "instructions": [
-            {"offset": int(offset, 16), "instruction": instruction}
-            for offset, instruction in sorted(overlays.items())
-        ],
+        "instructions": {
+            offset: instruction for offset, instruction in sorted(overlays.items())
+        },
     }
 
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 
 from src.core.binary_workbench.mips_r3000a import preprocess_instruction
-from src.core.binary_workbench.mips_r3000a.preprocessor import RAM_BASE
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchRowDTO
 
@@ -47,8 +46,7 @@ def _preserve_symbolic_row(
     instruction = symbolic_instruction(
         row.instruction,
         previous.instruction,
-        row.bytes_text,
-        RAM_BASE + int(file_offset(row), 16),
+        row.bytes_text, int(file_offset(row), 16),
         labels,
         variables,
         equates,

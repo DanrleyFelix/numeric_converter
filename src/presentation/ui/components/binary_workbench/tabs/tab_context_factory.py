@@ -4,19 +4,15 @@ from uuid import uuid4
 
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes, build_scratch_rows
 from src.modules.dtos import (
+    BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TAB_KIND,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
-from src.presentation.ui.components.binary_workbench.tabs.saved_resources import (
-    matching_lba_filesystem,
-    matching_symbols,
-)
 from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     DEFAULT_REF_BASES,
     DEFAULT_REFS,
@@ -28,14 +24,17 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
 
 
-def create_binary_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWorkbenchTabContextDTO:
+def create_binary_tab(
+    state: BinaryWorkbenchStateDTO,
+    path: Path,
+    preferences: BinaryWorkbenchPreferencesDTO | None = None,
+) -> BinaryWorkbenchTabContextDTO:
     read_mode = resolve_read_mode(path, "auto")
-    block_size = BINARY_WORKBENCH_LAYOUT.DEFAULT_BLOCK_SIZE
+    preferences = preferences or BinaryWorkbenchPreferencesDTO()
+    block_size = preferences.block_size
     rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), block_size, dict(DEFAULT_REF_BASES))
-    lba_filesystem = matching_lba_filesystem(state, path)
-    saved_symbols = matching_symbols(state, path)
-    variables = dict(saved_symbols.variables) if saved_symbols else {}
-    equates = dict(saved_symbols.equates) if saved_symbols else {}
+    variables: dict[str, str] = {}
+    equates: dict[str, str] = {}
     labels: dict[str, str] = {}
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
@@ -49,26 +48,33 @@ def create_binary_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWorkb
         equates=equates,
         variables=variables,
         symbol_offsets=symbol_offsets(rows, variables, equates, labels),
-        internal_files=list(lba_filesystem.internal_files) if lba_filesystem else [],
-        lba_sector_size=lba_filesystem.sector_size if lba_filesystem else 2352,
+        internal_files=[],
+        lba_sector_size=2352,
         original_rows=deepcopy(rows),
         rows=rows,
         file_size=path.stat().st_size if path.exists() else 0,
-        block_size=block_size,
         view_preferences=seed_view_preferences(state),
     )
 
 
-def create_file_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWorkbenchTabContextDTO:
-    return create_assembly_tab(state, path) if is_assembly_path(path) else create_binary_tab(state, path)
+def create_file_tab(
+    state: BinaryWorkbenchStateDTO,
+    path: Path,
+    preferences: BinaryWorkbenchPreferencesDTO | None = None,
+) -> BinaryWorkbenchTabContextDTO:
+    return create_assembly_tab(state, path, preferences) if is_assembly_path(path) else create_binary_tab(state, path, preferences)
 
 
-def create_assembly_tab(state: BinaryWorkbenchStateDTO, path: Path) -> BinaryWorkbenchTabContextDTO:
+def create_assembly_tab(
+    state: BinaryWorkbenchStateDTO,
+    path: Path,
+    preferences: BinaryWorkbenchPreferencesDTO | None = None,
+) -> BinaryWorkbenchTabContextDTO:
     read_mode = resolve_read_mode(path, "assembly")
-    rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), BINARY_WORKBENCH_LAYOUT.DEFAULT_BLOCK_SIZE, dict(DEFAULT_REF_BASES))
-    saved_symbols = matching_symbols(state, path)
-    variables = dict(saved_symbols.variables) if saved_symbols else {}
-    equates = dict(saved_symbols.equates) if saved_symbols else {}
+    preferences = preferences or BinaryWorkbenchPreferencesDTO()
+    rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), preferences.block_size, dict(DEFAULT_REF_BASES))
+    variables: dict[str, str] = {}
+    equates: dict[str, str] = {}
     labels = labels_from_path(path, read_mode)
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,

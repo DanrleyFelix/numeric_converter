@@ -1,7 +1,10 @@
 from pathlib import Path
 
-from src.modules.dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_STATE, BINARY_WORKBENCH_TEXT
+from src.modules.dtos import (
+    BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
+)
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import restorable_state
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload
@@ -94,6 +97,7 @@ class TabStateMixin:
         self._replace_context(context.tab_id, context)
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
+            page.set_preferences(self._preferences)
             page.load_context(context)
 
     def _sync_active_tab(self, index: int) -> None:
@@ -106,12 +110,16 @@ class TabStateMixin:
         return next((idx for idx, tab in enumerate(self._state.tabs) if tab.tab_id == self._state.active_tab_id), 0)
 
     def _remember_file_path(self, action_key: str, path: Path) -> None:
-        recent = [str(path), *[item for item in self._state.recent_files if item != str(path)]]
+        text_path = str(path)
+        self._program_context = self._controller.remember_recent_file(
+            self._program_context,
+            path,
+        )
         self._state = BinaryWorkbenchStateDTO(
             **{
                 **state_payload(self._state),
-                "recent_files": recent[: BINARY_WORKBENCH_STATE.RECENT_FILES_LIMIT],
                 "directories": {**self._state.directories, action_key: str(path.parent)},
             }
         )
+        self.programContextChanged.emit(self._program_context)
         self.stateChanged.emit(self._state)

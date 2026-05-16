@@ -4,14 +4,23 @@ from src.controllers.cmd_window_controller import CommandWindowController
 from src.controllers.converter_controller import ConverterController
 from src.core.command_window.evaluator.evaluator import Evaluator
 from src.core.command_window.validator.validator import ExpressionValidator
-from src.modules.services import FormattingPreferencesService, WorkspaceStateService
+from src.modules.services import (
+    BinaryWorkbenchPreferencesService,
+    FormattingPreferencesService,
+    WorkspaceStateService,
+)
 from src.modules.use_cases import ConverterUseCase, EvaluatorUseCase
 from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.cmd_window_presenter import CommandWindowPresenter
 from src.presentation.presenter.converter_presenter import ConverterPresenter
-from src.presentation.repository.preferences_formatter import FormattingPreferencesRepository
+from src.presentation.repository.preferences_formatter import (
+    BinaryWorkbenchPreferencesRepository,
+    FormattingPreferencesRepository,
+)
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
+    BinaryWorkbenchContextRepository,
+    ProgramContextRepository,
     WorkspaceStateRepository,
 )
 from src.presentation.ui.main_window import MainWindow
@@ -44,6 +53,11 @@ def create_main_window(root: Path | None = None) -> MainWindow:
     state_service = WorkspaceStateService(
         context_repository=ApplicationContextRepository(root),
         workspace_repository=WorkspaceStateRepository(root),
+        binary_context_repository=BinaryWorkbenchContextRepository(root),
+        program_context_repository=ProgramContextRepository(root),
+    )
+    binary_preferences_service = BinaryWorkbenchPreferencesService(
+        BinaryWorkbenchPreferencesRepository(root)
     )
 
     return MainWindow(
@@ -51,4 +65,5 @@ def create_main_window(root: Path | None = None) -> MainWindow:
         command_presenter=command_presenter,
         state_service=state_service,
         preferences_service=preferences_service,
+        binary_preferences_service=binary_preferences_service,
     )

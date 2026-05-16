@@ -24,12 +24,20 @@ class MainWindowDialogsMixin:
         if self._binary_workbench_window is None:
             self._binary_workbench_window = BinaryWorkbenchWindow(
                 self._binary_workbench_state,
-                self._state_service.workspace_directory,
+                self._state_service.binary_workspace_directory,
+                self._binary_workbench_preferences,
+                self._program_context,
             )
             self._binary_workbench_window.setWindowIcon(self.windowIcon())
             self._binary_workbench_window.setStyleSheet(STYLESHEET)
             self._binary_workbench_window.stateChanged.connect(
                 self._remember_binary_workbench_state
+            )
+            self._binary_workbench_window.preferencesChanged.connect(
+                self._remember_binary_workbench_preferences
+            )
+            self._binary_workbench_window.programContextChanged.connect(
+                self._remember_program_context
             )
             self._binary_workbench_window.sizePersistRequested.connect(
                 lambda width, height: self._remember_window_size(
@@ -41,10 +49,11 @@ class MainWindowDialogsMixin:
             self._binary_workbench_window.destroyed.connect(
                 lambda *_: self._clear_binary_workbench_window()
             )
-            self._restore_window_size(
-                MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY,
-                self._binary_workbench_window,
-            )
+            if self._binary_workbench_state.window_size is not None:
+                self._binary_workbench_window.resize(
+                    self._binary_workbench_state.window_size.width,
+                    self._binary_workbench_state.window_size.height,
+                )
         else:
             self._binary_workbench_window.load_state(self._binary_workbench_state)
 
@@ -74,7 +83,7 @@ class MainWindowDialogsMixin:
         path, _ = QFileDialog.getSaveFileName(
             self,
             MAIN_WINDOW_TEXT.SAVE_WORKSPACE_TITLE,
-            str(self._state_service.workspace_directory / MAIN_WINDOW_TEXT.WORKSPACE_FILENAME),
+            str(self._state_service.binary_workspace_directory / MAIN_WINDOW_TEXT.WORKSPACE_FILENAME),
             MAIN_WINDOW_TEXT.FILE_FILTER,
         )
         if not path:
@@ -95,7 +104,7 @@ class MainWindowDialogsMixin:
         path, _ = QFileDialog.getOpenFileName(
             self,
             MAIN_WINDOW_TEXT.LOAD_WORKSPACE_TITLE,
-            str(self._state_service.workspace_directory),
+            str(self._state_service.binary_workspace_directory),
             MAIN_WINDOW_TEXT.FILE_FILTER,
         )
         if not path:

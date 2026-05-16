@@ -10,16 +10,9 @@ def state_payload(state: BinaryWorkbenchStateDTO) -> dict[str, object]:
         "tabs": state.tabs,
         "active_tab_id": state.active_tab_id,
         "share_view_preferences": state.share_view_preferences,
-        "recent_files": list(state.recent_files),
         "directories": dict(state.directories),
-        "lba_filesystems": list(state.lba_filesystems),
-        "symbols": list(state.symbols),
+        "window_size": state.window_size,
     }
-
-
-def current_identifiers(context: BinaryWorkbenchTabContextDTO) -> list[str]:
-    path = Path(context.source_path) if context.source_path else None
-    return file_resource_identifiers(path, context.display_name)
 
 
 def lba_sector_size(value: int) -> int:

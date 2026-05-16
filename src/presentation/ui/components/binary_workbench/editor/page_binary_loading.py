@@ -69,6 +69,7 @@ class EditorPageBinaryLoadingMixin:
                 "instruction_overlays": instruction_overlays,
                 "rows": rows,
                 "labels": labels,
+                "version_dirty": True,
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
             }
         )
@@ -99,7 +100,7 @@ class EditorPageBinaryLoadingMixin:
         path = Path(context.source_path)
         if not path.exists():
             return None
-        return CachedBinaryReader(path, context.block_size, context.cache_max_blocks)
+        return CachedBinaryReader(path, self._preferences.block_size, self._preferences.cache_max_blocks)
 
 
 def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:

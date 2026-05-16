@@ -152,10 +152,8 @@ def test_binary_workbench_restores_workspace_contexts_when_sources_exist(tmp_pat
     assert tool is not None
     tool.open_binary_path(binary_path)
     tool.tabs.new_scratch_tab()
-    workspace_path = window._state_service.save_workspace(window._collect_context(), tmp_path / "workspace")
+    window._state_service.save_default_binary_context(tool.export_state())
     restored = _window(tmp_path)
-    workspace = restored._state_service.load_workspace(workspace_path)
-    restored._apply_context(workspace.context)
     restored._open_binary_workbench()
     restored_tool = restored._binary_workbench_window
 
@@ -177,10 +175,10 @@ def test_binary_workbench_skips_missing_file_tabs_and_keeps_scratch_tabs(tmp_pat
     assert tool is not None
     tool.open_binary_path(missing)
     tool.tabs.new_scratch_tab()
-    state = window._collect_context()
+    state = tool.export_state()
     missing.unlink()
     restored = _window(tmp_path)
-    restored._apply_context(state)
+    restored._binary_workbench_state = state
     restored._open_binary_workbench()
     restored_tool = restored._binary_workbench_window
 
@@ -523,7 +521,7 @@ def test_binary_workbench_versioning_saves_modified_copy_without_touching_origin
     assert binary_path.read_bytes() == bytes.fromhex("00 00 00 00 11 22 33 44")
     assert output_path.read_bytes()[:8] == bytes.fromhex("AA BB CC DD 11 22 33 44")
     assert tool.export_state().directories["save_file"] == str(output_path.parent)
-    assert str(output_path) in tool.export_state().recent_files
+    assert str(output_path) in window._program_context.recent_files
 
 
 def test_binary_workbench_save_file_uses_current_active_version_overlay(tmp_path: Path):
@@ -562,9 +560,9 @@ def test_binary_workbench_workspace_restores_instruction_version_by_exact_source
     assert tool.tabs.create_version("v1") is True
     assert tool.tabs.save_current_workspace() is True
 
-    version_path = tmp_path / "data" / "workspaces" / "Versions" / "source_v1.json"
+    version_path = tmp_path / "data" / "binary_workbench" / "workspaces" / "Versions" / "source_bin_workspace_manifest_v1.json"
     payload = version_path.read_text(encoding="utf-8")
-    assert '"offset": 0' in payload
+    assert '"0x00000000"' in payload
     assert "Label_1:" in payload
 
     restored = _window(tmp_path)
@@ -1464,11 +1462,12 @@ def test_binary_workbench_bytes_formatter_has_separate_uppercase_preferences(tmp
     tool.tabs.new_scratch_tab()
     tool.tabs.set_current_bytes_formatter(2, False, False)
     current = tool.tabs.current_context()
+    preferences = tool.tabs.preferences()
 
     assert current is not None
-    assert current.view_preferences.group_bytes == 2
-    assert current.view_preferences.uppercase_bytes is False
-    assert current.view_preferences.uppercase_instructions is False
+    assert preferences.group_bytes == 2
+    assert preferences.uppercase_bytes is False
+    assert preferences.uppercase_instructions is False
 
 
 def test_binary_workbench_native_close_dialog_maps_windows_buttons():

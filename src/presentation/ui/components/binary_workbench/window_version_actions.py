@@ -42,4 +42,5 @@ class BinaryWorkbenchWindowVersionMixin:
             return
         name = dialog.selected_name()
         if name is not None and self.tabs.load_version(name):
+            self.tabs.save_current_workspace()
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_LOADED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)

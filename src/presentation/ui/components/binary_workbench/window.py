@@ -4,7 +4,12 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QLabel, QMainWindow
 
-from src.modules.dtos import BinaryWorkbenchStateDTO
+from src.modules.dtos import (
+    BinaryWorkbenchPreferencesDTO,
+    BinaryWorkbenchStateDTO,
+    ProgramContextDTO,
+    WindowSizeDTO,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -42,11 +47,15 @@ class BinaryWorkbenchWindow(
 ):
     sizePersistRequested = Signal(int, int)
     stateChanged = Signal(object)
+    preferencesChanged = Signal(object)
+    programContextChanged = Signal(object)
 
     def __init__(
         self,
         state: BinaryWorkbenchStateDTO,
         workspace_directory: Path | None = None,
+        preferences: BinaryWorkbenchPreferencesDTO | None = None,
+        program_context: ProgramContextDTO | None = None,
     ):
         super().__init__()
         self.setObjectName("binary-workbench-window")
@@ -55,19 +64,32 @@ class BinaryWorkbenchWindow(
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
         self.resize(BINARY_WORKBENCH_LAYOUT.WINDOW_WIDTH, BINARY_WORKBENCH_LAYOUT.WINDOW_HEIGHT)
         self.toolbar = BinaryWorkbenchToolbar()
-        self.tabs = BinaryWorkbenchTabs(state, workspace_directory)
+        self.tabs = BinaryWorkbenchTabs(
+            state,
+            workspace_directory,
+            preferences,
+            program_context,
+        )
         self.footer_status = QLabel(BINARY_WORKBENCH_TEXT.STATUS_IDLE, self)
         self.footer_status.setObjectName("binary-workbench-footer-status")
         self.statusBar().hide()
         self.tabs.statusChanged.connect(self._show_status)
         self.tabs.stateChanged.connect(self.stateChanged.emit)
+        self.tabs.preferencesChanged.connect(self.preferencesChanged.emit)
+        self.tabs.programContextChanged.connect(self.programContextChanged.emit)
         self.tabs.closeRequested.connect(self._request_tab_close)
         self._connect_actions()
         self._build_ui()
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_IDLE)
 
     def export_state(self) -> BinaryWorkbenchStateDTO:
-        return self.tabs.export_state()
+        state = self.tabs.export_state()
+        return BinaryWorkbenchStateDTO(
+            **{
+                **state.__dict__,
+                "window_size": WindowSizeDTO(width=self.width(), height=self.height()),
+            }
+        )
 
     def load_state(self, state: BinaryWorkbenchStateDTO) -> None:
         self.tabs.load_state(state)

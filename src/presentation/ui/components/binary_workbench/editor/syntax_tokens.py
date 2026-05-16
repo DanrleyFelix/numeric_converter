@@ -78,11 +78,6 @@ def invalid_instruction(text: str) -> bool:
     return mnemonic not in PSX_MIPS_KNOWN_MNEMONICS
 
 
-def group_bytes_text(text: str, group_size: int) -> str:
-    raw = "".join(text.split()).upper()
-    return format_byte_groups(raw, group_size)
-
-
 def normalize_bytes_text(text: str, group_size: int, uppercase: bool) -> str:
     raw = _normalized_byte_line(text, uppercase)
     return "\n".join(

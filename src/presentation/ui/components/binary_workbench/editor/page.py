@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -42,9 +42,14 @@ class BinaryWorkbenchEditorPage(
 ):
     contextChanged = Signal(object)
 
-    def __init__(self, context: BinaryWorkbenchTabContextDTO) -> None:
+    def __init__(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+        preferences: BinaryWorkbenchPreferencesDTO | None = None,
+    ) -> None:
         super().__init__()
         self._context = context
+        self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(
             0,
@@ -85,12 +90,12 @@ class BinaryWorkbenchEditorPage(
             self.grid.load_rows(
                 self._visible_columns(),
                 [],
-                context.view_preferences.group_bytes,
+                self._preferences.group_bytes,
                 offset_from_hex(context.last_open_offset),
                 self._reader.file_size,
                 True,
-                context.view_preferences.uppercase_bytes,
-                context.view_preferences.uppercase_instructions,
+                self._preferences.uppercase_bytes,
+                self._preferences.uppercase_instructions,
             )
             self._load_visible_rows(
                 offset_from_hex(context.last_open_offset),
@@ -101,11 +106,18 @@ class BinaryWorkbenchEditorPage(
             self.grid.load_rows(
                 self._visible_columns(),
                 context.rows,
-                context.view_preferences.group_bytes,
-                uppercase_bytes=context.view_preferences.uppercase_bytes,
-                uppercase_instructions=context.view_preferences.uppercase_instructions,
+                self._preferences.group_bytes,
+                uppercase_bytes=self._preferences.uppercase_bytes,
+                uppercase_instructions=self._preferences.uppercase_instructions,
             )
         self.summary.setText(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+
+    def load_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
+        self.set_preferences(preferences)
+        self.load_context(self._context)
+
+    def set_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
+        self._preferences = preferences
 
     def set_cpu_arch(self, value: str) -> None:
         self._update_context({"cpu_arch": value})

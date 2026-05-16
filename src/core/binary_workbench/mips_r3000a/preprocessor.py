@@ -7,10 +7,10 @@ from src.core.binary_workbench.mips_r3000a.constants import (
     I_OPCODES,
     J_OPCODES,
     R_FUNCTS,
+    R_JUMP_FUNCTS,
     SPECIAL_BRANCH_RT,
 )
 
-RAM_BASE = 0x80010000
 WORD_DIRECTIVES = {"word", ".word"}
 CORE_NO_OPERAND_MNEMONICS = {"nop"}
 
@@ -71,7 +71,7 @@ def _replace_prefixed_symbols(text: str, prefix: str, values: dict[str, str]) ->
 def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
     result = text
     for name, value in labels.items():
-        target = RAM_BASE + _safe_int(value, fallback)
+        target = _safe_int(value, fallback)
         result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
     return result
 
@@ -89,6 +89,7 @@ def _core_mnemonics() -> set[str]:
         *I_OPCODES,
         *J_OPCODES,
         *R_FUNCTS,
+        *R_JUMP_FUNCTS,
         *SPECIAL_BRANCH_RT,
         *CORE_NO_OPERAND_MNEMONICS,
         *WORD_DIRECTIVES,

@@ -4,14 +4,13 @@ from typing import Any
 
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
-    BinaryWorkbenchSymbolsDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
     BinaryWorkbenchViewPreferencesDTO,
+    WindowSizeDTO,
 )
 from src.modules.utils import normalize_string_list, normalize_string_map
 
@@ -34,15 +33,7 @@ def _view_preferences(raw: object) -> BinaryWorkbenchViewPreferencesDTO:
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns=_visible_columns(raw.get("visible_columns")),
         decoded_text_tables=normalize_string_list(raw.get("decoded_text_tables")),
-        group_bytes=_group_bytes(raw.get("group_bytes")),
-        uppercase_bytes=_bool(raw.get("uppercase_bytes"), True),
-        uppercase_instructions=_bool(raw.get("uppercase_instructions"), True),
     )
-
-
-def _group_bytes(raw: object) -> int:
-    value = raw if isinstance(raw, int) else 1
-    return value if value in {1, 2, 4} else 1
 
 
 def _bool(raw: object, default: bool) -> bool:
@@ -54,6 +45,18 @@ def _positive_int(raw: object, default: int) -> int:
     return value if value > 0 else default
 
 
+def _window_size(raw: object) -> WindowSizeDTO | None:
+    if not isinstance(raw, dict):
+        return None
+    width = raw.get("width")
+    height = raw.get("height")
+    if not isinstance(width, int) or not isinstance(height, int):
+        return None
+    if width <= 0 or height <= 0:
+        return None
+    return WindowSizeDTO(width=width, height=height)
+
+
 def _rows(raw: object) -> list[BinaryWorkbenchRowDTO]:
     if not isinstance(raw, list):
         return []
@@ -61,14 +64,25 @@ def _rows(raw: object) -> list[BinaryWorkbenchRowDTO]:
     for item in raw:
         if not isinstance(item, dict):
             continue
+        offsets = normalize_string_map(item.get("offsets"))
+        if "offset" in item:
+            offsets = {"File": _offset_hex(item.get("offset")), **offsets}
         rows.append(
             BinaryWorkbenchRowDTO(
-                offsets=normalize_string_map(item.get("offsets")),
+                offsets=offsets,
                 instruction=str(item.get("instruction", "")),
                 bytes_text=str(item.get("bytes_text", "00 00 00 00")),
             )
         )
     return rows
+
+
+def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, str]:
+    return {
+        "offset": row.offsets.get("File", "0x00000000"),
+        "instruction": row.instruction,
+        "bytes_text": row.bytes_text,
+    }
 
 
 def _internal_files(raw: object) -> list[BinaryWorkbenchInternalFileDTO]:
@@ -149,49 +163,6 @@ def _instruction_overlays(raw: object) -> dict[str, str]:
     return overlays
 
 
-def _lba_filesystems(raw: object) -> list[BinaryWorkbenchLbaFilesystemDTO]:
-    if not isinstance(raw, list):
-        return []
-    filesystems: list[BinaryWorkbenchLbaFilesystemDTO] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        name = item.get("name")
-        if not isinstance(name, str) or not name:
-            continue
-        filesystems.append(
-            BinaryWorkbenchLbaFilesystemDTO(
-                name=name,
-                file_identifiers=normalize_string_list(item.get("file_identifiers")),
-                sector_size=_lba_sector_size(item.get("sector_size")),
-                internal_files=_internal_files(item.get("internal_files")),
-            )
-        )
-    return filesystems
-
-
-def _symbols(raw: object) -> list[BinaryWorkbenchSymbolsDTO]:
-    if not isinstance(raw, list):
-        return []
-    symbols: list[BinaryWorkbenchSymbolsDTO] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        name = item.get("name")
-        if not isinstance(name, str) or not name:
-            continue
-        symbols.append(
-            BinaryWorkbenchSymbolsDTO(
-                name=name,
-                file_identifiers=normalize_string_list(item.get("file_identifiers")),
-                variables=normalize_string_map(item.get("variables")),
-                equates=normalize_string_map(item.get("equates")),
-                labels=normalize_string_map(item.get("labels")),
-            )
-        )
-    return symbols
-
-
 def _lba_sector_size(raw: object) -> int:
     value = raw if isinstance(raw, int) else 2352
     return value if value in {2048, 2334, 2352} else 2352
@@ -232,7 +203,6 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         source_path=str(source_path) if isinstance(source_path, str) else None,
         cpu_arch=str(raw.get("cpu_arch", "PSX - Mips R3000A")),
         read_mode=str(raw.get("read_mode", "auto")),
-        navigation_mode=str(raw.get("navigation_mode", "Offset")),
         reference_offsets=reference_offsets,
         reference_offset_bases={
             "File": "0x00000000",
@@ -262,8 +232,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
         rows=[] if is_virtual_binary else _rows(raw.get("rows")),
         file_size=_positive_int(raw.get("file_size"), 0),
-        block_size=_positive_int(raw.get("block_size"), 2048),
-        cache_max_blocks=_positive_int(raw.get("cache_max_blocks"), 8000),
+        version_dirty=_bool(raw.get("version_dirty"), False),
         byte_overlays=normalize_string_map(raw.get("byte_overlays")),
         instruction_overlays=normalize_string_map(raw.get("instruction_overlays")),
         view_preferences=_view_preferences(raw.get("view_preferences")),
@@ -277,13 +246,11 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
         tabs=tabs,
         active_tab_id=active_tab_id if isinstance(active_tab_id, str) else None,
         share_view_preferences=bool(raw.get("share_view_preferences", False)),
-        recent_files=normalize_string_list(raw.get("recent_files")),
         directories={
             **BinaryWorkbenchStateDTO().directories,
             **normalize_string_map(raw.get("directories")),
         },
-        lba_filesystems=_lba_filesystems(raw.get("lba_filesystems")),
-        symbols=_symbols(raw.get("symbols")),
+        window_size=_window_size(raw.get("window_size")),
     )
 
 
@@ -299,7 +266,6 @@ def binary_workbench_state_to_payload(
                 "source_path": tab.source_path,
                 "cpu_arch": tab.cpu_arch,
                 "read_mode": tab.read_mode,
-                "navigation_mode": tab.navigation_mode,
                 "reference_offsets": list(tab.reference_offsets),
                 "reference_offset_bases": dict(tab.reference_offset_bases),
                 "labels": dict(tab.labels),
@@ -328,14 +294,7 @@ def binary_workbench_state_to_payload(
                 "versions": [
                     {
                         "name": version.name,
-                        "rows": [
-                            {
-                                "offsets": dict(row.offsets),
-                                "instruction": row.instruction,
-                                "bytes_text": row.bytes_text,
-                            }
-                            for row in version.rows
-                        ],
+                        "rows": [_row_payload(row) for row in version.rows],
                         "instructions": [
                             {
                                 "offset": int(offset, 16),
@@ -356,62 +315,27 @@ def binary_workbench_state_to_payload(
                 "last_open_offset": tab.last_open_offset,
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,
-                "block_size": tab.block_size,
-                "cache_max_blocks": tab.cache_max_blocks,
+                "version_dirty": tab.version_dirty,
                 "byte_overlays": dict(tab.byte_overlays),
                 "instruction_overlays": dict(tab.instruction_overlays),
-                "original_rows": [] if _is_virtual_binary(tab) else [
-                    {
-                        "offsets": dict(row.offsets),
-                        "instruction": row.instruction,
-                        "bytes_text": row.bytes_text,
-                    }
-                    for row in tab.original_rows
-                ],
-                "rows": [] if _is_virtual_binary(tab) else [
-                    {
-                        "offsets": dict(row.offsets),
-                        "instruction": row.instruction,
-                        "bytes_text": row.bytes_text,
-                    }
-                    for row in tab.rows
-                ],
+                "original_rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.original_rows],
+                "rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.rows],
                 "view_preferences": {
                     "visible_columns": dict(tab.view_preferences.visible_columns),
                     "decoded_text_tables": list(tab.view_preferences.decoded_text_tables),
-                    "group_bytes": tab.view_preferences.group_bytes,
-                    "uppercase_bytes": tab.view_preferences.uppercase_bytes,
-                    "uppercase_instructions": tab.view_preferences.uppercase_instructions,
                 },
             }
             for tab in state.tabs
         ],
         "active_tab_id": state.active_tab_id,
         "share_view_preferences": state.share_view_preferences,
-        "recent_files": list(state.recent_files),
         "directories": dict(state.directories),
-        "lba_filesystems": [
-            {
-                "name": item.name,
-                "file_identifiers": list(item.file_identifiers),
-                "sector_size": item.sector_size,
-                "internal_files": [
-                    {"name": internal.name, "start_lba": internal.start_lba}
-                    for internal in item.internal_files
-                ],
-            }
-            for item in state.lba_filesystems
-        ],
-        "symbols": [
-            {
-                "name": item.name,
-                "file_identifiers": list(item.file_identifiers),
-                "variables": dict(item.variables),
-                "equates": dict(item.equates),
-                "labels": dict(item.labels),
-            }
-            for item in state.symbols
-        ],
+        "window_size": {
+            "width": state.window_size.width,
+            "height": state.window_size.height,
+        }
+        if state.window_size is not None
+        else None,
     }
 
 
@@ -421,8 +345,4 @@ def _is_virtual_binary(tab: BinaryWorkbenchTabContextDTO) -> bool:
 
 def _reference_offsets(raw: dict[str, Any]) -> list[str]:
     values = normalize_string_list(raw.get("reference_offsets"))
-    if not values:
-        return ["File"]
-    if values == ["File", "RAM", "SLUS"] and not raw.get("reference_offset_bases"):
-        return ["File"]
-    return values
+    return values or ["File"]

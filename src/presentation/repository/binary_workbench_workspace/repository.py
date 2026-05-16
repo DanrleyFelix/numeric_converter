@@ -48,8 +48,8 @@ class BinaryWorkbenchWorkspaceRepository:
     def __init__(self, root: Path) -> None:
         self._directory = (
             root
-            if root.name == "workspaces" and root.parent.name == "data"
-            else root / "data" / "workspaces"
+            if root.name == "workspaces"
+            else root / "data" / "binary_workbench" / "workspaces"
         )
         self._directory.mkdir(parents=True, exist_ok=True)
         for folder in MODULE_FOLDERS.values():
@@ -59,13 +59,19 @@ class BinaryWorkbenchWorkspaceRepository:
         return self._directory
     def default_module_directories(self) -> dict[str, str]:
         return default_module_directories(self._directory)
-    def find_for_source(self, path: Path) -> Path | None:
+    def find_for_source(self, path: Path, preferred: Path | None = None) -> Path | None:
+        if preferred is not None and preferred.exists():
+            payload = read_json(preferred)
+            if payload and payload.get("schema_version") == SCHEMA_VERSION:
+                if source_matches(payload.get("source"), path):
+                    return preferred
+        matches: list[Path] = []
         for candidate in self._directory.glob("*.json"):
             payload = read_json(candidate)
             if payload and payload.get("schema_version") == SCHEMA_VERSION:
                 if source_matches(payload.get("source"), path):
-                    return candidate
-        return None
+                    matches.append(candidate)
+        return matches[0] if len(matches) == 1 else None
 
     def load_tab_workspace(
         self,
@@ -128,13 +134,20 @@ class BinaryWorkbenchWorkspaceRepository:
         write_json(target, manifest)
         checksums = tab_checksums(tab)
         return BinaryWorkbenchTabContextDTO(
-            **{**tab.__dict__, "workspace_path": str(target), "module_paths": module_paths, "module_directories": directories, "module_checksums": checksums}
+            **{
+                **tab.__dict__,
+                "workspace_path": str(target),
+                "module_paths": module_paths,
+                "module_directories": directories,
+                "module_checksums": checksums,
+                "version_dirty": False,
+            }
         )
 
     def checksums_for_tab(self, tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
         return tab_checksums(tab)
     def _default_manifest(self, tab: BinaryWorkbenchTabContextDTO) -> Path:
-        return self._directory / f"{safe_stem(tab.display_name)}.json"
+        return self._directory / f"{safe_stem(tab.display_name)}_workspace_manifest.json"
     def _normalize_manifest_path(self, path: Path) -> Path:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
         return target if target.is_absolute() and self._directory in target.parents else self._directory / target.name

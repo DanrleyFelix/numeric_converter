@@ -21,7 +21,4 @@ def copy_view_preferences(
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns=deepcopy(value.visible_columns),
         decoded_text_tables=list(value.decoded_text_tables),
-        group_bytes=value.group_bytes,
-        uppercase_bytes=value.uppercase_bytes,
-        uppercase_instructions=value.uppercase_instructions,
     )

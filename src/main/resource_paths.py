@@ -20,14 +20,6 @@ def resource_path(*parts: str | Path) -> Path:
     return root.joinpath(*normalized)
 
 
-def data_root() -> Path:
-    return resource_path(DATA_DIRECTORY)
-
-
-def assets_root() -> Path:
-    return resource_path(ASSETS_DIRECTORY)
-
-
 def fonts_root() -> Path:
     return resource_path(FONTS_DIRECTORY)
 

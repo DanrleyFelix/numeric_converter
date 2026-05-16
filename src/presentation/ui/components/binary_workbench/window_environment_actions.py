@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
@@ -30,11 +29,12 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
 class BinaryWorkbenchWindowEnvironmentMixin:
     def _open_advanced_configuration(self) -> None:
         current = self.tabs.current_context()
+        preferences = self.tabs.preferences()
         dialog = BinaryWorkbenchAdvancedConfigDialog(
             current.cpu_arch if current else "",
             current.read_mode if current else BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
-            current.block_size if current else BINARY_WORKBENCH_LAYOUT.DEFAULT_BLOCK_SIZE,
-            current.cache_max_blocks if current else BINARY_WORKBENCH_LAYOUT.DEFAULT_CACHE_MAX_BLOCKS,
+            preferences.block_size,
+            preferences.cache_max_blocks,
             self,
         )
         if dialog.exec() == dialog.DialogCode.Accepted:
@@ -45,7 +45,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         if current is None or not current.source_path:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
-        dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, self.tabs.export_state().lba_filesystems, current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
+        dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, [], current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
         if dialog.exec() == dialog.DialogCode.Accepted:
             self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
@@ -64,7 +64,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             current.variables,
             current.equates,
             current.labels,
-            self.tabs.export_state().symbols,
+            [],
             current.display_name,
             self.tabs.directory_for(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY),
             self,
@@ -110,7 +110,8 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         current = self.tabs.current_context()
         if current is None:
             return
-        dialog = BinaryWorkbenchBytesFormatterDialog(current.view_preferences.group_bytes, current.view_preferences.uppercase_bytes, current.view_preferences.uppercase_instructions, self)
+        preferences = self.tabs.preferences()
+        dialog = BinaryWorkbenchBytesFormatterDialog(preferences.group_bytes, preferences.uppercase_bytes, preferences.uppercase_instructions, self)
         if dialog.exec() == dialog.DialogCode.Accepted:
             self.tabs.set_current_bytes_formatter(dialog.selected_group_bytes(), dialog.selected_uppercase_bytes(), dialog.selected_uppercase_instructions())
 

@@ -10,22 +10,9 @@ from src.modules.dtos import (
     BinaryWorkbenchRowDTO,
 )
 
-_RAM_BASE = 0x80010000
 _SECTOR_SIZE = 2352
 _SECTOR_DATA_OFFSET = 24
 _SECTOR_DATA_SIZE = 2048
-
-
-def build_modified_rows(
-    current_rows: list[BinaryWorkbenchRowDTO], original_rows: list[BinaryWorkbenchRowDTO]
-) -> list[BinaryWorkbenchRowDTO]:
-    original_by_offset = {row.offsets.get("File"): row for row in original_rows}
-    return [
-        row
-        for row in current_rows
-        if row.offsets.get("File") in original_by_offset
-        and row.bytes_text != original_by_offset[row.offsets.get("File")].bytes_text
-    ]
 
 
 def apply_version_rows(
@@ -91,7 +78,7 @@ def save_binary_as_assembly(
             data = reader.read(offset, block_size, overlays)
             for relative in range(0, len(data), 4):
                 chunk = data[relative : relative + 4].ljust(4, b"\x00")
-                target.write(codec.disassemble(chunk, _RAM_BASE + offset + relative))
+                target.write(codec.disassemble(chunk, offset + relative))
                 target.write("\n")
             offset += max(1, block_size)
 

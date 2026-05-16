@@ -58,15 +58,16 @@ class EditorPageSearchMixin:
         carry = b""
         results: list[int] = []
         overlays = overlay_bytes(self._context.byte_overlays)
+        block_size = self._preferences.block_size
         while offset < self._reader.file_size:
-            data = self._reader.read(offset, self._context.block_size, overlays)
+            data = self._reader.read(offset, block_size, overlays)
             haystack = carry + data
             start = 0
             while (found := haystack.find(needle, start)) >= 0:
                 results.append(max(0, offset - len(carry) + found))
                 start = found + 1
             carry = haystack[-max(0, len(needle) - 1) :]
-            offset += max(1, self._context.block_size)
+            offset += max(1, block_size)
         return results
 
 

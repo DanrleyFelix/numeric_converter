@@ -76,12 +76,6 @@ PSX_MIPS_KNOWN_MNEMONICS = {
     *PSX_MIPS_OTHER_INSTRUCTION_MNEMONICS,
 }
 
-PSX_MIPS_REGISTER_NAMES = {
-    *PSX_MIPS_ARGUMENT_VALUE_REGISTERS,
-    *PSX_MIPS_POINTER_REGISTERS,
-    *PSX_MIPS_SPECIAL_REGISTERS,
-    *PSX_MIPS_TEMPORARY_SAVED_VALUE_REGISTERS,
-}
 
 PSX_MIPS_HIGHLIGHTER = {
     "mnemonic": [
@@ -94,13 +88,13 @@ PSX_MIPS_HIGHLIGHTER = {
     "registers": [
         [PSX_MIPS_ARGUMENT_VALUE_REGISTERS, "#D4AF37"],
         [PSX_MIPS_TEMPORARY_SAVED_VALUE_REGISTERS, "#41C1EC"],
-        [PSX_MIPS_POINTER_REGISTERS, "#B8F2E6"],
+        [PSX_MIPS_POINTER_REGISTERS, "#A6D69E"],
         [PSX_MIPS_SPECIAL_REGISTERS, "#8FA6FF"],
     ],
-    "hex": "#7FD6A4",
+    "hex": "#9FCBA0",
     "label": "#FFD166",
     "equate": "#FF9F1C",
     "variable": "#C084FC",
-    "invalid_instruction": "#FF8B96",
+    "invalid_instruction": "#C72636",
     "comment": "#7F879B",
 }

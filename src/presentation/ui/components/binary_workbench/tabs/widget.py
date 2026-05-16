@@ -5,7 +5,12 @@ from pathlib import Path
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QTabWidget
 
-from src.modules.dtos import BinaryWorkbenchStateDTO
+from src.controllers.binary_workbench_controller import BinaryWorkbenchController
+from src.modules.dtos import (
+    BinaryWorkbenchPreferencesDTO,
+    BinaryWorkbenchStateDTO,
+    ProgramContextDTO,
+)
 from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
 )
@@ -44,6 +49,8 @@ class BinaryWorkbenchTabs(
     QTabWidget,
 ):
     stateChanged = Signal(object)
+    preferencesChanged = Signal(object)
+    programContextChanged = Signal(object)
     statusChanged = Signal(str)
     closeRequested = Signal(int)
 
@@ -51,6 +58,8 @@ class BinaryWorkbenchTabs(
         self,
         state: BinaryWorkbenchStateDTO,
         workspace_directory: Path | None = None,
+        preferences: BinaryWorkbenchPreferencesDTO | None = None,
+        program_context: ProgramContextDTO | None = None,
     ) -> None:
         super().__init__()
         self.setObjectName("binary-workbench-tabs")
@@ -64,7 +73,13 @@ class BinaryWorkbenchTabs(
         self._workspace_repository = BinaryWorkbenchWorkspaceRepository(
             workspace_directory or Path.cwd()
         )
+        self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
+        self._program_context = program_context or ProgramContextDTO()
+        self._controller = BinaryWorkbenchController()
         self._state = BinaryWorkbenchStateDTO()
         self.currentChanged.connect(self._sync_active_tab)
         self.tabCloseRequested.connect(self.closeRequested.emit)
         self.load_state(state)
+
+    def preferences(self) -> BinaryWorkbenchPreferencesDTO:
+        return self._preferences

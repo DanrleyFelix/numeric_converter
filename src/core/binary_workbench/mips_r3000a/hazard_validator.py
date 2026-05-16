@@ -3,11 +3,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, J_OPCODES
+from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, J_OPCODES, R_JUMP_FUNCTS
 
 LOAD_MNEMONICS = {"lb", "lbu", "lh", "lhu", "lw", "lwl", "lwr"}
 STORE_MNEMONICS = {"sb", "sh", "sw", "swl", "swr"}
-JUMP_MNEMONICS = {*BRANCH_OPCODES, *J_OPCODES, "jr", "jalr", "bgez", "bltz"}
+JUMP_MNEMONICS = {*BRANCH_OPCODES, *J_OPCODES, *R_JUMP_FUNCTS, "bgez", "bltz"}
 REGISTER_PATTERN = re.compile(r"\$?([a-z][a-z0-9]*)", re.IGNORECASE)
 
 

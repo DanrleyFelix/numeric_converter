@@ -6,8 +6,11 @@ from PySide6.QtCore import QSignalBlocker, QSize
 
 from src.modules.dtos import (
     ApplicationContextDTO,
+    BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
     ConverterStateDTO,
+    NumericWorkbenchPreferencesDTO,
+    ProgramContextDTO,
     WindowSizeDTO,
 )
 from src.modules.utils import COLOR
@@ -20,8 +23,11 @@ if TYPE_CHECKING:
 
 class MainWindowStateMixin:
     def _load_default_state(self: MainWindow) -> None:
+        self._program_context = self._state_service.load_program_context()
+        self._binary_workbench_state = self._state_service.load_default_binary_context()
+        self._binary_workbench_preferences = self._binary_preferences_service.load()
         context = self._state_service.load_default_context()
-        self._apply_context(context)
+        self._apply_context(context, self._preferences_service.get_preferences())
         self._refresh_command_completions()
         self.footer.set_status(MAIN_WINDOW_TEXT.DEFAULT_CONTEXT_LOADED)
 
@@ -33,16 +39,17 @@ class MainWindowStateMixin:
                 message=self._converter_presenter.last_error_message,
             ),
             command=self._command_presenter.export_context(),
-            binary_workbench=self._collect_binary_workbench_state(),
-            key_panel_visible=self.key_panel.isVisible(),
-            auto_convert_enabled=self._auto_convert_enabled,
             window_sizes=self._collect_window_sizes(),
         )
 
-    def _apply_context(self: MainWindow, context: ApplicationContextDTO) -> None:
+    def _apply_context(
+        self: MainWindow,
+        context: ApplicationContextDTO,
+        preferences: NumericWorkbenchPreferencesDTO | None = None,
+    ) -> None:
+        preferences = preferences or self._preferences_service.get_preferences()
         self._window_sizes = dict(context.window_sizes)
-        self._auto_convert_enabled = context.auto_convert_enabled
-        self._binary_workbench_state = context.binary_workbench
+        self._auto_convert_enabled = preferences.auto_convert_enabled
         self._command_presenter.load_context(context.command)
         self._refresh_workspace_windows()
         self._sync_binary_workbench_window_state()
@@ -64,11 +71,11 @@ class MainWindowStateMixin:
             )
 
         with QSignalBlocker(self.toolbar.toggle_key_panel_action):
-            self.toolbar.toggle_key_panel_action.setChecked(context.key_panel_visible)
+            self.toolbar.toggle_key_panel_action.setChecked(preferences.key_panel_visible)
         with QSignalBlocker(self.toolbar.auto_convert_action):
-            self.toolbar.auto_convert_action.setChecked(context.auto_convert_enabled)
-        self.key_panel.setVisible(context.key_panel_visible)
-        self._update_minimum_height(context.key_panel_visible)
+            self.toolbar.auto_convert_action.setChecked(preferences.auto_convert_enabled)
+        self.key_panel.setVisible(preferences.key_panel_visible)
+        self._update_minimum_height(preferences.key_panel_visible)
         self._restore_window_size(MAIN_WINDOW_STATE.MAIN_WINDOW_KEY, self)
         self.body.command_panel.set_feedback(COMMAND_PANEL_TEXT.IDLE_FEEDBACK, COLOR.INFO)
 
@@ -76,6 +83,13 @@ class MainWindowStateMixin:
         if not self._loaded:
             return
         self._state_service.save_default_context(self._collect_context())
+        self._state_service.save_default_binary_context(self._collect_binary_workbench_state())
+        self._state_service.save_program_context(self._program_context)
+        self._binary_preferences_service.save(self._binary_workbench_preferences)
+        self._preferences_service.update_numeric_flags(
+            self.key_panel.isVisible(),
+            self._auto_convert_enabled,
+        )
 
     def _collect_window_sizes(self: MainWindow) -> dict[str, WindowSizeDTO]:
         window_sizes = dict(self._window_sizes)
@@ -84,7 +98,6 @@ class MainWindowStateMixin:
             height=self.height(),
         )
         for key, window in (
-            (MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY, self._binary_workbench_window),
             (MAIN_WINDOW_STATE.HELP_WINDOW_KEY, self._help_window),
             (MAIN_WINDOW_STATE.VARIABLES_WINDOW_KEY, self._variables_window),
             (MAIN_WINDOW_STATE.LOGS_WINDOW_KEY, self._logs_window),
@@ -111,6 +124,15 @@ class MainWindowStateMixin:
         width: int,
         height: int,
     ) -> None:
+        if key == MAIN_WINDOW_STATE.BINARY_WORKBENCH_WINDOW_KEY:
+            self._binary_workbench_state = BinaryWorkbenchStateDTO(
+                **{
+                    **self._binary_workbench_state.__dict__,
+                    "window_size": WindowSizeDTO(width=width, height=height),
+                }
+            )
+            self._autosave_state()
+            return
         self._window_sizes[key] = WindowSizeDTO(width=width, height=height)
         self._autosave_state()
 
@@ -131,6 +153,18 @@ class MainWindowStateMixin:
         if not isinstance(state, BinaryWorkbenchStateDTO):
             return
         self._binary_workbench_state = state
+        self._autosave_state()
+
+    def _remember_binary_workbench_preferences(self: MainWindow, preferences: object) -> None:
+        if not isinstance(preferences, BinaryWorkbenchPreferencesDTO):
+            return
+        self._binary_workbench_preferences = preferences
+        self._autosave_state()
+
+    def _remember_program_context(self: MainWindow, context: object) -> None:
+        if not isinstance(context, ProgramContextDTO):
+            return
+        self._program_context = context
         self._autosave_state()
 
     def _sync_binary_workbench_window_state(self: MainWindow) -> None:

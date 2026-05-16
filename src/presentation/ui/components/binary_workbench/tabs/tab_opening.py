@@ -21,15 +21,15 @@ from src.presentation.ui.components.binary_workbench.tabs.factory import (
 class TabOpeningMixin:
     def open_binary_path(self, path: Path) -> None:
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_BINARY_DIRECTORY, path)
-        self._append_tab(self._apply_matching_workspace(create_binary_tab(self._state, path), path))
+        self._append_tab(self._apply_matching_workspace(create_binary_tab(self._state, path, self._preferences), path))
 
     def open_file_path(self, path: Path) -> None:
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_FILE_DIRECTORY, path)
-        self._append_tab(self._apply_matching_workspace(create_file_tab(self._state, path), path))
+        self._append_tab(self._apply_matching_workspace(create_file_tab(self._state, path, self._preferences), path))
 
     def open_assembly_path(self, path: Path) -> None:
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_ASSEMBLY_DIRECTORY, path)
-        self._append_tab(self._apply_matching_workspace(create_assembly_tab(self._state, path), path))
+        self._append_tab(self._apply_matching_workspace(create_assembly_tab(self._state, path, self._preferences), path))
 
     def open_workspace_path(self, path: Path) -> bool:
         payload = read_json(path)
@@ -46,12 +46,12 @@ class TabOpeningMixin:
         if not source_path.exists():
             return False
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_FILE_DIRECTORY, source_path)
-        context = create_file_tab(self._state, source_path)
-        self._append_tab(
-            self._with_symbol_offsets(
-                self._workspace_repository.load_tab_workspace(context, path)
-            )
+        context = create_file_tab(self._state, source_path, self._preferences)
+        loaded = self._with_symbol_offsets(
+            self._workspace_repository.load_tab_workspace(context, path)
         )
+        self._remember_workspace_for_source(loaded)
+        self._append_tab(loaded)
         return True
 
     def new_scratch_tab(self) -> None:

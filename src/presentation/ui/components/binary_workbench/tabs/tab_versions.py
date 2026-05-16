@@ -18,7 +18,7 @@ class TabVersionsMixin:
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != name]
         self._set_current_context(
-            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name})
+            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name, "version_dirty": True})
         )
         return True
 
@@ -29,7 +29,7 @@ class TabVersionsMixin:
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != current.active_version_name]
         self._set_current_context(
-            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name})
+            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": [*versions, version], "active_version_name": name, "version_dirty": True})
         )
         return True
 
@@ -59,6 +59,7 @@ class TabVersionsMixin:
                     "byte_overlays": byte_overlays,
                     "instruction_overlays": instruction_overlays,
                     "active_version_name": name,
+                    "version_dirty": False,
                 }
             )
         )

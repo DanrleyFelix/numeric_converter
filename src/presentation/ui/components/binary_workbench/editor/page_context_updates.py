@@ -1,5 +1,8 @@
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,
 )
@@ -34,5 +37,6 @@ def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[st
     return {
         "rows": rows,
         "labels": labels,
+        "version_dirty": context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY,
         "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),
     }
