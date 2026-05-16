@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt
 
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 
 
 class GridResizingMixin:
@@ -53,8 +53,9 @@ class GridResizingMixin:
                 widget.setParent(None)
                 widget.deleteLater()
         for name in names:
+            display_label = BINARY_WORKBENCH_TEXT.FILE_OFFSET if name == BINARY_WORKBENCH_TEXT.FILE else name
             shell, editor = self._panel(
-                name,
+                display_label,
                 "binary-workbench-offsets-panel",
                 True,
                 BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH,

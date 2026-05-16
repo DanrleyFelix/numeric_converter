@@ -46,7 +46,7 @@ class BINARY_WORKBENCH_TEXT:
     FIND: str = "Find"
     SELECT_BLOCK: str = "Select Block"
     SELECT_ALL: str = "Select All"
-    FILE_OFFSET: str = "File"
+    FILE_OFFSET: str = "File Offset"
     INSTRUCTION: str = 'Editor (Assembly Code)'
     RAW_INSTRUCTIONS: str = "Raw Instructions"
     BYTES: str = "Bytes"

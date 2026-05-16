@@ -10,7 +10,6 @@ from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
 )
 from src.modules.dtos import BinaryWorkbenchRowDTO
 
-RAM_BASE = 0x80010000
 ROW_BYTES = 4
 DEFAULT_OFFSET = "0x00000000"
 
@@ -35,7 +34,7 @@ def byte_overlays_from_instruction_overlays(
         offset = int(offset_text, 16)
         for index, expanded in enumerate(expand_pseudo_instruction(instruction)):
             target_offset = offset + (index * ROW_BYTES)
-            address = RAM_BASE + target_offset
+            address = target_offset
             assembly = preprocess_instruction(
                 expanded,
                 address,

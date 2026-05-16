@@ -22,7 +22,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
 
     @property
     def default_reference_offsets(self) -> tuple[str, ...]:
-        return ("File", "RAM", "SLUS")
+        return ("File")
 
     def assemble(self, instruction: str, address: int) -> bytes | None:
         normalized = _strip_comment(instruction).strip()
