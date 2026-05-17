@@ -1,12 +1,12 @@
 {
     "tabs": [
         {
-            "tab_id": "a12cdf1c51f14dceafab9266e79e4ddf",
-            "kind": "binary",
-            "display_name": "SLUS_014.11",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
+            "tab_id": "64b9722e4c61427a87d349f25ff10e72",
+            "kind": "scratch",
+            "display_name": "scratch_1.asm",
+            "source_path": null,
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
+            "read_mode": "assembly",
             "reference_offsets": [
                 "File"
             ],
@@ -28,12 +28,94 @@
             "module_checksums": {},
             "last_open_offset": "0x00000000",
             "navigation_history": [],
-            "file_size": 1902592,
-            "version_dirty": true,
+            "file_size": 0,
+            "version_dirty": false,
             "byte_overlays": {},
             "instruction_overlays": {},
-            "original_rows": [],
-            "rows": [],
+            "original_rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                }
+            ],
+            "rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "JAL 0x8",
+                    "bytes_text": "02 00 00 0C"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "JAL 0x8",
+                    "bytes_text": "02 00 00 0C"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "JAL 0x8",
+                    "bytes_text": "02 00 00 0C"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                }
+            ],
             "view_preferences": {
                 "visible_columns": {
                     "File": true,
@@ -44,7 +126,7 @@
             }
         }
     ],
-    "active_tab_id": "a12cdf1c51f14dceafab9266e79e4ddf",
+    "active_tab_id": "64b9722e4c61427a87d349f25ff10e72",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",

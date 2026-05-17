@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent, QStringListModel, Qt, QTimer, Signal
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
@@ -76,6 +76,18 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorSel
         super().focusInEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.matches(QKeySequence.Undo):
+            self.undo()
+            event.accept()
+            return
+        if event.matches(QKeySequence.Redo) or (
+            event.key() == Qt.Key_Z
+            and bool(event.modifiers() & Qt.ControlModifier)
+            and bool(event.modifiers() & Qt.ShiftModifier)
+        ):
+            self.redo()
+            event.accept()
+            return
         if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab} and self._accept_current_completion():
             event.accept()
             return

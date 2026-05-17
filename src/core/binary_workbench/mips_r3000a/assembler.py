@@ -34,9 +34,9 @@ def assemble_fallback(instruction: str, address: int) -> bytes | None:
     if mnemonic in I_OPCODES:
         return _assemble_i_type(mnemonic, operands)
     if mnemonic in BRANCH_OPCODES:
-        return _assemble_branch(mnemonic, operands, address)
+        return _assemble_branch(mnemonic, operands)
     if mnemonic in SPECIAL_BRANCH_RT:
-        offset = ((number(operands[1]) - (address + 4)) >> 2) & 0xFFFF
+        offset = number(operands[1]) & 0xFFFF
         word = (
             (0x01 << 26)
             | (register(operands[0]) << 21)
@@ -63,14 +63,14 @@ def _assemble_i_type(mnemonic: str, operands: list[str]) -> bytes | None:
     return word.to_bytes(4, "little")
 
 
-def _assemble_branch(mnemonic: str, operands: list[str], address: int) -> bytes:
+def _assemble_branch(mnemonic: str, operands: list[str]) -> bytes:
     opcode = BRANCH_OPCODES[mnemonic]
     if mnemonic in {"blez", "bgtz"}:
         rs = register(operands[0])
-        offset = ((number(operands[1]) - (address + 4)) >> 2) & 0xFFFF
+        offset = number(operands[1]) & 0xFFFF
         word = (opcode << 26) | (rs << 21) | offset
         return word.to_bytes(4, "little")
     rs, rt = register(operands[0]), register(operands[1])
-    offset = ((number(operands[2]) - (address + 4)) >> 2) & 0xFFFF
+    offset = number(operands[2]) & 0xFFFF
     word = (opcode << 26) | (rs << 21) | (rt << 16) | offset
     return word.to_bytes(4, "little")

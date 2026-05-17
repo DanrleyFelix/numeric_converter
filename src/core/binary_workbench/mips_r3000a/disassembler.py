@@ -34,7 +34,7 @@ def disassemble_fallback(word: int, address: int) -> str:
     if opcode in I_OPCODES.values():
         return _disassemble_i_type(opcode, word)
     if opcode in BRANCH_OPCODES.values() or opcode == 0x01:
-        return _disassemble_branch(opcode, word, address)
+        return _disassemble_branch(opcode, word)
     return f"word 0x{word:08X}"
 
 
@@ -48,18 +48,22 @@ def _disassemble_i_type(opcode: int, word: int) -> str:
     return f"{_mnemonic_from_opcode(opcode)} ${registers[0]}, ${registers[1]}, {hex_or_signed(imm)}"
 
 
-def _disassemble_branch(opcode: int, word: int, address: int) -> str:
+def _disassemble_branch(opcode: int, word: int) -> str:
     rs, rt, imm = (word >> 21) & 0x1F, (word >> 16) & 0x1F, signed16(word & 0xFFFF)
-    target = address + 4 + (imm << 2)
+    immediate = _branch_immediate(imm)
     if opcode == 0x01:
         mnemonic = "bgez" if rt == 0x01 else "bltz"
-        return f"{mnemonic} ${REGISTER_NAMES.get(rs, 'zero')}, 0x{target:X}"
+        return f"{mnemonic} ${REGISTER_NAMES.get(rs, 'zero')}, {immediate}"
     if opcode in {0x06, 0x07}:
-        return f"{_mnemonic_from_opcode(opcode)} ${REGISTER_NAMES.get(rs, 'zero')}, 0x{target:X}"
+        return f"{_mnemonic_from_opcode(opcode)} ${REGISTER_NAMES.get(rs, 'zero')}, {immediate}"
     return (
         f"{_mnemonic_from_opcode(opcode)} ${REGISTER_NAMES.get(rs, 'zero')}, "
-        f"${REGISTER_NAMES.get(rt, 'zero')}, 0x{target:X}"
+        f"${REGISTER_NAMES.get(rt, 'zero')}, {immediate}"
     )
+
+
+def _branch_immediate(value: int) -> str:
+    return f"-0x{abs(value):X}" if value < 0 else f"0x{value:04X}"
 
 
 def _mnemonic_from_opcode(opcode: int) -> str:

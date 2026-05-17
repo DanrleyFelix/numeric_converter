@@ -6,9 +6,10 @@ from src.core.binary_workbench.mips_r3000a import (
     validate_mips_hazards,
 )
 from src.presentation.ui.components.binary_workbench.editor.constants.raw_instruction_style import (
-    RAW_INSTRUCTION_HAZARD_BACKGROUND_RGBA,
+    RAW_INSTRUCTION_HAZARD_ERROR_BACKGROUND_RGBA,
+    RAW_INSTRUCTION_HAZARD_WARNING_BACKGROUND_RGBA,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import address_from_row
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES, address_from_row
 
 
 class GridRawInstructionsMixin:
@@ -18,29 +19,53 @@ class GridRawInstructionsMixin:
         self._apply_raw_hazards(validate_mips_hazards(lines))
 
     def _raw_instruction_lines(self) -> list[str]:
-        return [
-            raw_mips_instruction(
-                row.instruction,
-                address_from_row(row),
-                self._labels,
-                self._variables,
-                self._equates,
+        lines: list[str] = []
+        for row in self._rows:
+            address = address_from_row(row)
+            lines.append(
+                self._raw_instruction_from_bytes(row.bytes_text, address)
+                or raw_mips_instruction(
+                    row.instruction,
+                    address,
+                    self._labels,
+                    self._variables,
+                    self._equates,
+                )
             )
-            for row in self._rows
-        ]
+        return lines
+
+    def _raw_instruction_from_bytes(self, bytes_text: str, address: int) -> str:
+        try:
+            data = bytes.fromhex(bytes_text.replace(" ", ""))
+        except ValueError:
+            return ""
+        if not data:
+            return ""
+        return self._codec.disassemble(data[:ROW_BYTES].ljust(ROW_BYTES, b"\x00"), address)
 
     def _apply_raw_hazards(self, hazards) -> None:
         document = self.raw_instructions.document()
         self.raw_instructions.setExtraSelections(
-            [self._raw_hazard_selection(document.findBlockByNumber(item.line_index)) for item in hazards]
+            [
+                self._raw_hazard_selection(
+                    document.findBlockByNumber(item.line_index),
+                    item.severity,
+                )
+                for item in hazards
+            ]
         )
 
-    def _raw_hazard_selection(self, block) -> QTextEdit.ExtraSelection:
+    def _raw_hazard_selection(self, block, severity: str) -> QTextEdit.ExtraSelection:
         selection = QTextEdit.ExtraSelection()
         selection.cursor = self.raw_instructions.textCursor()
         selection.cursor.setPosition(block.position())
         selection.cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
         selection.format = QTextCharFormat()
-        selection.format.setBackground(QColor(*RAW_INSTRUCTION_HAZARD_BACKGROUND_RGBA))
+        rgba = (
+            RAW_INSTRUCTION_HAZARD_ERROR_BACKGROUND_RGBA
+            if severity == "error"
+            else RAW_INSTRUCTION_HAZARD_WARNING_BACKGROUND_RGBA
+        )
+        selection.format.setBackground(QColor(*rgba))
         selection.format.setProperty(QTextFormat.FullWidthSelection, True)
         return selection

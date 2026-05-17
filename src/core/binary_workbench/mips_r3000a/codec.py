@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib import import_module
 
 from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
+from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
 from src.modules.contracts import CPUArchCodec
 
@@ -37,6 +38,11 @@ class PsxMipsR3000ACodec(CPUArchCodec):
                 return int(normalized[hex_start:], 16).to_bytes(4, "little")
             except (ValueError, IndexError):
                 return None
+        if _is_branch_instruction(lower):
+            try:
+                return assemble_fallback(normalized, address)
+            except Exception:
+                return None
         if self._keystone is not None:
             try:
                 engine = self._keystone.Ks(
@@ -57,6 +63,9 @@ class PsxMipsR3000ACodec(CPUArchCodec):
     def disassemble(self, data: bytes, address: int) -> str:
         if len(data) != 4:
             return "word 0x00000000"
+        word = int.from_bytes(data, "little")
+        if _is_branch_word(word):
+            return disassemble_fallback(word, address)
         if self._capstone is not None:
             engine = self._capstone.Cs(
                 self._capstone.CS_ARCH_MIPS,
@@ -67,7 +76,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
             if result is not None:
                 operands = f" {result.op_str}" if result.op_str else ""
                 return f"{result.mnemonic}{operands}"
-        return disassemble_fallback(int.from_bytes(data, "little"), address)
+        return disassemble_fallback(word, address)
 
     def bytes_text(self, data: bytes) -> str:
         return " ".join(f"{value:02X}" for value in data)
@@ -83,3 +92,13 @@ def _module_exists(name: str) -> bool:
 
 def _strip_comment(text: str) -> str:
     return text.split(";", 1)[0]
+
+
+def _is_branch_instruction(text: str) -> bool:
+    parts = text.replace(",", " ").split()
+    return bool(parts) and parts[0].lower() in {*BRANCH_OPCODES, *SPECIAL_BRANCH_RT}
+
+
+def _is_branch_word(word: int) -> bool:
+    opcode = (word >> 26) & 0x3F
+    return opcode in BRANCH_OPCODES.values() or opcode == 0x01

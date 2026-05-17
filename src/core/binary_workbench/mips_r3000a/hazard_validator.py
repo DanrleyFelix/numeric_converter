@@ -27,9 +27,21 @@ def validate_mips_hazards(instructions: list[str]) -> list[MipsHazard]:
         if not mnemonic:
             continue
         if pending_load and pending_load in _read_registers(mnemonic, operands):
-            hazards.append(MipsHazard(index, "warning", f"Load hazard uses ${pending_load} before it is ready."))
+            hazards.append(
+                MipsHazard(
+                    index,
+                    "warning",
+                    f"Possibly Hazard: ${pending_load} may be used before load is ready.",
+                )
+            )
         if previous_jump and mnemonic in JUMP_MNEMONICS:
-            hazards.append(MipsHazard(index, "error", "Jump hazard has two jump instructions in sequence."))
+            hazards.append(
+                MipsHazard(
+                    index,
+                    "error",
+                    "Hazard!: consecutive jump/branch instructions.",
+                )
+            )
         pending_load = _load_target(mnemonic, operands)
         previous_jump = mnemonic in JUMP_MNEMONICS
     return hazards

@@ -1,4 +1,4 @@
-from src.core.binary_workbench.mips_r3000a import expand_pseudo_instructions
+from src.core.binary_workbench.mips_r3000a import editor_mips_instruction, expand_pseudo_instructions
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
@@ -10,7 +10,6 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     ROW_BYTES,
     address_from_row,
     assembly_for_encoding,
-    byte_cursor_position,
     normalize_bytes_text,
     normalize_instruction_text,
 )
@@ -85,7 +84,14 @@ class GridEditingMixin:
             chunk = data[start : start + ROW_BYTES]
             row = self._row_at(index)
             address = address_from_row(row)
-            rows.append(BinaryWorkbenchRowDTO(offsets=row.offsets, instruction=self._codec.disassemble(chunk.ljust(ROW_BYTES, b"\x00"), address), bytes_text=self._codec.bytes_text(chunk)))
+            raw_instruction = self._codec.disassemble(chunk.ljust(ROW_BYTES, b"\x00"), address)
+            rows.append(
+                BinaryWorkbenchRowDTO(
+                    offsets=row.offsets,
+                    instruction=editor_mips_instruction(raw_instruction, address),
+                    bytes_text=self._codec.bytes_text(chunk),
+                )
+            )
         return rows
 
     def rows_encoded_with_symbols(
@@ -135,12 +141,6 @@ class GridEditingMixin:
     def _normalized_bytes_lines(self) -> list[str]:
         text = self.bytes.toPlainText()
         normalized = normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)
-        if normalized != text:
-            raw_index = len("".join(text[: self.bytes.textCursor().position()].split()))
-            self._set_editor_text(self.bytes, normalized.splitlines())
-            cursor = self.bytes.textCursor()
-            cursor.setPosition(byte_cursor_position(normalized, raw_index))
-            self.bytes.setTextCursor(cursor)
         return normalized.splitlines()
 
     def _normalized_instruction_lines(self) -> list[str]:

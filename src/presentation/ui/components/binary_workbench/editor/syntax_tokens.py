@@ -17,11 +17,10 @@ COMPLETION_TOKEN = re.compile(r"[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")
 EQUATE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*")
 ROW_BYTES = 4
-RAM_BASE = 0x80010000
 
 
 def address_from_row(row: BinaryWorkbenchRowDTO) -> int:
-    return RAM_BASE + int(row.offsets.get("File", "0x0"), 16)
+    return int(row.offsets.get("File", "0x0"), 16)
 
 
 def assembly_for_encoding(

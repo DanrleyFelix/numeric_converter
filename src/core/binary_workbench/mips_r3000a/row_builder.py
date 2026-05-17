@@ -7,6 +7,7 @@ from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instructions,
 )
 from src.core.binary_workbench.mips_r3000a.preprocessor import (
+    editor_mips_instruction,
     preprocess_instruction,
     strip_comment,
 )
@@ -29,7 +30,7 @@ def build_rows_from_bytes(
         rows.append(
             BinaryWorkbenchRowDTO(
                 offsets=_offset_values(offset, offset_names, offset_bases),
-                instruction=codec.disassemble(chunk, offset),
+                instruction=editor_mips_instruction(codec.disassemble(chunk, offset), offset),
                 bytes_text=codec.bytes_text(chunk),
             )
         )
@@ -86,7 +87,7 @@ def build_scratch_rows(
     return [
         BinaryWorkbenchRowDTO(
             offsets=_offset_values(index * _ROW_BYTES, offset_names, offset_bases),
-            instruction=codec.disassemble(zero, (index * _ROW_BYTES)),
+            instruction=editor_mips_instruction(codec.disassemble(zero, index * _ROW_BYTES), index * _ROW_BYTES),
             bytes_text=codec.bytes_text(zero),
         )
         for index in range(count)

@@ -7,6 +7,7 @@ from src.core.binary_workbench.mips_r3000a.row_builder import (
     rebuild_rows_with_offsets,
 )
 from src.core.binary_workbench.mips_r3000a.preprocessor import (
+    editor_mips_instruction,
     preprocess_instruction,
     raw_mips_instruction,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "build_scratch_rows",
     "extract_labels_from_instructions",
     "rebuild_rows_with_offsets",
+    "editor_mips_instruction",
     "preprocess_instruction",
     "raw_mips_instruction",
     "MipsHazard",
