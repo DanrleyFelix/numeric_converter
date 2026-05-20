@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 LABEL_SEPARATOR = ":"
-SHORT_IMMEDIATE_MIN = -0x8000
-SHORT_IMMEDIATE_MAX = 0x7FFF
-MIPS_WORD_MASK = 0xFFFFFFFF
-MIPS_HALF_MASK = 0xFFFF
-MIPS_HALF_SHIFT = 16
 
 
 def expand_pseudo_instructions(lines: list[str]) -> list[str]:
@@ -34,8 +29,6 @@ def _expand_code(code: str) -> list[str] | None:
         return None
     mnemonic = parts[0].lower()
     operands = parts[1:]
-    if mnemonic == "li" and len(operands) == 2:
-        return _expand_load_immediate(operands[0], operands[1])
     if mnemonic == "move" and len(operands) == 2:
         return [f"addu {operands[0]}, {operands[1]}, $zero"]
     if mnemonic == "clear" and len(operands) == 1:
@@ -45,19 +38,6 @@ def _expand_code(code: str) -> list[str] | None:
     if mnemonic == "b" and len(operands) == 1:
         return [f"beq $zero, $zero, {operands[0]}"]
     return None
-
-
-def _expand_load_immediate(register: str, immediate: str) -> list[str]:
-    value = _parse_int(immediate)
-    if value is None or SHORT_IMMEDIATE_MIN <= value <= SHORT_IMMEDIATE_MAX:
-        return [f"addiu {register}, $zero, {immediate}"]
-    masked = value & MIPS_WORD_MASK
-    upper = (masked >> MIPS_HALF_SHIFT) & MIPS_HALF_MASK
-    lower = masked & MIPS_HALF_MASK
-    lines = [f"lui {register}, 0x{upper:x}"]
-    if lower:
-        lines.append(f"ori {register}, {register}, 0x{lower:x}")
-    return lines
 
 
 def _split_label(text: str) -> tuple[str | None, str]:
@@ -72,10 +52,3 @@ def _split_label(text: str) -> tuple[str | None, str]:
 
 def _strip_comment(text: str) -> str:
     return text.split(";", 1)[0]
-
-
-def _parse_int(value: str) -> int | None:
-    try:
-        return int(value, 0)
-    except ValueError:
-        return None

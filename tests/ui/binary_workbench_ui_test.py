@@ -344,7 +344,7 @@ def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
     assert len(page.grid.raw_instructions.extraSelections()) == 2  # type: ignore[attr-defined]
 
 
-def test_binary_workbench_instructions_expand_pseudo_and_raw_stays_lowercase(tmp_path: Path):
+def test_binary_workbench_li_stays_in_editor_and_converts_only_in_raw(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
     tool = window._binary_workbench_window
@@ -352,17 +352,16 @@ def test_binary_workbench_instructions_expand_pseudo_and_raw_stays_lowercase(tmp
     assert tool is not None
     tool.tabs.new_scratch_tab()
     page = tool.tabs.currentWidget()
-    page.grid.instructions.setPlainText("li $v0, 1\nmove $a0, $s1")  # type: ignore[attr-defined]
+    page.grid.instructions.setPlainText("li $v0, 1")  # type: ignore[attr-defined]
     _app().processEvents()
 
     assert page.grid.instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
-        "ADDIU $v0, $zero, 1",
-        "ADDU $a0, $s1, $zero",
+        "LI $v0, 1",
     ]
     assert page.grid.raw_instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
         "addiu $v0, $zero, 1",
-        "addu $a0, $s1, $zero",
     ]
+    assert page.grid.bytes.toPlainText().splitlines() == ["01 00 02 24"]  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_reads_asm_sources_as_text_by_default(tmp_path: Path):
@@ -1407,7 +1406,35 @@ def test_binary_workbench_detects_deleted_instruction_rows(tmp_path: Path):
 
     assert current is not None
     assert len(current.rows) == 2
+    assert current.rows[0].offsets["File"] == "0x00000000"
+    assert current.rows[1].offsets["File"] == "0x00000004"
+    assert current.rows[1].instruction == "JR $ra"
     assert tool.tabs.has_unsaved_changes(0) is True
+
+
+def test_binary_workbench_instruction_delete_keeps_raw_bytes_and_offsets_synced(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("jal 0x8\njal 0x8\nlbu $s1, 0xC($gp)\nnop")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    page.grid.instructions.setPlainText("beqz $s1, 0x8\nnop")  # type: ignore[attr-defined]
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert page.grid.instructions.toPlainText().splitlines() == ["BEQZ $s1, 0x8", "NOP"]  # type: ignore[attr-defined]
+    assert [row.offsets["File"] for row in current.rows] == ["0x00000000", "0x00000004"]
+    assert page.grid.raw_instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
+        "beq $s1, $zero, 0x0001",
+        "nop",
+    ]
+    assert page.grid.bytes.toPlainText().splitlines() == ["01 00 20 12", "00 00 00 00"]  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_bytes_editor_auto_formats_and_uppercases(tmp_path: Path):

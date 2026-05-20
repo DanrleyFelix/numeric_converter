@@ -15,6 +15,15 @@ from src.core.binary_workbench.mips_r3000a.operands import number, signed16
 WORD_DIRECTIVES = {"word", ".word"}
 CORE_NO_OPERAND_MNEMONICS = {"nop"}
 TWO_OPERAND_BRANCHES = {"blez", "bgtz", *SPECIAL_BRANCH_RT}
+LOAD_IMMEDIATE_PSEUDO = "li"
+ZERO_BRANCH_PSEUDOS = {
+    "beqz": "beq",
+    "bnez": "bne",
+}
+SHORT_IMMEDIATE_MIN = -0x8000
+SHORT_IMMEDIATE_MAX = 0x7FFF
+MIPS_HALF_MASK = 0xFFFF
+MIPS_HALF_SHIFT = 16
 
 
 def preprocess_instruction(
@@ -28,6 +37,8 @@ def preprocess_instruction(
     code = _replace_prefixed_symbols(code, "_", variables)
     code = _replace_prefixed_symbols(code, "@", equates)
     code = _replace_labels(code, labels, address)
+    code = _replace_load_immediate_pseudo(code)
+    code = _replace_zero_branch_pseudo(code)
     return _replace_branch_number(
         code,
         lambda target: _format_branch_immediate((target - (address + 4)) >> 2),
@@ -85,6 +96,33 @@ def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
         target = _safe_int(value, fallback)
         result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
     return result
+
+
+def _replace_load_immediate_pseudo(text: str) -> str:
+    tokens = text.replace(",", " ").split()
+    if len(tokens) != 3 or tokens[0].lower() != LOAD_IMMEDIATE_PSEUDO:
+        return text
+    try:
+        value = int(tokens[2], 0)
+    except ValueError:
+        return text
+    if SHORT_IMMEDIATE_MIN <= value <= SHORT_IMMEDIATE_MAX:
+        return f"addiu {tokens[1]}, $zero, {tokens[2]}"
+    if 0 <= value <= MIPS_HALF_MASK:
+        return f"ori {tokens[1]}, $zero, {tokens[2]}"
+    if value & MIPS_HALF_MASK == 0:
+        return f"lui {tokens[1]}, 0x{(value >> MIPS_HALF_SHIFT) & MIPS_HALF_MASK:x}"
+    return text
+
+
+def _replace_zero_branch_pseudo(text: str) -> str:
+    tokens = text.replace(",", " ").split()
+    if len(tokens) != 3:
+        return text
+    mnemonic = tokens[0].lower()
+    if mnemonic not in ZERO_BRANCH_PSEUDOS:
+        return text
+    return f"{ZERO_BRANCH_PSEUDOS[mnemonic]} {tokens[1]}, $zero, {tokens[2]}"
 
 
 def _safe_int(value: str, fallback: int) -> int:

@@ -1,4 +1,8 @@
-from src.core.binary_workbench.mips_r3000a import editor_mips_instruction, expand_pseudo_instructions
+from src.core.binary_workbench.mips_r3000a import (
+    editor_mips_instruction,
+    expand_pseudo_instructions,
+    rebuild_rows_with_offsets,
+)
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
@@ -53,15 +57,30 @@ class GridEditingMixin:
         if not self._virtual:
             start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
             self._all_rows[start : start + old_count] = updated
+            self._all_rows = rebuild_rows_with_offsets(
+                self._all_rows,
+                self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+                self._offset_base_text(),
+            )
+            self._rows = self._all_rows[start : start + len(updated)]
+            self._total_size = len(self._all_rows) * ROW_BYTES
+            self._configure_scrollbar()
             self.rowsChanged.emit(self.export_rows())
         else:
             self.rowsChanged.emit(self._rows)
+        self._render_offsets()
         target = self.instructions if editing_bytes else self.bytes
         values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
         self._set_editor_text(target, values)
         self._render_raw_instructions()
         self._emit_selection_summary()
         self._dirty_editor_kind = None
+
+    def _offset_base_text(self) -> dict[str, str]:
+        return {
+            name: f"0x{base:08X}"
+            for name, base in self._offset_bases().items()
+        }
 
     def _set_editing_labels(self, labels: dict[str, str]) -> None:
         was_updating = self._updating
@@ -146,12 +165,12 @@ class GridEditingMixin:
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()
         normalized = normalize_instruction_text(text, self._uppercase_instructions)
-        normalized = "\n".join(expand_pseudo_instructions(normalized.splitlines()))
+        normalized = "\n".join(expand_pseudo_instructions(normalized.split("\n")))
         normalized = normalize_instruction_text(normalized, self._uppercase_instructions)
         if normalized != text:
             position = self.instructions.textCursor().position()
-            self._set_editor_text(self.instructions, normalized.splitlines())
+            self._set_editor_text(self.instructions, normalized.split("\n"))
             cursor = self.instructions.textCursor()
             cursor.setPosition(min(position, len(normalized)))
             self.instructions.setTextCursor(cursor)
-        return normalized.splitlines()
+        return normalized.split("\n")

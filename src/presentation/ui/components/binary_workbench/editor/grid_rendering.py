@@ -72,9 +72,12 @@ class GridRenderingMixin:
         self._set_editor_text(self.bytes, [self._display_bytes_text(row.bytes_text) for row in self._rows])
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
         self._render_raw_instructions()
+        self._render_offsets()
+        self.selectionSummaryChanged.emit(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+
+    def _render_offsets(self) -> None:
         for name, editor in self._offset_editors.items():
             self._set_editor_text(editor, [row.offsets.get(name, "") for row in self._rows])
-        self.selectionSummaryChanged.emit(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
 
     def _render_static_window(self) -> None:
         count = self._visible_row_count()

@@ -45,6 +45,10 @@ class GridCommitMixin:
         if not self._virtual:
             start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
             self._all_rows[start : start + old_count] = rows
+            self._total_size = len(self._all_rows) * ROW_BYTES
+            self._configure_scrollbar()
+            self._render_offsets()
             self.rowsChanged.emit(self.export_rows())
             return
+        self._render_offsets()
         self.rowsChanged.emit(self._rows)
