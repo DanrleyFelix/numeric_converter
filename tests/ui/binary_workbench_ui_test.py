@@ -6,7 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QComboBox, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.dtos import (
@@ -596,6 +596,52 @@ def test_binary_workbench_saves_assembly_copy_and_persists_directory(tmp_path: P
     assert tool.tabs.save_current_assembly_copy(output_path) is True
     assert "ADDIU $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
     assert tool.export_state().directories["save_assembly"] == str(output_path.parent)
+
+
+def test_binary_workbench_save_as_adopts_scratch_source_for_workspace_identity(tmp_path: Path, monkeypatch):
+    output_path = tmp_path / "renamed.asm"
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("addiu $sp,$sp,-0x10")  # type: ignore[attr-defined]
+    _app().processEvents()
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *args: (str(output_path), ""))
+
+    assert tool._save_assembly_code() is True
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert output_path.read_text(encoding="utf-8") == "ADDIU $sp,$sp,-0x10"
+    assert current.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+    assert current.display_name == "renamed.asm"
+    assert current.source_path == str(output_path)
+    assert tool.tabs.tabText(0) == "renamed.asm"
+    assert tool.tabs.has_unsaved_changes(0) is False
+
+
+def test_binary_workbench_close_save_persists_scratch_file_before_closing(tmp_path: Path, monkeypatch):
+    output_path = tmp_path / "closed.asm"
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("nop\naddiu $sp,$sp,-0x10")  # type: ignore[attr-defined]
+    _app().processEvents()
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *args: (str(output_path), ""))
+    monkeypatch.setattr(tool, "_native_close_question", lambda: QMessageBox.StandardButton.Save)
+
+    tool._request_tab_close(0)
+
+    assert tool.tabs.count() == 0
+    assert "ADDIU $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
+    assert (tmp_path / "data" / "binary_workbench" / "workspaces" / "closed_asm_workspace_manifest.json").exists()
 
 
 def test_binary_workbench_reference_offsets_adds_visible_offset_column(tmp_path: Path):

@@ -7,7 +7,7 @@ from src.modules.dtos import (
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import restorable_state
-from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload
+from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload, tab_text
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import DIRECTORY_KEYS
 
 
@@ -88,6 +88,7 @@ class TabStateMixin:
             return
         tabs = [context if tab.tab_id == tab_id else tab for tab in self._state.tabs]
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": tabs})
+        self._refresh_tab_label(tab_id, context.display_name)
         self.stateChanged.emit(self._state)
 
     def _set_current_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
@@ -123,3 +124,10 @@ class TabStateMixin:
         )
         self.programContextChanged.emit(self._program_context)
         self.stateChanged.emit(self._state)
+
+    def _refresh_tab_label(self, tab_id: str, display_name: str) -> None:
+        index = next((idx for idx, tab in enumerate(self._state.tabs) if tab.tab_id == tab_id), -1)
+        if index < 0:
+            return
+        self.setTabText(index, tab_text(display_name))
+        self.setTabToolTip(index, display_name)

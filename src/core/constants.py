@@ -12,7 +12,7 @@ ASSIGNMENT_OPERATOR = {"="}
 CONDITIONAL_OPERATORS = {"==", "!=", "<", ">", "<=", ">="}
 ARITHMETIC_OPERATORS = {"*", "-", "+", "/", "**"}
 UNARY_OPERATORS = {"!", "~", "+", "-"}
-BASE_PREFIXES = {"0b": 2, "0x": 16}
+BASE_PREFIXES = {"0b": 2, "0x": 16, "00": 16, "b'": 2}
 TEXTUAL_OPERATORS = {
     "NOT": "!",
     "AND": "&&",

@@ -1,32 +1,24 @@
 {
     "tabs": [
         {
-            "tab_id": "64b9722e4c61427a87d349f25ff10e72",
-            "kind": "scratch",
-            "display_name": "scratch_1.asm",
-            "source_path": null,
+            "tab_id": "63c21a8fc6484874abf8574eaa8accb6",
+            "kind": "assembly",
+            "display_name": "test2.asm",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\test2.asm",
             "cpu_arch": "PSX - Mips R3000A",
             "read_mode": "assembly",
             "reference_offsets": [
-                "File",
-                "Ram Offset"
+                "File"
             ],
-            "reference_offset_bases": {
-                "Ram Offset": "0x0"
-            },
+            "reference_offset_bases": {},
             "labels": {
-                "LABEL_exemplo": "0x00000008"
+                "L1": "0x00000000"
             },
             "equates": {},
-            "variables": {
-                "boost_equip": "500"
-            },
+            "variables": {},
             "symbol_offsets": {
-                "boost_equip": [
-                    "0x00000014"
-                ],
-                "LABEL_exemplo": [
-                    "0x00000008"
+                "L1": [
+                    "0x00000000"
                 ]
             },
             "search_cache": {},
@@ -49,131 +41,87 @@
             "original_rows": [
                 {
                     "offset": "0x00000000",
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00"
+                    "instruction": "L1: LUI $s1, 0x8009",
+                    "bytes_text": "09 80 11 3C"
                 },
                 {
                     "offset": "0x00000004",
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00"
+                    "instruction": "BEQZ $s1, L1",
+                    "bytes_text": "FE FF 20 12"
                 },
                 {
                     "offset": "0x00000008",
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00"
+                    "instruction": "LBU $s1, 0xC($gp)",
+                    "bytes_text": "0C 00 91 93"
                 },
                 {
                     "offset": "0x0000000C",
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00"
+                    "instruction": "LBU $s2, 0xC($s1)",
+                    "bytes_text": "0C 00 32 92"
                 },
                 {
                     "offset": "0x00000010",
-                    "instruction": "nop",
+                    "instruction": "NOP",
                     "bytes_text": "00 00 00 00"
                 },
                 {
                     "offset": "0x00000014",
-                    "instruction": "nop",
+                    "instruction": "NOP",
                     "bytes_text": "00 00 00 00"
                 },
                 {
                     "offset": "0x00000018",
-                    "instruction": "nop",
+                    "instruction": "NOP",
                     "bytes_text": "00 00 00 00"
                 },
                 {
                     "offset": "0x0000001C",
-                    "instruction": "nop",
+                    "instruction": "NOP",
                     "bytes_text": "00 00 00 00"
                 }
             ],
             "rows": [
                 {
                     "offset": "0x00000000",
-                    "instruction": "JAL 0x14",
-                    "bytes_text": "05 00 00 0C"
+                    "instruction": "L1: LUI $s1, 0x8009",
+                    "bytes_text": "09 80 11 3C"
                 },
                 {
                     "offset": "0x00000004",
-                    "instruction": "JAL 0x14",
-                    "bytes_text": "05 00 00 0C"
+                    "instruction": "BEQZ $s1, L1",
+                    "bytes_text": "FE FF 20 12"
                 },
                 {
                     "offset": "0x00000008",
-                    "instruction": "LABEL_exemplo:LBU $s1, 0xC($gp)",
+                    "instruction": "LBU $s1, 0xC($gp)",
                     "bytes_text": "0C 00 91 93"
                 },
                 {
                     "offset": "0x0000000C",
-                    "instruction": "BNEZ $s1, 0x14",
-                    "bytes_text": "01 00 20 16"
+                    "instruction": "LBU $s2, 0xC($s1)",
+                    "bytes_text": "0C 00 32 92"
                 },
                 {
                     "offset": "0x00000010",
-                    "instruction": "BEQZ $s1, 0x18",
-                    "bytes_text": "01 00 20 12"
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
                 },
                 {
                     "offset": "0x00000014",
-                    "instruction": "ADDIU $s1, $s1, _boost_equip",
-                    "bytes_text": "F4 01 31 26"
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
                 },
                 {
                     "offset": "0x00000018",
-                    "instruction": "BNEZ $s1, LABEL_exemplo",
-                    "bytes_text": "FB FF 20 16"
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "NOP",
+                    "bytes_text": "00 00 00 00"
                 }
             ],
-            "view_preferences": {
-                "visible_columns": {
-                    "File": true,
-                    "Instruction": true,
-                    "Bytes": true,
-                    "Ram Offset": false,
-                    "Editor (Assembly Code)": true
-                },
-                "decoded_text_tables": []
-            }
-        },
-        {
-            "tab_id": "e0fcc2b5b1df4111969feefb887e2fc6",
-            "kind": "binary",
-            "display_name": "SLUS_014.11",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
-            "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
-            "reference_offsets": [
-                "File"
-            ],
-            "reference_offset_bases": {},
-            "labels": {},
-            "equates": {},
-            "variables": {},
-            "symbol_offsets": {},
-            "search_cache": {},
-            "internal_files": [],
-            "lba_sector_size": 2352,
-            "named_regions": [],
-            "memory_regions": [],
-            "versions": [],
-            "active_version_name": null,
-            "workspace_path": null,
-            "module_paths": {},
-            "module_directories": {},
-            "module_checksums": {},
-            "last_open_offset": "0x00000000",
-            "navigation_history": [],
-            "file_size": 1902592,
-            "version_dirty": true,
-            "byte_overlays": {
-                "0x00000000": "00 00 00 00"
-            },
-            "instruction_overlays": {
-                "0x00000000": ""
-            },
-            "original_rows": [],
-            "rows": [],
             "view_preferences": {
                 "visible_columns": {
                     "File": true,
@@ -184,14 +132,14 @@
             }
         }
     ],
-    "active_tab_id": "64b9722e4c61427a87d349f25ff10e72",
+    "active_tab_id": "63c21a8fc6484874abf8574eaa8accb6",
     "share_view_preferences": false,
     "directories": {
-        "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",
+        "open_file": "C:\\Users\\Danrl\\Desktop",
         "open_binary": "",
         "open_assembly": "",
         "save_file": "",
-        "save_assembly": "",
+        "save_assembly": "C:\\Users\\Danrl\\Desktop",
         "lba_filesystem": "",
         "memory_regions": "",
         "symbols": "",

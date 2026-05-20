@@ -40,7 +40,9 @@ class BinaryWorkbenchWindowFileActionsMixin:
         path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_ASSEMBLY_CODE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_ASSEMBLY)
         if not path:
             return False
-        if self.tabs.save_current_assembly_copy(Path(path)):
+        current = self.tabs.current_context()
+        adopt_source = current is not None and current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
+        if self.tabs.save_current_assembly_copy(Path(path), adopt_source):
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_SAVED_TEMPLATE.format(name=Path(path).name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return True
         return False

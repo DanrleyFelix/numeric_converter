@@ -30,7 +30,7 @@ class TabFileSavingMixin:
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_FILE_DIRECTORY, output_path)
         return True
 
-    def save_current_assembly_copy(self, output_path: Path) -> bool:
+    def save_current_assembly_copy(self, output_path: Path, adopt_source: bool = False) -> bool:
         current = self.current_context()
         if current is None:
             return False
@@ -45,6 +45,8 @@ class TabFileSavingMixin:
             )
         else:
             target.write_text(self._current_assembly_text(current), encoding="utf-8")
+            if adopt_source:
+                self._adopt_assembly_source(current, target)
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_ASSEMBLY_DIRECTORY, target)
         return True
 
@@ -69,3 +71,20 @@ class TabFileSavingMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             return page.assembly_text()
         return "\n".join(row.instruction for row in current.rows)
+
+    def _adopt_assembly_source(self, current: BinaryWorkbenchTabContextDTO, target: Path) -> None:
+        page = self.currentWidget()
+        rows = page.grid.export_rows() if isinstance(page, BinaryWorkbenchEditorPage) else current.rows
+        self._set_current_context(
+            BinaryWorkbenchTabContextDTO(
+                **{
+                    **current.__dict__,
+                    "kind": BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+                    "display_name": target.name,
+                    "source_path": str(target),
+                    "read_mode": "assembly",
+                    "rows": rows,
+                    "original_rows": rows,
+                }
+            )
+        )

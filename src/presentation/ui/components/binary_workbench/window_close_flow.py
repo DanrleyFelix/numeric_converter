@@ -47,9 +47,10 @@ class BinaryWorkbenchWindowCloseMixin:
             )
             self.tabs.save_current_workspace()
             return True
-        if self.tabs.save_current_workspace():
+        if self._save_assembly_code():
+            self.tabs.save_current_workspace()
             return True
-        return self._save_assembly_code()
+        return False
 
     def _save_binary_workspace_for_close(self, current) -> bool:
         if (current.byte_overlays or current.instruction_overlays) and not current.active_version_name:
