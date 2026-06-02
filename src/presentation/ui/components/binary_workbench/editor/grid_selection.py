@@ -80,6 +80,6 @@ class GridSelectionMixin:
             editor = self.bytes if self.bytes.hasFocus() else self.instructions
         cursor = editor.textCursor()
         if not cursor.hasSelection():
-            self.selectionSummaryChanged.emit(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+            self.selectionSummaryChanged.emit(self._cursor_summary(editor, cursor))
             return
         self._emit_bytes_selection(cursor) if editor is self.bytes else self._emit_instruction_selection(cursor)

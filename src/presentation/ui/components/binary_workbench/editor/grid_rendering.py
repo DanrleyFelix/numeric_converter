@@ -73,7 +73,7 @@ class GridRenderingMixin:
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
         self._render_raw_instructions()
         self._render_offsets()
-        self.selectionSummaryChanged.emit(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+        self._emit_selection_summary()
 
     def _render_offsets(self) -> None:
         for name, editor in self._offset_editors.items():

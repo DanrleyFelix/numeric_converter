@@ -6,6 +6,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,
 )
+from src.presentation.ui.components.binary_workbench.editor.selection_summary import (
+    update_selection_summary,
+)
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
 
@@ -17,7 +20,13 @@ class EditorPageContextMixin:
         self._update_context(symbol_updates(self._context, rows))
 
     def _set_summary(self, text: str) -> None:
-        self.summary.setText(text or BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+        update_selection_summary(
+            (self.offset_summary, self.summary, self.length_summary),
+            text or BINARY_WORKBENCH_TEXT.SELECTION_EMPTY,
+        )
+
+    def _set_cpu_arch_summary(self, value: str) -> None:
+        self.cpu_arch_summary.setText(BINARY_WORKBENCH_TEXT.CPU_ARCH_SUMMARY_TEMPLATE.format(cpu_arch=value))
 
     def _visible_columns(self) -> list[str]:
         offsets = [
@@ -29,6 +38,7 @@ class EditorPageContextMixin:
 
     def _update_context(self, updates: dict[str, object]) -> None:
         self._context = BinaryWorkbenchTabContextDTO(**{**self._context.__dict__, **updates})
+        self._set_cpu_arch_summary(self._context.cpu_arch)
         self.contextChanged.emit(self._context)
 
 

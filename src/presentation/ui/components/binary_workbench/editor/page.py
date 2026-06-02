@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.modules.dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -25,6 +25,9 @@ from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbo
 )
 from src.presentation.ui.components.binary_workbench.editor.page_search import (
     EditorPageSearchMixin,
+)
+from src.presentation.ui.components.binary_workbench.editor.selection_summary import (
+    selection_summary_footer,
 )
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
@@ -67,12 +70,12 @@ class BinaryWorkbenchEditorPage(
         self._reader: CachedBinaryReader | None = None
         self._loading_visible_rows = False
         self._pending_selection: tuple[int, int] | None = None
-        self.summary = QLabel(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY, self)
-        self.summary.setObjectName("binary-workbench-selection")
-        footer = QHBoxLayout()
-        footer.setContentsMargins(0, BINARY_WORKBENCH_LAYOUT.SUMMARY_TOP_MARGIN, 0, 0)
-        footer.addWidget(self.summary)
-        footer.addStretch(1)
+        footer, (
+            self.offset_summary,
+            self.summary,
+            self.length_summary,
+            self.cpu_arch_summary,
+        ) = selection_summary_footer(self)
         layout.addWidget(self.grid, 1)
         layout.addLayout(footer)
         self.load_context(context)
@@ -110,7 +113,7 @@ class BinaryWorkbenchEditorPage(
                 uppercase_bytes=self._preferences.uppercase_bytes,
                 uppercase_instructions=self._preferences.uppercase_instructions,
             )
-        self.summary.setText(BINARY_WORKBENCH_TEXT.SELECTION_EMPTY)
+        self._set_cpu_arch_summary(context.cpu_arch)
 
     def load_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self.set_preferences(preferences)
