@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_context_factory im
     create_binary_tab,
     create_file_tab,
     create_internal_tab,
+    create_label_tab,
     create_scratch_tab,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "create_binary_tab",
     "create_file_tab",
     "create_internal_tab",
+    "create_label_tab",
     "create_scratch_tab",
     "is_assembly_path",
     "load_more_binary_rows",

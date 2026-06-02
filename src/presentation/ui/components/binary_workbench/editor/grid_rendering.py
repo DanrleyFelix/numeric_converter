@@ -45,6 +45,7 @@ class GridRenderingMixin:
         self._variables = dict(variables)
         self._equates = dict(equates)
         self._instruction_highlighter.set_symbols(labels, variables, equates)
+        self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)
         if hasattr(self, "raw_instructions"):
             self._render_raw_instructions()
@@ -71,6 +72,7 @@ class GridRenderingMixin:
         self._resize_editors()
         self._set_editor_text(self.bytes, [self._display_bytes_text(row.bytes_text) for row in self._rows])
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
+        self._instruction_highlighter.rehighlight()
         self._render_raw_instructions()
         self._render_offsets()
         self._emit_selection_summary()

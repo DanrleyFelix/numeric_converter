@@ -14,6 +14,7 @@ from src.presentation.ui.components.binary_workbench.tabs.factory import (
     create_binary_tab,
     create_file_tab,
     create_internal_tab,
+    create_label_tab,
     create_scratch_tab,
 )
 
@@ -68,3 +69,10 @@ class TabOpeningMixin:
             return
         data = extract_internal_file_bytes(source, target, current.internal_files, current.lba_sector_size)
         self._append_tab(create_internal_tab(self._state, current, target, data))
+
+    def open_label_tab(self, label: str, offset: int) -> None:
+        current = self.current_context()
+        if current is None:
+            return
+        self._append_tab(create_label_tab(current, label))
+        self.go_to_instruction_offset(offset)

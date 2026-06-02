@@ -37,6 +37,7 @@ class EditorPageBinaryLoadingMixin:
         self._loading_visible_rows = False
         labels = merged_instruction_labels(rows, self._context.instruction_overlays)
         symbol_rows = [*rows, *rows_from_overlays(self._context.instruction_overlays)]
+        self.grid.set_symbols(labels, self._context.variables, self._context.equates)
         self._context = BinaryWorkbenchTabContextDTO(
             **{
                 **self._context.__dict__,

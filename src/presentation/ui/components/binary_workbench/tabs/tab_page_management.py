@@ -34,6 +34,7 @@ class TabPageManagementMixin:
     def _add_tab_page(self, context: BinaryWorkbenchTabContextDTO) -> None:
         page = BinaryWorkbenchEditorPage(context, self._preferences)
         page.contextChanged.connect(lambda updated, tab_id=context.tab_id: self._replace_context(tab_id, updated))
+        page.openLabelTabRequested.connect(self.open_label_tab)
         index = self.addTab(page, tab_text(context.display_name))
         self.setTabToolTip(index, context.display_name)
         self.tabBar().setTabButton(index, QTabBar.RightSide, self._close_button(page))

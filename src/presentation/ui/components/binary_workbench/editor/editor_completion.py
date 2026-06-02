@@ -15,15 +15,15 @@ class EditorCompletionMixin:
         variables: dict[str, str],
         equates: dict[str, str],
     ) -> None:
+        self.set_label_offsets(labels)
         self._completion_items = {
             "label": sorted(labels),
             "variable": sorted(f"_{name.lstrip('_')}" for name in variables),
             "equate": sorted(f"@{name.lstrip('@')}" for name in equates),
         }
         self._symbol_tooltips = {
-            **tooltip_values(labels),
-            **tooltip_values({f"_{name.lstrip('_')}": value for name, value in variables.items()}),
-            **tooltip_values({f"@{name.lstrip('@')}": value for name, value in equates.items()}),
+            **tooltip_values({f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}),
+            **tooltip_values({f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}),
         }
 
     def _refresh_completions(self) -> None:
@@ -113,7 +113,8 @@ class EditorCompletionMixin:
         self.ensureCursorVisible()
 
     def _show_symbol_tooltip(self, event) -> None:
-        text = self._symbol_tooltips.get(self._token_at_position(event.position().toPoint()))
+        token = self._strict_token_at_position(event.position().toPoint()).lower()
+        text = self._symbol_tooltips.get(token) if token.startswith(("_", "@")) else None
         if text:
             QToolTip.showText(event.globalPosition().toPoint(), text, self)
             return

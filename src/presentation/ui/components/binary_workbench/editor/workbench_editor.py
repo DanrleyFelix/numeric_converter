@@ -9,6 +9,9 @@ from src.presentation.ui.components.binary_workbench.editor.editor_completion im
 from src.presentation.ui.components.binary_workbench.editor.editor_immediate_menu import (
     EditorImmediateMenuMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.editor_label_navigation import (
+    EditorLabelNavigationMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.editor_selection_scroll import (
     EditorSelectionScrollMixin,
 )
@@ -18,17 +21,22 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
-class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorSelectionScrollMixin, QPlainTextEdit):
+class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLabelNavigationMixin, EditorSelectionScrollMixin, QPlainTextEdit):
     focused = Signal()
     selectAllRequested = Signal()
     immediateSymbolRequested = Signal(str, str)
+    labelActivated = Signal(int)
+    labelOpenTabRequested = Signal(str, int)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setMouseTracking(True)
+        self.viewport().setMouseTracking(True)
         self._shared_scrollbar: QScrollBar | None = None
         self._completion_model = QStringListModel(self)
         self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": []}
         self._symbol_tooltips: dict[str, str] = {}
+        self._label_offsets: dict[str, tuple[str, int]] = {}
         self._completion_cursor_position: int | None = None
         self._immediate_symbol_menu_enabled = False
         self._completer = QCompleter(self._completion_model, self)
@@ -64,12 +72,8 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorSel
         if event.buttons() & Qt.LeftButton:
             self._update_selection_scroll(event.position().toPoint())
             return
-        self._show_symbol_tooltip(event)
+        self._update_label_cursor(event.position().toPoint())
         self._stop_selection_scroll()
-
-    def mouseReleaseEvent(self, event) -> None:
-        self._stop_selection_scroll()
-        super().mouseReleaseEvent(event)
 
     def focusInEvent(self, event) -> None:
         self.focused.emit()
@@ -136,6 +140,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorSel
         event.accept()
 
     def leaveEvent(self, event) -> None:
+        self.viewport().setCursor(Qt.IBeamCursor)
         if not (self.textCursor().hasSelection() and self.hasFocus()):
             self._stop_selection_scroll()
         super().leaveEvent(event)

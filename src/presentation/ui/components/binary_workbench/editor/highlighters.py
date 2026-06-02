@@ -45,9 +45,9 @@ class InstructionHighlighter(QSyntaxHighlighter):
         variables: dict[str, str],
         equates: dict[str, str],
     ) -> None:
-        self._labels = dict(labels)
-        self._variables = {f"_{name.lstrip('_')}": value for name, value in variables.items()}
-        self._equates = {f"@{name.lstrip('@')}": value for name, value in equates.items()}
+        self._labels = {name.lower(): value for name, value in labels.items()}
+        self._variables = {f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}
+        self._equates = {f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}
         self.rehighlight()
 
     def highlightBlock(self, text: str) -> None:
@@ -57,16 +57,14 @@ class InstructionHighlighter(QSyntaxHighlighter):
         mnemonic = re.search(r"\S+", code)
         if invalid_instruction(code):
             self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("invalid_instruction")))
-            return
         if mnemonic:
             mnemonic_color = psx_mips_highlight_color("mnemonic", mnemonic.group())
-            if mnemonic_color is None:
-                return
-            self.setFormat(
-                code_start + mnemonic.start(),
-                mnemonic.end() - mnemonic.start(),
-                text_format(mnemonic_color),
-            )
+            if mnemonic_color is not None:
+                self.setFormat(
+                    code_start + mnemonic.start(),
+                    mnemonic.end() - mnemonic.start(),
+                    text_format(mnemonic_color),
+                )
         for match in REGISTER_TOKEN.finditer(code):
             if mnemonic and mnemonic.start() <= match.start() < mnemonic.end():
                 continue
@@ -90,19 +88,19 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
         for match in VARIABLE_TOKEN.finditer(code):
-            if match.group() in self._variables:
+            if match.group().lower() in self._variables:
                 self.setFormat(
                     code_start + match.start(),
                     match.end() - match.start(),
                     text_format(psx_mips_required_highlight_color("variable")),
                 )
         for match in EQUATE_TOKEN.finditer(code):
-            if match.group() in self._equates:
+            if match.group().lower() in self._equates:
                 self.setFormat(
                     code_start + match.start(),
                     match.end() - match.start(),
                     text_format(psx_mips_required_highlight_color("equate")),
                 )
         for name in self._labels:
-            for match in re.finditer(rf"\b{re.escape(name)}\b", original):
+            for match in re.finditer(rf"\b{re.escape(name)}\b", original, flags=re.IGNORECASE):
                 self.setFormat(match.start(), match.end() - match.start(), text_format(psx_mips_required_highlight_color("label")))

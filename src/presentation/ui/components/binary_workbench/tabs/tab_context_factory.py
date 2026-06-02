@@ -11,6 +11,7 @@ from src.modules.dtos import (
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
@@ -126,6 +127,19 @@ def create_internal_tab(
             "original_rows": deepcopy(rows),
             "rows": rows,
             "view_preferences": seed_view_preferences(state, parent.view_preferences),
+        }
+    )
+
+
+def create_label_tab(parent: BinaryWorkbenchTabContextDTO, label: str) -> BinaryWorkbenchTabContextDTO:
+    return BinaryWorkbenchTabContextDTO(
+        **{
+            **deepcopy(parent.__dict__),
+            "tab_id": uuid4().hex,
+            "display_name": BINARY_WORKBENCH_TEXT.LABEL_TAB_NAME_TEMPLATE.format(
+                label=label,
+                source=parent.display_name,
+            ),
         }
     )
 

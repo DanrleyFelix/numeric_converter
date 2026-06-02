@@ -26,9 +26,7 @@ from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbo
 from src.presentation.ui.components.binary_workbench.editor.page_search import (
     EditorPageSearchMixin,
 )
-from src.presentation.ui.components.binary_workbench.editor.selection_summary import (
-    selection_summary_footer,
-)
+from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 
@@ -44,6 +42,7 @@ class BinaryWorkbenchEditorPage(
     QWidget,
 ):
     contextChanged = Signal(object)
+    openLabelTabRequested = Signal(str, int)
 
     def __init__(
         self,
@@ -66,6 +65,8 @@ class BinaryWorkbenchEditorPage(
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
         self.grid.immediateSymbolRequested.connect(self._add_immediate_symbol)
+        self.grid.labelActivated.connect(self.go_to_instruction_offset)
+        self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
         self._reader: CachedBinaryReader | None = None
         self._loading_visible_rows = False

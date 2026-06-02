@@ -38,6 +38,8 @@ class BinaryWorkbenchGrid(
     visibleWindowRequested = Signal(int, int, int)
     selectAllRequested = Signal()
     immediateSymbolRequested = Signal(str, str)
+    labelActivated = Signal(int)
+    labelOpenTabRequested = Signal(str, int)
 
     def __init__(self, codec: CPUArchCodec) -> None:
         super().__init__()

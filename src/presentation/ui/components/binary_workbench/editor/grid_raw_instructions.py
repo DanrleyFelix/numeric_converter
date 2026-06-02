@@ -16,6 +16,7 @@ class GridRawInstructionsMixin:
     def _render_raw_instructions(self) -> None:
         lines = self._raw_instruction_lines()
         self._set_editor_text(self.raw_instructions, lines)
+        self._raw_instruction_highlighter.rehighlight()
         self._apply_raw_hazards(validate_mips_hazards(lines))
 
     def _raw_instruction_lines(self) -> list[str]:
