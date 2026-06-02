@@ -61,6 +61,7 @@ class BinaryWorkbenchGrid(
         self._last_editor_kind: str | None = None
         self._dirty_editor_kind: str | None = None
         self._edit_origin_kind: str | None = None
+        self._editor_text_signatures: dict[int, str] = {}
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._layout_refresh_scheduled = False

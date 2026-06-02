@@ -1,6 +1,50 @@
 {
-    "tabs": [],
-    "active_tab_id": null,
+    "tabs": [
+        {
+            "tab_id": "d03010bc15c2425bac0aec8cdd95fd6b",
+            "kind": "binary",
+            "display_name": "SLUS_014.11",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
+            "cpu_arch": "PSX - Mips R3000A",
+            "read_mode": "bytes",
+            "reference_offsets": [
+                "File"
+            ],
+            "reference_offset_bases": {},
+            "labels": {},
+            "equates": {},
+            "variables": {},
+            "symbol_offsets": {},
+            "search_cache": {},
+            "internal_files": [],
+            "lba_sector_size": 2352,
+            "named_regions": [],
+            "memory_regions": [],
+            "versions": [],
+            "active_version_name": null,
+            "workspace_path": null,
+            "module_paths": {},
+            "module_directories": {},
+            "module_checksums": {},
+            "last_open_offset": "0x00000000",
+            "navigation_history": [],
+            "file_size": 1902592,
+            "version_dirty": false,
+            "byte_overlays": {},
+            "instruction_overlays": {},
+            "original_rows": [],
+            "rows": [],
+            "view_preferences": {
+                "visible_columns": {
+                    "File": true,
+                    "Instruction": true,
+                    "Bytes": true
+                },
+                "decoded_text_tables": []
+            }
+        }
+    ],
+    "active_tab_id": "d03010bc15c2425bac0aec8cdd95fd6b",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",

@@ -119,6 +119,27 @@ def test_binary_workbench_open_binary_does_not_create_unsaved_overlays(tmp_path:
     assert tool.tabs.has_unsaved_changes(0) is False
 
 
+def test_binary_workbench_closes_clean_binary_without_save_prompt(tmp_path: Path, monkeypatch):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 2D 58 20 45 58 45"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    _app().processEvents()
+    monkeypatch.setattr(
+        tool,
+        "_native_close_question",
+        lambda: pytest.fail("Clean binary tab must not request saving"),
+    )
+
+    tool._request_tab_close(tool.tabs.currentIndex())
+
+    assert tool.tabs.count() == 0
+
+
 def test_binary_workbench_open_binary_loads_rows_for_visible_editor_height(tmp_path: Path):
     binary_path = tmp_path / "large.bin"
     binary_path.write_bytes(bytes(range(256)) * 80)
@@ -156,6 +177,28 @@ def test_binary_workbench_blank_instruction_line_preserves_loaded_bytes(tmp_path
 
     assert rows == [original]
     assert rows[0].bytes_text == "00 00 2D 58"
+
+
+def test_binary_workbench_space_input_does_not_mark_binary_dirty(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText().splitlines()[0]))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Space, Qt.NoModifier, " "))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Tab, Qt.NoModifier))
+    _app().processEvents()
+
+    assert tool.tabs.has_unsaved_changes(0) is False
 
 
 def test_binary_workbench_restored_redundant_overlays_are_compacted(tmp_path: Path):

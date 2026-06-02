@@ -22,10 +22,14 @@ class GridEditingMixin:
     def _on_bytes_changed(self) -> None:
         if self._updating:
             return
+        if not self._has_meaningful_editor_change(self.bytes):
+            return
         self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
 
     def _on_instructions_changed(self) -> None:
         if self._updating:
+            return
+        if not self._has_meaningful_editor_change(self.instructions):
             return
         self._sync_user_rows(self._normalized_instruction_lines(), BINARY_WORKBENCH_TEXT.INSTRUCTION)
 
@@ -73,6 +77,8 @@ class GridEditingMixin:
         self._set_editor_text(target, values)
         self._render_raw_instructions()
         self._emit_selection_summary()
+        source = self.bytes if editing_bytes else self.instructions
+        self._remember_editor_text_signature(source)
         self._dirty_editor_kind = None
 
     def _offset_base_text(self) -> dict[str, str]:

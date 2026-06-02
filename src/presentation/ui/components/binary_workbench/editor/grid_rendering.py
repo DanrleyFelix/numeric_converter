@@ -118,8 +118,18 @@ class GridRenderingMixin:
         self._updating = True
         try:
             editor.setPlainText("\n".join(lines))
+            self._remember_editor_text_signature(editor)
         finally:
             self._updating = was_updating
+
+    def _remember_editor_text_signature(self, editor: QPlainTextEdit) -> None:
+        self._editor_text_signatures[id(editor)] = self._editor_text_signature(editor)
+
+    def _has_meaningful_editor_change(self, editor: QPlainTextEdit) -> bool:
+        return self._editor_text_signature(editor) != self._editor_text_signatures.get(id(editor), "")
+
+    def _editor_text_signature(self, editor: QPlainTextEdit) -> str:
+        return "".join(editor.toPlainText().split())
 
     def _display_bytes_text(self, text: str) -> str:
         return normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)
