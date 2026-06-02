@@ -12,6 +12,8 @@ def symbol_offsets(
     values = {name: [] for name in [*variables.keys(), *equates.keys(), *labels.keys()]}
     for row in rows:
         offset = row.offsets.get("File", "0x00000000")
+        if offset == "-":
+            continue
         instruction = row.instruction.upper()
         for name in variables:
             if f"_{name.lstrip('_')}".upper() in instruction:

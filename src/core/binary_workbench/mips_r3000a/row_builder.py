@@ -2,18 +2,15 @@ from __future__ import annotations
 
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
-from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
-    expand_pseudo_instruction,
-    expand_pseudo_instructions,
-)
-from src.core.binary_workbench.mips_r3000a.preprocessor import (
-    editor_mips_instruction,
-    preprocess_instruction,
-    strip_comment,
+from src.core.binary_workbench.mips_r3000a.preprocessor import editor_mips_instruction
+from src.core.binary_workbench.mips_r3000a.source_line_rows import (
+    build_source_line_rows,
+    empty_source_row,
+    labels_from_source_rows,
+    offset_values,
 )
 
 _ROW_BYTES = 4
-_LABEL_SEPARATOR = ":"
 
 
 def build_rows_from_bytes(
@@ -29,7 +26,7 @@ def build_rows_from_bytes(
         chunk = data[relative : relative + _ROW_BYTES].ljust(_ROW_BYTES, b"\x00")
         rows.append(
             BinaryWorkbenchRowDTO(
-                offsets=_offset_values(offset, offset_names, offset_bases),
+                offsets=offset_values(offset, offset_names, offset_bases or {}),
                 instruction=editor_mips_instruction(codec.disassemble(chunk, offset), offset),
                 bytes_text=codec.bytes_text(chunk),
             )
@@ -43,38 +40,14 @@ def build_rows_from_instructions(
     offset_bases: dict[str, str] | None = None,
 ) -> list[BinaryWorkbenchRowDTO]:
     codec = PsxMipsR3000ACodec()
-    rows: list[BinaryWorkbenchRowDTO] = []
-    labels = extract_labels_from_instructions(lines)
-    instructions = [
-        instruction
-        for instruction in expand_pseudo_instructions([_display_instruction(line) for line in lines])
-        if _instruction_code(instruction)
-    ]
-    for index, instruction in enumerate(instructions):
-        offset = index * _ROW_BYTES
-        assembly = preprocess_instruction(instruction, offset, labels, {}, {})
-        encoded = codec.assemble(assembly, offset) or b"\x00\x00\x00\x00"
-        rows.append(
-            BinaryWorkbenchRowDTO(
-                offsets=_offset_values(offset, offset_names, offset_bases),
-                instruction=instruction.strip(),
-                bytes_text=codec.bytes_text(encoded),
-            )
-        )
+    rows = build_source_line_rows(lines, offset_names, offset_bases or {}, codec)
     return rows or build_scratch_rows(offset_names)
 
 
 def extract_labels_from_instructions(lines: list[str]) -> dict[str, str]:
-    labels: dict[str, str] = {}
-    offset = 0
-    for line in lines:
-        for expanded in expand_pseudo_instruction(_normalized(line)):
-            label, instruction = _split_label(expanded)
-            if label:
-                labels[label] = f"0x{offset:08X}"
-            if instruction:
-                offset += _ROW_BYTES
-    return labels
+    codec = PsxMipsR3000ACodec()
+    rows = build_source_line_rows(lines, ["File"], {}, codec)
+    return labels_from_source_rows(rows or [], word_size=codec.word_size)
 
 
 def build_scratch_rows(
@@ -86,7 +59,7 @@ def build_scratch_rows(
     zero = b"\x00\x00\x00\x00"
     return [
         BinaryWorkbenchRowDTO(
-            offsets=_offset_values(index * _ROW_BYTES, offset_names, offset_bases),
+            offsets=offset_values(index * _ROW_BYTES, offset_names, offset_bases or {}),
             instruction=editor_mips_instruction(codec.disassemble(zero, index * _ROW_BYTES), index * _ROW_BYTES),
             bytes_text=codec.bytes_text(zero),
         )
@@ -99,46 +72,18 @@ def rebuild_rows_with_offsets(
     offset_names: list[str],
     offset_bases: dict[str, str] | None = None,
 ) -> list[BinaryWorkbenchRowDTO]:
-    return [
-        BinaryWorkbenchRowDTO(
-            offsets=_offset_values(index * _ROW_BYTES, offset_names, offset_bases),
-            instruction=row.instruction,
-            bytes_text=row.bytes_text,
+    rebuilt: list[BinaryWorkbenchRowDTO] = []
+    offset = 0
+    for row in rows:
+        if not row.bytes_text:
+            rebuilt.append(empty_source_row(row.instruction, offset_names))
+            continue
+        rebuilt.append(
+            BinaryWorkbenchRowDTO(
+                offsets=offset_values(offset, offset_names, offset_bases or {}),
+                instruction=row.instruction,
+                bytes_text=row.bytes_text,
+            )
         )
-        for index, row in enumerate(rows)
-    ]
-
-
-def _offset_values(
-    offset: int,
-    offset_names: list[str],
-    offset_bases: dict[str, str] | None = None,
-) -> dict[str, str]:
-    values: dict[str, str] = {}
-    bases = offset_bases or {}
-    for name in offset_names:
-        base = 0 if name == "File" else int(bases.get(name, "0x0"), 0)
-        values[name] = f"0x{base + offset:08X}"
-    return values
-
-
-def _normalized(text: str) -> str:
-    return strip_comment(text).strip()
-
-
-def _display_instruction(text: str) -> str:
-    return _normalized(text).strip()
-
-
-def _split_label(text: str) -> tuple[str | None, str]:
-    if _LABEL_SEPARATOR not in text:
-        return None, text
-    left, right = text.split(_LABEL_SEPARATOR, 1)
-    candidate = left.strip()
-    if not candidate or " " in candidate or "\t" in candidate:
-        return None, text
-    return candidate, right.strip()
-
-
-def _instruction_code(text: str) -> str:
-    return _split_label(_normalized(text))[1]
+        offset += _ROW_BYTES
+    return rebuilt

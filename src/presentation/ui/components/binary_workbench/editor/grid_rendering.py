@@ -81,7 +81,19 @@ class GridRenderingMixin:
 
     def _render_offsets(self) -> None:
         for name, editor in self._offset_editors.items():
-            self._set_editor_text(editor, [row.offsets.get(name, "") for row in self._rows])
+            self._set_editor_text(
+                editor,
+                [self._display_offset(editor, row.offsets.get(name, "")) for row in self._rows],
+            )
+
+    def _display_offset(self, editor: QPlainTextEdit, text: str) -> str:
+        if text != "-":
+            return text
+        metrics = editor.fontMetrics()
+        available = editor.viewport().width() - (editor.document().documentMargin() * 2)
+        padding = max(0, int((available - metrics.horizontalAdvance(text)) / 2))
+        spaces = padding // max(1, metrics.horizontalAdvance(" "))
+        return f"{' ' * spaces}{text}"
 
     def _render_static_window(self) -> None:
         count = self._visible_row_count()

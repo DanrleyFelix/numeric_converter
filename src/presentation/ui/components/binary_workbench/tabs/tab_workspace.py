@@ -39,7 +39,7 @@ class TabWorkspaceMixin:
         current = self.current_context()
         if current is None:
             return False
-        if self._has_unsaved_version_edits(current) and current.active_version_name:
+        if self.has_unsaved_version_edits(current) and current.active_version_name:
             self.update_current_version(current.active_version_name)
             current = self.current_context()
             if current is None:
@@ -124,7 +124,7 @@ class TabWorkspaceMixin:
             )
         )
 
-    def _has_unsaved_version_edits(self, context: BinaryWorkbenchTabContextDTO) -> bool:
+    def has_unsaved_version_edits(self, context: BinaryWorkbenchTabContextDTO) -> bool:
         return self._controller.version_has_unsaved_edits(context)
 
     def _with_symbol_offsets(

@@ -1,16 +1,11 @@
 from PySide6.QtGui import QTextCursor
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 
 
 class GridSelectionMixin:
     def select_offsets(self, start_offset: int, end_offset: int) -> None:
-        if end_offset < self._visible_start_offset:
-            return
-        start = max(start_offset, self._visible_start_offset)
-        end = min(end_offset, self._visible_start_offset + (len(self._rows) * ROW_BYTES) - 1)
-        positions = self._byte_selection_positions(start, end)
+        positions = self._byte_selection_positions(start_offset, end_offset)
         if positions is None:
             return
         cursor = self.bytes.textCursor()
@@ -21,10 +16,10 @@ class GridSelectionMixin:
         self._emit_selection_summary()
 
     def select_instruction_offsets(self, start_offset: int, end_offset: int) -> None:
-        if end_offset < self._visible_start_offset:
+        start_row = self._row_for_offset(start_offset)
+        end_row = self._row_for_offset(end_offset)
+        if start_row is None or end_row is None:
             return
-        start_row = max(0, (start_offset - self._visible_start_offset) // ROW_BYTES)
-        end_row = max(0, (end_offset - self._visible_start_offset) // ROW_BYTES)
         document = self.instructions.document()
         start_block = document.findBlockByNumber(start_row)
         end_block = document.findBlockByNumber(end_row)

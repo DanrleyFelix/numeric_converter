@@ -142,7 +142,33 @@ def test_binary_workbench_context_discards_legacy_blank_instruction_overlay():
     assert state.tabs[0].version_dirty is False
 
 
-def test_binary_workbench_context_payload_discards_redundant_instruction_overlays(tmp_path: Path):
+def test_binary_workbench_context_discards_legacy_nop_overlay_from_empty_version(tmp_path: Path):
+    source = tmp_path / "source.bin"
+    source.write_bytes(bytes.fromhex("00 FF FF FF"))
+    state = binary_workbench_state_from_payload(
+        {
+            "tabs": [
+                {
+                    "tab_id": "binary-1",
+                    "kind": "binary",
+                    "display_name": source.name,
+                    "source_path": str(source),
+                    "active_version_name": "v1 test",
+                    "versions": [{"name": "v1 test", "rows": [], "instructions": []}],
+                    "byte_overlays": {"0x00000000": "00 00 00 00"},
+                    "instruction_overlays": {"0x00000000": "NOP"},
+                    "version_dirty": True,
+                }
+            ]
+        }
+    )
+
+    assert state.tabs[0].byte_overlays == {}
+    assert state.tabs[0].instruction_overlays == {}
+    assert state.tabs[0].version_dirty is False
+
+
+def test_binary_workbench_context_payload_preserves_explicit_nop_overlay(tmp_path: Path):
     source = tmp_path / "source.bin"
     source.write_bytes(bytes.fromhex("00 00 00 00 01 02 03 04"))
     payload = binary_workbench_state_to_payload(
@@ -164,9 +190,9 @@ def test_binary_workbench_context_payload_discards_redundant_instruction_overlay
         )
     )
 
-    assert payload["tabs"][0]["byte_overlays"] == {}
-    assert payload["tabs"][0]["instruction_overlays"] == {}
-    assert payload["tabs"][0]["version_dirty"] is False
+    assert payload["tabs"][0]["byte_overlays"] == {"0x00000004": "00 00 00 00"}
+    assert payload["tabs"][0]["instruction_overlays"] == {"0x00000004": "NOP"}
+    assert payload["tabs"][0]["version_dirty"] is True
 
 
 def test_program_context_roundtrip_tracks_recent_and_last_binary_workspace(tmp_path: Path):

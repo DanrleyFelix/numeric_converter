@@ -29,6 +29,8 @@ def update_instruction_overlays(
     previous = {file_offset(row): row.instruction for row in previous_rows}
     for row in rows:
         offset = file_offset(row)
+        if offset == "-":
+            continue
         if previous.get(offset) == row.instruction:
             continue
         if row.instruction.strip():
@@ -39,22 +41,21 @@ def update_instruction_overlays(
 
 
 def labels_from_rows(rows: list[BinaryWorkbenchRowDTO]) -> dict[str, str]:
-    return {
-        label: file_offset(row)
-        for row in rows
-        if (label := label_from_instruction(row.instruction))
-    }
+    return labels_from_lines_at_rows([row.instruction for row in rows], rows)
 
 
 def labels_from_lines_at_rows(
     lines: list[str],
     rows: list[BinaryWorkbenchRowDTO],
 ) -> dict[str, str]:
-    return {
-        label: file_offset(row)
-        for line, row in zip(lines, rows)
-        if (label := label_from_instruction(line))
-    }
+    labels: dict[str, str] = {}
+    next_offset = "-"
+    for line, row in reversed(list(zip(lines, rows))):
+        if file_offset(row) != "-":
+            next_offset = file_offset(row)
+        if (label := label_from_instruction(line)) and next_offset != "-":
+            labels[label] = next_offset
+    return labels
 
 
 def labels_from_overlays(overlays: dict[str, str]) -> dict[str, str]:
@@ -84,7 +85,7 @@ def file_offset(row: BinaryWorkbenchRowDTO) -> str:
 
 
 def label_from_instruction(instruction: str) -> str:
-    before_comment = instruction.split("#", 1)[0].strip()
+    before_comment = instruction.split(";", 1)[0].split("#", 1)[0].strip()
     if LABEL_SEPARATOR not in before_comment:
         return ""
     candidate = before_comment.split(LABEL_SEPARATOR, 1)[0].strip()

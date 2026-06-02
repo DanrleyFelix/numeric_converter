@@ -1,131 +1,13 @@
 {
-    "tabs": [
-        {
-            "tab_id": "89b12f7617954ccc96ccc560f8c78d96",
-            "kind": "binary",
-            "display_name": "SLUS_014.11",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
-            "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
-            "reference_offsets": [
-                "File"
-            ],
-            "reference_offset_bases": {},
-            "labels": {},
-            "equates": {},
-            "variables": {},
-            "symbol_offsets": {},
-            "search_cache": {},
-            "internal_files": [],
-            "lba_sector_size": 2352,
-            "named_regions": [],
-            "memory_regions": [],
-            "versions": [],
-            "active_version_name": null,
-            "workspace_path": null,
-            "module_paths": {},
-            "module_directories": {},
-            "module_checksums": {},
-            "last_open_offset": "0x00000000",
-            "navigation_history": [],
-            "file_size": 1902592,
-            "version_dirty": false,
-            "byte_overlays": {},
-            "instruction_overlays": {},
-            "original_rows": [],
-            "rows": [],
-            "view_preferences": {
-                "visible_columns": {
-                    "File": true,
-                    "Instruction": true,
-                    "Bytes": true
-                },
-                "decoded_text_tables": []
-            }
-        },
-        {
-            "tab_id": "402ba2e9a8ab40b999f0cffc3b632376",
-            "kind": "binary",
-            "display_name": "Yu-Gi-Oh! Forbidden Memories (USA).bin",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
-            "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
-            "reference_offsets": [
-                "File"
-            ],
-            "reference_offset_bases": {},
-            "labels": {},
-            "equates": {},
-            "variables": {},
-            "symbol_offsets": {},
-            "search_cache": {},
-            "internal_files": [
-                {
-                    "name": "slus",
-                    "start_lba": 24
-                }
-            ],
-            "lba_sector_size": 2352,
-            "named_regions": [],
-            "memory_regions": [],
-            "versions": [
-                {
-                    "name": "v1 test",
-                    "rows": [],
-                    "instructions": []
-                }
-            ],
-            "active_version_name": "v1 test",
-            "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest.json",
-            "module_paths": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_symbols.json",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_lba.json",
-                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_regions.json",
-                "version:v1 test": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_v1_test.json"
-            },
-            "module_directories": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
-                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables"
-            },
-            "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
-                "lba_filesystem": "5bffdc4ec690955cbba8f22750f7ded702c74f6bd98b293dca51638897e1bdb3",
-                "memory_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "versions": "7d13c989101e00d9509b09422b90638a17021da4b0ec37a0815993a8e783918c"
-            },
-            "last_open_offset": "0x00000000",
-            "navigation_history": [],
-            "file_size": 517872768,
-            "version_dirty": true,
-            "byte_overlays": {
-                "0x00000000": "00 00 00 00"
-            },
-            "instruction_overlays": {
-                "0x00000000": "NOP"
-            },
-            "original_rows": [],
-            "rows": [],
-            "view_preferences": {
-                "visible_columns": {
-                    "File": true,
-                    "Instruction": true,
-                    "Bytes": true
-                },
-                "decoded_text_tables": []
-            }
-        }
-    ],
-    "active_tab_id": "402ba2e9a8ab40b999f0cffc3b632376",
+    "tabs": [],
+    "active_tab_id": null,
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",
         "open_binary": "",
         "open_assembly": "",
         "save_file": "",
-        "save_assembly": "",
+        "save_assembly": "C:\\Users\\Danrl\\Downloads",
         "lba_filesystem": "",
         "memory_regions": "",
         "symbols": "",

@@ -20,7 +20,7 @@ ROW_BYTES = 4
 
 
 def address_from_row(row: BinaryWorkbenchRowDTO) -> int:
-    return int(row.offsets.get("File", "0x0"), 16)
+    return safe_int(row.offsets.get("File", "0x0"))
 
 
 def assembly_for_encoding(

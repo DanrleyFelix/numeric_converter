@@ -11,7 +11,6 @@ from src.core.binary_workbench.version_overlays import (
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 
 ROW_BYTES = 4
-NOP_BYTES = "00000000"
 
 
 def compact_binary_context_overlays(
@@ -36,7 +35,6 @@ def compact_binary_context_overlays(
             source,
             byte_overlays,
             instruction_overlays,
-            context.active_version_name,
         )
     version_dirty = context.version_dirty and bool(
         context.active_version_name or byte_overlays or instruction_overlays
@@ -71,7 +69,6 @@ def compact_binary_version_overlays(
         source,
         byte_overlays,
         dict(version.instruction_overlays),
-        version.name,
     )
     rows = [
         row
@@ -87,7 +84,6 @@ def _without_source_overlays(
     path: Path,
     byte_overlays: dict[str, str],
     instruction_overlays: dict[str, str],
-    active_version_name: str | None,
 ) -> tuple[dict[str, str], dict[str, str]]:
     codec = PsxMipsR3000ACodec()
     redundant_instructions: set[str] = set()
@@ -108,8 +104,6 @@ def _without_source_overlays(
         for offset, instruction in instruction_overlays.items()
         if offset not in redundant_instructions
     }
-    if redundant_instructions and active_version_name is None:
-        return _without_legacy_nop_corruption(byte_overlays, instruction_overlays)
     return byte_overlays, instruction_overlays
 
 
@@ -120,19 +114,3 @@ def _source_bytes(source, offset: str, value: str) -> str:
 
 def _normalized_bytes(value: str) -> str:
     return "".join(value.split()).upper()
-
-
-def _without_legacy_nop_corruption(
-    byte_overlays: dict[str, str],
-    instruction_overlays: dict[str, str],
-) -> tuple[dict[str, str], dict[str, str]]:
-    invalid = {
-        offset
-        for offset, instruction in instruction_overlays.items()
-        if instruction.strip().casefold() == "nop"
-        and _normalized_bytes(byte_overlays.get(offset, "")) == NOP_BYTES
-    }
-    return (
-        {offset: value for offset, value in byte_overlays.items() if offset not in invalid},
-        {offset: instruction for offset, instruction in instruction_overlays.items() if offset not in invalid},
-    )

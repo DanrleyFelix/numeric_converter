@@ -45,7 +45,7 @@ class EditorPageSearchMixin:
         return [
             int(row.offsets.get("File", "0x0"), 16)
             for row in rows
-            if needle in row.instruction.lower()
+            if row.offsets.get("File") != "-" and needle in row.instruction.lower()
         ]
 
     def _find_hex_bytes(self, query: str) -> list[int]:

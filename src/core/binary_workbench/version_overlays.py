@@ -90,7 +90,7 @@ def instruction_overlays_from_rows(
     return {
         row.offsets.get("File", DEFAULT_OFFSET): row.instruction
         for row in rows
-        if row.instruction
+        if row.instruction and row.offsets.get("File") != "-"
     }
 
 

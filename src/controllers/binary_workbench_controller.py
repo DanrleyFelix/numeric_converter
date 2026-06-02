@@ -4,9 +4,11 @@ from src.modules.binary_workbench_use_cases import (
     BinaryWorkbenchPreferencesUseCase,
     BinaryWorkbenchProgramContextUseCase,
     binary_version_has_unsaved_edits,
+    rows_have_meaningful_edits,
 )
 from src.modules.dtos import (
     BinaryWorkbenchPreferencesDTO,
+    BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
     ProgramContextDTO,
 )
@@ -60,3 +62,10 @@ class BinaryWorkbenchController:
         context: BinaryWorkbenchTabContextDTO,
     ) -> bool:
         return binary_version_has_unsaved_edits(context)
+
+    def rows_have_unsaved_edits(
+        self,
+        rows: list[BinaryWorkbenchRowDTO],
+        original_rows: list[BinaryWorkbenchRowDTO],
+    ) -> bool:
+        return rows_have_meaningful_edits(rows, original_rows)

@@ -60,8 +60,11 @@ class TabStateMixin:
         if context is None:
             return False
         if context.kind == "binary":
-            return self._has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
-        return context.rows != context.original_rows or self._has_workspace_module_changes(context)
+            return self.has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
+        return self._controller.rows_have_unsaved_edits(
+            context.rows,
+            context.original_rows,
+        ) or self._has_workspace_module_changes(context)
 
     def close_tab(self, index: int) -> None:
         if not 0 <= index < len(self._state.tabs):

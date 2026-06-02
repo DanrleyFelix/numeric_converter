@@ -2,6 +2,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
@@ -543,10 +545,51 @@ def test_binary_workbench_ignores_semicolon_comments_when_loading_assembly(tmp_p
     current = tool.tabs.current_context()
 
     assert current is not None
-    assert len(current.rows) == 11
-    assert current.rows[0].instruction.startswith("jal")
-    assert current.rows[0].bytes_text != "00 00 00 00"
+    assert len(current.rows) == 14
+    assert [row.offsets["File"] for row in current.rows[:5]] == [
+        "-",
+        "-",
+        "0x00000000",
+        "-",
+        "0x00000004",
+    ]
+    assert [row.bytes_text for row in current.rows[:5]] == [
+        "",
+        "",
+        "80 64 07 0C",
+        "",
+        "F0 FF BD 27",
+    ]
+    assert current.rows[2].instruction.startswith("jal")
+    assert current.rows[2].bytes_text != "00 00 00 00"
     assert current.rows[-1].bytes_text != "00 00 00 00"
+    page = tool.tabs.currentWidget()
+    assert page.grid.raw_instructions.toPlainText().splitlines()[:5] == [  # type: ignore[attr-defined]
+        "",
+        "",
+        "jal 0x1d9200",
+        "",
+        "addiu $sp, $sp, -0x10",
+    ]
+    assert page.grid.bytes.toPlainText().splitlines()[:5] == [  # type: ignore[attr-defined]
+        "",
+        "",
+        current.rows[2].bytes_text,
+        "",
+        current.rows[4].bytes_text,
+    ]
+    tool.tabs.set_current_reference_offsets(
+        ["File", "ram_offset"],
+        {"File": "0x00000000", "ram_offset": "0x80010000"},
+        {"File": True, "ram_offset": True},
+    )
+    page = tool.tabs.currentWidget()
+    empty_offsets = [
+        page.grid._offset_editors[name].toPlainText().splitlines()[0]  # type: ignore[attr-defined]
+        for name in ("File", "ram_offset")
+    ]
+    assert all(value.strip() == "-" for value in empty_offsets)
+    assert all(value.startswith(" ") for value in empty_offsets)
 
 
 def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path):
@@ -1503,6 +1546,36 @@ def test_binary_workbench_detects_unsaved_changes_before_closing_tab(tmp_path: P
     _app().processEvents()
 
     assert tool.tabs.has_unsaved_changes(0) is True
+
+
+def test_binary_workbench_closes_tab_without_prompt_for_whitespace_only_overlay(tmp_path: Path, monkeypatch):
+    binary_path = tmp_path / "source.bin"
+    binary_path.write_bytes(bytes.fromhex("00 FF FF FF"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs._append_tab(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="whitespace",
+            kind="binary",
+            display_name=binary_path.name,
+            source_path=str(binary_path),
+            byte_overlays={"0x00000000": "00 00 00 00"},
+            instruction_overlays={"0x00000000": "\t"},
+            version_dirty=True,
+        )
+    )
+    monkeypatch.setattr(
+        tool,
+        "_native_close_question",
+        lambda: pytest.fail("Whitespace-only overlays must not request saving"),
+    )
+
+    tool._request_tab_close(tool.tabs.currentIndex())
+
+    assert tool.tabs.count() == 0
 
 
 def test_binary_workbench_detects_workspace_module_changes_before_closing_tab(tmp_path: Path):

@@ -1,4 +1,6 @@
 from src.core.binary_workbench.mips_r3000a import (
+    build_rows_from_instructions,
+    extract_labels_from_instructions,
     expand_pseudo_instruction,
     preprocess_instruction,
     raw_mips_instruction,
@@ -30,6 +32,50 @@ def test_mips_pseudo_instructions_expand_to_core_instructions():
     assert expand_pseudo_instruction("li $v0, 1") == ["li $v0, 1"]
     assert expand_pseudo_instruction("move $a0, $s1") == ["addu $a0, $s1, $zero"]
     assert expand_pseudo_instruction("loop: b loop") == ["loop: beq $zero, $zero, loop"]
+
+
+def test_mips_source_lines_only_advance_offsets_for_valid_instructions():
+    rows = build_rows_from_instructions(
+        ["; comment", "entry:", "", "nop", "; next", "jr $ra"],
+        ["File"],
+    )
+
+    assert [row.offsets["File"] for row in rows] == [
+        "-",
+        "-",
+        "-",
+        "0x00000000",
+        "-",
+        "0x00000004",
+    ]
+    assert [row.bytes_text for row in rows] == [
+        "",
+        "",
+        "",
+        "00 00 00 00",
+        "",
+        "08 00 E0 03",
+    ]
+    assert extract_labels_from_instructions(["entry:", "; comment", "nop"]) == {
+        "entry": "0x00000000"
+    }
+
+
+def test_mips_invalid_source_line_does_not_advance_following_label():
+    rows = build_rows_from_instructions(
+        ["nop", "invalid instruction", "next:", "jr $ra"],
+        ["File"],
+    )
+
+    assert [row.offsets["File"] for row in rows] == [
+        "0x00000000",
+        "-",
+        "-",
+        "0x00000004",
+    ]
+    assert extract_labels_from_instructions(
+        ["nop", "invalid instruction", "next:", "jr $ra"]
+    ) == {"next": "0x00000004"}
 
 
 def test_mips_hazard_validator_reports_load_use_and_jump_sequence():

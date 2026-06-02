@@ -20,11 +20,18 @@ class GridSelectionRangesMixin:
         start_block = editor.document().findBlock(cursor.selectionStart()).blockNumber()
         end_position = max(cursor.selectionEnd() - 1, cursor.selectionStart())
         end_block = editor.document().findBlock(end_position).blockNumber()
-        first = self._visible_start_offset + (start_block * ROW_BYTES)
-        last = self._visible_start_offset + ((end_block + 1) * ROW_BYTES) - 1
+        selected = [
+            offset
+            for index in range(start_block, end_block + 1)
+            if (offset := self._row_offset(index)) is not None
+        ]
+        if not selected:
+            self.selectionSummaryChanged.emit(self._cursor_summary(editor, cursor))
+            return
+        first, last = min(selected), max(selected) + ROW_BYTES - 1
         self.selectionSummaryChanged.emit(
             f"Offset: 0x{self._instruction_cursor_offset(cursor):08X} | "
-            f"Selected: 0x{first:08X}..0x{last:08X} | Length: {last - first + 1} bytes"
+            f"Selected: 0x{first:08X}..0x{last:08X} | Length: {len(selected) * ROW_BYTES} bytes"
         )
 
     def _cursor_summary(self, editor, cursor: QTextCursor) -> str:
@@ -42,10 +49,10 @@ class GridSelectionRangesMixin:
             byte_index = index
             if cursor.positionInBlock() <= match.end():
                 break
-        return self._visible_start_offset + (block.blockNumber() * ROW_BYTES) + byte_index
+        return self._nearest_row_offset(block.blockNumber()) + byte_index
 
     def _instruction_cursor_offset(self, cursor: QTextCursor) -> int:
-        return self._visible_start_offset + (cursor.blockNumber() * ROW_BYTES)
+        return self._nearest_row_offset(cursor.blockNumber())
 
     def _selected_byte_offsets(self, cursor: QTextCursor) -> list[int]:
         start = cursor.selectionStart()
@@ -54,20 +61,27 @@ class GridSelectionRangesMixin:
         document = self.bytes.document()
         for block_number in range(document.blockCount()):
             block = document.findBlockByNumber(block_number)
-            if not block.isValid():
+            row_offset = self._row_offset(block_number)
+            if not block.isValid() or row_offset is None:
                 continue
             for byte_index, match in enumerate(BYTE_TOKEN.finditer(block.text())):
                 token_start = block.position() + match.start()
                 token_end = block.position() + match.end()
                 if token_end > start and token_start < end:
-                    offsets.append(self._visible_start_offset + (block_number * ROW_BYTES) + byte_index)
+                    offsets.append(row_offset + byte_index)
         return offsets
 
     def _byte_selection_positions(self, start_offset: int, end_offset: int) -> tuple[int, int] | None:
-        start_row = (start_offset - self._visible_start_offset) // ROW_BYTES
-        end_row = (end_offset - self._visible_start_offset) // ROW_BYTES
-        start_byte = (start_offset - self._visible_start_offset) % ROW_BYTES
-        end_byte = (end_offset - self._visible_start_offset) % ROW_BYTES
+        start_row = self._row_for_offset(start_offset)
+        end_row = self._row_for_offset(end_offset)
+        if start_row is None or end_row is None:
+            return None
+        start_row_offset = self._row_offset(start_row)
+        end_row_offset = self._row_offset(end_row)
+        if start_row_offset is None or end_row_offset is None:
+            return None
+        start_byte = start_offset - start_row_offset
+        end_byte = end_offset - end_row_offset
         document = self.bytes.document()
         start_block = document.findBlockByNumber(start_row)
         end_block = document.findBlockByNumber(end_row)
@@ -80,3 +94,28 @@ class GridSelectionRangesMixin:
         start = start_block.position() + start_tokens[start_byte].start()
         end = end_block.position() + end_tokens[end_byte].end()
         return start, end
+
+    def _row_offset(self, index: int) -> int | None:
+        if not 0 <= index < len(self._rows):
+            return None
+        try:
+            return int(self._rows[index].offsets.get("File", "-"), 16)
+        except ValueError:
+            return None
+
+    def _nearest_row_offset(self, index: int) -> int:
+        for candidate in [*range(index, len(self._rows)), *range(index - 1, -1, -1)]:
+            if (offset := self._row_offset(candidate)) is not None:
+                return offset
+        return self._visible_start_offset
+
+    def _row_for_offset(self, offset: int) -> int | None:
+        return next(
+            (
+                index
+                for index in range(len(self._rows))
+                if (row_offset := self._row_offset(index)) is not None
+                and row_offset <= offset < row_offset + ROW_BYTES
+            ),
+            None,
+        )

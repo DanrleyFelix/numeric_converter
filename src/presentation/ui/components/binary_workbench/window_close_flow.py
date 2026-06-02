@@ -53,7 +53,7 @@ class BinaryWorkbenchWindowCloseMixin:
         return False
 
     def _save_binary_workspace_for_close(self, current) -> bool:
-        if (current.byte_overlays or current.instruction_overlays) and not current.active_version_name:
+        if self.tabs.has_unsaved_version_edits(current) and not current.active_version_name:
             dialog = BinaryWorkbenchVersionNameDialog(
                 BINARY_WORKBENCH_TEXT.CREATE_VERSION,
                 parent=self,

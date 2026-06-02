@@ -18,7 +18,16 @@ class GridOffsetsMixin:
     def _offset_bases(self) -> dict[str, int]:
         if not self._rows:
             return {BINARY_WORKBENCH_TEXT.FILE: 0}
-        first = self._rows[0]
+        first = next(
+            (
+                row
+                for row in self._rows
+                if row.offsets.get(BINARY_WORKBENCH_TEXT.FILE, "-") != "-"
+            ),
+            None,
+        )
+        if first is None:
+            return {BINARY_WORKBENCH_TEXT.FILE: 0}
         file_offset = offset_int(first.offsets.get(BINARY_WORKBENCH_TEXT.FILE) or first.offsets.get(BINARY_WORKBENCH_TEXT.FILE_OFFSET))
         return {
             name: offset_int(value) - file_offset

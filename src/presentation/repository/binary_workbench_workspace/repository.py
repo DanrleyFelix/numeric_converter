@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import overlay_from_version_rows
+from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     labels_from_instruction_overlays,
@@ -80,6 +81,7 @@ class BinaryWorkbenchWorkspaceRepository:
         tab: BinaryWorkbenchTabContextDTO,
         path: Path,
     ) -> BinaryWorkbenchTabContextDTO:
+        tab = discard_legacy_nop_overlays(compact_binary_context_overlays(tab))
         manifest = read_json(path)
         if not manifest or manifest.get("schema_version") != SCHEMA_VERSION:
             return tab
@@ -102,7 +104,7 @@ class BinaryWorkbenchWorkspaceRepository:
         byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, variables, equates))
         byte_overlays, overlays = without_blank_instruction_overlays(byte_overlays, overlays)
         labels = labels_from_instruction_overlays(overlays) or dict(tab.labels)
-        loaded = compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
+        loaded = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
             **{
                 **tab.__dict__,
                 "variables": variables,
@@ -119,7 +121,7 @@ class BinaryWorkbenchWorkspaceRepository:
                 "module_paths": module_paths,
                 "module_directories": directories,
             }
-        ))
+        )))
         return BinaryWorkbenchTabContextDTO(
             **{
                 **loaded.__dict__,

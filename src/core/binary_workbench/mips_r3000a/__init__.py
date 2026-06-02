@@ -19,6 +19,10 @@ from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instruction,
     expand_pseudo_instructions,
 )
+from src.core.binary_workbench.mips_r3000a.source_line_rows import (
+    build_source_line_rows,
+    instruction_code,
+)
 
 
 __all__ = [
@@ -35,4 +39,6 @@ __all__ = [
     "validate_mips_hazards",
     "expand_pseudo_instruction",
     "expand_pseudo_instructions",
+    "build_source_line_rows",
+    "instruction_code",
 ]

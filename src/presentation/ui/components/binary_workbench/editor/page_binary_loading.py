@@ -68,7 +68,10 @@ class EditorPageBinaryLoadingMixin:
         overlays = dict(self._context.byte_overlays)
         instruction_overlays = self._instruction_overlays_for_rows(rows)
         for row in rows:
-            offset = int(row.offsets.get("File", "0x0"), 16)
+            try:
+                offset = int(row.offsets.get("File", "0x0"), 16)
+            except ValueError:
+                continue
             current = bytes.fromhex(row.bytes_text.replace(" ", ""))
             original = self._reader.read(offset, len(current), {})
             key = f"0x{offset:08X}"
@@ -134,6 +137,8 @@ def instruction_overlays_with_changed_rows(
     previous_bytes = {file_offset(row): row.bytes_text for row in previous_rows}
     for row in rows:
         offset = file_offset(row)
+        if offset == "-":
+            continue
         if previous_bytes.get(offset) != row.bytes_text:
             updated[offset] = row.instruction
     return updated

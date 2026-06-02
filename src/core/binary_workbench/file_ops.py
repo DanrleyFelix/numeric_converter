@@ -54,12 +54,20 @@ def overlay_from_version_rows(
 def save_versioned_binary(
     source_path: Path, output_path: Path, version_rows: list[BinaryWorkbenchRowDTO]
 ) -> None:
-    copyfile(source_path, output_path)
+    if not _same_file(source_path, output_path):
+        copyfile(source_path, output_path)
     with output_path.open("r+b") as target:
         for row in version_rows:
             offset = int(row.offsets.get("File", "0x0"), 16)
             target.seek(offset)
             target.write(bytes.fromhex(row.bytes_text.replace(" ", "")))
+
+
+def _same_file(source_path: Path, output_path: Path) -> bool:
+    try:
+        return source_path.samefile(output_path)
+    except OSError:
+        return source_path.resolve() == output_path.resolve()
 
 
 def save_binary_as_assembly(

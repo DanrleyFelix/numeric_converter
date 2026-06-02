@@ -1,15 +1,14 @@
 from src.core.binary_workbench.mips_r3000a import (
+    build_source_line_rows,
     editor_mips_instruction,
     expand_pseudo_instructions,
+    instruction_code,
     rebuild_rows_with_offsets,
 )
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
-    labels_from_lines_at_rows,
-    labels_from_rows,
-)
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import labels_from_rows
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     ROW_BYTES,
     address_from_row,
@@ -121,6 +120,9 @@ class GridEditingMixin:
     ) -> list[BinaryWorkbenchRowDTO]:
         rows: list[BinaryWorkbenchRowDTO] = []
         for row in self.export_rows():
+            if not instruction_code(row.instruction):
+                rows.append(row)
+                continue
             address = address_from_row(row)
             assembly = assembly_for_encoding(row.instruction, address, labels, variables, equates)
             data = self._codec.assemble(assembly, address)
@@ -142,23 +144,17 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
-        source_rows = [self._row_at(index) for index in range(len(lines))]
-        labels = labels_from_lines_at_rows(lines, source_rows) if labels is None else labels
-        variables = self._variables if variables is None else variables
-        equates = self._equates if equates is None else equates
-        rows: list[BinaryWorkbenchRowDTO] = []
-        for index, line in enumerate(lines):
-            row = source_rows[index]
-            if not line.strip():
-                rows.append(row)
-                continue
-            address = address_from_row(row)
-            assembly = assembly_for_encoding(line, address, labels, variables, equates)
-            data = self._codec.assemble(assembly, address)
-            if data is None:
-                return None
-            rows.append(BinaryWorkbenchRowDTO(offsets=row.offsets, instruction=line.rstrip(), bytes_text=self._codec.bytes_text(data)))
-        return rows
+        return build_source_line_rows(
+            lines,
+            self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+            self._offset_base_text(),
+            self._codec,
+            self._visible_start_offset,
+            labels,
+            self._variables if variables is None else variables,
+            self._equates if equates is None else equates,
+            True,
+        )
 
     def _normalized_bytes_lines(self) -> list[str]:
         text = self.bytes.toPlainText()

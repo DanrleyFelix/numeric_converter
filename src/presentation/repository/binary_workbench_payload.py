@@ -5,6 +5,7 @@ from typing import Any
 from src.core.binary_workbench.context_overlays import (
     compact_binary_context_overlays,
 )
+from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
@@ -207,7 +208,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         normalize_string_map(raw.get("byte_overlays")),
         normalize_string_map(raw.get("instruction_overlays")),
     )
-    return compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
+    return discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
         kind=kind,
         display_name=display_name,
@@ -243,7 +244,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         byte_overlays=byte_overlays,
         instruction_overlays=instruction_overlays,
         view_preferences=_view_preferences(raw.get("view_preferences")),
-    ))
+    )))
 
 
 def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchStateDTO:
