@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core.binary_workbench.context_overlays import (
+    compact_binary_context_overlays,
+)
+from src.core.binary_workbench.version_overlays import (
+    without_blank_instruction_overlays,
+)
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchMemoryRegionDTO,
@@ -196,7 +202,12 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     source_path = raw.get("source_path")
     is_virtual_binary = kind == "binary" and raw.get("read_mode") != "assembly"
     reference_offsets = _reference_offsets(raw)
-    return BinaryWorkbenchTabContextDTO(
+    active_version_name = str(raw.get("active_version_name")) if isinstance(raw.get("active_version_name"), str) else None
+    byte_overlays, instruction_overlays = without_blank_instruction_overlays(
+        normalize_string_map(raw.get("byte_overlays")),
+        normalize_string_map(raw.get("instruction_overlays")),
+    )
+    return compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
         kind=kind,
         display_name=display_name,
@@ -215,9 +226,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         named_regions=normalize_string_list(raw.get("named_regions")),
         memory_regions=_memory_regions(raw.get("memory_regions")),
         versions=_versions(raw.get("versions")),
-        active_version_name=str(raw.get("active_version_name"))
-        if isinstance(raw.get("active_version_name"), str)
-        else None,
+        active_version_name=active_version_name,
         workspace_path=str(raw.get("workspace_path"))
         if isinstance(raw.get("workspace_path"), str)
         else None,
@@ -229,11 +238,12 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
         rows=[] if is_virtual_binary else _rows(raw.get("rows")),
         file_size=_positive_int(raw.get("file_size"), 0),
-        version_dirty=_bool(raw.get("version_dirty"), False),
-        byte_overlays=normalize_string_map(raw.get("byte_overlays")),
-        instruction_overlays=normalize_string_map(raw.get("instruction_overlays")),
+        version_dirty=_bool(raw.get("version_dirty"), False)
+        and bool(active_version_name or byte_overlays or instruction_overlays),
+        byte_overlays=byte_overlays,
+        instruction_overlays=instruction_overlays,
         view_preferences=_view_preferences(raw.get("view_preferences")),
-    )
+    ))
 
 
 def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchStateDTO:
@@ -254,6 +264,7 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
 def binary_workbench_state_to_payload(
     state: BinaryWorkbenchStateDTO,
 ) -> dict[str, Any]:
+    tabs = [compact_binary_context_overlays(tab) for tab in state.tabs]
     return {
         "tabs": [
             {
@@ -322,7 +333,7 @@ def binary_workbench_state_to_payload(
                     "decoded_text_tables": list(tab.view_preferences.decoded_text_tables),
                 },
             }
-            for tab in state.tabs
+            for tab in tabs
         ],
         "active_tab_id": state.active_tab_id,
         "share_view_preferences": state.share_view_preferences,

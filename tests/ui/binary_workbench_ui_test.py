@@ -98,6 +98,97 @@ def test_binary_workbench_loads_full_binary_instead_of_truncating(tmp_path: Path
     assert current.file_size == 256
 
 
+def test_binary_workbench_open_binary_does_not_create_unsaved_overlays(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 2D 58 20 45 58 45"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.byte_overlays == {}
+    assert current.instruction_overlays == {}
+    assert current.version_dirty is False
+    assert tool.tabs.has_unsaved_changes(0) is False
+
+
+def test_binary_workbench_open_binary_loads_rows_for_visible_editor_height(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes(range(256)) * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.resize(1200, 720)
+    tool.open_binary_path(binary_path)
+    _app().processEvents()
+    page = tool.tabs.currentWidget()
+    current = tool.tabs.current_context()
+
+    assert page is not None
+    assert current is not None
+    assert len(current.rows) == page.grid.visible_size() // 4  # type: ignore[attr-defined]
+    assert len(current.rows) > 2
+
+
+def test_binary_workbench_blank_instruction_line_preserves_loaded_bytes(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 2D 58"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    surface = page.grid  # type: ignore[attr-defined]
+    original = surface._rows[0]
+
+    rows = surface._instruction_rows_from_lines(["   "])
+
+    assert rows == [original]
+    assert rows[0].bytes_text == "00 00 2D 58"
+
+
+def test_binary_workbench_restored_redundant_overlays_are_compacted(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 2D 58 20 45 58 45"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs._append_tab(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="legacy",
+            kind="binary",
+            display_name=binary_path.name,
+            source_path=str(binary_path),
+            read_mode="bytes",
+            byte_overlays={"0x00000000": "00 00 00 00"},
+            instruction_overlays={
+                "0x00000000": "",
+                "0x00000004": "WORD 0x45584520",
+            },
+            version_dirty=True,
+        )
+    )
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.rows[0].bytes_text == "00 00 2D 58"
+    assert current.byte_overlays == {}
+    assert current.instruction_overlays == {}
+    assert current.version_dirty is False
+    assert tool.tabs.has_unsaved_changes(0) is False
+
+
 def test_binary_workbench_seeks_visible_binary_rows_when_body_scrolls(tmp_path: Path):
     binary_path = tmp_path / "large.bin"
     binary_path.write_bytes(bytes(range(256)) * 80)

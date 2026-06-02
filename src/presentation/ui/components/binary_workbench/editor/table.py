@@ -63,6 +63,7 @@ class BinaryWorkbenchGrid(
         self._edit_origin_kind: str | None = None
         self._visible_start_offset = 0
         self._last_visible_offset = 0
+        self._layout_refresh_scheduled = False
         self._build_ui()
 
     def set_codec(self, codec: CPUArchCodec) -> None:

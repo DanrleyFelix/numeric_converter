@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QScrollBar, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QScrollBar, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.highlighters import BytesHighlighter, InstructionHighlighter
@@ -12,13 +12,12 @@ class GridLayoutMixin:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
-        self.canvas = QWidget(self)
+        self.canvas = QFrame(self)
         self.canvas.setObjectName("binary-workbench-editor-canvas")
         self.canvas_layout = QHBoxLayout(self.canvas)
         self.canvas_layout.setContentsMargins(0, 0, 0, 0)
         self.canvas_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
-        self.canvas_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.offsets_host = QWidget(self.canvas)
+        self.offsets_host = QFrame(self.canvas)
         self.offsets_layout = QHBoxLayout(self.offsets_host)
         self.offsets_layout.setContentsMargins(0, 0, 0, 0)
         self.offsets_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
@@ -51,18 +50,18 @@ class GridLayoutMixin:
         self.bytes.cursorPositionChanged.connect(self._emit_selection_summary)
         self.instructions.cursorPositionChanged.connect(self._emit_selection_summary)
 
-    def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QWidget, WorkbenchEditor]:
-        shell = QWidget(self)
+    def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
+        shell = QFrame(self)
         shell.setObjectName("binary-workbench-column-shell")
+        shell.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         layout = QVBoxLayout(shell)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.PANEL_LABEL_SPACING)
-        layout.setAlignment(Qt.AlignTop)
         label = QLabel(label_text, shell)
         label.setObjectName("binary-workbench-column-label")
         editor = self._editor(object_name, read_only, width)
         layout.addWidget(label, 0)
-        layout.addWidget(editor, 0)
+        layout.addWidget(editor, 1)
         return shell, editor
 
     def _editor(self, object_name: str, read_only: bool, width: int | None = None) -> WorkbenchEditor:
@@ -81,9 +80,12 @@ class GridLayoutMixin:
         return editor
 
     def _configure_scrollbar(self) -> None:
+        was_updating = self._updating
         self._updating = True
-        self.scrollbar.setRange(0, max(0, self._total_size - self.visible_size()))
-        self.scrollbar.setSingleStep(ROW_BYTES)
-        self.scrollbar.setPageStep(max(ROW_BYTES, self.visible_size()))
-        self.scrollbar.setValue(max(0, self._visible_start_offset))
-        self._updating = False
+        try:
+            self.scrollbar.setRange(0, max(0, self._total_size - self.visible_size()))
+            self.scrollbar.setSingleStep(ROW_BYTES)
+            self.scrollbar.setPageStep(max(ROW_BYTES, self.visible_size()))
+            self.scrollbar.setValue(max(0, self._visible_start_offset))
+        finally:
+            self._updating = was_updating

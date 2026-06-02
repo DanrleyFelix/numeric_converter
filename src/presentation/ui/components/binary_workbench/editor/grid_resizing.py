@@ -1,14 +1,39 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QTimer
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 
 
 class GridResizingMixin:
     def _resize_editors(self) -> None:
-        editors = [*self._offset_editors.values(), self.bytes, self.instructions]
-        height = self._editor_viewport_height()
+        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions]
         for editor in editors:
-            editor.setFixedHeight(height)
+            editor.setMinimumHeight(BINARY_WORKBENCH_LAYOUT.EDITOR_MIN_HEIGHT)
+
+    def _schedule_layout_refresh(self) -> None:
+        if self._layout_refresh_scheduled:
+            return
+        self._layout_refresh_scheduled = True
+        QTimer.singleShot(0, self._run_scheduled_layout_refresh)
+
+    def _run_scheduled_layout_refresh(self) -> None:
+        self._layout_refresh_scheduled = False
+        self._refresh_layout()
+
+    def _refresh_layout(self) -> None:
+        if self._updating:
+            self._schedule_layout_refresh()
+            return
+        self._resize_editors()
+        self.canvas_layout.activate()
+        self._configure_scrollbar()
+        if self._virtual:
+            self.visibleWindowRequested.emit(
+                self._aligned_scroll_offset(self.scrollbar.value()),
+                self.visible_size(),
+                1,
+            )
+        else:
+            self._render_static_window()
 
     def _visible_row_count(self) -> int:
         line_height = max(1, self.instructions.fontMetrics().lineSpacing())
@@ -23,24 +48,18 @@ class GridResizingMixin:
         )
 
     def _usable_editor_height(self, editor) -> int:
-        viewport_height = editor.viewport().height()
-        if viewport_height <= 0:
-            frame = editor.frameWidth() * 2
-            viewport_height = max(0, self._editor_viewport_height() - frame)
+        frame = editor.frameWidth() * 2
+        expected_height = max(0, self._editor_viewport_height() - frame)
+        viewport_height = max(editor.viewport().height(), expected_height)
         return max(1, viewport_height - (BINARY_WORKBENCH_LAYOUT.EDITOR_DOCUMENT_MARGIN * 2))
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._schedule_layout_refresh()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self._resize_editors()
-        self._configure_scrollbar()
-        if self._virtual:
-            self.visibleWindowRequested.emit(
-                self._aligned_scroll_offset(self.scrollbar.value()),
-                self.visible_size(),
-                1,
-            )
-        else:
-            self._render_static_window()
+        self._refresh_layout()
 
     def _sync_offset_columns(self, names: list[str]) -> None:
         if names == self._columns:
@@ -61,4 +80,4 @@ class GridResizingMixin:
                 BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH,
             )
             self._offset_editors[name] = editor
-            self.offsets_layout.addWidget(shell, 0, Qt.AlignTop)
+            self.offsets_layout.addWidget(shell, 0)

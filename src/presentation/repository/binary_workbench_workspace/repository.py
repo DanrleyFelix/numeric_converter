@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import overlay_from_version_rows
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     labels_from_instruction_overlays,
+    without_blank_instruction_overlays,
 )
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.modules.utils import read_json, write_json
@@ -91,12 +93,16 @@ class BinaryWorkbenchWorkspaceRepository:
         active = modules.get(ACTIVE_VERSION) if isinstance(modules.get(ACTIVE_VERSION), str) else None
         active_version = next((item for item in versions if item.name == active), None)
         active = active if active_version is not None else None
-        overlays = dict(active_version.instruction_overlays) if active_version else dict(tab.instruction_overlays)
+        tab_byte_overlays, tab_instruction_overlays = without_blank_instruction_overlays(
+            dict(tab.byte_overlays),
+            dict(tab.instruction_overlays),
+        )
+        overlays = dict(active_version.instruction_overlays) if active_version else tab_instruction_overlays
         byte_overlays = overlay_from_version_rows(active_version.rows) if active_version else {}
         byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, variables, equates))
+        byte_overlays, overlays = without_blank_instruction_overlays(byte_overlays, overlays)
         labels = labels_from_instruction_overlays(overlays) or dict(tab.labels)
-        checksums = checksums_for(variables, equates, sector_size, files, regions, versions)
-        return BinaryWorkbenchTabContextDTO(
+        loaded = compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
             **{
                 **tab.__dict__,
                 "variables": variables,
@@ -107,12 +113,24 @@ class BinaryWorkbenchWorkspaceRepository:
                 "versions": versions,
                 "active_version_name": active,
                 "instruction_overlays": overlays,
-                "byte_overlays": byte_overlays or dict(tab.byte_overlays),
+                "byte_overlays": byte_overlays or tab_byte_overlays,
                 "labels": labels,
                 "workspace_path": str(path),
                 "module_paths": module_paths,
                 "module_directories": directories,
-                "module_checksums": checksums,
+            }
+        ))
+        return BinaryWorkbenchTabContextDTO(
+            **{
+                **loaded.__dict__,
+                "module_checksums": checksums_for(
+                    variables,
+                    equates,
+                    sector_size,
+                    files,
+                    regions,
+                    loaded.versions,
+                ),
             }
         )
 
@@ -121,6 +139,7 @@ class BinaryWorkbenchWorkspaceRepository:
         tab: BinaryWorkbenchTabContextDTO,
         path: Path | None = None,
     ) -> BinaryWorkbenchTabContextDTO:
+        tab = compact_binary_context_overlays(tab)
         target = self._normalize_manifest_path(path or Path(tab.workspace_path or self._default_manifest(tab)))
         target.parent.mkdir(parents=True, exist_ok=True)
         directories = {**self.default_module_directories(), **tab.module_directories}

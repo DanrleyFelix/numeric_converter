@@ -34,11 +34,13 @@ class GridRenderingMixin:
         self._last_visible_offset = start_offset
         self._configure_scrollbar()
         self.render_rows(rows, start_offset) if virtual else self._render_static_window()
+        self._schedule_layout_refresh()
 
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
         self._rows = list(rows)
         self._visible_start_offset = start_offset
         self._render()
+        self._dirty_editor_kind = None
 
     def set_symbols(self, labels: dict[str, str], variables: dict[str, str], equates: dict[str, str]) -> None:
         self._labels = dict(labels)
@@ -100,9 +102,12 @@ class GridRenderingMixin:
         self.visibleWindowRequested.emit(offset, self.visible_size(), direction)
 
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
+        was_updating = self._updating
         self._updating = True
-        editor.setPlainText("\n".join(lines))
-        self._updating = False
+        try:
+            editor.setPlainText("\n".join(lines))
+        finally:
+            self._updating = was_updating
 
     def _display_bytes_text(self, text: str) -> str:
         return normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)

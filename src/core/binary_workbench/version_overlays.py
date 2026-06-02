@@ -14,6 +14,21 @@ ROW_BYTES = 4
 DEFAULT_OFFSET = "0x00000000"
 
 
+def without_blank_instruction_overlays(
+    byte_overlays: dict[str, str],
+    instruction_overlays: dict[str, str],
+) -> tuple[dict[str, str], dict[str, str]]:
+    blank_offsets = {
+        offset
+        for offset, instruction in instruction_overlays.items()
+        if not instruction.strip()
+    }
+    return (
+        {offset: value for offset, value in byte_overlays.items() if offset not in blank_offsets},
+        {offset: instruction for offset, instruction in instruction_overlays.items() if offset not in blank_offsets},
+    )
+
+
 def labels_from_instruction_overlays(overlays: dict[str, str]) -> dict[str, str]:
     labels: dict[str, str] = {}
     for offset, instruction in overlays.items():
@@ -31,6 +46,8 @@ def byte_overlays_from_instruction_overlays(
     labels = labels_from_instruction_overlays(overlays)
     byte_overlays: dict[str, str] = {}
     for offset_text, instruction in sorted(overlays.items()):
+        if not instruction.strip():
+            continue
         offset = int(offset_text, 16)
         for index, expanded in enumerate(expand_pseudo_instruction(instruction)):
             target_offset = offset + (index * ROW_BYTES)

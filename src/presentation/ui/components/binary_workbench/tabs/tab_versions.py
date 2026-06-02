@@ -1,3 +1,4 @@
+from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import (
     apply_version_rows,
     build_version_rows_from_overlay,
@@ -5,6 +6,7 @@ from src.core.binary_workbench.file_ops import (
 )
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
+    without_blank_instruction_overlays,
 )
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
@@ -15,6 +17,7 @@ class TabVersionsMixin:
         current = self.current_context()
         if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
             return False
+        current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != name]
         self._set_current_context(
@@ -26,6 +29,7 @@ class TabVersionsMixin:
         current = self.current_context()
         if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not current.active_version_name:
             return False
+        current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != current.active_version_name]
         self._set_current_context(
@@ -37,6 +41,7 @@ class TabVersionsMixin:
         current = self.current_context()
         if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
             return False
+        current = compact_binary_context_overlays(current)
         version = next((item for item in current.versions if item.name == name), None)
         if version is None:
             return False
@@ -50,9 +55,13 @@ class TabVersionsMixin:
                     current.equates,
                 )
             )
+        byte_overlays, instruction_overlays = without_blank_instruction_overlays(
+            byte_overlays,
+            instruction_overlays,
+        )
         rows = apply_version_rows(current.original_rows, version.rows) if version.rows else current.rows
         self._set_current_context(
-            BinaryWorkbenchTabContextDTO(
+            compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
                 **{
                     **current.__dict__,
                     "rows": rows,
@@ -61,7 +70,7 @@ class TabVersionsMixin:
                     "active_version_name": name,
                     "version_dirty": False,
                 }
-            )
+            ))
         )
         return True
 
@@ -70,6 +79,7 @@ class TabVersionsMixin:
         name: str,
         current: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchVersionDTO:
+        current = compact_binary_context_overlays(current)
         return BinaryWorkbenchVersionDTO(
             name=name,
             rows=build_version_rows_from_overlay(

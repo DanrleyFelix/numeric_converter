@@ -23,10 +23,18 @@ def apply_instruction_overlays(
 def update_instruction_overlays(
     overlays: dict[str, str],
     rows: list[BinaryWorkbenchRowDTO],
+    previous_rows: list[BinaryWorkbenchRowDTO],
 ) -> dict[str, str]:
     updated = dict(overlays)
+    previous = {file_offset(row): row.instruction for row in previous_rows}
     for row in rows:
-        updated[file_offset(row)] = row.instruction
+        offset = file_offset(row)
+        if previous.get(offset) == row.instruction:
+            continue
+        if row.instruction.strip():
+            updated[offset] = row.instruction
+        else:
+            updated.pop(offset, None)
     return updated
 
 

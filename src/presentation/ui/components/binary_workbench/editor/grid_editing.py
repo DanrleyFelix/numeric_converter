@@ -149,6 +149,9 @@ class GridEditingMixin:
         rows: list[BinaryWorkbenchRowDTO] = []
         for index, line in enumerate(lines):
             row = source_rows[index]
+            if not line.strip():
+                rows.append(row)
+                continue
             address = address_from_row(row)
             assembly = assembly_for_encoding(line, address, labels, variables, equates)
             data = self._codec.assemble(assembly, address)

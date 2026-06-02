@@ -19,6 +19,10 @@ from src.modules.dtos import (
 from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
 )
+from src.presentation.repository.binary_workbench_payload import (
+    binary_workbench_state_from_payload,
+    binary_workbench_state_to_payload,
+)
 from src.presentation.repository.workspace_state import (
     ApplicationContextRepository,
     BinaryWorkbenchContextRepository,
@@ -115,6 +119,54 @@ def test_binary_workbench_context_roundtrip_excludes_program_and_preferences(tmp
         active_tab_id="binary-1",
         window_size=WindowSizeDTO(width=1200, height=720),
     )
+
+
+def test_binary_workbench_context_discards_legacy_blank_instruction_overlay():
+    state = binary_workbench_state_from_payload(
+        {
+            "tabs": [
+                {
+                    "tab_id": "binary-1",
+                    "kind": "binary",
+                    "display_name": "sample.bin",
+                    "byte_overlays": {"0x00000000": "00 00 00 00"},
+                    "instruction_overlays": {"0x00000000": ""},
+                    "version_dirty": True,
+                }
+            ]
+        }
+    )
+
+    assert state.tabs[0].byte_overlays == {}
+    assert state.tabs[0].instruction_overlays == {}
+    assert state.tabs[0].version_dirty is False
+
+
+def test_binary_workbench_context_payload_discards_redundant_instruction_overlays(tmp_path: Path):
+    source = tmp_path / "source.bin"
+    source.write_bytes(bytes.fromhex("00 00 00 00 01 02 03 04"))
+    payload = binary_workbench_state_to_payload(
+        BinaryWorkbenchStateDTO(
+            tabs=[
+                BinaryWorkbenchTabContextDTO(
+                    tab_id="binary-1",
+                    kind="binary",
+                    display_name=source.name,
+                    source_path=str(source),
+                    byte_overlays={"0x00000004": "00 00 00 00"},
+                    instruction_overlays={
+                        "0x00000000": "NOP",
+                        "0x00000004": "NOP",
+                    },
+                    version_dirty=True,
+                )
+            ]
+        )
+    )
+
+    assert payload["tabs"][0]["byte_overlays"] == {}
+    assert payload["tabs"][0]["instruction_overlays"] == {}
+    assert payload["tabs"][0]["version_dirty"] is False
 
 
 def test_program_context_roundtrip_tracks_recent_and_last_binary_workspace(tmp_path: Path):

@@ -38,6 +38,7 @@ class TabPageManagementMixin:
         index = self.addTab(page, tab_text(context.display_name))
         self.setTabToolTip(index, context.display_name)
         self.tabBar().setTabButton(index, QTabBar.RightSide, self._close_button(page))
+        self._replace_context(context.tab_id, page.current_context())
 
     def _close_button(self, page: BinaryWorkbenchEditorPage) -> QPushButton:
         button = QPushButton("X", self.tabBar())
