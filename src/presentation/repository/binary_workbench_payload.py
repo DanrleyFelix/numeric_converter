@@ -7,6 +7,7 @@ from src.core.binary_workbench.context_overlays import (
 )
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_overlays import (
+    instructions_by_line_from_rows,
     without_blank_instruction_overlays,
 )
 from src.modules.dtos import (
@@ -92,6 +93,16 @@ def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, str]:
     }
 
 
+def _version_instructions_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, str]:
+    values = version.instructions_by_line or instructions_by_line_from_rows(
+        version.rows,
+    )
+    return {
+        str(line): instruction
+        for line, instruction in sorted(values.items())
+    }
+
+
 def _internal_files(raw: object) -> list[BinaryWorkbenchInternalFileDTO]:
     if not isinstance(raw, list):
         return []
@@ -148,14 +159,33 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
                 name=name,
                 rows=_rows(item.get("rows")),
                 instruction_overlays=_instruction_overlays(item.get("instructions")),
+                instructions_by_line=_instructions_by_line(item.get("instructions")),
             )
         )
     return versions
 
 
+def _instructions_by_line(raw: object) -> dict[int, str]:
+    if not isinstance(raw, dict):
+        return {}
+    values: dict[int, str] = {}
+    for key, value in raw.items():
+        try:
+            line = int(key)
+        except (TypeError, ValueError):
+            continue
+        if line >= 0:
+            values[line] = str(value)
+    return values
+
+
 def _instruction_overlays(raw: object) -> dict[str, str]:
     if isinstance(raw, dict):
-        return {_offset_hex(key): str(value) for key, value in raw.items()}
+        return {
+            _offset_hex(key): str(value)
+            for key, value in raw.items()
+            if _is_offset_key(key)
+        }
     if not isinstance(raw, list):
         return {}
     overlays: dict[str, str] = {}
@@ -168,6 +198,10 @@ def _instruction_overlays(raw: object) -> dict[str, str]:
             continue
         overlays[f"0x{offset:08X}"] = instruction
     return overlays
+
+
+def _is_offset_key(raw: object) -> bool:
+    return not isinstance(raw, int) and str(raw).lower().startswith("0x")
 
 
 def _lba_sector_size(raw: object) -> int:
@@ -304,15 +338,9 @@ def binary_workbench_state_to_payload(
                     {
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
-                        "instructions": [
-                            {
-                                "offset": int(offset, 16),
-                                "instruction": instruction,
-                            }
-                            for offset, instruction in sorted(
-                                version.instruction_overlays.items()
-                            )
-                        ],
+                        "instructions": {
+                            **_version_instructions_payload(version),
+                        },
                     }
                     for version in tab.versions
                 ],

@@ -222,6 +222,44 @@ QListWidget#binary-workbench-search-results::item:selected {
     color: $text-main;
 }
 
+QScrollArea#binary-workbench-version-scroll {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    padding: $space-6;
+}
+
+QWidget#binary-workbench-version-list {
+    background-color: $bg-workspace-row;
+}
+
+QPushButton#binary-workbench-version-item,
+QPushButton#binary-workbench-version-active {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-8;
+    color: $text-main;
+    min-height: $size-dialog-button-min-height;
+    padding: $space-6 $space-10;
+    text-align: left;
+    outline: none;
+}
+
+QPushButton#binary-workbench-version-active {
+    border: 1px solid $border-soft-success;
+}
+
+QPushButton#binary-workbench-version-item:hover,
+QPushButton#binary-workbench-version-active:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+}
+
+QPushButton#binary-workbench-version-item:focus,
+QPushButton#binary-workbench-version-active:focus {
+    outline: none;
+}
+
 QStatusBar#binary-workbench-statusbar {
     background-color: $bg-panel;
     color: $text-workspace-header;

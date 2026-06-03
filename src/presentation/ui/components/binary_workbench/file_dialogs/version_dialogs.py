@@ -64,3 +64,39 @@ class BinaryWorkbenchVersionPickerDialog(QDialog):
     def selected_name(self) -> str | None:
         current = self.items.currentItem()
         return current.text() if current is not None else None
+
+
+class BinaryWorkbenchVersionActionsDialog(QDialog):
+    LOAD = "load"
+    CHANGE = "change"
+    UPDATE = "update"
+    CREATE = "create"
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._action: str | None = None
+        self.setObjectName("preferences-dialog")
+        self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_TITLE)
+        layout = QVBoxLayout(self)
+        title = QLabel(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_TITLE, self)
+        title.setObjectName("preferences-title")
+        layout.addWidget(title)
+        for text, action in (
+            (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_TITLE, self.LOAD),
+            (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_CHANGE_TITLE, self.CHANGE),
+            (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_UPDATE_TITLE, self.UPDATE),
+            (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_CREATE_TITLE, self.CREATE),
+        ):
+            button = QPushButton(text, self)
+            button.setObjectName("preferences-ok")
+            button.setFocusPolicy(Qt.NoFocus)
+            button.setCursor(Qt.PointingHandCursor)
+            button.clicked.connect(lambda _, value=action: self._choose(value))
+            layout.addWidget(button)
+
+    def selected_action(self) -> str | None:
+        return self._action
+
+    def _choose(self, action: str) -> None:
+        self._action = action
+        self.accept()

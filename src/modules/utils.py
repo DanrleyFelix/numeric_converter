@@ -1,6 +1,8 @@
 import json
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 
 class COLOR:
@@ -19,10 +21,17 @@ def read_json(path: Path) -> dict[str, Any] | None:
 
 def write_json(path: Path, payload: dict[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=4, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(payload, indent=4, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        temporary.replace(path)
+    finally:
+        with suppress(OSError):
+            if temporary.exists():
+                temporary.unlink()
     return path
 
 

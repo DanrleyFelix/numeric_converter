@@ -16,6 +16,7 @@ from src.modules.dtos import (
     BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -39,6 +40,8 @@ from src.presentation.ui.components.binary_workbench.editor.workbench_editor imp
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchLbaFilesystemDialog,
     BinaryWorkbenchMemoryRegionsDialog,
+    BinaryWorkbenchVersionActionsDialog,
+    BinaryWorkbenchVersionChangeDialog,
 )
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
@@ -199,6 +202,173 @@ def test_binary_workbench_space_input_does_not_mark_binary_dirty(tmp_path: Path)
     _app().processEvents()
 
     assert tool.tabs.has_unsaved_changes(0) is False
+
+
+def test_binary_workbench_blank_instruction_line_updates_offsets_immediately(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+
+    editor.setPlainText("NOP\n")
+    _app().processEvents()
+
+    offset_lines = page.grid._offset_editors["File"].toPlainText().splitlines()  # type: ignore[attr-defined]
+    assert offset_lines[1].strip() == "-"
+
+    editor.setPlainText("NOP")
+    _app().processEvents()
+
+    offset_lines = page.grid._offset_editors["File"].toPlainText().splitlines()  # type: ignore[attr-defined]
+    assert len(offset_lines) == 1
+    assert offset_lines[0].strip() != "-"
+
+    editor.setPlainText("NOP\n; comment")
+    _app().processEvents()
+
+    offset_lines = page.grid._offset_editors["File"].toPlainText().splitlines()  # type: ignore[attr-defined]
+    assert offset_lines[1].strip() == "-"
+
+    editor.setPlainText("NOP")
+    _app().processEvents()
+
+    offset_lines = page.grid._offset_editors["File"].toPlainText().splitlines()  # type: ignore[attr-defined]
+    assert len(offset_lines) == 1
+    assert offset_lines[0].strip() != "-"
+
+
+def test_binary_workbench_version_dialog_exposes_change_version():
+    _app()
+    actions = BinaryWorkbenchVersionActionsDialog()
+    buttons = actions.findChildren(QPushButton)
+
+    assert "Load Versions File" in [button.text() for button in buttons]
+    assert "Change Version" in [button.text() for button in buttons]
+
+    picker = BinaryWorkbenchVersionChangeDialog(
+        [
+            BinaryWorkbenchVersionDTO("v2 test"),
+            BinaryWorkbenchVersionDTO("v1_test_2"),
+        ],
+        "v1_test_2",
+    )
+    version_buttons = picker.findChildren(QPushButton)
+
+    assert [button.text() for button in version_buttons] == ["v2 test", "v1_test_2"]
+    assert version_buttons[1].objectName() == "binary-workbench-version-active"
+    assert all(button.focusPolicy() == Qt.NoFocus for button in version_buttons)
+    assert all(button.cursor().shape() == Qt.PointingHandCursor for button in version_buttons)
+
+
+def test_binary_workbench_load_versions_file_replaces_available_versions(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00"))
+    versions_path = tmp_path / "replacement_versions.json"
+    versions_path.write_text(
+        (
+            '{"active_version":"new_b","versions":{'
+            '"new_a":{"0":"word 0x00100000"},'
+            '"new_b":{"0":"word 0x00200000"}'
+            "}}"
+        ),
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    current = tool.tabs.current_context()
+    assert current is not None
+    tool.tabs._set_current_context(
+        BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": [
+                    BinaryWorkbenchVersionDTO("old_a"),
+                    BinaryWorkbenchVersionDTO("old_b"),
+                ],
+                "active_version_name": "old_a",
+                "module_paths": {
+                    "version:old_a": "old_versions.json",
+                    "versions": "old_versions.json",
+                },
+            }
+        )
+    )
+
+    assert tool.tabs.load_versions_file(versions_path) == "new_b"
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert [version.name for version in current.versions] == ["new_b", "new_a"]
+    assert current.active_version_name == "new_b"
+    assert current.module_paths["versions"] == str(versions_path)
+    assert "version:old_a" not in current.module_paths
+    assert "version:new_b" in current.module_paths
+
+
+def test_binary_workbench_bytes_remains_editable_after_line_version_load(tmp_path: Path):
+    binary_path = tmp_path / "clean.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00 00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    current = tool.tabs.current_context()
+    assert current is not None
+    tool.tabs._set_current_context(
+        BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": [
+                    BinaryWorkbenchVersionDTO(
+                        "v1",
+                        instructions_by_line={
+                            0: "NOP",
+                            1: "; comment",
+                            2: "NOP",
+                        },
+                    )
+                ],
+            }
+        )
+    )
+
+    assert tool.tabs.load_version("v1") is True
+    page = tool.tabs.currentWidget()
+    page.grid.bytes.setPlainText("AABBCCDD\n1122\n00 00 00 00")  # type: ignore[attr-defined]
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert page.grid.bytes.toPlainText().splitlines()[0] == "AA BB CC DD"  # type: ignore[attr-defined]
+    assert page.grid.bytes.toPlainText().splitlines()[1] == "11 22 "  # type: ignore[attr-defined]
+    assert current.rows[1].offsets["File"] == "-"
+    assert current.rows[1].instruction == ""
+    assert page.grid.raw_instructions.toPlainText().splitlines()[1] == ""  # type: ignore[attr-defined]
+
+    page.grid.bytes.setPlainText("AA BB CC DD\n1122334455\n00 00 00 00")  # type: ignore[attr-defined]
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert page.grid.bytes.toPlainText().splitlines()[0] == "AA BB CC DD"  # type: ignore[attr-defined]
+    assert page.grid.bytes.toPlainText().splitlines()[1] == "11 22 33 44"  # type: ignore[attr-defined]
+    assert current.rows[1].offsets["File"] == "0x00000004"
+    assert current.rows[1].instruction != "; comment"
+    assert current.byte_overlays["0x00000000"] == "AA BB CC DD"
+    assert page.grid._offset_editors["File"].toPlainText().splitlines()[1].strip() == "0x00000004"  # type: ignore[attr-defined]
+    assert page.grid.raw_instructions.toPlainText().splitlines()[1] != ""  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_restored_redundant_overlays_are_compacted(tmp_path: Path):
@@ -736,9 +906,9 @@ def test_binary_workbench_workspace_restores_instruction_version_by_exact_source
     assert tool.tabs.create_version("v1") is True
     assert tool.tabs.save_current_workspace() is True
 
-    version_path = tmp_path / "data" / "binary_workbench" / "workspaces" / "Versions" / "source_bin_workspace_manifest_v1.json"
+    version_path = tmp_path / "data" / "binary_workbench" / "workspaces" / "Versions" / "source_bin_workspace_manifest_versions.json"
     payload = version_path.read_text(encoding="utf-8")
-    assert '"0x00000000"' in payload
+    assert '"0"' in payload
     assert "Label_1:" in payload
 
     restored = _window(tmp_path)

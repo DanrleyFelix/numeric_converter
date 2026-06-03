@@ -9,9 +9,11 @@ from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instruction,
 )
 from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.core.binary_workbench.mips_r3000a.source_line_rows import build_source_line_rows
 
 ROW_BYTES = 4
 DEFAULT_OFFSET = "0x00000000"
+FILE_OFFSET = "File"
 
 
 def without_blank_instruction_overlays(
@@ -27,6 +29,45 @@ def without_blank_instruction_overlays(
         {offset: value for offset, value in byte_overlays.items() if offset not in blank_offsets},
         {offset: instruction for offset, instruction in instruction_overlays.items() if offset not in blank_offsets},
     )
+
+
+def instructions_by_line_from_rows(
+    rows: list[BinaryWorkbenchRowDTO],
+    original_rows: list[BinaryWorkbenchRowDTO] | None = None,
+) -> dict[int, str]:
+    original_rows = original_rows or []
+    values: dict[int, str] = {}
+    for index, row in enumerate(rows):
+        instruction = row.instruction.rstrip()
+        previous = original_rows[index].instruction.rstrip() if index < len(original_rows) else ""
+        if instruction and instruction != previous:
+            values[index] = instruction
+    return values
+
+
+def rows_from_instructions_by_line(
+    instructions: dict[int, str],
+    base_rows: list[BinaryWorkbenchRowDTO],
+    offset_names: list[str],
+    offset_bases: dict[str, str],
+) -> list[BinaryWorkbenchRowDTO]:
+    if not instructions:
+        return list(base_rows)
+    line_count = max([len(base_rows), *[line + 1 for line in instructions]])
+    lines = [
+        base_rows[index].instruction if index < len(base_rows) else ""
+        for index in range(line_count)
+    ]
+    for line, instruction in instructions.items():
+        if line >= 0:
+            lines[line] = instruction
+    rows = build_source_line_rows(
+        lines,
+        offset_names or [FILE_OFFSET],
+        offset_bases,
+        PsxMipsR3000ACodec(),
+    )
+    return rows or list(base_rows)
 
 
 def labels_from_instruction_overlays(overlays: dict[str, str]) -> dict[str, str]:

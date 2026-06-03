@@ -8,6 +8,7 @@ from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlay
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     labels_from_instruction_overlays,
+    rows_from_instructions_by_line,
     without_blank_instruction_overlays,
 )
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
@@ -43,7 +44,8 @@ from src.presentation.repository.binary_workbench_workspace.payloads import (
     symbols_from_payload,
     symbols_payload,
     version_from_payload,
-    version_payload,
+    versions_from_payload,
+    versions_payload,
 )
 
 
@@ -99,7 +101,16 @@ class BinaryWorkbenchWorkspaceRepository:
             dict(tab.byte_overlays),
             dict(tab.instruction_overlays),
         )
-        overlays = dict(active_version.instruction_overlays) if active_version else tab_instruction_overlays
+        rows = (
+            self._version_rows(tab, active_version)
+            if active_version and active_version.instructions_by_line
+            else tab.rows
+        )
+        overlays = (
+            self._instruction_overlays_for_version(tab, active_version)
+            if active_version
+            else tab_instruction_overlays
+        )
         byte_overlays = overlay_from_version_rows(active_version.rows) if active_version else {}
         byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, variables, equates))
         byte_overlays, overlays = without_blank_instruction_overlays(byte_overlays, overlays)
@@ -114,6 +125,10 @@ class BinaryWorkbenchWorkspaceRepository:
                 "memory_regions": regions,
                 "versions": versions,
                 "active_version_name": active,
+                "read_mode": "assembly"
+                if active_version and active_version.instructions_by_line
+                else tab.read_mode,
+                "rows": rows,
                 "instruction_overlays": overlays,
                 "byte_overlays": byte_overlays or tab_byte_overlays,
                 "labels": labels,
@@ -167,6 +182,10 @@ class BinaryWorkbenchWorkspaceRepository:
 
     def checksums_for_tab(self, tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
         return tab_checksums(tab)
+
+    def load_versions_file(self, path: Path) -> list[BinaryWorkbenchVersionDTO]:
+        return versions_from_payload(read_json(path))
+
     def _default_manifest(self, tab: BinaryWorkbenchTabContextDTO) -> Path:
         return self._directory / f"{safe_stem(tab.display_name)}_workspace_manifest.json"
     def _normalize_manifest_path(self, path: Path) -> Path:
@@ -177,18 +196,72 @@ class BinaryWorkbenchWorkspaceRepository:
         return write_json(target, payload)
 
     def _write_versions(self, tab: BinaryWorkbenchTabContextDTO, directories: dict[str, str], paths: dict[str, str], stem: str) -> dict[str, str]:
-        version_paths: dict[str, str] = {}
+        if not tab.versions:
+            return {}
+        target = self._version_file_path(tab, paths, directories, stem)
+        write_json(target, versions_payload(tab.versions, tab.active_version_name))
+        paths[VERSIONS] = str(target)
         for version in tab.versions:
-            key = f"{VERSION_PATH_PREFIX}{version.name}"
-            target = Path(paths.get(key) or Path(directories[VERSIONS]) / f"{stem}_{safe_stem(version.name)}.json")
-            write_json(target, version_payload(version))
-            paths[key] = str(target)
-            version_paths[version.name] = relative_module_path(target, self._directory)
-        return version_paths
+            paths[f"{VERSION_PATH_PREFIX}{version.name}"] = str(target)
+        return {
+            version.name: relative_module_path(target, self._directory)
+            for version in tab.versions
+        }
 
     def _versions_from_manifest(self, modules: dict[str, object]) -> list[BinaryWorkbenchVersionDTO]:
         raw = modules.get(VERSIONS)
         if not isinstance(raw, dict):
             return []
-        versions = [version_from_payload(read_json(resolve_module_path(value, self._directory)), str(name)) for name, value in raw.items() if isinstance(value, str)]
-        return [item for item in versions if item is not None]
+        versions: list[BinaryWorkbenchVersionDTO] = []
+        seen_paths: set[Path] = set()
+        for name, value in raw.items():
+            if not isinstance(value, str):
+                continue
+            path = resolve_module_path(value, self._directory)
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            loaded = versions_from_payload(read_json(path))
+            if loaded:
+                versions.extend(loaded)
+                continue
+            version = version_from_payload(read_json(path), str(name))
+            if version is not None:
+                versions.append(version)
+        return versions
+
+    def _version_file_path(
+        self,
+        tab: BinaryWorkbenchTabContextDTO,
+        paths: dict[str, str],
+        directories: dict[str, str],
+        stem: str,
+    ) -> Path:
+        active_key = f"{VERSION_PATH_PREFIX}{tab.active_version_name or ''}"
+        existing = paths.get(VERSIONS) or paths.get(active_key)
+        return Path(existing or Path(directories[VERSIONS]) / f"{stem}_versions.json")
+
+    def _version_rows(
+        self,
+        tab: BinaryWorkbenchTabContextDTO,
+        version: BinaryWorkbenchVersionDTO,
+    ):
+        return rows_from_instructions_by_line(
+            version.instructions_by_line,
+            tab.original_rows or tab.rows,
+            list(tab.reference_offsets),
+            dict(tab.reference_offset_bases),
+        )
+
+    def _instruction_overlays_for_version(
+        self,
+        tab: BinaryWorkbenchTabContextDTO,
+        version: BinaryWorkbenchVersionDTO,
+    ) -> dict[str, str]:
+        if version.instructions_by_line:
+            return {
+                row.offsets.get("File", "0x00000000"): row.instruction
+                for row in self._version_rows(tab, version)
+                if row.instruction and row.offsets.get("File") != "-"
+            }
+        return dict(version.instruction_overlays)

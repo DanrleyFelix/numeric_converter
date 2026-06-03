@@ -1,4 +1,5 @@
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
@@ -44,9 +45,30 @@ class EditorPageContextMixin:
 
 def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[str, object]:
     labels = labels_from_rows(rows)
-    return {
+    updates = {
         "rows": rows,
         "labels": labels,
         "version_dirty": context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY,
         "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),
+    }
+    if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        return updates
+    instruction_overlays = {
+        row.offsets.get("File", "0x00000000"): row.instruction
+        for row in rows
+        if row.instruction and row.offsets.get("File") != "-"
+    }
+    byte_overlays = {
+        row.offsets.get("File", "0x00000000"): row.bytes_text
+        for row in rows
+        if row.bytes_text and row.offsets.get("File") != "-"
+    }
+    byte_overlays, instruction_overlays = without_blank_instruction_overlays(
+        byte_overlays,
+        instruction_overlays,
+    )
+    return {
+        **updates,
+        "byte_overlays": byte_overlays,
+        "instruction_overlays": instruction_overlays,
     }

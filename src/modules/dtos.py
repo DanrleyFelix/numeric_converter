@@ -115,6 +115,7 @@ class BinaryWorkbenchVersionDTO:
     name: str
     rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
     instruction_overlays: dict[str, str] = field(default_factory=dict)
+    instructions_by_line: dict[int, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

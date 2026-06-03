@@ -253,8 +253,8 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
         versions=[
             BinaryWorkbenchVersionDTO(
                 "v1",
-                instruction_overlays={
-                    "0x00000000": "Label_1: ADDIU $S1, $S1, _variable1"
+                instructions_by_line={
+                    0: "Label_1: ADDIU $S1, $S1, _variable1"
                 },
             )
         ],
@@ -264,7 +264,7 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
 
     saved = repository.save_tab_workspace(tab, repository.directory / "ygo_fm_wicked.json")
     manifest = repository.directory / "ygo_fm_wicked.json"
-    version_file = repository.directory / "Versions" / "ygo_fm_wicked_v1.json"
+    version_file = repository.directory / "Versions" / "ygo_fm_wicked_versions.json"
     loaded = repository.load_tab_workspace(
         BinaryWorkbenchTabContextDTO(
             tab_id="fresh",
@@ -279,7 +279,7 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
     assert saved.version_dirty is False
     assert manifest.exists()
     assert version_file.exists()
-    assert '"0x00000000"' in version_file.read_text(encoding="utf-8")
+    assert '"0"' in version_file.read_text(encoding="utf-8")
     assert loaded.variables == {"variable1": "20"}
     assert loaded.equates == {"equate1": "0x34"}
     assert loaded.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]

@@ -141,14 +141,13 @@ def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
     assert tool_window is not None
     assert tool_window.windowTitle() == "Binary Workbench"
     assert tool_window.toolbar.open_binary_action.text() == "Open File"
-    assert tool_window.toolbar.create_version_action.text() == "Create a Version"
-    assert tool_window.toolbar.att_current_version_action.text() == "Att Version"
-    assert tool_window.toolbar.load_version_action.text() == "Load a Version"
+    assert tool_window.toolbar.version_action.text() == "Version"
     assert tool_window.toolbar.save_binary_file_action.text() == "Save File"
     assert tool_window.toolbar.symbols_action.text() == "Symbols"
     assert tool_window.toolbar.bytes_formatter_action.text() == "Bytes Formatter"
     assert tool_window.toolbar.view_action.text() == "View"
     assert tool_window.toolbar.advanced_configuration_action.text() == "Advanced Configuration"
+    assert tool_window.toolbar.version_action.shortcut().toString() == "Alt+V"
     assert tool_window.toolbar.go_to_action.shortcut().toString() == "Ctrl+G"
     assert tool_window.toolbar.find_action.shortcut().toString() == "Ctrl+F"
     assert tool_window.findChild(QLabel, "binary-workbench-title") is None

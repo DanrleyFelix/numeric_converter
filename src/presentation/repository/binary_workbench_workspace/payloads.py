@@ -18,6 +18,7 @@ from src.presentation.repository.binary_workbench_payload import (
     _rows,
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
+from src.core.binary_workbench.version_overlays import instructions_by_line_from_rows
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 
 
@@ -79,15 +80,24 @@ def memory_regions_payload(
 
 
 def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
-    overlays = version.instruction_overlays or {
-        row.offsets.get("File", "0x00000000"): row.instruction
-        for row in version.rows
-        if row.instruction
-    }
+    instructions = version.instructions_by_line or instructions_by_line_from_rows(version.rows)
     return {
         "name": version.name,
         "instructions": {
-            offset: instruction for offset, instruction in sorted(overlays.items())
+            str(line): instruction for line, instruction in sorted(instructions.items())
+        },
+    }
+
+
+def versions_payload(
+    versions: list[BinaryWorkbenchVersionDTO],
+    active_version: str | None = None,
+) -> dict[str, object]:
+    return {
+        "active_version": active_version,
+        "versions": {
+            version.name: version_payload(version)["instructions"]
+            for version in versions
         },
     }
 
@@ -119,6 +129,7 @@ def version_from_payload(
     if not isinstance(payload, dict):
         return None
     name = payload.get("name")
+    instructions_by_line = _instructions_by_line(payload.get("instructions"))
     overlays = _instruction_overlays(payload.get("instructions"))
     if not overlays:
         overlays = _instruction_overlays(payload.get("instruction_overlays"))
@@ -131,4 +142,43 @@ def version_from_payload(
         name=version_name,
         rows=rows,
         instruction_overlays=overlays,
+        instructions_by_line=instructions_by_line,
     )
+
+
+def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkbenchVersionDTO]:
+    if not isinstance(payload, dict):
+        return []
+    raw_versions = payload.get("versions")
+    if not isinstance(raw_versions, dict):
+        single = version_from_payload(payload, str(payload.get("name", "version")))
+        return [single] if single is not None else []
+    versions: list[BinaryWorkbenchVersionDTO] = []
+    for name, instructions in raw_versions.items():
+        if not isinstance(name, str) or not isinstance(instructions, dict):
+            continue
+        versions.append(
+            BinaryWorkbenchVersionDTO(
+                name=name,
+                instructions_by_line=_instructions_by_line(instructions),
+                instruction_overlays=_instruction_overlays(instructions),
+            )
+        )
+    active = payload.get("active_version")
+    if not isinstance(active, str):
+        return versions
+    return sorted(versions, key=lambda version: version.name != active)
+
+
+def _instructions_by_line(raw: object) -> dict[int, str]:
+    if not isinstance(raw, dict):
+        return {}
+    values: dict[int, str] = {}
+    for key, value in raw.items():
+        try:
+            line = int(key)
+        except (TypeError, ValueError):
+            continue
+        if line >= 0:
+            values[line] = str(value)
+    return values

@@ -41,6 +41,8 @@ def _preserve_symbolic_row(
 ) -> BinaryWorkbenchRowDTO:
     if previous is None:
         return row
+    if not row.bytes_text or file_offset(row) == "-":
+        return row
     if previous.bytes_text == row.bytes_text:
         return previous
     instruction = symbolic_instruction(

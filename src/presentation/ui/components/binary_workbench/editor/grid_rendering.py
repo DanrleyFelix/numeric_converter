@@ -129,7 +129,10 @@ class GridRenderingMixin:
         return self._editor_text_signature(editor) != self._editor_text_signatures.get(id(editor), "")
 
     def _editor_text_signature(self, editor: QPlainTextEdit) -> str:
-        return "".join(editor.toPlainText().split())
+        return "\n".join(
+            "".join(line.split())
+            for line in editor.toPlainText().split("\n")
+        )
 
     def _display_bytes_text(self, text: str) -> str:
         return normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)

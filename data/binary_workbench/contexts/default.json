@@ -1,12 +1,12 @@
 {
     "tabs": [
         {
-            "tab_id": "d03010bc15c2425bac0aec8cdd95fd6b",
+            "tab_id": "351a525c72264a1a910cd42953a48b2c",
             "kind": "binary",
-            "display_name": "SLUS_014.11",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11",
+            "display_name": "SLUS_014.11.bak",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11.bak",
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
+            "read_mode": "assembly",
             "reference_offsets": [
                 "File"
             ],
@@ -20,20 +20,1347 @@
             "lba_sector_size": 2352,
             "named_regions": [],
             "memory_regions": [],
-            "versions": [],
-            "active_version_name": null,
-            "workspace_path": null,
-            "module_paths": {},
-            "module_directories": {},
-            "module_checksums": {},
+            "versions": [
+                {
+                    "name": "v1_test_2",
+                    "rows": [],
+                    "instructions": {
+                        "0": "word 0x00300000"
+                    }
+                },
+                {
+                    "name": "v2 test",
+                    "rows": [],
+                    "instructions": {
+                        "0": "word 0x00400000"
+                    }
+                },
+                {
+                    "name": "v3",
+                    "rows": [],
+                    "instructions": {
+                        "0": "word 0x00702000"
+                    }
+                }
+            ],
+            "active_version_name": "v3",
+            "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\SLUS_014_11_workspace_manifest.json",
+            "module_paths": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\SLUS_014_11_workspace_manifest_symbols.json",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\SLUS_014_11_workspace_manifest_lba.json",
+                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions\\SLUS_014_11_workspace_manifest_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
+                "version:v1_test_2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
+                "version:v2 test": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
+                "version:v3": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json"
+            },
+            "module_directories": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
+                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
+                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables"
+            },
+            "module_checksums": {
+                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
+                "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
+                "memory_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
+                "versions": "92d0db7d7ebf26ac05271283c5b6fcf5aabed74b91bdac5e7cf2ddd6a0b4c237"
+            },
             "last_open_offset": "0x00000000",
             "navigation_history": [],
             "file_size": 1902592,
             "version_dirty": false,
-            "byte_overlays": {},
-            "instruction_overlays": {},
-            "original_rows": [],
-            "rows": [],
+            "byte_overlays": {
+                "0x00000000": "00 20 70 00"
+            },
+            "instruction_overlays": {
+                "0x00000000": "word 0x00702000"
+            },
+            "original_rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "word 0x582D0000",
+                    "bytes_text": "00 00 2D 58"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "word 0x45584520",
+                    "bytes_text": "20 45 58 45"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "lb $at, 0x29D8($zero)",
+                    "bytes_text": "D8 29 01 80"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "lb $at, 0x0($zero)",
+                    "bytes_text": "00 00 01 80"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "word 0x001D0000",
+                    "bytes_text": "00 00 1D 00"
+                },
+                {
+                    "offset": "0x00000020",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000024",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000028",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000002C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000030",
+                    "instruction": "lb $ra, -0x10($zero)",
+                    "bytes_text": "F0 FF 1F 80"
+                },
+                {
+                    "offset": "0x00000034",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000038",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000003C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000040",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000044",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000048",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000004C",
+                    "instruction": "word 0x796E6F53",
+                    "bytes_text": "53 6F 6E 79"
+                },
+                {
+                    "offset": "0x00000050",
+                    "instruction": "word 0x6D6F4320",
+                    "bytes_text": "20 43 6F 6D"
+                },
+                {
+                    "offset": "0x00000054",
+                    "instruction": "word 0x65747570",
+                    "bytes_text": "70 75 74 65"
+                },
+                {
+                    "offset": "0x00000058",
+                    "instruction": "word 0x6E452072",
+                    "bytes_text": "72 20 45 6E"
+                },
+                {
+                    "offset": "0x0000005C",
+                    "instruction": "word 0x74726574",
+                    "bytes_text": "74 65 72 74"
+                },
+                {
+                    "offset": "0x00000060",
+                    "instruction": "word 0x6D6E6961",
+                    "bytes_text": "61 69 6E 6D"
+                },
+                {
+                    "offset": "0x00000064",
+                    "instruction": "word 0x20746E65",
+                    "bytes_text": "65 6E 74 20"
+                },
+                {
+                    "offset": "0x00000068",
+                    "instruction": "sltiu $v1, $s3, 0x6E49",
+                    "bytes_text": "49 6E 63 2E"
+                },
+                {
+                    "offset": "0x0000006C",
+                    "instruction": "word 0x726F6620",
+                    "bytes_text": "20 66 6F 72"
+                },
+                {
+                    "offset": "0x00000070",
+                    "instruction": "word 0x726F4E20",
+                    "bytes_text": "20 4E 6F 72"
+                },
+                {
+                    "offset": "0x00000074",
+                    "instruction": "word 0x41206874",
+                    "bytes_text": "74 68 20 41"
+                },
+                {
+                    "offset": "0x00000078",
+                    "instruction": "word 0x6972656D",
+                    "bytes_text": "6D 65 72 69"
+                },
+                {
+                    "offset": "0x0000007C",
+                    "instruction": "word 0x61206163",
+                    "bytes_text": "63 61 20 61"
+                },
+                {
+                    "offset": "0x00000080",
+                    "instruction": "word 0x00616572",
+                    "bytes_text": "72 65 61 00"
+                },
+                {
+                    "offset": "0x00000084",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000088",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000008C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000090",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000094",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000098",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000009C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000AC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000BC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000CC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000DC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000EC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000FC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000100",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000104",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000108",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000010C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000110",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000114",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000118",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000011C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000120",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000124",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000128",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000012C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000130",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000134",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000138",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000013C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000140",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000144",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000148",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000014C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000150",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000154",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000158",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000015C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000160",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000164",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000168",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000016C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000170",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000174",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000178",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000017C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000180",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000184",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000188",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000018C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000190",
+                    "instruction": "lw $a2, 0x8($a0)",
+                    "bytes_text": "08 00 86 8C"
+                },
+                {
+                    "offset": "0x00000194",
+                    "instruction": "lw $a3, 0xC($a0)",
+                    "bytes_text": "0C 00 87 8C"
+                },
+                {
+                    "offset": "0x00000198",
+                    "instruction": "addu $a0, $s2, $zero",
+                    "bytes_text": "21 20 40 02"
+                },
+                {
+                    "offset": "0x0000019C",
+                    "instruction": "j 0x1A890",
+                    "bytes_text": "24 6A 00 08"
+                },
+                {
+                    "offset": "0x000001A0",
+                    "instruction": "addu $v0, $v0, $v1",
+                    "bytes_text": "21 10 43 00"
+                },
+                {
+                    "offset": "0x000001A4",
+                    "instruction": "j 0x1CFA30",
+                    "bytes_text": "8C 3E 07 08"
+                },
+                {
+                    "offset": "0x000001A8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001AC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001BC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001CC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001DC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001EC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001FC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                }
+            ],
+            "rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "word 0x00702000",
+                    "bytes_text": "00 20 70 00"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "word 0x45584520",
+                    "bytes_text": "20 45 58 45"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "lb $at, 0x29D8($zero)",
+                    "bytes_text": "D8 29 01 80"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "lb $at, 0x0($zero)",
+                    "bytes_text": "00 00 01 80"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "word 0x001D0000",
+                    "bytes_text": "00 00 1D 00"
+                },
+                {
+                    "offset": "0x00000020",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000024",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000028",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000002C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000030",
+                    "instruction": "lb $ra, -0x10($zero)",
+                    "bytes_text": "F0 FF 1F 80"
+                },
+                {
+                    "offset": "0x00000034",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000038",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000003C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000040",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000044",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000048",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000004C",
+                    "instruction": "word 0x796E6F53",
+                    "bytes_text": "53 6F 6E 79"
+                },
+                {
+                    "offset": "0x00000050",
+                    "instruction": "word 0x6D6F4320",
+                    "bytes_text": "20 43 6F 6D"
+                },
+                {
+                    "offset": "0x00000054",
+                    "instruction": "word 0x65747570",
+                    "bytes_text": "70 75 74 65"
+                },
+                {
+                    "offset": "0x00000058",
+                    "instruction": "word 0x6E452072",
+                    "bytes_text": "72 20 45 6E"
+                },
+                {
+                    "offset": "0x0000005C",
+                    "instruction": "word 0x74726574",
+                    "bytes_text": "74 65 72 74"
+                },
+                {
+                    "offset": "0x00000060",
+                    "instruction": "word 0x6D6E6961",
+                    "bytes_text": "61 69 6E 6D"
+                },
+                {
+                    "offset": "0x00000064",
+                    "instruction": "word 0x20746E65",
+                    "bytes_text": "65 6E 74 20"
+                },
+                {
+                    "offset": "0x00000068",
+                    "instruction": "sltiu $v1, $s3, 0x6E49",
+                    "bytes_text": "49 6E 63 2E"
+                },
+                {
+                    "offset": "0x0000006C",
+                    "instruction": "word 0x726F6620",
+                    "bytes_text": "20 66 6F 72"
+                },
+                {
+                    "offset": "0x00000070",
+                    "instruction": "word 0x726F4E20",
+                    "bytes_text": "20 4E 6F 72"
+                },
+                {
+                    "offset": "0x00000074",
+                    "instruction": "word 0x41206874",
+                    "bytes_text": "74 68 20 41"
+                },
+                {
+                    "offset": "0x00000078",
+                    "instruction": "word 0x6972656D",
+                    "bytes_text": "6D 65 72 69"
+                },
+                {
+                    "offset": "0x0000007C",
+                    "instruction": "word 0x61206163",
+                    "bytes_text": "63 61 20 61"
+                },
+                {
+                    "offset": "0x00000080",
+                    "instruction": "word 0x00616572",
+                    "bytes_text": "72 65 61 00"
+                },
+                {
+                    "offset": "0x00000084",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000088",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000008C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000090",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000094",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000098",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000009C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000A8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000AC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000B8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000BC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000C8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000CC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000D8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000DC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000E8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000EC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000F8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000000FC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000100",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000104",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000108",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000010C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000110",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000114",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000118",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000011C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000120",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000124",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000128",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000012C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000130",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000134",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000138",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000013C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000140",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000144",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000148",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000014C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000150",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000154",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000158",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000015C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000160",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000164",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000168",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000016C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000170",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000174",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000178",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000017C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000180",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000184",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000188",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x0000018C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x00000190",
+                    "instruction": "lw $a2, 0x8($a0)",
+                    "bytes_text": "08 00 86 8C"
+                },
+                {
+                    "offset": "0x00000194",
+                    "instruction": "lw $a3, 0xC($a0)",
+                    "bytes_text": "0C 00 87 8C"
+                },
+                {
+                    "offset": "0x00000198",
+                    "instruction": "addu $a0, $s2, $zero",
+                    "bytes_text": "21 20 40 02"
+                },
+                {
+                    "offset": "0x0000019C",
+                    "instruction": "j 0x1A890",
+                    "bytes_text": "24 6A 00 08"
+                },
+                {
+                    "offset": "0x000001A0",
+                    "instruction": "addu $v0, $v0, $v1",
+                    "bytes_text": "21 10 43 00"
+                },
+                {
+                    "offset": "0x000001A4",
+                    "instruction": "j 0x1CFA30",
+                    "bytes_text": "8C 3E 07 08"
+                },
+                {
+                    "offset": "0x000001A8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001AC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001B8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001BC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001C8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001CC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001D8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001DC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001E8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001EC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F0",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F4",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001F8",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                },
+                {
+                    "offset": "0x000001FC",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00"
+                }
+            ],
             "view_preferences": {
                 "visible_columns": {
                     "File": true,
@@ -44,7 +1371,7 @@
             }
         }
     ],
-    "active_tab_id": "d03010bc15c2425bac0aec8cdd95fd6b",
+    "active_tab_id": "351a525c72264a1a910cd42953a48b2c",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",

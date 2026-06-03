@@ -24,6 +24,7 @@ class GridEditingMixin:
             return
         if not self._has_meaningful_editor_change(self.bytes):
             return
+        self._normalize_bytes_editor_text()
         self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
 
     def _on_instructions_changed(self) -> None:
@@ -96,27 +97,72 @@ class GridEditingMixin:
         self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:
-        raw = "".join("".join(lines).split())
-        if len(raw) % 2:
-            return None
-        try:
-            data = bytes.fromhex(raw)
-        except ValueError:
-            return None
         rows: list[BinaryWorkbenchRowDTO] = []
-        for index, start in enumerate(range(0, len(data), ROW_BYTES)):
-            chunk = data[start : start + ROW_BYTES]
-            row = self._row_at(index)
+        for line in lines:
+            raw = "".join(line.split())
+            if not raw:
+                row = self._row_at(len(rows))
+                rows.append(
+                    BinaryWorkbenchRowDTO(
+                        offsets=row.offsets,
+                        instruction="",
+                        bytes_text="",
+                    )
+                )
+                continue
+            if len(raw) < ROW_BYTES * 2:
+                row = self._row_at(len(rows))
+                rows.append(
+                    BinaryWorkbenchRowDTO(
+                        offsets=row.offsets,
+                        instruction="",
+                        bytes_text="",
+                    )
+                )
+                continue
+            if len(raw) != ROW_BYTES * 2:
+                return None
+            try:
+                data = bytes.fromhex(raw)
+            except ValueError:
+                return None
+            for start in range(0, len(data), ROW_BYTES):
+                chunk = data[start : start + ROW_BYTES]
+                row = self._row_at(len(rows))
+                rows.append(
+                    BinaryWorkbenchRowDTO(
+                        offsets=row.offsets,
+                        instruction=row.instruction,
+                        bytes_text=self._codec.bytes_text(chunk),
+                    )
+                )
+        return self._rows_decoded_after_offset_rebuild(rows)
+
+    def _rows_decoded_after_offset_rebuild(
+        self,
+        rows: list[BinaryWorkbenchRowDTO],
+    ) -> list[BinaryWorkbenchRowDTO]:
+        rebuilt = rebuild_rows_with_offsets(
+            rows,
+            self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+            self._offset_base_text(),
+        )
+        decoded: list[BinaryWorkbenchRowDTO] = []
+        for row in rebuilt:
+            if not row.bytes_text:
+                decoded.append(row)
+                continue
             address = address_from_row(row)
-            raw_instruction = self._codec.disassemble(chunk.ljust(ROW_BYTES, b"\x00"), address)
-            rows.append(
+            data = bytes.fromhex(row.bytes_text.replace(" ", ""))
+            raw_instruction = self._codec.disassemble(data.ljust(ROW_BYTES, b"\x00"), address)
+            decoded.append(
                 BinaryWorkbenchRowDTO(
                     offsets=row.offsets,
                     instruction=editor_mips_instruction(raw_instruction, address),
-                    bytes_text=self._codec.bytes_text(chunk),
+                    bytes_text=row.bytes_text,
                 )
             )
-        return rows
+        return decoded
 
     def rows_encoded_with_symbols(
         self,
@@ -163,9 +209,33 @@ class GridEditingMixin:
         )
 
     def _normalized_bytes_lines(self) -> list[str]:
+        lines: list[str] = []
+        for line in self.bytes.toPlainText().split("\n"):
+            lines.append(self._normalized_bytes_line(line))
+        return lines
+
+    def _normalize_bytes_editor_text(self) -> None:
         text = self.bytes.toPlainText()
-        normalized = normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)
-        return normalized.splitlines()
+        normalized = "\n".join(
+            self._normalized_bytes_line(line)
+            for line in text.split("\n")
+        )
+        if normalized == text:
+            return
+        position = self.bytes.textCursor().position()
+        self._set_editor_text(self.bytes, normalized.split("\n"))
+        cursor = self.bytes.textCursor()
+        cursor.setPosition(min(position + (len(normalized) - len(text)), len(normalized)))
+        self.bytes.setTextCursor(cursor)
+
+    def _normalized_bytes_line(self, line: str) -> str:
+        raw = "".join(char for char in line if char in "0123456789abcdefABCDEF")
+        raw = raw[: ROW_BYTES * 2]
+        raw = raw.upper() if self._uppercase_bytes else raw
+        normalized = normalize_bytes_text(raw, 1, False)
+        if 0 < len(raw) < ROW_BYTES * 2 and len(raw) % 2 == 0:
+            return f"{normalized} "
+        return normalized
 
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()

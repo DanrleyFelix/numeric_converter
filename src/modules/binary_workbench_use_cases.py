@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.core.binary_workbench.file_ops import overlay_from_version_rows
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
+from src.core.binary_workbench.version_overlays import instructions_by_line_from_rows
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 from src.modules.dtos import (
     BinaryWorkbenchPreferencesDTO,
@@ -90,6 +91,11 @@ def binary_version_has_unsaved_edits(
         overlay_from_version_rows(version.rows),
         version.instruction_overlays,
     )
+    if version.instructions_by_line:
+        return instructions_by_line_from_rows(
+            context.rows,
+            context.original_rows,
+        ) != version.instructions_by_line
     return (
         instruction_overlays != saved_instructions
         or byte_overlays != saved_bytes

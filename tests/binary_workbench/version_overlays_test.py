@@ -4,6 +4,8 @@ from src.core.binary_workbench.context_overlays import (
     compact_binary_context_overlays,
 )
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
+from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
+from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     without_blank_instruction_overlays,
@@ -94,3 +96,47 @@ def test_legacy_cleanup_preserves_nop_without_active_version(tmp_path: Path):
     )
 
     assert discard_legacy_nop_overlays(context) == context
+
+
+def test_symbolic_preservation_ignores_rows_without_offsets():
+    row = BinaryWorkbenchRowDTO(
+        offsets={"File": "-"},
+        instruction="; comment",
+        bytes_text="AA BB CC DD",
+    )
+    previous = BinaryWorkbenchRowDTO(
+        offsets={"File": "-"},
+        instruction="; comment",
+        bytes_text="",
+    )
+
+    assert preserve_symbolic_rows(
+        [row],
+        [previous],
+        {},
+        {},
+        {},
+        PsxMipsR3000ACodec(),
+    ) == [row]
+
+
+def test_symbolic_preservation_clears_rows_without_complete_bytes():
+    row = BinaryWorkbenchRowDTO(
+        offsets={"File": "-"},
+        instruction="",
+        bytes_text="",
+    )
+    previous = BinaryWorkbenchRowDTO(
+        offsets={"File": "-"},
+        instruction="; comment",
+        bytes_text="",
+    )
+
+    assert preserve_symbolic_rows(
+        [row],
+        [previous],
+        {},
+        {},
+        {},
+        PsxMipsR3000ACodec(),
+    ) == [row]

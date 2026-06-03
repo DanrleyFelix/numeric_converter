@@ -21,9 +21,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.open_binary_action = self.open_file_action
         self.new_scratch_action = QAction(BINARY_WORKBENCH_TEXT.NEW_SCRATCH_CODE, self)
         self.open_internal_action = QAction(BINARY_WORKBENCH_TEXT.OPEN_INTERNAL_FILE, self)
-        self.create_version_action = QAction(BINARY_WORKBENCH_TEXT.CREATE_VERSION, self)
-        self.att_current_version_action = QAction(BINARY_WORKBENCH_TEXT.ATT_CURRENT_VERSION, self)
-        self.load_version_action = QAction(BINARY_WORKBENCH_TEXT.LOAD_VERSION, self)
+        self.version_action = QAction(BINARY_WORKBENCH_TEXT.VERSION, self)
         self.save_binary_file_action = QAction(BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, self)
         self.symbols_action = QAction(BINARY_WORKBENCH_TEXT.SYMBOLS, self)
         self.labels_action = QAction(BINARY_WORKBENCH_TEXT.LABELS, self)
@@ -44,6 +42,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
         self.open_file_action.setShortcut(QKeySequence("Ctrl+O"))
         self.new_scratch_action.setShortcut(QKeySequence("Ctrl+N"))
+        self.version_action.setShortcut(QKeySequence("Alt+V"))
         self.save_binary_file_action.setShortcut(QKeySequence("Ctrl+S"))
         self.go_to_action.setShortcut(QKeySequence("Ctrl+G"))
         self.find_action.setShortcut(QKeySequence("Ctrl+F"))
@@ -54,9 +53,7 @@ class BinaryWorkbenchToolbar(QFrame):
             self.open_file_action,
             self.new_scratch_action,
             self.open_internal_action,
-            self.create_version_action,
-            self.att_current_version_action,
-            self.load_version_action,
+            self.version_action,
             self.save_binary_file_action,
         ]))
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.ENVIRONMENT, Icons.environment(), [
