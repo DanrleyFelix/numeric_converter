@@ -1,4 +1,4 @@
-from PySide6.QtCore import QRect, Qt, Signal, QStringListModel
+from PySide6.QtCore import QEvent, QItemSelectionModel, QRect, Qt, Signal, QStringListModel
 from PySide6.QtGui import QKeyEvent, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit
 
@@ -35,6 +35,7 @@ class CommandEdit(QPlainTextEdit):
         popup.setUniformItemSizes(True)
         popup.setMouseTracking(True)
         popup.setSpacing(0)
+        popup.installEventFilter(self)
         self._completer.setPopup(popup)
         self.setContentsMargins(0, 0, 0, 0)
         self.blockCountChanged.connect(self.updatePromptAreaWidth)
@@ -74,14 +75,12 @@ class CommandEdit(QPlainTextEdit):
 
     def keyPressEvent(self, event: QKeyEvent):
         if self._completer.popup().isVisible():
-            if self._history_mode_active and event.key() in (Qt.Key_Up, Qt.Key_Down):
-                self._move_history_selection(-1 if event.key() == Qt.Key_Up else 1)
+            if event.key() in (Qt.Key_Up, Qt.Key_Down):
+                self._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
                 event.accept()
                 return
             if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                completion = self._completer.popup().currentIndex().data()
-                if completion:
-                    self.insert_completion(str(completion))
+                self._accept_popup_completion()
                 event.accept()
                 return
             if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
@@ -105,6 +104,26 @@ class CommandEdit(QPlainTextEdit):
             return
         super().keyPressEvent(event)
         self._update_completer()
+
+    def eventFilter(self, watched, event) -> bool:
+        popup = self._completer.popup()
+        if watched is popup and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key_Up, Qt.Key_Down):
+                self._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
+                event.accept()
+                return True
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                self._accept_popup_completion()
+                event.accept()
+                return True
+            if event.key() == Qt.Key_Escape:
+                if self._history_mode_active:
+                    self._hide_history_popup()
+                else:
+                    popup.hide()
+                event.accept()
+                return True
+        return super().eventFilter(watched, event)
 
     def paintPromptArea(self, event):
         painter = QPainter(self._promptArea)
@@ -187,12 +206,25 @@ class CommandEdit(QPlainTextEdit):
         )
         self._completer.complete(rect)
 
-    def _move_history_selection(self, step: int) -> None:
+    def _move_popup_selection(self, step: int) -> None:
         popup = self._completer.popup()
         current = popup.currentIndex().row()
-        count = self._completion_model.rowCount()
-        target = max(0, min(count - 1, current + step))
-        popup.setCurrentIndex(self._completion_model.index(target, 0))
+        model = popup.model()
+        count = model.rowCount()
+        if count <= 0:
+            return
+        if current < 0:
+            target = count - 1 if step < 0 else 0
+        else:
+            target = (current + step) % count
+        index = model.index(target, 0)
+        popup.setCurrentIndex(index)
+        popup.selectionModel().setCurrentIndex(index, QItemSelectionModel.ClearAndSelect)
+
+    def _accept_popup_completion(self) -> None:
+        completion = self._completer.popup().currentIndex().data()
+        if completion:
+            self.insert_completion(str(completion))
 
     def _hide_history_popup(self) -> None:
         if not self._history_mode_active:

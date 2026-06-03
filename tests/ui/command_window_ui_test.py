@@ -283,6 +283,16 @@ def test_arrow_up_down_browse_log_history_and_enter_accepts_without_submitting()
     assert popup.currentIndex().data() == "alpha=5"
     assert window.body.command_panel.current_input() == ""
 
+    QTest.keyClick(popup, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "beta=7"
+    assert window.body.command_panel.current_input() == ""
+
+    QTest.keyClick(popup, Qt.Key_Up)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha=5"
+    assert window.body.command_panel.current_input() == ""
+
     QTest.keyClick(editor, Qt.Key_Enter)
     _app().processEvents()
     assert window.body.command_panel.current_input() == "alpha=5"
@@ -323,6 +333,39 @@ def test_enter_accepts_variable_autocomplete_and_hides_popup():
 
     assert window.body.command_panel.current_input() == "alpha"
     assert popup.isVisible() is False
+
+
+def test_variable_autocomplete_up_down_wraps_without_blank_selection():
+    window = _window()
+    editor = window.body.command_panel.editor
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    window.body.command_panel.set_input_text("alpine=7")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor.setFocus()
+    QTest.keyClicks(editor, "al")
+    _app().processEvents()
+    popup = editor._completer.popup()
+
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(editor, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpine"
+
+    QTest.keyClick(popup, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(popup, Qt.Key_Up)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpine"
 
 
 def test_auto_convert_sends_successful_command_result_to_converter():
