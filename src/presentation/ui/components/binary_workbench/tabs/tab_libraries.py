@@ -2,6 +2,10 @@ from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchTabContextDTO,
 )
+from src.core.binary_workbench.version_overlays import (
+    byte_overlays_from_instruction_overlays,
+)
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,
@@ -43,16 +47,17 @@ class TabLibrariesMixin:
             if isinstance(page, BinaryWorkbenchEditorPage)
             else current.rows
         )
-        updated = BinaryWorkbenchTabContextDTO(
-            **{
-                **current.__dict__,
-                "variables": variables,
-                "equates": equates,
-                "labels": labels,
-                "rows": rows,
-                "symbol_offsets": symbol_offsets(rows, variables, equates, labels),
-            }
-        )
+        labels = labels_from_rows(rows)
+        updates: dict[str, object] = {
+            "variables": variables,
+            "equates": equates,
+            "labels": labels,
+            "rows": rows,
+            "symbol_offsets": symbol_offsets(rows, variables, equates, labels),
+        }
+        if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
+            updates["byte_overlays"] = _byte_overlays_with_symbols(current, variables, equates)
+        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates})
         self._set_current_context(updated)
 
     def save_current_symbols(self, name: str) -> None:
@@ -60,3 +65,24 @@ class TabLibrariesMixin:
 
     def load_current_symbols(self, name: str) -> bool:
         return False
+
+
+def _byte_overlays_with_symbols(
+    current: BinaryWorkbenchTabContextDTO,
+    variables: dict[str, str],
+    equates: dict[str, str],
+) -> dict[str, str]:
+    instruction_offsets = set(current.instruction_overlays)
+    byte_overlays = {
+        offset: value
+        for offset, value in current.byte_overlays.items()
+        if offset not in instruction_offsets
+    }
+    byte_overlays.update(
+        byte_overlays_from_instruction_overlays(
+            current.instruction_overlays,
+            variables,
+            equates,
+        )
+    )
+    return byte_overlays

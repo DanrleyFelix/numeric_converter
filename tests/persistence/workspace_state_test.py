@@ -92,25 +92,17 @@ def test_binary_workbench_context_roundtrip_excludes_program_and_preferences(tmp
     assert "block_size" not in payload["tabs"][0]
     assert "cache_max_blocks" not in payload["tabs"][0]
     assert "group_bytes" not in payload["tabs"][0]["view_preferences"]
-    assert payload["tabs"][0]["rows"] == [
-        {
-            "offset": "0x00000004",
-            "instruction": "JAL 0x1D9200",
-            "bytes_text": "80 64 07 0C",
-        }
-    ]
+    assert payload["tabs"][0]["rows"] == []
+    assert payload["tabs"][0]["original_rows"] == []
+    assert payload["tabs"][0]["byte_overlays"] == {}
+    assert payload["tabs"][0]["instruction_overlays"] == {}
     assert loaded == BinaryWorkbenchStateDTO(
         tabs=[
             BinaryWorkbenchTabContextDTO(
                 **{
                     **state.tabs[0].__dict__,
-                    "rows": [
-                        BinaryWorkbenchRowDTO(
-                            offsets={"File": "0x00000004"},
-                            instruction="JAL 0x1D9200",
-                            bytes_text="80 64 07 0C",
-                        )
-                    ],
+                    "rows": [],
+                    "original_rows": [],
                     "reference_offsets": ["File"],
                     "reference_offset_bases": {"File": "0x00000000"},
                 }
@@ -168,7 +160,7 @@ def test_binary_workbench_context_discards_legacy_nop_overlay_from_empty_version
     assert state.tabs[0].version_dirty is False
 
 
-def test_binary_workbench_context_payload_preserves_explicit_nop_overlay(tmp_path: Path):
+def test_binary_workbench_context_payload_excludes_binary_line_edits(tmp_path: Path):
     source = tmp_path / "source.bin"
     source.write_bytes(bytes.fromhex("00 00 00 00 01 02 03 04"))
     payload = binary_workbench_state_to_payload(
@@ -190,8 +182,8 @@ def test_binary_workbench_context_payload_preserves_explicit_nop_overlay(tmp_pat
         )
     )
 
-    assert payload["tabs"][0]["byte_overlays"] == {"0x00000004": "00 00 00 00"}
-    assert payload["tabs"][0]["instruction_overlays"] == {"0x00000004": "NOP"}
+    assert payload["tabs"][0]["byte_overlays"] == {}
+    assert payload["tabs"][0]["instruction_overlays"] == {}
     assert payload["tabs"][0]["version_dirty"] is True
 
 

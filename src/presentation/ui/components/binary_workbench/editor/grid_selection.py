@@ -75,6 +75,13 @@ class GridSelectionMixin:
             editor = self.bytes if self.bytes.hasFocus() else self.instructions
         cursor = editor.textCursor()
         if not cursor.hasSelection():
+            if self._virtual_selection_scrolling:
+                return
+            self._clear_virtual_selection()
             self.selectionSummaryChanged.emit(self._cursor_summary(editor, cursor))
+            return
+        if self._virtual_selection_range is not None:
+            kind, anchor_offset, cursor_offset = self._virtual_selection_range
+            self._emit_virtual_selection_summary(kind, anchor_offset, cursor_offset)
             return
         self._emit_bytes_selection(cursor) if editor is self.bytes else self._emit_instruction_selection(cursor)

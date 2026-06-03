@@ -27,6 +27,10 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
     immediateSymbolRequested = Signal(str, str)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
+    copyRequested = Signal(object)
+    selectionStarted = Signal(object)
+    selectionAutoScrollAboutToStep = Signal(object)
+    selectionAutoScrolled = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -75,11 +79,27 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._update_label_cursor(event.position().toPoint())
         self._stop_selection_scroll()
 
+    def mousePressEvent(self, event) -> None:
+        self.selectionStarted.emit(self)
+        super().mousePressEvent(event)
+
     def focusInEvent(self, event) -> None:
         self.focused.emit()
         super().focusInEvent(event)
 
+    def focusOutEvent(self, event) -> None:
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            cursor.clearSelection()
+            self.setTextCursor(cursor)
+        self._stop_selection_scroll()
+        super().focusOutEvent(event)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.matches(QKeySequence.Copy):
+            self.copyRequested.emit(self)
+            event.accept()
+            return
         if event.matches(QKeySequence.Undo):
             self.undo()
             event.accept()

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchRowDTO
-from src.core.binary_workbench.mips_r3000a.preprocessor import (
-    preprocess_instruction,
-    strip_comment,
-)
+from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruction, strip_comment
 from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instructions,
 )
@@ -26,7 +23,8 @@ def build_source_line_rows(
     reject_invalid: bool = False,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     expanded = expand_pseudo_instructions(lines)
-    resolved_labels = _provisional_labels(expanded, start_offset) if labels is None else labels
+    provisional_labels = _provisional_labels(expanded, start_offset)
+    resolved_labels = provisional_labels if labels is None else {**labels, **provisional_labels}
     variables, equates = variables or {}, equates or {}
     rows = _build_rows(
         expanded,
@@ -80,7 +78,8 @@ def _build_rows(
         if not code:
             rows.append(empty_source_row(line, offset_names))
             continue
-        data = codec.assemble(preprocess_instruction(line, offset, labels, variables, equates), offset)
+        raw_instruction = raw_mips_instruction(line, offset, labels, variables, equates)
+        data = codec.assemble(raw_instruction, offset) if raw_instruction else None
         if data is None:
             if reject_invalid:
                 return None

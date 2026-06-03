@@ -14,6 +14,7 @@ class MAIN_WINDOW_TEXT:
     COMMAND_RESULT_SENT: str = "Command result sent to converter."
     PREFERENCES_UPDATED: str = "Preferences updated."
     BINARY_WORKBENCH_READY: str = "Binary Workbench opened."
+    BINARY_WORKBENCH_AUTOSAVE_BLOCKED: str = "Binary Workbench context autosave skipped: file is locked."
     DONOR_READY: str = "Donor options are not configured yet."
     LOG_REMOVED: str = "Log entry removed."
     VARIABLE_REMOVED_TEMPLATE: str = 'Variable "{name}" removed.'

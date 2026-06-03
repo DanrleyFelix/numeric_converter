@@ -45,10 +45,16 @@ class GridLayoutMixin:
         self.instructions.immediateSymbolRequested.connect(self.immediateSymbolRequested)
         self.instructions.labelActivated.connect(self.labelActivated)
         self.instructions.labelOpenTabRequested.connect(self.labelOpenTabRequested)
+        self.raw_instructions.copyRequested.connect(lambda editor: editor.copy())
         self.bytes.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES))
         self.instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION))
         self.bytes.cursorPositionChanged.connect(self._emit_selection_summary)
         self.instructions.cursorPositionChanged.connect(self._emit_selection_summary)
+        for editor in (self.bytes, self.instructions):
+            editor.copyRequested.connect(self._copy_editor_selection)
+            editor.selectionStarted.connect(self._clear_virtual_selection)
+            editor.selectionAutoScrollAboutToStep.connect(self._capture_virtual_selection_anchor)
+            editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
 
     def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
         shell = QFrame(self)

@@ -172,7 +172,8 @@ QPlainTextEdit#binary-workbench-instructions-panel {
     border: 1px solid $border-workspace-shell;
     border-radius: $radius-12;
     color: $text-main;
-    selection-background-color: $bg-workspace-row-hover;
+    selection-background-color: $border-focus;
+    selection-color: $text-main;
 }
 
 QPlainTextEdit#binary-workbench-offsets-panel {

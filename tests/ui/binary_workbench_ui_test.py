@@ -633,6 +633,63 @@ def test_binary_workbench_raw_instructions_show_preprocessed_mips(tmp_path: Path
     assert rows[1].bytes_text == "34 00 12 24"
 
 
+def test_binary_workbench_symbols_recalculate_offsets_and_bytes(tmp_path: Path):
+    assembly_path = tmp_path / "symbols.asm"
+    assembly_path.write_text(
+        "addiu $t1,$zero,_card_id\n"
+        "addiu $a0,$zero,@spell_id\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(assembly_path)
+    tool.tabs.set_current_symbols({"card_id": "0x1B3"}, {"spell_id": "0x15C"}, {})
+    current = tool.tabs.current_context()
+    page = tool.tabs.currentWidget()
+
+    assert current is not None
+    assert [row.offsets["File"] for row in current.rows[:2]] == ["0x00000000", "0x00000004"]
+    assert [row.bytes_text for row in current.rows[:2]] == ["B3 01 09 24", "5C 01 04 24"]
+    assert page.grid.bytes.toPlainText().splitlines()[:2] == ["B3 01 09 24", "5C 01 04 24"]  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_binary_symbols_refresh_overlay_bytes(tmp_path: Path):
+    binary_path = tmp_path / "symbols.bin"
+    binary_path.write_bytes(bytes(8))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    current = tool.tabs.current_context()
+    assert current is not None
+    tool.tabs._set_current_context(  # type: ignore[attr-defined]
+        BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "instruction_overlays": {
+                    "0x00000000": "addiu $t1,$zero,_card_id",
+                    "0x00000004": "addiu $a0,$zero,@spell_id",
+                },
+            }
+        )
+    )
+    tool.tabs.set_current_symbols({"card_id": "0x1B3"}, {"spell_id": "0x15C"}, {})
+    current = tool.tabs.current_context()
+    page = tool.tabs.currentWidget()
+
+    assert current is not None
+    assert current.byte_overlays == {
+        "0x00000000": "B3 01 09 24",
+        "0x00000004": "5C 01 04 24",
+    }
+    assert page.grid.bytes.toPlainText().splitlines()[:2] == ["B3 01 09 24", "5C 01 04 24"]  # type: ignore[attr-defined]
+
+
 def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -1143,6 +1200,77 @@ def test_binary_workbench_select_block_can_load_more_than_visible_rows(tmp_path:
     assert "Length: 256 bytes" in page.summary.text()  # type: ignore[attr-defined]
 
 
+def test_binary_workbench_binary_scrollbar_reaches_past_first_block(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes(range(256)) * 32)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    scrollbar = page.grid.scrollbar  # type: ignore[attr-defined]
+    scrollbar.setValue(scrollbar.maximum())
+    _app().processEvents()
+
+    assert scrollbar.maximum() > 512
+    assert page.grid._visible_start_offset > 512  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_binary_assembly_mode_still_scrolls_whole_source(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes(range(256)) * 32)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    current = tool.tabs.current_context()
+    assert current is not None
+    tool.tabs._set_current_context(  # type: ignore[attr-defined]
+        BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "read_mode": "assembly",
+                "rows": current.rows[:128],
+            }
+        )
+    )
+    page = tool.tabs.currentWidget()
+    scrollbar = page.grid.scrollbar  # type: ignore[attr-defined]
+    scrollbar.setValue(scrollbar.maximum())
+    _app().processEvents()
+
+    assert scrollbar.maximum() > 512
+    assert page.grid._visible_start_offset > 512  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_ctrl_c_copies_entire_virtual_selection(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid._virtual_selection_range = (  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.INSTRUCTION,
+        0,
+        0xE0,
+    )
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key_C, Qt.KeyboardModifier.ControlModifier)
+    QApplication.sendEvent(page.grid.instructions, event)  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    copied = QApplication.clipboard().text().splitlines()
+    assert len(copied) == 57
+    assert copied == ["NOP"] * 57
+
+
 def test_binary_workbench_assembly_tabs_default_ctrl_s_target_is_instruction(tmp_path: Path):
     assembly_path = tmp_path / "call_umi.asm"
     assembly_path.write_text("nop\n", encoding="utf-8")
@@ -1253,7 +1381,7 @@ def test_binary_workbench_ctrl_a_selects_entire_binary_content(tmp_path: Path):
     QApplication.sendEvent(page.grid.bytes, event)  # type: ignore[attr-defined]
     _app().processEvents()
 
-    assert "Length: 4096 bytes" in page.summary.text()  # type: ignore[attr-defined]
+    assert "Length: 5120 bytes" in page.summary.text()  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_symbols_rows_keep_variable_equate_dropdown():
@@ -1667,10 +1795,9 @@ def test_binary_workbench_grid_completion_enter_keeps_instruction_line(tmp_path:
 
 
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
-    colors = [
+    shared_symbol_color = PSX_MIPS_HIGHLIGHTER["equate"]
+    distinct_colors = [
         PSX_MIPS_HIGHLIGHTER["label"],
-        PSX_MIPS_HIGHLIGHTER["equate"],
-        PSX_MIPS_HIGHLIGHTER["variable"],
         psx_mips_highlight_color("mnemonic", "beq"),
         psx_mips_highlight_color("mnemonic", "j"),
         psx_mips_highlight_color("mnemonic", "lw"),
@@ -1682,7 +1809,9 @@ def test_binary_workbench_highlighter_groups_use_distinct_colors():
         psx_mips_highlight_color("registers", "ra"),
     ]
 
-    assert len(colors) == len(set(colors))
+    assert PSX_MIPS_HIGHLIGHTER["variable"] == shared_symbol_color
+    assert shared_symbol_color not in distinct_colors
+    assert len(distinct_colors) == len(set(distinct_colors))
 
 
 def test_binary_workbench_symbols_do_not_match_different_directory(tmp_path: Path):

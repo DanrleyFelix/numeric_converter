@@ -17,6 +17,20 @@ def test_blank_instruction_overlay_does_not_create_nop_bytes():
     assert byte_overlays_from_instruction_overlays({"0x00000000": ""}, {}, {}) == {}
 
 
+def test_instruction_overlay_bytes_use_raw_instruction_symbols():
+    assert byte_overlays_from_instruction_overlays(
+        {
+            "0x00000000": "lw $v0, _actor_hp",
+            "0x00000004": "addiu $v1, $zero, @max_hp",
+        },
+        {"actor_hp": "0x2CD($gp)"},
+        {"max_hp": "0x64"},
+    ) == {
+        "0x00000000": "CD 02 82 8F",
+        "0x00000004": "64 00 03 24",
+    }
+
+
 def test_blank_instruction_overlay_removes_matching_persisted_bytes():
     assert without_blank_instruction_overlays(
         {"0x00000000": "00 00 00 00"},

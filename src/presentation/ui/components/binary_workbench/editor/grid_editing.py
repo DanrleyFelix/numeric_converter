@@ -2,7 +2,6 @@ from src.core.binary_workbench.mips_r3000a import (
     build_source_line_rows,
     editor_mips_instruction,
     expand_pseudo_instructions,
-    instruction_code,
     rebuild_rows_with_offsets,
 )
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
@@ -12,7 +11,6 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     ROW_BYTES,
     address_from_row,
-    assembly_for_encoding,
     normalize_bytes_text,
     normalize_instruction_text,
 )
@@ -170,24 +168,18 @@ class GridEditingMixin:
         equates: dict[str, str],
         labels: dict[str, str],
     ) -> list[BinaryWorkbenchRowDTO]:
-        rows: list[BinaryWorkbenchRowDTO] = []
-        for row in self.export_rows():
-            if not instruction_code(row.instruction):
-                rows.append(row)
-                continue
-            address = address_from_row(row)
-            assembly = assembly_for_encoding(row.instruction, address, labels, variables, equates)
-            data = self._codec.assemble(assembly, address)
-            rows.append(
-                row
-                if data is None
-                else BinaryWorkbenchRowDTO(
-                    offsets=row.offsets,
-                    instruction=row.instruction,
-                    bytes_text=self._codec.bytes_text(data),
-                )
-            )
-        return rows
+        lines = [row.instruction for row in self.export_rows()]
+        rows = build_source_line_rows(
+            lines,
+            self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+            self._offset_base_text(),
+            self._codec,
+            self._visible_start_offset,
+            labels,
+            variables,
+            equates,
+        )
+        return rows or self.export_rows()
 
     def _instruction_rows_from_lines(
         self,

@@ -235,12 +235,16 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     if not all(isinstance(value, str) and value for value in (tab_id, kind, display_name)):
         return None
     source_path = raw.get("source_path")
-    is_virtual_binary = kind == "binary" and raw.get("read_mode") != "assembly"
+    is_virtual_binary = kind == "binary"
     reference_offsets = _reference_offsets(raw)
     active_version_name = str(raw.get("active_version_name")) if isinstance(raw.get("active_version_name"), str) else None
-    byte_overlays, instruction_overlays = without_blank_instruction_overlays(
-        normalize_string_map(raw.get("byte_overlays")),
-        normalize_string_map(raw.get("instruction_overlays")),
+    byte_overlays, instruction_overlays = (
+        ({}, {})
+        if is_virtual_binary
+        else without_blank_instruction_overlays(
+            normalize_string_map(raw.get("byte_overlays")),
+            normalize_string_map(raw.get("instruction_overlays")),
+        )
     )
     return discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
@@ -353,8 +357,8 @@ def binary_workbench_state_to_payload(
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,
                 "version_dirty": tab.version_dirty,
-                "byte_overlays": dict(tab.byte_overlays),
-                "instruction_overlays": dict(tab.instruction_overlays),
+                "byte_overlays": {} if _is_virtual_binary(tab) else dict(tab.byte_overlays),
+                "instruction_overlays": {} if _is_virtual_binary(tab) else dict(tab.instruction_overlays),
                 "original_rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.original_rows],
                 "rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.rows],
                 "view_preferences": {
@@ -377,7 +381,7 @@ def binary_workbench_state_to_payload(
 
 
 def _is_virtual_binary(tab: BinaryWorkbenchTabContextDTO) -> bool:
-    return tab.kind == "binary" and tab.read_mode != "assembly"
+    return tab.kind == "binary"
 
 
 def _reference_offsets(raw: dict[str, Any]) -> list[str]:

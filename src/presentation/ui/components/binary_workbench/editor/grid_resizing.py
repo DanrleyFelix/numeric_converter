@@ -79,5 +79,6 @@ class GridResizingMixin:
                 True,
                 BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH,
             )
+            editor.copyRequested.connect(lambda source: source.copy())
             self._offset_editors[name] = editor
             self.offsets_layout.addWidget(shell, 0)

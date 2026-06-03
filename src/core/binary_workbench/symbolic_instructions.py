@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from src.core.binary_workbench.mips_r3000a import preprocess_instruction
+from src.core.binary_workbench.mips_r3000a import raw_mips_instruction
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchRowDTO
 
@@ -114,8 +114,8 @@ def _assembles_to_bytes(
     equates: dict[str, str],
     codec: CPUArchCodec,
 ) -> bool:
-    assembly = preprocess_instruction(instruction, address, labels, variables, equates)
-    data = codec.assemble(assembly, address)
+    assembly = raw_mips_instruction(instruction, address, labels, variables, equates)
+    data = codec.assemble(assembly, address) if assembly else None
     return data == bytes.fromhex(bytes_text.replace(" ", ""))
 
 

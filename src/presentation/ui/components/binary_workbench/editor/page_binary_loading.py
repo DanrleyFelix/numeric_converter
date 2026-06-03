@@ -111,9 +111,7 @@ class EditorPageBinaryLoadingMixin:
         self,
         context: BinaryWorkbenchTabContextDTO,
     ) -> CachedBinaryReader | None:
-        if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
-            return None
-        if context.read_mode == "assembly" or not context.source_path:
+        if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not context.source_path:
             return None
         path = Path(context.source_path)
         if not path.exists():

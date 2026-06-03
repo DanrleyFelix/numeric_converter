@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
 from src.core.binary_workbench.mips_r3000a.preprocessor import (
-    preprocess_instruction,
+    raw_mips_instruction,
     strip_comment,
 )
 from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
@@ -93,13 +93,15 @@ def byte_overlays_from_instruction_overlays(
         for index, expanded in enumerate(expand_pseudo_instruction(instruction)):
             target_offset = offset + (index * ROW_BYTES)
             address = target_offset
-            assembly = preprocess_instruction(
+            assembly = raw_mips_instruction(
                 expanded,
                 address,
                 labels,
                 variables,
                 equates,
             )
+            if not assembly:
+                continue
             data = codec.assemble(assembly, address)
             if data is not None:
                 byte_overlays[f"0x{target_offset:08X}"] = codec.bytes_text(data)

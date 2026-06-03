@@ -38,9 +38,18 @@ def build_rows_from_instructions(
     lines: list[str],
     offset_names: list[str],
     offset_bases: dict[str, str] | None = None,
+    variables: dict[str, str] | None = None,
+    equates: dict[str, str] | None = None,
 ) -> list[BinaryWorkbenchRowDTO]:
     codec = PsxMipsR3000ACodec()
-    rows = build_source_line_rows(lines, offset_names, offset_bases or {}, codec)
+    rows = build_source_line_rows(
+        lines,
+        offset_names,
+        offset_bases or {},
+        codec,
+        variables=variables,
+        equates=equates,
+    )
     return rows or build_scratch_rows(offset_names)
 
 

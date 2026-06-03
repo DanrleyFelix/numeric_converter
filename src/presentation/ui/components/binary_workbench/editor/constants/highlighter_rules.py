@@ -38,8 +38,8 @@ PSX_MIPS_HIGHLIGHTER = {
     ],
     "hex": "#62C6A1",
     "label": "#FFD166",
-    "equate": "#FF9F1C",
-    "variable": "#C084FC",
+    "equate": "#FF4FD8",
+    "variable": "#FF4FD8",
     "invalid_instruction": "#CD1C1C",
     "comment": "#7F879B",
 }

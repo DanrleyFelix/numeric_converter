@@ -28,6 +28,21 @@ def test_mips_preprocessor_resolves_symbols_and_removes_noise():
     assert raw_mips_instruction("li $v0, 1", 0x80010008, labels, variables, equates) == "addiu $v0, $zero, 1"
 
 
+def test_mips_source_rows_encode_variables_and_equates_from_raw_instructions():
+    rows = build_rows_from_instructions(
+        [
+            "lw $v0, _actor_hp",
+            "addiu $v1, $zero, @max_hp",
+        ],
+        ["File"],
+        variables={"actor_hp": "0x2CD($gp)"},
+        equates={"max_hp": "0x64"},
+    )
+
+    assert [row.offsets["File"] for row in rows] == ["0x00000000", "0x00000004"]
+    assert [row.bytes_text for row in rows] == ["CD 02 82 8F", "64 00 03 24"]
+
+
 def test_mips_pseudo_instructions_expand_to_core_instructions():
     assert expand_pseudo_instruction("li $v0, 1") == ["li $v0, 1"]
     assert expand_pseudo_instruction("move $a0, $s1") == ["addu $a0, $s1, $zero"]

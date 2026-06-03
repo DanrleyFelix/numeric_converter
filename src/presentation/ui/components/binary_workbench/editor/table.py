@@ -18,6 +18,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_selection impor
 from src.presentation.ui.components.binary_workbench.editor.grid_selection_ranges import (
     GridSelectionRangesMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.grid_virtual_selection import (
+    GridVirtualSelectionMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 
 
@@ -29,6 +32,7 @@ class BinaryWorkbenchGrid(
     GridCommitMixin,
     GridEditingMixin,
     GridSelectionMixin,
+    GridVirtualSelectionMixin,
     GridSelectionRangesMixin,
     GridOffsetsMixin,
     QWidget,
@@ -37,6 +41,7 @@ class BinaryWorkbenchGrid(
     selectionSummaryChanged = Signal(str)
     visibleWindowRequested = Signal(int, int, int)
     selectAllRequested = Signal()
+    copySelectionRequested = Signal(str, int, int)
     immediateSymbolRequested = Signal(str, str)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
@@ -65,6 +70,10 @@ class BinaryWorkbenchGrid(
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._layout_refresh_scheduled = False
+        self._virtual_selection_anchor: int | None = None
+        self._virtual_selection_kind: str | None = None
+        self._virtual_selection_range: tuple[str, int, int] | None = None
+        self._virtual_selection_scrolling = False
         self._build_ui()
 
     def set_codec(self, codec: CPUArchCodec) -> None:

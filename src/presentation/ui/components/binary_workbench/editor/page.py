@@ -17,6 +17,9 @@ from src.presentation.ui.components.binary_workbench.editor.page_defaults import
 from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import (
     EditorPageBinaryLoadingMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import (
+    EditorPageVirtualCopyMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.page_context_updates import (
     EditorPageContextMixin,
 )
@@ -36,6 +39,7 @@ if TYPE_CHECKING:
 
 class BinaryWorkbenchEditorPage(
     EditorPageBinaryLoadingMixin,
+    EditorPageVirtualCopyMixin,
     EditorPageContextMixin,
     EditorPageImmediateSymbolsMixin,
     EditorPageSearchMixin,
@@ -64,6 +68,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.rowsChanged.connect(self._on_rows_changed)
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
+        self.grid.copySelectionRequested.connect(self._copy_virtual_selection)
         self.grid.immediateSymbolRequested.connect(self._add_immediate_symbol)
         self.grid.labelActivated.connect(self.go_to_instruction_offset)
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
@@ -141,7 +146,7 @@ class BinaryWorkbenchEditorPage(
         if self._reader is not None:
             self._load_visible_rows(
                 0,
-                min(self._reader.file_size, BINARY_WORKBENCH_LAYOUT.SELECT_ALL_MAX_BYTES),
+                self._reader.file_size,
                 1,
             )
         self.grid.select_all_content()

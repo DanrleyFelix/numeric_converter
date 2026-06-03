@@ -27,6 +27,7 @@ class EditorSelectionScrollMixin:
         if self._shared_scrollbar is None or self._selection_scroll_delta == 0:
             self._stop_selection_scroll()
             return
+        self.selectionAutoScrollAboutToStep.emit(self)
         self._shared_scrollbar.setValue(self._shared_scrollbar.value() + self._selection_scroll_delta)
         position = self.viewport().mapFromGlobal(QCursor.pos())
         cursor = self.cursorForPosition(QPoint(max(position.x(), 0), max(position.y(), 0)))
@@ -35,3 +36,4 @@ class EditorSelectionScrollMixin:
         selection.setPosition(anchor)
         selection.setPosition(cursor.position(), QTextCursor.KeepAnchor)
         self.setTextCursor(selection)
+        self.selectionAutoScrolled.emit(self)

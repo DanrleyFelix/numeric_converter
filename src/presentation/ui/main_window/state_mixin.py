@@ -83,7 +83,10 @@ class MainWindowStateMixin:
         if not self._loaded:
             return
         self._state_service.save_default_context(self._collect_context())
-        self._state_service.save_default_binary_context(self._collect_binary_workbench_state())
+        try:
+            self._state_service.save_default_binary_context(self._collect_binary_workbench_state())
+        except PermissionError:
+            self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_AUTOSAVE_BLOCKED)
         self._state_service.save_program_context(self._program_context)
         self._binary_preferences_service.save(self._binary_workbench_preferences)
         self._preferences_service.update_numeric_flags(

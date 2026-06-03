@@ -4,7 +4,6 @@ import re
 
 from PySide6.QtGui import QColor, QTextCharFormat
 
-from src.core.binary_workbench.mips_r3000a import preprocess_instruction
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
     PSX_MIPS_KNOWN_MNEMONICS,
@@ -23,16 +22,6 @@ def address_from_row(row: BinaryWorkbenchRowDTO) -> int:
     return safe_int(row.offsets.get("File", "0x0"))
 
 
-def assembly_for_encoding(
-    text: str,
-    address: int,
-    labels: dict[str, str],
-    variables: dict[str, str],
-    equates: dict[str, str],
-) -> str:
-    return preprocess_instruction(text, address, labels, variables, equates)
-
-
 def safe_int(value: str, fallback: int = 0) -> int:
     try:
         return int(value, 0)
@@ -43,7 +32,11 @@ def safe_int(value: str, fallback: int = 0) -> int:
 def tooltip_values(values: dict[str, str]) -> dict[str, str]:
     tooltips: dict[str, str] = {}
     for name, value in values.items():
-        number = safe_int(value)
+        try:
+            number = int(value, 0)
+        except ValueError:
+            tooltips[name] = value
+            continue
         tooltips[name] = f"{number} | 0x{number:X}"
     return tooltips
 
