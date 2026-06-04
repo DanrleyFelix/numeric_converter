@@ -28,6 +28,7 @@ QTabWidget#binary-workbench-tabs {
 QTabWidget#binary-workbench-tabs::tab-bar {
     alignment: left;
     left: 0px;
+    top: -5px;
 }
 
 QTabWidget#binary-workbench-tabs::pane {
@@ -42,7 +43,7 @@ QTabBar#binary-workbench-tab-bar {
     background-color: transparent;
     border: none;
     outline: none;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 QTabBar#binary-workbench-tab-bar::base {
@@ -60,12 +61,41 @@ QTabBar#binary-workbench-tab-bar::tab {
     color: $text-muted;
     min-width: 150px;
     max-width: 150px;
-    min-height: 22px;
-    max-height: 22px;
+    min-height: 32px;
+    max-height: 32px;
     padding: $space-4 $space-8;
     margin-right: $space-4;
-    font-size: 10px;
+    font-size: 12px;
     outline: none;
+}
+
+QWidget#binary-workbench-tab-nav {
+    background-color: transparent;
+}
+
+QToolButton#binary-workbench-tab-nav-button {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 24px;
+    max-height: 24px;
+    padding: $space-0;
+    background-color: transparent;
+    border: 1px solid transparent;
+    color: $text-muted;
+    font-size: 12px;
+    outline: none;
+}
+
+QToolButton#binary-workbench-tab-nav-button:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+    color: $text-main;
+}
+
+QToolButton#binary-workbench-tab-nav-button:disabled {
+    background-color: transparent;
+    border-color: transparent;
+    color: $text-muted;
 }
 
 QTabBar#binary-workbench-tab-bar::tab:selected {
@@ -174,6 +204,7 @@ QPlainTextEdit#binary-workbench-instructions-panel {
     color: $text-main;
     selection-background-color: $border-focus;
     selection-color: $text-main;
+    font-size: $fs-c-workbench-editor;
 }
 
 QPlainTextEdit#binary-workbench-offsets-panel {
@@ -335,6 +366,7 @@ QPushButton#help-nav-button:hover {
 }
 
 QPushButton#binary-workbench-tab-close:focus,
+QToolButton#binary-workbench-tab-nav-button:focus,
 QPushButton#preferences-ok:focus,
 QPushButton#preferences-cancel:focus,
 QPushButton#help-nav-button:focus {

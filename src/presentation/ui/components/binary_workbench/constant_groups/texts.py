@@ -82,6 +82,8 @@ class BINARY_WORKBENCH_TEXT:
     ADD_EQUATE_FROM_IMMEDIATE: str = "Add equate"
     OPEN_LABEL_NEW_TAB: str = "Open Label in New Tab"
     LABEL_TAB_NAME_TEMPLATE: str = "{label} - {source}"
+    PREVIOUS_TAB: str = "Previous tab"
+    NEXT_TAB: str = "Next tab"
     LBA_FILE_NAME: str = "File Name"
     LBA_START: str = "LBA Start"
     REFERENCE_OFFSETS_SUBTITLE: str = "Configure up to three extra offset columns."
