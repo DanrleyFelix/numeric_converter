@@ -1426,6 +1426,22 @@ def test_binary_workbench_find_offsets_are_cached_in_context(tmp_path: Path):
     assert current.search_cache["Assembly instruction:nop"] == ["0x00000000", "0x00000008"]
 
 
+def test_binary_workbench_find_decoded_text_ansi_respects_offset_range(tmp_path: Path):
+    binary_path = tmp_path / "decoded.bin"
+    binary_path.write_bytes(bytes.fromhex("00 48 45 4C 4C 4F 00 E7 E3 6F 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO") == [1]
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "ção") == [7]
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", end_offset=5) == [1]
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", start_offset=2) == []
+
+
 def test_binary_workbench_ctrl_s_persists_open_assembly_source(tmp_path: Path):
     assembly_path = tmp_path / "edited.asm"
     assembly_path.write_text("nop\n", encoding="utf-8")

@@ -91,7 +91,7 @@ class BINARY_WORKBENCH_TEXT:
     REFERENCE_BASE: str = "Base at File 0x0"
     REFERENCE_VISIBLE: str = "Visible"
     GO_TO_SUBTITLE: str = "Navigate by offset, LBA, internal file or symbolic target."
-    FIND_SUBTITLE: str = "Search assembly, bytes or future decoded text."
+    FIND_SUBTITLE: str = "Search assembly, bytes or decoded ANSI text."
     SELECT_BLOCK_SUBTITLE: str = "Select a block by start/end or start/length."
     VALUE: str = "Value"
     START_OFFSET: str = "Start Offset"

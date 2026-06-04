@@ -254,6 +254,27 @@ QListWidget#binary-workbench-search-results::item:selected {
     color: $text-main;
 }
 
+QListWidget#binary-workbench-search-results::item:hover {
+    background-color: $bg-workspace-row-hover;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-search-results::item:focus {
+    outline: none;
+    border: none;
+}
+
+QListWidget#binary-workbench-search-results::item:selected:focus {
+    background-color: $bg-workspace-row-hover;
+    color: $text-main;
+    outline: none;
+    border: none;
+}
+
+QListWidget#binary-workbench-search-results:focus {
+    outline: none;
+}
+
 QScrollArea#binary-workbench-version-scroll {
     background-color: $bg-workspace-row;
     border: 1px solid $border-workspace-row;
