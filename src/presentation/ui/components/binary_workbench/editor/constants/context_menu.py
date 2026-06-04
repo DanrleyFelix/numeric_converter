@@ -7,4 +7,7 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Paste": "\uf0ea",
     "Delete": "\uf2ed",
     "Select All": "\uf00a",
+    "Add variable name": "\uf02b",
+    "Add equate": "\uf52c",
+    "Open Label in New Tab": "\uf35d",
 }

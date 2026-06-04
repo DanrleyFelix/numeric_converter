@@ -15,8 +15,7 @@ class GridSelectionRangesMixin:
             f"Selected: 0x{first:08X}..0x{last:08X} | Length: {len(selected)} bytes"
         )
 
-    def _emit_instruction_selection(self, cursor: QTextCursor) -> None:
-        editor = self.instructions
+    def _emit_instruction_selection(self, editor, cursor: QTextCursor) -> None:
         start_block = editor.document().findBlock(cursor.selectionStart()).blockNumber()
         end_position = max(cursor.selectionEnd() - 1, cursor.selectionStart())
         end_block = editor.document().findBlock(end_position).blockNumber()

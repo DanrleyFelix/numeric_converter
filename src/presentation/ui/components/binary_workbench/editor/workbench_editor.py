@@ -24,7 +24,7 @@ from src.presentation.ui.helpers.load_qss import STYLESHEET
 class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLabelNavigationMixin, EditorSelectionScrollMixin, QPlainTextEdit):
     focused = Signal()
     selectAllRequested = Signal()
-    immediateSymbolRequested = Signal(str, str)
+    immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
     copyRequested = Signal(object)

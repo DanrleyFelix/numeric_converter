@@ -33,7 +33,10 @@ def _glyph_icon(glyph: str) -> QIcon:
     painter.setFont(font)
     painter.drawText(pixmap.rect(), Qt.AlignCenter, glyph)
     painter.end()
-    return QIcon(pixmap)
+    icon = QIcon()
+    for mode in (QIcon.Normal, QIcon.Disabled, QIcon.Active, QIcon.Selected):
+        icon.addPixmap(pixmap, mode)
+    return icon
 
 
 def _clean_text(text: str) -> str:

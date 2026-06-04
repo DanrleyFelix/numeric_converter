@@ -154,3 +154,72 @@ def test_symbolic_preservation_clears_rows_without_complete_bytes():
         {},
         PsxMipsR3000ACodec(),
     ) == [row]
+
+
+def test_symbolic_preservation_keeps_comments_when_bytes_change():
+    row = BinaryWorkbenchRowDTO(
+        offsets={"File": "0x00000000"},
+        instruction="addiu $v0, $zero, 0x72",
+        bytes_text="72 00 02 24",
+    )
+    previous = BinaryWorkbenchRowDTO(
+        offsets={"File": "0x00000000"},
+        instruction="addiu $v0, $zero, @card_id ; keep comment",
+        bytes_text="71 00 02 24",
+    )
+
+    rows = preserve_symbolic_rows(
+        [row],
+        [previous],
+        {},
+        {},
+        {"card_id": "0x72"},
+        PsxMipsR3000ACodec(),
+        {"card_id": ["0x00000000"]},
+    )
+
+    assert rows[0].instruction == "addiu $v0, $zero, @card_id ; keep comment"
+
+
+def test_symbolic_preservation_keeps_comments_without_symbols():
+    row = BinaryWorkbenchRowDTO(
+        offsets={"File": "0x00000000"},
+        instruction="addiu $v0, $zero, 0x72",
+        bytes_text="72 00 02 24",
+    )
+    previous = BinaryWorkbenchRowDTO(
+        offsets={"File": "0x00000000"},
+        instruction="addiu $v0, $zero, 0x71 ; keep comment",
+        bytes_text="71 00 02 24",
+    )
+
+    rows = preserve_symbolic_rows(
+        [row],
+        [previous],
+        {},
+        {},
+        {},
+        PsxMipsR3000ACodec(),
+    )
+
+    assert rows[0].instruction == "addiu $v0, $zero, 0x72 ; keep comment"
+
+
+def test_symbol_offsets_replace_memory_operand_at_known_offset():
+    row = BinaryWorkbenchRowDTO(
+        offsets={"File": "0x00000000"},
+        instruction="lw $v0, 0x2CD($gp)",
+        bytes_text="CD 02 82 8F",
+    )
+
+    rows = preserve_symbolic_rows(
+        [row],
+        [],
+        {},
+        {"actor_hp": "0x2CD($gp)"},
+        {},
+        PsxMipsR3000ACodec(),
+        {"actor_hp": ["0x00000000"]},
+    )
+
+    assert rows[0].instruction == "lw $v0, _actor_hp"

@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.dtos import (
@@ -25,6 +25,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 )
 from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchLabelsDialog,
+    BinaryWorkbenchSymbolOffsetsDialog,
     BinaryWorkbenchSymbolsDialog,
 )
 from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
@@ -35,6 +36,9 @@ from src.presentation.ui.components.binary_workbench.editor.highlighter_colors i
 )
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
     use_white_menu_icons,
+)
+from src.presentation.ui.components.binary_workbench.editor import (
+    page_immediate_symbols as page_immediate_symbols_module,
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
@@ -656,6 +660,84 @@ def test_binary_workbench_symbols_recalculate_offsets_and_bytes(tmp_path: Path):
     assert page.grid.bytes.toPlainText().splitlines()[:2] == ["B3 01 09 24", "5C 01 04 24"]  # type: ignore[attr-defined]
 
 
+def test_binary_workbench_add_equate_replaces_immediate_text(tmp_path: Path, monkeypatch):
+    class Dialog:
+        DialogCode = QDialog.DialogCode
+
+        def __init__(self, *_args):
+            pass
+
+        def exec(self):
+            return self.DialogCode.Accepted
+
+        def symbol_name(self):
+            return "card_id"
+
+    monkeypatch.setattr(page_immediate_symbols_module, "ImmediateSymbolNameDialog", Dialog)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("addiu $t1,$zero,0x71")  # type: ignore[attr-defined]
+    _app().processEvents()
+    text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+    start = text.index("0x71")
+    page._add_immediate_symbol(  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.EQUATE_TARGET,
+        "0x71",
+        start,
+        start + len("0x71"),
+    )
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.equates == {"card_id": "0x71"}
+    assert page.grid.instructions.toPlainText() == "ADDIU $t1,$zero,@card_id"  # type: ignore[attr-defined]
+    assert page.grid.bytes.toPlainText() == "71 00 09 24"  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_add_variable_replaces_memory_operand(tmp_path: Path, monkeypatch):
+    class Dialog:
+        DialogCode = QDialog.DialogCode
+
+        def __init__(self, *_args):
+            pass
+
+        def exec(self):
+            return self.DialogCode.Accepted
+
+        def symbol_name(self):
+            return "actor_hp"
+
+    monkeypatch.setattr(page_immediate_symbols_module, "ImmediateSymbolNameDialog", Dialog)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("lw $v0, 0x2CD($gp)")  # type: ignore[attr-defined]
+    _app().processEvents()
+    text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+    start = text.index("0x2CD($gp)")
+    page._add_immediate_symbol(  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.VARIABLE_TARGET,
+        "0x2CD($gp)",
+        start,
+        start + len("0x2CD($gp)"),
+    )
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.variables == {"actor_hp": "0x2CD($gp)"}
+    assert page.grid.instructions.toPlainText() == "LW $v0, _actor_hp"  # type: ignore[attr-defined]
+    assert page.grid.bytes.toPlainText() == "CD 02 82 8F"  # type: ignore[attr-defined]
+
+
 def test_binary_workbench_binary_symbols_refresh_overlay_bytes(tmp_path: Path):
     binary_path = tmp_path / "symbols.bin"
     binary_path.write_bytes(bytes(8))
@@ -1271,6 +1353,49 @@ def test_binary_workbench_ctrl_c_copies_entire_virtual_selection(tmp_path: Path)
     assert copied == ["NOP"] * 57
 
 
+def test_binary_workbench_raw_instructions_virtual_selection_is_visible(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid._select_visible_virtual_range(  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        0,
+        0x10,
+    )
+
+    assert page.grid.raw_instructions.textCursor().selectedText().count("nop") == 5  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_ctrl_c_copies_entire_raw_virtual_selection(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid._virtual_selection_range = (  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        0,
+        0xE0,
+    )
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key_C, Qt.KeyboardModifier.ControlModifier)
+    QApplication.sendEvent(page.grid.raw_instructions, event)  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    copied = QApplication.clipboard().text().splitlines()
+    assert len(copied) == 57
+    assert copied == ["nop"] * 57
+
+
 def test_binary_workbench_assembly_tabs_default_ctrl_s_target_is_instruction(tmp_path: Path):
     assembly_path = tmp_path / "call_umi.asm"
     assembly_path.write_text("nop\n", encoding="utf-8")
@@ -1386,15 +1511,35 @@ def test_binary_workbench_ctrl_a_selects_entire_binary_content(tmp_path: Path):
 
 def test_binary_workbench_symbols_rows_keep_variable_equate_dropdown():
     _app()
-    dialog = BinaryWorkbenchSymbolsDialog({"var": "20"}, {}, {})
+    dialog = BinaryWorkbenchSymbolsDialog(
+        {"var": "20"},
+        {},
+        {},
+        symbol_offsets={"var": ["0x00000000", "0x0000000C"]},
+    )
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
 
     assert len(combos) >= 2
     assert [combos[-1].itemText(index) for index in range(combos[-1].count())] == ["Variable", "Equate"]
+    assert BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS in buttons
     variables, _, labels = dialog.values()
 
     assert variables == {"var": "20"}
     assert labels == {}
+
+
+def test_binary_workbench_symbol_offsets_dialog_lists_offsets():
+    _app()
+    dialog = BinaryWorkbenchSymbolOffsetsDialog(
+        "var",
+        ["0x00000000", "0x0000000C"],
+    )
+
+    assert [dialog.offsets.item(index).text() for index in range(dialog.offsets.count())] == [
+        "0x00000000",
+        "0x0000000C",
+    ]
 
 
 def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
@@ -1508,20 +1653,26 @@ def test_binary_workbench_go_to_after_stale_bytes_focus_preserves_symbols(tmp_pa
 def test_binary_workbench_context_menu_uses_white_icons():
     _app()
     menu = QMenu()
-    action = menu.addAction("Undo")
+    actions = [
+        menu.addAction("Undo"),
+        menu.addAction(BINARY_WORKBENCH_TEXT.ADD_VARIABLE_FROM_IMMEDIATE),
+        menu.addAction(BINARY_WORKBENCH_TEXT.ADD_EQUATE_FROM_IMMEDIATE),
+        menu.addAction(BINARY_WORKBENCH_TEXT.OPEN_LABEL_NEW_TAB),
+    ]
 
     use_white_menu_icons(menu)
 
-    pixmap = action.icon().pixmap(BINARY_WORKBENCH_LAYOUT.CONTEXT_MENU_ICON_SIZE)
-    image = pixmap.toImage()
-    white_pixels = [
-        image.pixelColor(x, y)
-        for x in range(image.width())
-        for y in range(image.height())
-        if image.pixelColor(x, y).alpha() > 0
-    ]
-    assert not pixmap.isNull()
-    assert all(pixel.red() == 255 and pixel.green() == 255 and pixel.blue() == 255 for pixel in white_pixels)
+    for action in actions:
+        pixmap = action.icon().pixmap(BINARY_WORKBENCH_LAYOUT.CONTEXT_MENU_ICON_SIZE)
+        image = pixmap.toImage()
+        white_pixels = [
+            image.pixelColor(x, y)
+            for x in range(image.width())
+            for y in range(image.height())
+            if image.pixelColor(x, y).alpha() > 0
+        ]
+        assert not pixmap.isNull()
+        assert all(pixel.red() == 255 and pixel.green() == 255 and pixel.blue() == 255 for pixel in white_pixels)
 
 
 def test_binary_workbench_lba_filesystem_uses_editable_rows():

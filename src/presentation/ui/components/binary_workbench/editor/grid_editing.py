@@ -52,7 +52,15 @@ class GridEditingMixin:
         if updated is None:
             return
         if editing_bytes:
-            updated = preserve_symbolic_rows(updated, self._rows, self._labels, self._variables, self._equates, self._codec)
+            updated = preserve_symbolic_rows(
+                updated,
+                self._rows,
+                self._labels,
+                self._variables,
+                self._equates,
+                self._codec,
+                self._symbol_offsets,
+            )
         self._rows = updated
         if not editing_bytes:
             self._set_editing_labels(labels_from_rows(updated))
@@ -167,8 +175,11 @@ class GridEditingMixin:
         variables: dict[str, str],
         equates: dict[str, str],
         labels: dict[str, str],
+        replacement: tuple[int, int, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO]:
         lines = [row.instruction for row in self.export_rows()]
+        if replacement is not None:
+            lines = self._instruction_lines_with_replacement(lines, replacement)
         rows = build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
@@ -180,6 +191,21 @@ class GridEditingMixin:
             equates,
         )
         return rows or self.export_rows()
+
+    def _instruction_lines_with_replacement(
+        self,
+        lines: list[str],
+        replacement: tuple[int, int, str],
+    ) -> list[str]:
+        start, end, text = replacement
+        block = self.instructions.document().findBlock(start)
+        if not block.isValid() or not 0 <= block.blockNumber() < len(lines):
+            return lines
+        line = lines[block.blockNumber()]
+        column_start = max(0, start - block.position())
+        column_end = max(column_start, end - block.position())
+        lines[block.blockNumber()] = f"{line[:column_start]}{text}{line[column_end:]}"
+        return lines
 
     def _instruction_rows_from_lines(
         self,

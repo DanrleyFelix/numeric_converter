@@ -2,8 +2,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.environment.symbol_offsets_dialog import (
+    BinaryWorkbenchSymbolOffsetsDialog,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     SymbolRemoveRowButton,
+    symbol_button,
     symbol_input,
     symbol_kind_combo,
 )
@@ -42,16 +47,29 @@ class SymbolsDialogRowsMixin:
         kind_combo = symbol_kind_combo(row, kind)
         name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name)
         value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value)
+        offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "preferences-cancel", row)
+        offsets.setFixedSize(
+            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_ACTION_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
+        )
+        offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
         remove = SymbolRemoveRowButton(row)
         remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
         remove.clicked.connect(lambda: self._remove_row(row))
         layout.addWidget(kind_combo, 0)
         layout.addWidget(name_edit, 0)
         layout.addWidget(value_edit, 0)
+        layout.addWidget(offsets, 0)
         layout.addWidget(remove, 0, Qt.AlignVCenter)
         self._rows.append((kind_combo, name_edit, value_edit, row))
         self.body_layout.addWidget(row, 0, Qt.AlignLeft)
         self._apply_filter()
+
+    def _open_symbol_offsets(self, name: str) -> None:
+        clean_name = name.strip().lstrip("_@")
+        offsets = self._symbol_offsets.get(clean_name, [])
+        dialog = BinaryWorkbenchSymbolOffsetsDialog(clean_name or name.strip(), offsets, self)
+        dialog.exec()
 
     def _remove_row(self, row: QWidget) -> None:
         self._rows = [item for item in self._rows if item[3] is not row]

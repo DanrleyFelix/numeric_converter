@@ -34,6 +34,7 @@ class BinaryWorkbenchSymbolsDialog(
         default_library_name: str = "",
         default_directory: str = "",
         parent=None,
+        symbol_offsets: dict[str, list[str]] | None = None,
     ) -> None:
         if parent is None and libraries is not None and not isinstance(libraries, list):
             parent = libraries
@@ -53,6 +54,7 @@ class BinaryWorkbenchSymbolsDialog(
         self._saved_library_path = ""
         self._loaded_library_name = ""
         self._loaded_library_path = ""
+        self._symbol_offsets = dict(symbol_offsets or {})
         self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget]] = []
         self._build_dialog(variables, equates, labels, default_library_name)
 

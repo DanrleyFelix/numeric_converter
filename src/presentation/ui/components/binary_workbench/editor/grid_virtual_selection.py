@@ -59,7 +59,7 @@ class GridVirtualSelectionMixin:
         if kind == BINARY_WORKBENCH_TEXT.BYTES:
             self._select_visible_byte_range(start, end)
             return
-        self._select_visible_instruction_range(start, end)
+        self._select_visible_instruction_range(kind, start, end)
 
     def _select_visible_byte_range(self, start_offset: int, end_offset: int) -> None:
         positions = self._byte_selection_positions(start_offset, end_offset)
@@ -70,20 +70,21 @@ class GridVirtualSelectionMixin:
         cursor.setPosition(positions[1], QTextCursor.KeepAnchor)
         self.bytes.setTextCursor(cursor)
 
-    def _select_visible_instruction_range(self, start_offset: int, end_offset: int) -> None:
+    def _select_visible_instruction_range(self, kind: str, start_offset: int, end_offset: int) -> None:
         start_row = self._row_for_offset(start_offset)
         end_row = self._row_for_offset(end_offset)
         if start_row is None or end_row is None:
             return
-        document = self.instructions.document()
+        editor = self.raw_instructions if kind == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS else self.instructions
+        document = editor.document()
         start_block = document.findBlockByNumber(start_row)
         end_block = document.findBlockByNumber(end_row)
         if not start_block.isValid() or not end_block.isValid():
             return
-        cursor = self.instructions.textCursor()
+        cursor = editor.textCursor()
         cursor.setPosition(start_block.position())
         cursor.setPosition(end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
-        self.instructions.setTextCursor(cursor)
+        editor.setTextCursor(cursor)
 
     def _emit_virtual_selection_summary(self, kind: str, anchor_offset: int, cursor_offset: int) -> None:
         first, last = sorted((anchor_offset, cursor_offset))
@@ -107,6 +108,8 @@ class GridVirtualSelectionMixin:
     def _editor_kind_for_selection(self, editor) -> str | None:
         if editor is self.bytes:
             return BINARY_WORKBENCH_TEXT.BYTES
+        if editor is self.raw_instructions:
+            return BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
         if editor is self.instructions:
             return BINARY_WORKBENCH_TEXT.INSTRUCTION
         return None

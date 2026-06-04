@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLineEdit, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -9,10 +11,10 @@ from src.presentation.ui.components.binary_workbench.constants import (
 )
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
-    symbol_field,
     symbol_input,
-    symbol_label,
 )
+
+SYMBOL_NAME_CLEANUP = re.compile(r"[^0-9a-z_]+")
 
 
 class ImmediateSymbolNameDialog(QDialog):
@@ -35,21 +37,20 @@ class ImmediateSymbolNameDialog(QDialog):
         shell_layout = QVBoxLayout(shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        shell_layout.addWidget(symbol_label(self._kind, "workspace-table-title", shell))
         self.name_input = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, shell, _default_name(self._kind, self._value))
         value_input = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, shell, self._value)
         value_input.setReadOnly(True)
         row = QHBoxLayout()
-        row.setSpacing(10)
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.name_input))
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, value_input))
+        row.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_FIELD_SPACING)
+        row.addWidget(self.name_input)
+        row.addWidget(value_input)
         shell_layout.addLayout(row)
         actions = QHBoxLayout()
-        actions.setSpacing(14)
+        actions.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_ACTION_SPACING)
         ok = symbol_button("OK", "preferences-ok", shell)
         cancel = symbol_button("Cancel", "preferences-cancel", shell)
         for button in (ok, cancel):
-            button.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+            button.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
         actions.addWidget(ok, 0, Qt.AlignLeft)
@@ -61,4 +62,5 @@ class ImmediateSymbolNameDialog(QDialog):
 def _default_name(kind: str, value: str) -> str:
     prefix = "variable" if kind == BINARY_WORKBENCH_TEXT.VARIABLE_TARGET else "equate"
     cleaned = value.lower().replace("-", "minus_").replace("+", "").replace("0x", "")
+    cleaned = SYMBOL_NAME_CLEANUP.sub("_", cleaned.replace("$", "")).strip("_")
     return f"{prefix}_{cleaned or 'value'}"

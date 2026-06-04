@@ -45,12 +45,13 @@ class GridLayoutMixin:
         self.instructions.immediateSymbolRequested.connect(self.immediateSymbolRequested)
         self.instructions.labelActivated.connect(self.labelActivated)
         self.instructions.labelOpenTabRequested.connect(self.labelOpenTabRequested)
-        self.raw_instructions.copyRequested.connect(lambda editor: editor.copy())
+        self.raw_instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS))
         self.bytes.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES))
         self.instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION))
+        self.raw_instructions.cursorPositionChanged.connect(self._emit_selection_summary)
         self.bytes.cursorPositionChanged.connect(self._emit_selection_summary)
         self.instructions.cursorPositionChanged.connect(self._emit_selection_summary)
-        for editor in (self.bytes, self.instructions):
+        for editor in (self.raw_instructions, self.bytes, self.instructions):
             editor.copyRequested.connect(self._copy_editor_selection)
             editor.selectionStarted.connect(self._clear_virtual_selection)
             editor.selectionAutoScrollAboutToStep.connect(self._capture_virtual_selection_anchor)
@@ -80,7 +81,9 @@ class GridLayoutMixin:
         editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         editor.document().setDocumentMargin(BINARY_WORKBENCH_LAYOUT.EDITOR_DOCUMENT_MARGIN)
         editor.set_shared_scrollbar(self.scrollbar)
-        editor.selectAllRequested.connect(editor.selectAll if read_only else self.selectAllRequested.emit)
+        editor.selectAllRequested.connect(
+            editor.selectAll if read_only and object_name != "binary-workbench-raw-instructions-panel" else self.selectAllRequested.emit
+        )
         if width is not None:
             editor.setFixedWidth(width)
         return editor

@@ -6,32 +6,17 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.modules.dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_LAYOUT,
-    BINARY_WORKBENCH_TEXT,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_defaults import (
-    default_editor_kind,
-    offset_from_hex,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import (
-    EditorPageBinaryLoadingMixin,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import (
-    EditorPageVirtualCopyMixin,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_context_updates import (
-    EditorPageContextMixin,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import (
-    EditorPageImmediateSymbolsMixin,
-)
-from src.presentation.ui.components.binary_workbench.editor.page_search import (
-    EditorPageSearchMixin,
-)
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.page_defaults import default_editor_kind, offset_from_hex
+from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import EditorPageBinaryLoadingMixin
+from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import EditorPageVirtualCopyMixin
+from src.presentation.ui.components.binary_workbench.editor.page_context_updates import EditorPageContextMixin
+from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
+from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
+from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 
 if TYPE_CHECKING:
     from src.core.binary_workbench.block_reader import CachedBinaryReader
@@ -92,8 +77,9 @@ class BinaryWorkbenchEditorPage(
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context
         self._reader = self._reader_for_context(context)
-        self.grid.set_codec(binary_workbench_codec_for(context.cpu_arch))
-        self.grid.set_symbols(context.labels, context.variables, context.equates)
+        codec = binary_workbench_codec_for(context.cpu_arch)
+        self.grid.set_codec(codec)
+        self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
         self.grid.set_default_editor_kind(default_editor_kind(context))
         if self._reader is not None:
             self.grid.load_rows(
@@ -112,9 +98,10 @@ class BinaryWorkbenchEditorPage(
                 1,
             )
         else:
+            rows = apply_symbol_offsets(context.rows, context.variables, context.equates, context.symbol_offsets, codec)
             self.grid.load_rows(
                 self._visible_columns(),
-                context.rows,
+                rows,
                 self._preferences.group_bytes,
                 uppercase_bytes=self._preferences.uppercase_bytes,
                 uppercase_instructions=self._preferences.uppercase_instructions,

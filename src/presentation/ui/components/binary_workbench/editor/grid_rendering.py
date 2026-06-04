@@ -42,10 +42,17 @@ class GridRenderingMixin:
         self._render()
         self._dirty_editor_kind = None
 
-    def set_symbols(self, labels: dict[str, str], variables: dict[str, str], equates: dict[str, str]) -> None:
+    def set_symbols(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+        symbol_offsets: dict[str, list[str]] | None = None,
+    ) -> None:
         self._labels = dict(labels)
         self._variables = dict(variables)
         self._equates = dict(equates)
+        self._symbol_offsets = dict(symbol_offsets or self._symbol_offsets)
         self._instruction_highlighter.set_symbols(labels, variables, equates)
         self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)

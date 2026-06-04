@@ -79,10 +79,10 @@
                 "memory_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "versions": "425d8801013dddf6482821df6e13cb026b7e171059ffc5d0a9c4b240ca576461"
             },
-            "last_open_offset": "0x00000000",
+            "last_open_offset": "0x00000104",
             "navigation_history": [],
             "file_size": 1902592,
-            "version_dirty": false,
+            "version_dirty": true,
             "byte_overlays": {},
             "instruction_overlays": {},
             "original_rows": [],
@@ -111,7 +111,8 @@
                 "L1": "0x00000008"
             },
             "equates": {
-                "spell_id": "0x15C"
+                "spell_id": "0x15C",
+                "test": "0x7BD4"
             },
             "variables": {
                 "card_id": "0x1B3",
@@ -125,12 +126,11 @@
                 "sp_a0": [
                     "0x0000000C"
                 ],
-                "spell_dispacth": [
-                    "0x0000003C"
-                ],
+                "spell_dispacth": [],
                 "spell_id": [
                     "0x00000038"
                 ],
+                "test": [],
                 "L1": [
                     "0x00000008"
                 ]
@@ -342,22 +342,22 @@
                 },
                 {
                     "offset": "0x0000003C",
-                    "instruction": "JAL _spell_dispacth",
+                    "instruction": "jal 0x26BA4",
                     "bytes_text": "E9 9A 00 0C"
                 },
                 {
                     "offset": "0x00000040",
-                    "instruction": "ADDIU $A1,$ZERO,0x0001",
+                    "instruction": "addiu $a1, $zero, 0x1",
                     "bytes_text": "01 00 05 24"
                 },
                 {
                     "offset": "0x00000044",
-                    "instruction": "LW $A0,0x00($SP)",
+                    "instruction": "lw $a0, 0x0($sp)",
                     "bytes_text": "00 00 A4 8F"
                 },
                 {
                     "offset": "0x00000048",
-                    "instruction": "LW  $A1,0x04($SP)",
+                    "instruction": "lw $a1, 0x4($sp)",
                     "bytes_text": "04 00 A5 8F"
                 }
             ],
@@ -371,7 +371,7 @@
             }
         }
     ],
-    "active_tab_id": "7fb20cd01f0f4d72ac9680a8433f8f4f",
+    "active_tab_id": "aa06682702ba41ecbc6eb9255da30a46",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
@@ -381,7 +381,7 @@
         "save_assembly": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
         "lba_filesystem": "",
         "memory_regions": "",
-        "symbols": "",
+        "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
         "versions": "",
         "encoding_tables": ""
     },

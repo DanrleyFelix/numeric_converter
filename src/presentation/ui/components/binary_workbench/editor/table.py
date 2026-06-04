@@ -42,7 +42,7 @@ class BinaryWorkbenchGrid(
     visibleWindowRequested = Signal(int, int, int)
     selectAllRequested = Signal()
     copySelectionRequested = Signal(str, int, int)
-    immediateSymbolRequested = Signal(str, str)
+    immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
 
@@ -63,6 +63,7 @@ class BinaryWorkbenchGrid(
         self._labels: dict[str, str] = {}
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
+        self._symbol_offsets: dict[str, list[str]] = {}
         self._last_editor_kind: str | None = None
         self._dirty_editor_kind: str | None = None
         self._edit_origin_kind: str | None = None

@@ -3,6 +3,7 @@ from pathlib import Path
 from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
+from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
@@ -42,12 +43,19 @@ class EditorPageBinaryLoadingMixin:
                 dict(self._context.reference_offset_bases),
             )
         rows = apply_instruction_overlays(rows, self._context.instruction_overlays)
+        rows = apply_symbol_offsets(
+            rows,
+            self._context.variables,
+            self._context.equates,
+            self._context.symbol_offsets,
+            self.grid._codec,
+        )
         self.grid.render_rows(rows, visible_offset)
         self._select_pending_offset()
         self._loading_visible_rows = False
         labels = merged_instruction_labels(rows, self._context.instruction_overlays)
         symbol_rows = [*rows, *rows_from_overlays(self._context.instruction_overlays)]
-        self.grid.set_symbols(labels, self._context.variables, self._context.equates)
+        self.grid.set_symbols(labels, self._context.variables, self._context.equates, self._context.symbol_offsets)
         self._context = BinaryWorkbenchTabContextDTO(
             **{
                 **self._context.__dict__,

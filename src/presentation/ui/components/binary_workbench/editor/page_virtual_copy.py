@@ -14,11 +14,12 @@ class EditorPageVirtualCopyMixin:
     def _copy_virtual_selection(self, kind: str, start_offset: int, end_offset: int) -> None:
         if self._reader is None:
             return
-        text = (
-            self._copy_virtual_bytes(start_offset, end_offset)
-            if kind == BINARY_WORKBENCH_TEXT.BYTES
-            else self._copy_virtual_instructions(start_offset, end_offset)
-        )
+        if kind == BINARY_WORKBENCH_TEXT.BYTES:
+            text = self._copy_virtual_bytes(start_offset, end_offset)
+        elif kind == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS:
+            text = self._copy_virtual_raw_instructions(start_offset, end_offset)
+        else:
+            text = self._copy_virtual_instructions(start_offset, end_offset)
         QApplication.clipboard().setText(text)
 
     def _copy_virtual_bytes(self, start_offset: int, end_offset: int) -> str:
@@ -31,6 +32,16 @@ class EditorPageVirtualCopyMixin:
         )
 
     def _copy_virtual_instructions(self, start_offset: int, end_offset: int) -> str:
+        rows = self._virtual_rows(start_offset, end_offset)
+        return "\n".join(self.grid._display_instruction(row.instruction) for row in rows)
+
+    def _copy_virtual_raw_instructions(self, start_offset: int, end_offset: int) -> str:
+        return "\n".join(
+            self.grid._raw_instruction_from_bytes(row.bytes_text, int(row.offsets["File"], 16))
+            for row in self._virtual_rows(start_offset, end_offset)
+        )
+
+    def _virtual_rows(self, start_offset: int, end_offset: int) -> list:
         word_size = self.grid._codec.word_size
         aligned_start = start_offset - (start_offset % word_size)
         aligned_end = end_offset - (end_offset % word_size)
@@ -42,5 +53,4 @@ class EditorPageVirtualCopyMixin:
             aligned_start,
             dict(self._context.reference_offset_bases),
         )
-        rows = apply_instruction_overlays(rows, self._context.instruction_overlays)
-        return "\n".join(self.grid._display_instruction(row.instruction) for row in rows)
+        return apply_instruction_overlays(rows, self._context.instruction_overlays)

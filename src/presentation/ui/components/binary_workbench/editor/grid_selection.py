@@ -49,6 +49,8 @@ class GridSelectionMixin:
             return self._last_editor_kind
         if self.bytes.hasFocus():
             return BINARY_WORKBENCH_TEXT.BYTES
+        if self.raw_instructions.hasFocus():
+            return BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
         if self.instructions.hasFocus():
             return BINARY_WORKBENCH_TEXT.INSTRUCTION
         return self._last_editor_kind
@@ -61,18 +63,18 @@ class GridSelectionMixin:
             self._last_editor_kind = kind
 
     def _select_all_focused_editor(self) -> None:
-        editor = self.bytes if self.focused_editor_kind() == BINARY_WORKBENCH_TEXT.BYTES else self.instructions
+        editors = {
+            BINARY_WORKBENCH_TEXT.BYTES: self.bytes,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: self.raw_instructions,
+            BINARY_WORKBENCH_TEXT.INSTRUCTION: self.instructions,
+        }
+        editor = editors.get(self.focused_editor_kind(), self.instructions)
         editor.selectAll()
         editor.setFocus()
         self._emit_selection_summary()
 
     def _emit_selection_summary(self) -> None:
-        if self.bytes.textCursor().hasSelection():
-            editor = self.bytes
-        elif self.instructions.textCursor().hasSelection():
-            editor = self.instructions
-        else:
-            editor = self.bytes if self.bytes.hasFocus() else self.instructions
+        editor = self._selected_or_focused_editor()
         cursor = editor.textCursor()
         if not cursor.hasSelection():
             if self._virtual_selection_scrolling:
@@ -84,4 +86,13 @@ class GridSelectionMixin:
             kind, anchor_offset, cursor_offset = self._virtual_selection_range
             self._emit_virtual_selection_summary(kind, anchor_offset, cursor_offset)
             return
-        self._emit_bytes_selection(cursor) if editor is self.bytes else self._emit_instruction_selection(cursor)
+        self._emit_bytes_selection(cursor) if editor is self.bytes else self._emit_instruction_selection(editor, cursor)
+
+    def _selected_or_focused_editor(self):
+        for editor in (self.bytes, self.raw_instructions, self.instructions):
+            if editor.textCursor().hasSelection():
+                return editor
+        for editor in (self.bytes, self.raw_instructions, self.instructions):
+            if editor.hasFocus():
+                return editor
+        return self.instructions
