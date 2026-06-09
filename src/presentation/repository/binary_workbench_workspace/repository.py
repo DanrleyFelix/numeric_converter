@@ -16,7 +16,6 @@ from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
     LBA_FILESYSTEM,
-    MEMORY_REGIONS,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
     SCHEMA_VERSION,
@@ -38,8 +37,6 @@ from src.presentation.repository.binary_workbench_workspace.manifest import (
 from src.presentation.repository.binary_workbench_workspace.payloads import (
     lba_from_payload,
     lba_payload,
-    memory_regions_from_payload,
-    memory_regions_payload,
     source_matches,
     symbols_from_payload,
     symbols_payload,
@@ -92,7 +89,6 @@ class BinaryWorkbenchWorkspaceRepository:
         module_paths = module_paths_from_manifest(modules, self._directory)
         variables, equates = symbols_from_payload(read_json(Path(module_paths.get(SYMBOLS, ""))))
         sector_size, files = lba_from_payload(read_json(Path(module_paths.get(LBA_FILESYSTEM, ""))))
-        regions = memory_regions_from_payload(read_json(Path(module_paths.get(MEMORY_REGIONS, ""))))
         versions = self._versions_from_manifest(modules)
         active = modules.get(ACTIVE_VERSION) if isinstance(modules.get(ACTIVE_VERSION), str) else None
         active_version = next((item for item in versions if item.name == active), None)
@@ -122,7 +118,6 @@ class BinaryWorkbenchWorkspaceRepository:
                 "equates": equates,
                 "internal_files": files,
                 "lba_sector_size": sector_size,
-                "memory_regions": regions,
                 "versions": versions,
                 "active_version_name": active,
                 "read_mode": "assembly"
@@ -145,7 +140,6 @@ class BinaryWorkbenchWorkspaceRepository:
                     equates,
                     sector_size,
                     files,
-                    regions,
                     loaded.versions,
                 ),
             }
@@ -159,12 +153,15 @@ class BinaryWorkbenchWorkspaceRepository:
         tab = compact_binary_context_overlays(tab)
         target = self._normalize_manifest_path(path or Path(tab.workspace_path or self._default_manifest(tab)))
         target.parent.mkdir(parents=True, exist_ok=True)
-        directories = {**self.default_module_directories(), **tab.module_directories}
-        module_paths = dict(tab.module_paths)
+        directories = {
+            key: value
+            for key, value in {**self.default_module_directories(), **tab.module_directories}.items()
+            if key in MODULE_FOLDERS
+        }
+        module_paths = {key: value for key, value in tab.module_paths.items() if key in MODULE_FOLDERS}
         stem = safe_stem(target.stem)
         module_paths[SYMBOLS] = str(self._write_module(directories, module_paths, SYMBOLS, stem, symbols_payload(stem, tab.variables, tab.equates)))
         module_paths[LBA_FILESYSTEM] = str(self._write_module(directories, module_paths, LBA_FILESYSTEM, stem, lba_payload(stem, tab.lba_sector_size, tab.internal_files)))
-        module_paths[MEMORY_REGIONS] = str(self._write_module(directories, module_paths, MEMORY_REGIONS, stem, memory_regions_payload(stem, tab.memory_regions)))
         version_paths = self._write_versions(tab, directories, module_paths, stem)
         manifest = manifest_payload(tab, self._directory, module_paths, version_paths, directories)
         write_json(target, manifest)

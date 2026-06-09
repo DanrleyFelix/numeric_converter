@@ -14,7 +14,6 @@ from src.main import create_main_window
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
-    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
 )
@@ -43,11 +42,14 @@ from src.presentation.ui.components.binary_workbench.editor import (
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchLbaFilesystemDialog,
-    BinaryWorkbenchMemoryRegionsDialog,
     BinaryWorkbenchVersionActionsDialog,
     BinaryWorkbenchVersionChangeDialog,
+    BinaryWorkbenchVersionNameDialog,
 )
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
+from src.presentation.ui.components.binary_workbench.preferences import (
+    BinaryWorkbenchAdvancedConfigDialog,
+)
 from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
 
 
@@ -252,6 +254,8 @@ def test_binary_workbench_version_dialog_exposes_change_version():
     actions = BinaryWorkbenchVersionActionsDialog()
     buttons = actions.findChildren(QPushButton)
 
+    assert actions.findChild(QLabel, "preferences-title") is None
+    assert actions.layout().spacing() == 10
     assert "Load Versions File" in [button.text() for button in buttons]
     assert "Change Version" in [button.text() for button in buttons]
 
@@ -263,11 +267,32 @@ def test_binary_workbench_version_dialog_exposes_change_version():
         "v1_test_2",
     )
     version_buttons = picker.findChildren(QPushButton)
+    version_list = picker.findChild(QWidget, "binary-workbench-version-list")
 
+    assert picker.findChild(QLabel, "preferences-title") is None
+    assert picker.findChild(QLabel, "preferences-subtitle") is None
+    assert version_list is not None
+    assert version_list.layout().spacing() == 15
+    assert version_list.layout().contentsMargins().left() == 15
     assert [button.text() for button in version_buttons] == ["v2 test", "v1_test_2"]
     assert version_buttons[1].objectName() == "binary-workbench-version-active"
     assert all(button.focusPolicy() == Qt.NoFocus for button in version_buttons)
     assert all(button.cursor().shape() == Qt.PointingHandCursor for button in version_buttons)
+
+
+def test_binary_workbench_create_version_uses_centered_confirm_button():
+    _app()
+    dialog = BinaryWorkbenchVersionNameDialog("Create Version")
+    dialog.show()
+    _app().processEvents()
+    confirm = next(button for button in dialog.findChildren(QPushButton) if button.text() == "Confirm")
+
+    assert dialog.findChild(QLabel, "preferences-title") is None
+    assert dialog.findChild(QLabel, "preferences-subtitle") is None
+    assert dialog.name_field.width() == confirm.width()
+    assert dialog.name_field.height() == confirm.height()
+    assert dialog.name_field.mapTo(dialog, QPoint()).x() == confirm.mapTo(dialog, QPoint()).x()
+    assert confirm.mapTo(dialog, QPoint()).y() - dialog.name_field.mapTo(dialog, QPoint()).y() > dialog.name_field.height()
 
 
 def test_binary_workbench_load_versions_file_replaces_available_versions(tmp_path: Path):
@@ -1167,6 +1192,24 @@ def test_binary_workbench_go_to_dialog_resolves_extra_offsets(tmp_path: Path):
     assert dialog.selected_offsets() == [0x40]
 
 
+def test_binary_workbench_go_to_dialog_lists_hidden_extra_offsets(tmp_path: Path):
+    _app()
+    dialog = BinaryWorkbenchGoToDialog(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="tab",
+            kind="scratch",
+            display_name="scratch.asm",
+            reference_offsets=["File"],
+            reference_offset_bases={"File": "0x00000000", "ram_offset": "0x80010000"},
+        )
+    )
+    dialog.target.setCurrentText("ram_offset")
+    dialog.value.setText("0x80010040")
+
+    assert "ram_offset" in [dialog.target.itemText(index) for index in range(dialog.target.count())]
+    assert dialog.selected_offsets() == [0x40]
+
+
 def test_binary_workbench_go_to_resolves_lba_filesystem_name(tmp_path: Path):
     _app()
     dialog = BinaryWorkbenchGoToDialog(
@@ -1694,6 +1737,8 @@ def test_binary_workbench_context_menu_uses_white_icons():
 def test_binary_workbench_lba_filesystem_uses_editable_rows():
     _app()
     dialog = BinaryWorkbenchLbaFilesystemDialog([BinaryWorkbenchInternalFileDTO("SLUS", 24)])
+    selected: list[int] = []
+    dialog.goToRequested.connect(selected.append)
     dialog.show()
     _app().processEvents()
     fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
@@ -1701,27 +1746,87 @@ def test_binary_workbench_lba_filesystem_uses_editable_rows():
     body = dialog.findChild(QWidget, "workspace-table-body")
     rows = dialog.findChildren(QWidget, "workspace-row")
     buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    labels = [label.text() for label in dialog.findChildren(QLabel)]
+    text_buttons = [button for button in dialog.findChildren(QPushButton) if button.text()]
 
-    assert len(fields) == 5
-    assert dialog.minimumWidth() == 760
-    assert dialog.width() == 820
+    assert len(fields) == 4
+    assert dialog.minimumWidth() == 520
+    assert dialog.minimumHeight() == 220
+    assert dialog.width() == 560
+    assert dialog.height() == 360
     assert body is not None
     assert rows
-    assert fields[0].width() == 288
-    assert {field.width() for field in fields[1:]} == {240}
-    assert {combo.width() for combo in combos} == {240}
+    assert labels == ["LBA Sector"]
+    assert "Library Name" not in {field.placeholderText() for field in fields}
+    assert [field.width() for field in fields] == [140, 130, 140, 130]
+    assert {combo.width() for combo in combos} == {160}
     assert {field.height() for field in fields} == {46}
+    assert {button.width() for button in text_buttons} == {90}
+    assert {button.minimumWidth() for button in text_buttons} == {90}
+    assert {button.maximumWidth() for button in text_buttons} == {90}
     assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["Save"].mapTo(dialog, QPoint()).y()
     assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["OK"].mapTo(dialog, QPoint()).y()
-    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() < 190
+    assert buttons["Save"].mapTo(dialog, QPoint()).x() - buttons["Load"].mapTo(dialog, QPoint()).x() == 105
+    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() == 105
+    assert buttons["+ Add"].mapTo(dialog, QPoint()).y() == fields[1].mapTo(dialog, QPoint()).y()
+    assert buttons["+ Add"].mapTo(dialog, QPoint()).x() > fields[1].mapTo(dialog, QPoint()).x()
+    remove = next(button for button in rows[0].findChildren(QPushButton) if not button.text())
+    assert buttons["OK"].mapTo(dialog, QPoint()).x() + buttons["OK"].width() <= remove.mapTo(dialog, QPoint()).x() + remove.width()
+    assert fields[2].mapTo(dialog, QPoint()).x() == fields[0].mapTo(dialog, QPoint()).x()
     assert fields[3].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
-    assert fields[4].mapTo(dialog, QPoint()).x() == fields[2].mapTo(dialog, QPoint()).x()
-    fields[3].setText("WA_MRG.MRG")
-    fields[4].setText("10010")
+    buttons["Go to"].click()
+    fields[2].setText("WA_MRG.MRG")
+    fields[3].setText("10010")
     mappings = dialog.mappings()
 
+    assert selected == [24 * 2352]
     assert mappings[0].name == "WA_MRG.MRG"
     assert mappings[0].start_lba == 10010
+
+
+def test_binary_workbench_advanced_configuration_uses_confirm_and_block_size_options():
+    _app()
+    dialog = BinaryWorkbenchAdvancedConfigDialog(
+        "PSX - Mips R3000A",
+        BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
+        2048,
+        8000,
+    )
+    dialog.show()
+    _app().processEvents()
+    combos = dialog.findChildren(QComboBox, "advanced-config-dropdown")
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    labels = dialog.findChildren(QLabel)
+
+    assert dialog.findChild(QLabel, "preferences-title") is None
+    assert dialog.findChild(QLabel, "preferences-subtitle") is None
+    assert [label.text() for label in labels] == [
+        "CPU Arch",
+        "Read Mode",
+        "Block Size",
+        "Cache Max Blocks",
+    ]
+    assert [combos[2].itemText(index) for index in range(combos[2].count())] == [
+        "256",
+        "512",
+        "1024",
+        "2048",
+        "4096",
+    ]
+    assert [combos[3].itemText(index) for index in range(combos[3].count())] == [
+        "1000",
+        "2000",
+        "4000",
+        "8000",
+        "16000",
+    ]
+    assert dialog.selected_block_size() == 2048
+    assert dialog.selected_cache_max_blocks() == 8000
+    assert "Confirm" in buttons
+    assert "OK" not in buttons
+    assert {combo.width() for combo in combos} == {200}
+    assert buttons["Confirm"].width() == 200
+    assert buttons["Confirm"].mapTo(dialog, QPoint()).x() == combos[0].mapTo(dialog, QPoint()).x()
 
 
 def test_binary_workbench_lba_filesystem_dialog_loads_json_library(tmp_path: Path):
@@ -1756,24 +1861,6 @@ def test_binary_workbench_lba_filesystem_dialog_saves_json_library(tmp_path: Pat
     assert dialog.saved_library_name() == "disc-map"
     assert '"sector_size": 2048' in library_path.read_text(encoding="utf-8")
     assert '"start_lba": 24' in library_path.read_text(encoding="utf-8")
-
-
-def test_binary_workbench_memory_regions_dialog_saves_decimal_offsets(tmp_path: Path):
-    _app()
-    library_path = tmp_path / "regions.json"
-    dialog = BinaryWorkbenchMemoryRegionsDialog(
-        [BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)]
-    )
-
-    assert dialog.save_json(library_path) is True
-
-    payload = library_path.read_text(encoding="utf-8")
-    assert '"start_offset": 1844224' in payload
-    assert '"end_offset": 1844479' in payload
-    assert dialog.load_json(library_path) is True
-    assert dialog.regions() == [
-        BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)
-    ]
 
 
 def test_binary_workbench_lba_filesystem_does_not_match_different_directory(tmp_path: Path):
@@ -2100,9 +2187,6 @@ def test_binary_workbench_detects_workspace_module_changes_before_closing_tab(tm
 
     tool.tabs.set_current_symbols({"variable1": "20"}, {"equate1": "0x34"}, {})
     tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("slus", 24)])
-    tool.tabs.set_current_memory_regions(
-        [BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)]
-    )
 
     assert tool.tabs.has_unsaved_changes(0) is True
     assert tool.tabs.save_current_workspace() is True

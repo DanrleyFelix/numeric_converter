@@ -23,7 +23,11 @@ class BinaryWorkbenchGoToDialog(QDialog):
         self.target = QComboBox(self)
         self.target.setObjectName("binary-workbench-dialog-input")
         self.target.setCursor(Qt.PointingHandCursor)
-        extra_offsets = [name for name in context.reference_offsets if name != "File"]
+        extra_offsets = [
+            name
+            for name in context.reference_offset_bases
+            if name != "File"
+        ]
         self.target.addItems([
             BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET,
             *extra_offsets,

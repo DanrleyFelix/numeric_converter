@@ -7,14 +7,12 @@ from typing import Any
 
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchVersionDTO,
 )
 from src.modules.utils import normalize_string_map
 from src.presentation.repository.binary_workbench_payload import (
     _instruction_overlays,
     _internal_files,
-    _memory_regions,
     _rows,
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
@@ -62,23 +60,6 @@ def lba_payload(
     }
 
 
-def memory_regions_payload(
-    name: str,
-    regions: list[BinaryWorkbenchMemoryRegionDTO],
-) -> dict[str, object]:
-    return {
-        "name": name,
-        "regions": [
-            {
-                "name": item.name,
-                "start_offset": item.start_offset,
-                "end_offset": item.end_offset,
-            }
-            for item in regions
-        ],
-    }
-
-
 def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
     instructions = version.instructions_by_line or instructions_by_line_from_rows(version.rows)
     return {
@@ -114,12 +95,6 @@ def lba_from_payload(payload: dict[str, object] | None) -> tuple[int, list[Binar
     sector_size = payload.get("sector_size")
     size = sector_size if isinstance(sector_size, int) and sector_size in {2048, 2334, 2352} else 2352
     return size, _internal_files(payload.get("internal_files"))
-
-
-def memory_regions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkbenchMemoryRegionDTO]:
-    if not isinstance(payload, dict):
-        return []
-    return _memory_regions(payload.get("regions"))
 
 
 def version_from_payload(

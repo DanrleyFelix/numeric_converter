@@ -16,7 +16,6 @@ class LbaFilesystemJsonMixin:
         if library is None:
             return False
         self._clear_rows()
-        self.library_name_input.setText(library.name)
         self._loaded_library_name = library.name
         self._loaded_library_path = str(path)
         self.sector_size.setCurrentText(f"{library.sector_size} bytes")
@@ -27,14 +26,12 @@ class LbaFilesystemJsonMixin:
 
     def save_library_json(self, path: Path) -> bool:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
-        library_name = self.library_name() or target.stem
+        library_name = target.stem
         write_json(target, filesystem_payload(library_name, self.selected_lba_sector_size(), self.mappings()))
         self._save_requested = True
         self._saved_library_name = library_name
         self._saved_library_path = str(target)
-        self.library_name_input.setText(library_name)
         self._remember_library_directory(target)
-        self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_SAVED_TEMPLATE.format(path=str(target)))
         return True
 
     def _load_library_json_dialog(self) -> None:
@@ -44,11 +41,11 @@ class LbaFilesystemJsonMixin:
             self._library_directory,
             BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_JSON_FILTER,
         )
-        if path and self.load_library_json(Path(path)):
-            self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_LOADED_TEMPLATE.format(path=path))
+        if path:
+            self.load_library_json(Path(path))
 
     def _save_library_json_dialog(self) -> None:
-        initial = str(Path(self._library_directory) / library_filename(self.library_name()))
+        initial = str(Path(self._library_directory) / library_filename(self.saved_library_name() or self.loaded_library_name()))
         path, _ = QFileDialog.getSaveFileName(
             self,
             BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_TITLE,

@@ -340,6 +340,18 @@ QSpinBox QAbstractItemView {
     selection-color: $text-main;
 }
 
+QComboBox#advanced-config-dropdown::drop-down {
+    background-color: transparent;
+    border: none;
+    width: $space-24;
+}
+
+QComboBox#advanced-config-dropdown::down-arrow {
+    image: none;
+    width: 0px;
+    height: 0px;
+}
+
 QLabel#donor-section-title {
     font-size: $fs-c-lg;
     color: $text-main;
@@ -368,6 +380,7 @@ QLabel#preferences-section-title {
 
 QPushButton#preferences-ok,
 QPushButton#preferences-cancel,
+QPushButton#preferences-confirm,
 QPushButton#help-nav-button {
     min-height: $size-dialog-button-min-height;
     min-width: $size-dialog-button-min-width;
@@ -376,20 +389,42 @@ QPushButton#help-nav-button {
 }
 
 QPushButton#preferences-ok,
-QPushButton#preferences-cancel {
+QPushButton#preferences-cancel,
+QPushButton#preferences-confirm {
     background-color: $bg-button;
+}
+
+QPushButton#binary-workbench-lba-action {
+    background-color: $bg-button;
+    min-height: $size-dialog-button-min-height;
+    min-width: $size-lba-action-width;
+    max-width: $size-lba-action-width;
+    padding: $padding-dialog-button;
+    border-radius: $radius-10;
 }
 
 QPushButton#preferences-ok:hover,
 QPushButton#preferences-cancel:hover,
-QPushButton#help-nav-button:hover {
+QPushButton#preferences-confirm:hover,
+QPushButton#help-nav-button:hover,
+QPushButton#binary-workbench-lba-action:hover {
     background-color: $bg-toolbar-button-hover;
+}
+
+QPushButton#preferences-confirm {
+    border: 1px solid $border;
+}
+
+QPushButton#preferences-confirm:hover {
+    border-color: $border-soft-success;
 }
 
 QPushButton#binary-workbench-tab-close:focus,
 QToolButton#binary-workbench-tab-nav-button:focus,
 QPushButton#preferences-ok:focus,
 QPushButton#preferences-cancel:focus,
-QPushButton#help-nav-button:focus {
+QPushButton#preferences-confirm:focus,
+QPushButton#help-nav-button:focus,
+QPushButton#binary-workbench-lba-action:focus {
     outline: none;
 }

@@ -15,9 +15,6 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_rows import (
     LbaFilesystemRowsMixin,
 )
-from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_widgets import (
-    lba_label,
-)
 
 
 class BinaryWorkbenchLbaFilesystemDialog(
@@ -27,6 +24,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
     QDialog,
 ):
     directoryChanged = Signal(str)
+    goToRequested = Signal(int)
 
     def __init__(
         self,
@@ -46,8 +44,8 @@ class BinaryWorkbenchLbaFilesystemDialog(
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_TITLE)
-        self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_MIN_HEIGHT)
-        self.resize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_HEIGHT)
+        self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MIN_HEIGHT)
+        self.resize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_HEIGHT)
         self._libraries = {item.name: item for item in libraries or []}
         self._library_directory = default_directory
         self._save_requested = False
@@ -71,17 +69,9 @@ class BinaryWorkbenchLbaFilesystemDialog(
         shell_layout = QVBoxLayout(self.shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        title = lba_label(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_TITLE, "workspace-table-title", self.shell)
-        subtitle = lba_label(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_SUBTITLE, "help-subtitle", self.shell)
-        subtitle.setWordWrap(True)
-        shell_layout.addWidget(title)
-        shell_layout.addWidget(subtitle)
         self._build_library_controls(shell_layout, default_library_name, lba_sector_size)
         self._build_entry(shell_layout)
         self._build_rows(shell_layout, internal_files)
-        self.status = lba_label("", "help-subtitle", self.shell)
-        self.status.setWordWrap(True)
-        shell_layout.addWidget(self.status)
         self._build_footer_actions(shell_layout)
         layout.addWidget(self.shell, 1)
 
@@ -89,7 +79,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
         return self._save_requested
 
     def library_name(self) -> str:
-        return self.library_name_input.text().strip()
+        return ""
 
     def loaded_library_name(self) -> str:
         return self._loaded_library_name

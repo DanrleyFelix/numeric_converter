@@ -36,7 +36,6 @@ class BINARY_WORKBENCH_TEXT:
     SAVE_ASSEMBLY_CODE: str = "Save Assembly / Code"
     SYMBOLS: str = "Symbols"
     LABELS: str = "Labels"
-    REGIONS: str = "Memory Regions"
     LBA_FILESYSTEM: str = "LBA File System"
     ENCODING_TABLES: str = "Encoding Tables"
     VIEW: str = "View"

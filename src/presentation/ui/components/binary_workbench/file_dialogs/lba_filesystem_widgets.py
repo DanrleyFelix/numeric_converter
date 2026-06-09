@@ -1,5 +1,5 @@
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -10,7 +10,7 @@ def lba_input(
     placeholder: str,
     parent: QWidget,
     value: str = "",
-    width: int = BINARY_WORKBENCH_LAYOUT.LBA_FIELD_WIDTH,
+    width: int = BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_NAME_WIDTH,
 ) -> QLineEdit:
     editor = QLineEdit(value, parent)
     editor.setObjectName("binary-workbench-dialog-input")
@@ -21,7 +21,7 @@ def lba_input(
 
 def size_lba_input(widget: QWidget) -> None:
     widget.setFixedSize(
-        BINARY_WORKBENCH_LAYOUT.LBA_FIELD_WIDTH,
+        BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_SECTOR_WIDTH,
         BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
     )
 
@@ -40,6 +40,19 @@ def lba_field(text: str, widget: QWidget) -> QWidget:
     layout.setSpacing(4)
     layout.addWidget(lba_label(text, "preferences-section-title", field))
     layout.addWidget(widget, 0, Qt.AlignLeft)
+    return field
+
+
+def lba_inline_field(text: str, widget: QWidget) -> QWidget:
+    field = QWidget(widget.parentWidget())
+    field.setFixedWidth(BINARY_WORKBENCH_LAYOUT.LBA_SECTOR_LABEL_WIDTH + 10 + widget.width())
+    layout = QHBoxLayout(field)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(10)
+    label = lba_label(text, "preferences-section-title", field)
+    label.setFixedWidth(BINARY_WORKBENCH_LAYOUT.LBA_SECTOR_LABEL_WIDTH)
+    layout.addWidget(label, 0, Qt.AlignVCenter)
+    layout.addWidget(widget, 0, Qt.AlignVCenter)
     return field
 
 

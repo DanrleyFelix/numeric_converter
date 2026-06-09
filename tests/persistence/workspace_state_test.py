@@ -4,7 +4,6 @@ from pathlib import Path
 from src.modules.dtos import (
     ApplicationContextDTO,
     BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
@@ -241,7 +240,6 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
         variables={"variable1": "20"},
         equates={"equate1": "0x34"},
         internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
-        memory_regions=[BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)],
         versions=[
             BinaryWorkbenchVersionDTO(
                 "v1",
@@ -275,9 +273,6 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
     assert loaded.variables == {"variable1": "20"}
     assert loaded.equates == {"equate1": "0x34"}
     assert loaded.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
-    assert loaded.memory_regions == [
-        BinaryWorkbenchMemoryRegionDTO("SLUS code", 0x1C2400, 0x1C24FF)
-    ]
     assert loaded.active_version_name == "v1"
     assert loaded.instruction_overlays["0x00000000"].startswith("Label_1:")
     assert loaded.byte_overlays["0x00000000"] != "00 00 00 00"

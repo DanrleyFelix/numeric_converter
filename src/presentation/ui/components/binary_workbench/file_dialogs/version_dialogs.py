@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QListWidget, QPushButt
 from src.modules.dtos import BinaryWorkbenchVersionDTO
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
+    BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT,
 )
 
 
@@ -13,22 +14,25 @@ class BinaryWorkbenchVersionNameDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
-        title_label = QLabel(title, self)
-        title_label.setObjectName("preferences-title")
-        subtitle = QLabel(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_SUBTITLE, self)
-        subtitle.setObjectName("preferences-subtitle")
-        subtitle.setWordWrap(True)
         self.name_field = QLineEdit(initial_value, self)
         self.name_field.setObjectName("binary-workbench-dialog-input")
-        ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.OK, self)
-        ok.setObjectName("preferences-ok")
+        self.name_field.setPlaceholderText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_NAME_LABEL)
+        ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.CONFIRM, self)
+        ok.setObjectName("preferences-confirm")
         ok.setFocusPolicy(Qt.NoFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
-        layout.addWidget(title_label)
-        layout.addWidget(subtitle)
-        layout.addWidget(self.name_field)
-        layout.addWidget(ok, 0, Qt.AlignRight)
+        self.name_field.setFixedSize(
+            BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.NAME_FIELD_WIDTH,
+            BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.NAME_FIELD_HEIGHT,
+        )
+        ok.setFixedSize(
+            BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.NAME_FIELD_WIDTH,
+            BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.NAME_FIELD_HEIGHT,
+        )
+        layout.addWidget(self.name_field, 0, Qt.AlignHCenter)
+        layout.addSpacing(BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.CREATE_CONFIRM_TOP_SPACING)
+        layout.addWidget(ok, 0, Qt.AlignHCenter)
 
     def version_name(self) -> str:
         return self.name_field.text().strip()
@@ -78,9 +82,7 @@ class BinaryWorkbenchVersionActionsDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_TITLE)
         layout = QVBoxLayout(self)
-        title = QLabel(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_TITLE, self)
-        title.setObjectName("preferences-title")
-        layout.addWidget(title)
+        layout.setSpacing(BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.ACTION_BUTTON_SPACING)
         for text, action in (
             (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_TITLE, self.LOAD),
             (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_CHANGE_TITLE, self.CHANGE),

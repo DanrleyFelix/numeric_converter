@@ -19,7 +19,6 @@ def _default_binary_workbench_directories() -> dict[str, str]:
         "save_file": "",
         "save_assembly": "",
         "lba_filesystem": "",
-        "memory_regions": "",
         "symbols": "",
         "versions": "",
         "encoding_tables": "",
@@ -104,13 +103,6 @@ class BinaryWorkbenchInternalFileDTO:
 
 
 @dataclass(frozen=True)
-class BinaryWorkbenchMemoryRegionDTO:
-    name: str
-    start_offset: int
-    end_offset: int
-
-
-@dataclass(frozen=True)
 class BinaryWorkbenchVersionDTO:
     name: str
     rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
@@ -153,7 +145,6 @@ class BinaryWorkbenchTabContextDTO:
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
     lba_sector_size: int = 2352
     named_regions: list[str] = field(default_factory=list)
-    memory_regions: list[BinaryWorkbenchMemoryRegionDTO] = field(default_factory=list)
     versions: list[BinaryWorkbenchVersionDTO] = field(default_factory=list)
     active_version_name: str | None = None
     workspace_path: str | None = None

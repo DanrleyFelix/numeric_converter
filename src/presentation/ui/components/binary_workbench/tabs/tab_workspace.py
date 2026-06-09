@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.modules.dtos import (
-    BinaryWorkbenchMemoryRegionDTO,
-    BinaryWorkbenchTabContextDTO,
-)
+from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     LBA_FILESYSTEM,
-    MEMORY_REGIONS,
     SYMBOLS,
     VERSIONS,
 )
@@ -20,7 +16,6 @@ from src.presentation.ui.components.binary_workbench.symbols import symbol_offse
 DIRECTORY_KEYS = {
     BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY: SYMBOLS,
     BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY: LBA_FILESYSTEM,
-    BINARY_WORKBENCH_STATE.MEMORY_REGIONS_DIRECTORY: MEMORY_REGIONS,
     BINARY_WORKBENCH_STATE.VERSIONS_DIRECTORY: VERSIONS,
 }
 
@@ -48,17 +43,6 @@ class TabWorkspaceMixin:
         self._remember_workspace_for_source(updated)
         self._set_current_context(self._with_symbol_offsets(updated))
         return True
-
-    def set_current_memory_regions(
-        self,
-        regions: list[BinaryWorkbenchMemoryRegionDTO],
-    ) -> None:
-        current = self.current_context()
-        if current is None:
-            return
-        self._set_current_context(
-            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "memory_regions": regions})
-        )
 
     def set_current_module_path(self, module_key: str, path: Path) -> None:
         current = self.current_context()
@@ -119,7 +103,6 @@ class TabWorkspaceMixin:
                 context.variables,
                 context.equates,
                 context.internal_files,
-                context.memory_regions,
                 context.versions,
             )
         )

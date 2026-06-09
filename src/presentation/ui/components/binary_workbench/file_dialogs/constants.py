@@ -1,22 +1,10 @@
 class BINARY_WORKBENCH_FILE_DIALOG_TEXT:
     LBA_TITLE: str = "LBA File System"
-    LBA_SUBTITLE: str = "Configure internal files using one mapping per line: name = start_lba."
-    LBA_LIBRARY_NAME_LABEL: str = "Library Name"
     LBA_SECTOR_LABEL: str = "LBA Sector"
     LBA_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
-    LBA_SAVED_TEMPLATE: str = "Saved: {path}"
-    LBA_LOADED_TEMPLATE: str = "Loaded: {path}"
     SYMBOLS_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
     SYMBOLS_SAVED_TEMPLATE: str = "Saved: {path}"
     SYMBOLS_LOADED_TEMPLATE: str = "Loaded: {path}"
-    MEMORY_REGIONS_TITLE: str = "Memory Regions"
-    MEMORY_REGIONS_SUBTITLE: str = "Configure named inclusive offset ranges."
-    MEMORY_REGION_NAME_LABEL: str = "Region Name"
-    MEMORY_REGION_START_LABEL: str = "Start Offset"
-    MEMORY_REGION_END_LABEL: str = "End Offset"
-    MEMORY_REGIONS_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
-    MEMORY_REGIONS_SAVED_TEMPLATE: str = "Saved: {path}"
-    MEMORY_REGIONS_LOADED_TEMPLATE: str = "Loaded: {path}"
     INTERNAL_TITLE: str = "Open Internal File"
     INTERNAL_SUBTITLE: str = "Select a configured internal file to open it as an independent tab."
     VERSION_TITLE: str = "Version"
@@ -28,8 +16,18 @@ class BINARY_WORKBENCH_FILE_DIALOG_TEXT:
     VERSION_LOAD_TITLE: str = "Load Versions File"
     VERSION_LOAD_SUBTITLE: str = "Select a saved versions file to load into the active binary tab."
     VERSION_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
-    VERSION_NAME_LABEL: str = "Version name"
+    VERSION_NAME_LABEL: str = "Name"
+    CONFIRM: str = "Confirm"
     INTERNAL_NAME_LABEL: str = "Internal file"
     LOAD: str = "Load"
     SAVE: str = "Save"
     OK: str = "OK"
+
+
+class BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT:
+    CREATE_CONFIRM_TOP_SPACING: int = 10
+    CHANGE_LIST_SPACING: int = 15
+    CHANGE_LIST_MARGIN: int = 15
+    ACTION_BUTTON_SPACING: int = 10
+    NAME_FIELD_WIDTH: int = 190
+    NAME_FIELD_HEIGHT: int = 46

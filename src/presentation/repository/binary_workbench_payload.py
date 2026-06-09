@@ -12,7 +12,6 @@ from src.core.binary_workbench.version_overlays import (
 )
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchMemoryRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
@@ -118,30 +117,6 @@ def _internal_files(raw: object) -> list[BinaryWorkbenchInternalFileDTO]:
             continue
         files.append(BinaryWorkbenchInternalFileDTO(name=name, start_lba=start_lba))
     return files
-
-
-def _memory_regions(raw: object) -> list[BinaryWorkbenchMemoryRegionDTO]:
-    if not isinstance(raw, list):
-        return []
-    regions: list[BinaryWorkbenchMemoryRegionDTO] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        name = item.get("name")
-        start_offset = _int_offset(item.get("start_offset"))
-        end_offset = _int_offset(item.get("end_offset"))
-        if not isinstance(name, str) or not name:
-            continue
-        if start_offset is None or end_offset is None:
-            continue
-        regions.append(
-            BinaryWorkbenchMemoryRegionDTO(
-                name=name,
-                start_offset=start_offset,
-                end_offset=end_offset,
-            )
-        )
-    return regions
 
 
 def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
@@ -263,7 +238,6 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         internal_files=_internal_files(raw.get("internal_files")),
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
-        memory_regions=_memory_regions(raw.get("memory_regions")),
         versions=_versions(raw.get("versions")),
         active_version_name=active_version_name,
         workspace_path=str(raw.get("workspace_path"))
@@ -330,14 +304,6 @@ def binary_workbench_state_to_payload(
                 ],
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
-                "memory_regions": [
-                    {
-                        "name": item.name,
-                        "start_offset": item.start_offset,
-                        "end_offset": item.end_offset,
-                    }
-                    for item in tab.memory_regions
-                ],
                 "versions": [
                     {
                         "name": version.name,

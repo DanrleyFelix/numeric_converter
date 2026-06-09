@@ -4,9 +4,6 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.internal_file_
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_dialog import (
     BinaryWorkbenchLbaFilesystemDialog,
 )
-from src.presentation.ui.components.binary_workbench.file_dialogs.memory_regions_dialog import (
-    BinaryWorkbenchMemoryRegionsDialog,
-)
 from src.presentation.ui.components.binary_workbench.file_dialogs.version_dialogs import (
     BinaryWorkbenchVersionActionsDialog,
     BinaryWorkbenchVersionNameDialog,
@@ -20,7 +17,6 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.version_change
 __all__ = [
     "BinaryWorkbenchInternalFileDialog",
     "BinaryWorkbenchLbaFilesystemDialog",
-    "BinaryWorkbenchMemoryRegionsDialog",
     "BinaryWorkbenchVersionActionsDialog",
     "BinaryWorkbenchVersionChangeDialog",
     "BinaryWorkbenchVersionNameDialog",

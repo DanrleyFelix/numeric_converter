@@ -1,11 +1,18 @@
 class BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT:
     TITLE: str = "Advanced Configuration"
-    SUBTITLE: str = "Choose binary reading, cache and CPU settings for the active context."
     CPU_ARCH_LABEL: str = "CPU Arch"
     READ_MODE_LABEL: str = "Read Mode"
     BLOCK_SIZE_LABEL: str = "Block Size"
     CACHE_MAX_BLOCKS_LABEL: str = "Cache Max Blocks"
+    CONFIRM: str = "Confirm"
     OPTION_PSX_MIPS_R3000A: str = "PSX - Mips R3000A"
+
+
+class BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT:
+    CONFIRM_TOP_SPACING: int = 10
+    CONTROL_WIDTH: int = 200
+    BLOCK_SIZE_OPTIONS: tuple[int, ...] = (256, 512, 1024, 2048, 4096)
+    CACHE_MAX_BLOCKS_OPTIONS: tuple[int, ...] = (1000, 2000, 4000, 8000, 16000)
 
 
 class BINARY_WORKBENCH_BYTES_FORMATTER_TEXT:

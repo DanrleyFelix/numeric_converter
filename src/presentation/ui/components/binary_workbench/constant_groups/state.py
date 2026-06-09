@@ -5,7 +5,6 @@ class BINARY_WORKBENCH_STATE:
     SAVE_FILE_DIRECTORY: str = "save_file"
     SAVE_ASSEMBLY_DIRECTORY: str = "save_assembly"
     LBA_FILESYSTEM_DIRECTORY: str = "lba_filesystem"
-    MEMORY_REGIONS_DIRECTORY: str = "memory_regions"
     SYMBOLS_DIRECTORY: str = "symbols"
     VERSIONS_DIRECTORY: str = "versions"
     ENCODING_TABLES_DIRECTORY: str = "encoding_tables"

@@ -6,7 +6,7 @@
             "display_name": "SLUS_014.11.bak",
             "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11.bak",
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "assembly",
+            "read_mode": "Auto",
             "reference_offsets": [
                 "File"
             ],
@@ -37,7 +37,6 @@
             "internal_files": [],
             "lba_sector_size": 2352,
             "named_regions": [],
-            "memory_regions": [],
             "versions": [
                 {
                     "name": "v3",
@@ -107,39 +106,8 @@
                 },
                 {
                     "name": "v2 test",
-                    "rows": [
-                        {
-                            "offset": "0x00000000",
-                            "instruction": "",
-                            "bytes_text": "00 00 40 00"
-                        }
-                    ],
-                    "instructions": {
-                        "0": "word 0x00400000",
-                        "1": "word 0x45584520",
-                        "2": "nop",
-                        "3": "nop",
-                        "4": "lb $at, 0x29D8($zero)",
-                        "5": "nop",
-                        "6": "lb $at, 0x0($zero)",
-                        "7": "word 0x001D0000",
-                        "8": "nop",
-                        "9": "nop",
-                        "10": "nop",
-                        "11": "nop",
-                        "12": "lb $ra, -0x10($zero)",
-                        "13": "nop",
-                        "14": "nop",
-                        "15": "nop",
-                        "16": "nop",
-                        "17": "nop",
-                        "18": "nop",
-                        "19": "word 0x796E6F53",
-                        "20": "word 0x6D6F4320",
-                        "21": "word 0x65747570",
-                        "22": "word 0x6E452072",
-                        "23": "word 0x74726574"
-                    }
+                    "rows": [],
+                    "instructions": {}
                 }
             ],
             "active_version_name": "v2 test",
@@ -147,26 +115,23 @@
             "module_paths": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\call_umi_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\SLUS_014_11_workspace_manifest_lba.json",
-                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions\\SLUS_014_11_workspace_manifest_regions.json",
-                "version:v1_test_2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
-                "version:v2 test": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
                 "version:v3": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json"
+                "version:v1_test_2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
+                "version:v2 test": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
-                "memory_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Memory Regions",
                 "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
                 "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables"
             },
             "module_checksums": {
                 "symbols": "a2f9ead076d01aef7246664a1fcb61326fb380b2aad7efa8d765bef177303bbb",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "memory_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "versions": "42b170f732bc416330027be6a21187270133e48c19c386d422fc809df586089a"
+                "versions": "32b4f5e2ffe71552eb670d3e1de26241bdb7b118df2b8b11ca39a74aebfc927a"
             },
-            "last_open_offset": "0x0000004C",
+            "last_open_offset": "0x0000A000",
             "navigation_history": [],
             "file_size": 1902592,
             "version_dirty": false,
@@ -236,7 +201,6 @@
             "internal_files": [],
             "lba_sector_size": 2352,
             "named_regions": [],
-            "memory_regions": [],
             "versions": [],
             "active_version_name": null,
             "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\call_umi.json",
@@ -477,10 +441,10 @@
         "save_file": "",
         "save_assembly": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects",
         "lba_filesystem": "",
-        "memory_regions": "",
         "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
         "versions": "",
-        "encoding_tables": ""
+        "encoding_tables": "",
+        "memory_regions": ""
     },
     "window_size": {
         "width": 1536,
