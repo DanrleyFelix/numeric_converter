@@ -1594,11 +1594,38 @@ def test_binary_workbench_symbol_offsets_dialog_lists_offsets():
         "var",
         ["0x00000000", "0x0000000C"],
     )
+    selected: list[int] = []
+    dialog.goToRequested.connect(selected.append)
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    labels = [label.text() for label in dialog.findChildren(QLabel) if label.text()]
 
     assert [dialog.offsets.item(index).text() for index in range(dialog.offsets.count())] == [
         "0x00000000",
         "0x0000000C",
     ]
+    assert labels == ["var"]
+    assert "OK" not in buttons
+    assert dialog.offsets.objectName() == "binary-workbench-symbol-offsets"
+
+    dialog.offsets.itemClicked.emit(dialog.offsets.item(1))
+
+    assert selected == [0xC]
+    assert dialog.result() == 0
+
+
+def test_binary_workbench_symbol_offsets_empty_item_is_not_clickable():
+    _app()
+    dialog = BinaryWorkbenchSymbolOffsetsDialog("var", [])
+    selected: list[int] = []
+    dialog.goToRequested.connect(selected.append)
+    item = dialog.offsets.item(0)
+
+    dialog.offsets.itemClicked.emit(item)
+
+    assert item.text() == BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_EMPTY
+    assert not item.flags() & Qt.ItemIsEnabled
+    assert dialog.offsets.cursor().shape() == Qt.ArrowCursor
+    assert selected == []
 
 
 def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
@@ -1608,23 +1635,64 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     _app().processEvents()
     combos = dialog.findChildren(QComboBox, "binary-workbench-dialog-input")
     fields = dialog.findChildren(QLineEdit, "binary-workbench-dialog-input")
-    add_button = dialog.findChildren(QPushButton, "preferences-ok")[0]
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    add_button = buttons[BINARY_WORKBENCH_TEXT.SYMBOL_ADD]
+    footer = dialog.findChild(QWidget, "binary-workbench-symbol-footer")
+    scroll = dialog.findChild(QWidget, "workspace-table-body-scroll")
+    shell = dialog.findChild(QWidget, "workspace-table-shell")
+    content_widgets = [dialog.filter_input.parentWidget(), dialog.kind.parentWidget(), scroll, footer]
+    rows = dialog.findChildren(QWidget, "workspace-row")
     first_row_fields = fields[-2:]
+    non_empty_labels = [label.text() for label in dialog.findChildren(QLabel) if label.text()]
 
-    assert fields[0].width() == 158
-    assert fields[1].width() == 158
-    assert dialog.minimumWidth() == 680
+    assert fields[0].placeholderText() == BINARY_WORKBENCH_TEXT.FILTER
+    assert fields[0].width() == 188
+    assert "Library Name" not in {field.placeholderText() for field in fields}
+    assert non_empty_labels == []
+    assert dialog.minimumWidth() == 730
     assert dialog.width() == 760
+    assert shell is not None
+    assert {widget.mapTo(dialog, QPoint()).x() for widget in content_widgets if widget is not None} == {
+        dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x()
+    }
+    assert dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x() == shell.mapTo(dialog, QPoint()).x() + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
+    assert {
+        widget.layout().contentsMargins().left()
+        for widget in content_widgets
+        if widget is not None and widget.layout() is not None
+    } == {0}
+    assert dialog.filter_input.mapTo(dialog, QPoint()).x() == dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x()
     assert {combo.width() for combo in combos} == {132}
-    assert {field.width() for field in fields[2:]} == {132}
+    assert {field.width() for field in fields[1:]} == {132}
     assert {combo.height() for combo in combos} == {46}
     assert {field.height() for field in fields} == {46}
     assert add_button.width() == BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH
+    assert dialog.kind.mapTo(dialog, QPoint()).x() == dialog.filter_input.mapTo(dialog, QPoint()).x()
+    assert fields[1].mapTo(dialog, QPoint()).x() - dialog.kind.mapTo(dialog, QPoint()).x() == (
+        BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
+    )
+    assert fields[2].mapTo(dialog, QPoint()).x() - fields[1].mapTo(dialog, QPoint()).x() == (
+        BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
+    )
     assert combos[1].mapTo(dialog, QPoint()).x() == combos[0].mapTo(dialog, QPoint()).x()
-    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == fields[2].mapTo(dialog, QPoint()).x()
-    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == fields[3].mapTo(dialog, QPoint()).x()
-    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
-    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() < 190
+    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == fields[1].mapTo(dialog, QPoint()).x()
+    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == fields[2].mapTo(dialog, QPoint()).x()
+    assert footer is not None
+    assert buttons["Load"].mapTo(dialog, QPoint()).x() == dialog.filter_input.mapTo(dialog, QPoint()).x()
+    assert footer.layout().count() == 4
+    assert footer.layout().stretch(3) == 1
+    assert buttons["Save"].mapTo(dialog, QPoint()).x() - buttons["Load"].mapTo(dialog, QPoint()).x() == (
+        BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING
+    )
+    assert buttons["OK"].mapTo(dialog, QPoint()).x() - buttons["Save"].mapTo(dialog, QPoint()).x() == (
+        BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING
+    )
+    assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["Save"].mapTo(dialog, QPoint()).y()
+    assert buttons["Save"].mapTo(dialog, QPoint()).y() == buttons["OK"].mapTo(dialog, QPoint()).y()
+    assert dialog.kind.mapTo(dialog, QPoint()).y() - (dialog.filter_input.mapTo(dialog, QPoint()).y() + dialog.filter_input.height()) >= 20
+    offsets = rows[0].findChild(QPushButton, "preferences-cancel")
+    assert add_button.mapTo(dialog, QPoint()).x() == offsets.mapTo(dialog, QPoint()).x()
+    assert offsets.mapTo(dialog, QPoint()).x() + offsets.width() <= scroll.mapTo(dialog, QPoint()).x() + scroll.width()
 
 
 def test_binary_workbench_labels_dialog_filters_and_navigates():

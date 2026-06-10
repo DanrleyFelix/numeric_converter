@@ -3,8 +3,6 @@ class BINARY_WORKBENCH_FILE_DIALOG_TEXT:
     LBA_SECTOR_LABEL: str = "LBA Sector"
     LBA_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
     SYMBOLS_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
-    SYMBOLS_SAVED_TEMPLATE: str = "Saved: {path}"
-    SYMBOLS_LOADED_TEMPLATE: str = "Loaded: {path}"
     INTERNAL_TITLE: str = "Open Internal File"
     INTERNAL_SUBTITLE: str = "Select a configured internal file to open it as an independent tab."
     VERSION_TITLE: str = "Version"

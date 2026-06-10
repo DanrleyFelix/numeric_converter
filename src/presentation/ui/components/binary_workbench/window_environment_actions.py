@@ -70,6 +70,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             symbol_offsets=current.symbol_offsets,
         )
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
+        dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         variables, equates, _ = dialog.values()

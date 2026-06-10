@@ -147,6 +147,278 @@
                 },
                 "decoded_text_tables": []
             }
+        },
+        {
+            "tab_id": "beba603d0a1b4176a281bafbf4a369b0",
+            "kind": "assembly",
+            "display_name": "call_umi.asm",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\call_umi.asm",
+            "cpu_arch": "PSX - Mips R3000A",
+            "read_mode": "assembly",
+            "reference_offsets": [
+                "File"
+            ],
+            "reference_offset_bases": {},
+            "labels": {
+                "L1": "0x00000008"
+            },
+            "equates": {
+                "spell_id": "0x15C",
+                "test": "0x7BD4",
+                "equate_7bd4": "0x7BD4"
+            },
+            "variables": {
+                "card_id": "0x1B3",
+                "sp_a0": "0x0($SP)",
+                "spell_dispacth": "0x26BA4"
+            },
+            "symbol_offsets": {
+                "card_id": [
+                    "0x00000030"
+                ],
+                "sp_a0": [],
+                "spell_dispacth": [],
+                "spell_id": [
+                    "0x00000038"
+                ],
+                "test": [],
+                "equate_7bd4": [
+                    "0x0000001C"
+                ],
+                "L1": [
+                    "0x00000008"
+                ]
+            },
+            "search_cache": {},
+            "internal_files": [],
+            "lba_sector_size": 2352,
+            "named_regions": [],
+            "versions": [],
+            "active_version_name": null,
+            "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\call_umi.json",
+            "module_paths": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\call_umi_symbols.json",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\call_umi_lba.json"
+            },
+            "module_directories": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
+                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables"
+            },
+            "module_checksums": {
+                "symbols": "60af8e84f94a0989b17b0d58bd8e15ab69c4689b9238cf6904bd5d7b1a71bc13",
+                "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
+                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973"
+            },
+            "last_open_offset": "0x00000000",
+            "navigation_history": [],
+            "file_size": 0,
+            "version_dirty": false,
+            "byte_overlays": {},
+            "instruction_overlays": {},
+            "original_rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "JAL 0x1D9200",
+                    "bytes_text": "80 64 07 0C"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "JAL 0x1CAE40",
+                    "bytes_text": "90 2B 07 0C"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "L1: ADDIU $SP, $SP, -0x10",
+                    "bytes_text": "F0 FF BD 27"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "SW $a0, 0x0($SP)",
+                    "bytes_text": "00 00 A4 AF"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "SW $a1, 0x4($SP)",
+                    "bytes_text": "04 00 A5 AF"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "SW $ra, 0x8($SP)",
+                    "bytes_text": "08 00 BF AF"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "LUI $T0, 0x801A",
+                    "bytes_text": "1A 80 08 3C"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "ORI $T0, $T0, @equate_7bd4",
+                    "bytes_text": "D4 7B 08 35"
+                },
+                {
+                    "offset": "0x00000020",
+                    "instruction": "SUBU $T1, $T0, $V0",
+                    "bytes_text": "23 48 02 01"
+                },
+                {
+                    "offset": "0x00000024",
+                    "instruction": "SLTIU $T0, $T1, 0x71",
+                    "bytes_text": "71 00 28 2D"
+                },
+                {
+                    "offset": "0x00000028",
+                    "instruction": "BNE $T0, $ZERO, L1",
+                    "bytes_text": "F7 FF 00 15"
+                },
+                {
+                    "offset": "0x0000002C",
+                    "instruction": "LHU $T0, 0xC($V0)",
+                    "bytes_text": "0C 00 48 94"
+                },
+                {
+                    "offset": "0x00000030",
+                    "instruction": "ADDIU $T1, $ZERO,_card_id",
+                    "bytes_text": "B3 01 09 24"
+                },
+                {
+                    "offset": "0x00000034",
+                    "instruction": "BNE $T0, $T1, L1",
+                    "bytes_text": "F4 FF 09 15"
+                },
+                {
+                    "offset": "0x00000038",
+                    "instruction": "ADDIU $A0,$ZERO,@spell_id",
+                    "bytes_text": "5C 01 04 24"
+                },
+                {
+                    "offset": "0x0000003C",
+                    "instruction": "JAL 0x26BA4",
+                    "bytes_text": "E9 9A 00 0C"
+                },
+                {
+                    "offset": "0x00000040",
+                    "instruction": "ADDIU $A1,$ZERO,0x0001",
+                    "bytes_text": "01 00 05 24"
+                },
+                {
+                    "offset": "0x00000044",
+                    "instruction": "LW $A0,0x00($SP)",
+                    "bytes_text": "00 00 A4 8F"
+                },
+                {
+                    "offset": "0x00000048",
+                    "instruction": "LW  $A1,0x04($SP)",
+                    "bytes_text": "04 00 A5 8F"
+                }
+            ],
+            "rows": [
+                {
+                    "offset": "0x00000000",
+                    "instruction": "JAL 0x1D9200",
+                    "bytes_text": "80 64 07 0C"
+                },
+                {
+                    "offset": "0x00000004",
+                    "instruction": "JAL 0x1CAE40",
+                    "bytes_text": "90 2B 07 0C"
+                },
+                {
+                    "offset": "0x00000008",
+                    "instruction": "L1: ADDIU $SP, $SP, -0x10",
+                    "bytes_text": "F0 FF BD 27"
+                },
+                {
+                    "offset": "0x0000000C",
+                    "instruction": "SW $a0, 0x0($SP)",
+                    "bytes_text": "00 00 A4 AF"
+                },
+                {
+                    "offset": "0x00000010",
+                    "instruction": "SW $a1, 0x4($SP)",
+                    "bytes_text": "04 00 A5 AF"
+                },
+                {
+                    "offset": "0x00000014",
+                    "instruction": "SW $ra, 0x8($SP)",
+                    "bytes_text": "08 00 BF AF"
+                },
+                {
+                    "offset": "0x00000018",
+                    "instruction": "LUI $T0, 0x801A",
+                    "bytes_text": "1A 80 08 3C"
+                },
+                {
+                    "offset": "0x0000001C",
+                    "instruction": "ORI $T0, $T0, @equate_7bd4",
+                    "bytes_text": "D4 7B 08 35"
+                },
+                {
+                    "offset": "0x00000020",
+                    "instruction": "SUBU $T1, $T0, $V0",
+                    "bytes_text": "23 48 02 01"
+                },
+                {
+                    "offset": "0x00000024",
+                    "instruction": "SLTIU $T0, $T1, 0x71",
+                    "bytes_text": "71 00 28 2D"
+                },
+                {
+                    "offset": "0x00000028",
+                    "instruction": "BNE $T0, $ZERO, L1",
+                    "bytes_text": "F7 FF 00 15"
+                },
+                {
+                    "offset": "0x0000002C",
+                    "instruction": "LHU $T0, 0xC($V0)",
+                    "bytes_text": "0C 00 48 94"
+                },
+                {
+                    "offset": "0x00000030",
+                    "instruction": "ADDIU $T1, $ZERO,_card_id",
+                    "bytes_text": "B3 01 09 24"
+                },
+                {
+                    "offset": "0x00000034",
+                    "instruction": "BNE $T0, $T1, L1",
+                    "bytes_text": "F4 FF 09 15"
+                },
+                {
+                    "offset": "0x00000038",
+                    "instruction": "ADDIU $A0,$ZERO,@spell_id",
+                    "bytes_text": "5C 01 04 24"
+                },
+                {
+                    "offset": "0x0000003C",
+                    "instruction": "JAL 0x26BA4",
+                    "bytes_text": "E9 9A 00 0C"
+                },
+                {
+                    "offset": "0x00000040",
+                    "instruction": "ADDIU $A1,$ZERO,0x0001",
+                    "bytes_text": "01 00 05 24"
+                },
+                {
+                    "offset": "0x00000044",
+                    "instruction": "LW $A0,0x00($SP)",
+                    "bytes_text": "00 00 A4 8F"
+                },
+                {
+                    "offset": "0x00000048",
+                    "instruction": "LW  $A1,0x04($SP)",
+                    "bytes_text": "04 00 A5 8F"
+                }
+            ],
+            "view_preferences": {
+                "visible_columns": {
+                    "File": true,
+                    "Instruction": true,
+                    "Bytes": true
+                },
+                "decoded_text_tables": []
+            }
         }
     ],
     "active_tab_id": "aa06682702ba41ecbc6eb9255da30a46",

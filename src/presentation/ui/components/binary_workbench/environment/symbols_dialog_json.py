@@ -16,7 +16,6 @@ class SymbolsDialogJsonMixin:
         if library is None:
             return False
         self._clear_rows()
-        self.library_name_input.setText(library.name)
         self._loaded_library_name = library.name
         self._loaded_library_path = str(path)
         self._load_rows(library.variables, library.equates, library.labels)
@@ -25,15 +24,13 @@ class SymbolsDialogJsonMixin:
 
     def save_library_json(self, path: Path) -> bool:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
-        library_name = self.library_name() or target.stem
+        library_name = target.stem
         variables, equates, _ = self.values()
         write_json(target, symbols_payload(library_name, variables, equates))
         self._save_requested = True
         self._saved_library_name = library_name
         self._saved_library_path = str(target)
-        self.library_name_input.setText(library_name)
         self._remember_symbols_directory(target)
-        self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.SYMBOLS_SAVED_TEMPLATE.format(path=str(target)))
         return True
 
     def _load_library_json_dialog(self) -> None:
@@ -43,11 +40,11 @@ class SymbolsDialogJsonMixin:
             self._symbols_directory,
             BINARY_WORKBENCH_FILE_DIALOG_TEXT.SYMBOLS_JSON_FILTER,
         )
-        if path and self.load_library_json(Path(path)):
-            self.status.setText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.SYMBOLS_LOADED_TEMPLATE.format(path=path))
+        if path:
+            self.load_library_json(Path(path))
 
     def _save_library_json_dialog(self) -> None:
-        initial = str(Path(self._symbols_directory) / symbols_filename(self.library_name()))
+        initial = str(Path(self._symbols_directory) / symbols_filename(self.saved_library_name() or self.loaded_library_name()))
         path, _ = QFileDialog.getSaveFileName(
             self,
             BINARY_WORKBENCH_TEXT.SYMBOLS_TITLE,

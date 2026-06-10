@@ -12,9 +12,6 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_rows import (
     SymbolsDialogRowsMixin,
 )
-from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
-    symbol_label,
-)
 
 
 class BinaryWorkbenchSymbolsDialog(
@@ -24,6 +21,7 @@ class BinaryWorkbenchSymbolsDialog(
     QDialog,
 ):
     directoryChanged = Signal(str)
+    goToRequested = Signal(int)
 
     def __init__(
         self,
@@ -72,13 +70,10 @@ class BinaryWorkbenchSymbolsDialog(
         shell_layout = QVBoxLayout(self.shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        self._add_header(shell_layout)
         self._build_library_controls(shell_layout, default_library_name)
         self._build_entry(shell_layout)
         self._build_scroll_body(shell_layout)
         self._load_rows(variables, equates, labels)
-        self.status = self._status_label()
-        shell_layout.addWidget(self.status)
         self._build_footer_actions(shell_layout)
         layout.addWidget(self.shell, 1)
 
@@ -86,7 +81,7 @@ class BinaryWorkbenchSymbolsDialog(
         return self._save_requested
 
     def library_name(self) -> str:
-        return self.library_name_input.text().strip()
+        return ""
 
     def loaded_library_name(self) -> str:
         return self._loaded_library_name
@@ -99,11 +94,3 @@ class BinaryWorkbenchSymbolsDialog(
 
     def loaded_library_path(self) -> str:
         return self._loaded_library_path
-
-    def _status_label(self):
-        label = self._dialog_label("", "help-subtitle")
-        label.setWordWrap(True)
-        return label
-
-    def _dialog_label(self, text: str, object_name: str):
-        return symbol_label(text, object_name, self.shell)

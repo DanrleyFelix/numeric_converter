@@ -1,45 +1,41 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
-    symbol_field,
     symbol_input,
     symbol_kind_combo,
-    symbol_label,
 )
 
 
 class SymbolsDialogLayoutMixin:
-    def _build_library_controls(self, parent: QVBoxLayout, default_library_name: str) -> None:
-        library = QWidget(self.shell)
-        row = QHBoxLayout(library)
+    def _build_library_controls(self, parent: QVBoxLayout, _default_library_name: str) -> None:
+        filters = QFrame(self.shell)
+        filters.setObjectName("binary-workbench-symbol-filter-row")
+        filters.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        row = QHBoxLayout(filters)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(10)
-        self.library_name_input = symbol_input(
-            "Library Name",
-            library,
-            default_library_name,
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_LIBRARY_NAME_WIDTH,
-        )
         self.filter_input = symbol_input(
             BINARY_WORKBENCH_TEXT.FILTER,
-            library,
+            filters,
             "",
             BINARY_WORKBENCH_LAYOUT.SYMBOL_FILTER_WIDTH,
         )
         self.filter_input.textChanged.connect(self._apply_filter)
-        row.addWidget(symbol_field("Library Name", self.library_name_input), 0)
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.FILTER, self.filter_input), 0)
-        parent.addWidget(library, 0, Qt.AlignLeft)
+        row.addWidget(self.filter_input, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        row.addStretch(1)
+        parent.addWidget(filters, 0)
+        parent.addSpacing(20)
 
     def _build_footer_actions(self, parent: QVBoxLayout) -> None:
-        footer = QWidget(self.shell)
+        footer = QFrame(self.shell)
+        footer.setObjectName("binary-workbench-symbol-footer")
+        footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         row = QHBoxLayout(footer)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(14)
-        row.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
         load = symbol_button("Load", "preferences-cancel", footer)
         save = symbol_button("Save", "preferences-ok", footer)
         ok = symbol_button("OK", "preferences-ok", footer)
@@ -48,32 +44,38 @@ class SymbolsDialogLayoutMixin:
         load.clicked.connect(self._load_library_json_dialog)
         save.clicked.connect(self._save_library_json_dialog)
         ok.clicked.connect(self.accept)
-        row.addWidget(load, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        row.addWidget(save, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        row.addWidget(ok, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        row.addWidget(load, 0, Qt.AlignVCenter)
+        row.addWidget(save, 0, Qt.AlignVCenter)
+        row.addWidget(ok, 0, Qt.AlignVCenter)
+        row.addStretch(1)
         parent.addWidget(footer, 0)
 
     def _build_entry(self, parent: QVBoxLayout) -> None:
-        entry = QWidget(self.shell)
+        entry = QFrame(self.shell)
+        entry.setObjectName("binary-workbench-symbol-entry-row")
+        entry.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         row = QHBoxLayout(entry)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(10)
-        self.kind = symbol_kind_combo(self.shell, "Variable")
-        self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.shell)
-        self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, self.shell)
-        add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", self.shell)
+        row.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
+        self.kind = symbol_kind_combo(entry, "Variable")
+        self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, entry)
+        self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, entry)
+        add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", entry)
         add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         add.clicked.connect(self._append_from_entry)
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_TYPE, self.kind), 0)
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, self.name), 0)
-        row.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, self.value), 0)
-        row.addWidget(add, 0, Qt.AlignBottom)
-        parent.addWidget(entry, 0, Qt.AlignLeft)
+        row.addWidget(self.kind, 0)
+        row.addWidget(self.name, 0)
+        row.addWidget(self.value, 0)
+        row.addWidget(add, 0, Qt.AlignVCenter)
+        row.addStretch(1)
+        parent.addWidget(entry, 0)
 
     def _build_scroll_body(self, parent: QVBoxLayout) -> None:
         self.scroll = QScrollArea(self.shell)
         self.scroll.setObjectName("workspace-table-body-scroll")
+        self.scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.scroll.verticalScrollBar().setObjectName("workspace-table-scrollbar")
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.body = QWidget(self.scroll)
@@ -84,7 +86,3 @@ class SymbolsDialogLayoutMixin:
         self.body_layout.setAlignment(Qt.AlignTop)
         self.scroll.setWidget(self.body)
         parent.addWidget(self.scroll, 1)
-
-    def _add_header(self, parent: QVBoxLayout) -> None:
-        parent.addWidget(symbol_label(BINARY_WORKBENCH_TEXT.SYMBOLS_TITLE, "workspace-table-title", self.shell))
-        parent.addWidget(symbol_label(BINARY_WORKBENCH_TEXT.SYMBOLS_SUBTITLE, "help-subtitle", self.shell))

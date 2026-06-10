@@ -161,6 +161,7 @@ $padding-help-nav-shell: 10px;
 $padding-help-nav-item: 12px 14px;
 $padding-help-page-shell: 30px 4px 22px 28px;
 $padding-menu-shell: 0px;
+$padding-symbol-offsets-list: 11px;
 $padding-toolbar-button: 0px 18px;
 $padding-toolbar-menu-item: 10px 18px;
 $padding-workspace-remove-button: 0px;

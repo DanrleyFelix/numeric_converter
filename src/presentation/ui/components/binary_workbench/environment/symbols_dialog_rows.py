@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
@@ -39,11 +39,12 @@ class SymbolsDialogRowsMixin:
         self._rows.clear()
 
     def _append_row(self, kind: str, name: str, value: str) -> None:
-        row = QWidget(self.body)
+        row = QFrame(self.body)
         row.setObjectName("workspace-row")
+        row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
         kind_combo = symbol_kind_combo(row, kind)
         name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name)
         value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value)
@@ -61,14 +62,16 @@ class SymbolsDialogRowsMixin:
         layout.addWidget(value_edit, 0)
         layout.addWidget(offsets, 0)
         layout.addWidget(remove, 0, Qt.AlignVCenter)
+        layout.addStretch(1)
         self._rows.append((kind_combo, name_edit, value_edit, row))
-        self.body_layout.addWidget(row, 0, Qt.AlignLeft)
+        self.body_layout.addWidget(row, 0)
         self._apply_filter()
 
     def _open_symbol_offsets(self, name: str) -> None:
         clean_name = name.strip().lstrip("_@")
         offsets = self._symbol_offsets.get(clean_name, [])
         dialog = BinaryWorkbenchSymbolOffsetsDialog(clean_name or name.strip(), offsets, self)
+        dialog.goToRequested.connect(self.goToRequested.emit)
         dialog.exec()
 
     def _remove_row(self, row: QWidget) -> None:
