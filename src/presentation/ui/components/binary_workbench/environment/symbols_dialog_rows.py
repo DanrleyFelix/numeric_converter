@@ -12,6 +12,7 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_input,
     symbol_kind_combo,
 )
+from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 
 
@@ -48,6 +49,7 @@ class SymbolsDialogRowsMixin:
         kind_combo = symbol_kind_combo(row, kind)
         name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name)
         value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value)
+        set_python_identifier_validator(name_edit)
         offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "preferences-cancel", row)
         offsets.setFixedSize(
             BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_ACTION_WIDTH,

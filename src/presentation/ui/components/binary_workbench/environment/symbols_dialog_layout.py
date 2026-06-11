@@ -7,6 +7,7 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_input,
     symbol_kind_combo,
 )
+from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 
 
 class SymbolsDialogLayoutMixin:
@@ -60,6 +61,7 @@ class SymbolsDialogLayoutMixin:
         self.kind = symbol_kind_combo(entry, "Variable")
         self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, entry)
         self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, entry)
+        set_python_identifier_validator(self.name)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", entry)
         add.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         add.clicked.connect(self._append_from_entry)

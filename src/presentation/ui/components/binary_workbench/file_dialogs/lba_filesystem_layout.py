@@ -12,6 +12,10 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
     lba_input,
     size_lba_input,
 )
+from src.presentation.ui.components.binary_workbench.input_validators import (
+    set_decimal_integer_validator,
+    set_python_identifier_validator,
+)
 
 
 class LbaFilesystemLayoutMixin:
@@ -70,6 +74,8 @@ class LbaFilesystemLayoutMixin:
             self.shell,
             width=BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_START_WIDTH,
         )
+        set_python_identifier_validator(self.name)
+        set_decimal_integer_validator(self.lba)
         add = lba_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "binary-workbench-lba-action", self.shell)
         add.setFixedSize(
             BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH,

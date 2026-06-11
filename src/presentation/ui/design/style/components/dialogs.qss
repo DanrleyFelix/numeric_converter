@@ -246,33 +246,53 @@ QListWidget#binary-workbench-search-results {
     color: $text-main;
     border: 1px solid $border-workspace-row;
     border-radius: $radius-10;
+    padding: $padding-search-results-list;
+}
+
+QListWidget#binary-workbench-search-results::item {
+    border: 1px solid transparent;
+    border-radius: $radius-8;
     padding: $space-6;
 }
 
 QListWidget#binary-workbench-search-results::item:selected {
-    background-color: $bg-workspace-row-hover;
+    background-color: $bg-workspace-row;
+    border-color: transparent;
     color: $text-main;
 }
 
 QListWidget#binary-workbench-search-results::item:hover {
-    background-color: $bg-workspace-row-hover;
+    background-color: $bg-search-result-hover;
+    border-color: $border-soft-success;
     color: $text-main;
 }
 
 QListWidget#binary-workbench-search-results::item:focus {
     outline: none;
-    border: none;
+    border: 1px solid transparent;
 }
 
 QListWidget#binary-workbench-search-results::item:selected:focus {
-    background-color: $bg-workspace-row-hover;
+    background-color: $bg-workspace-row;
     color: $text-main;
     outline: none;
-    border: none;
+    border: 1px solid transparent;
+}
+
+QListWidget#binary-workbench-search-results::item:selected:hover,
+QListWidget#binary-workbench-search-results::item:selected:focus:hover {
+    background-color: $bg-search-result-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
 }
 
 QListWidget#binary-workbench-search-results:focus {
     outline: none;
+}
+
+QListWidget#binary-workbench-search-results QScrollBar:vertical {
+    width: $size-search-results-scrollbar-width;
+    margin: $margin-search-results-scrollbar-vertical;
 }
 
 QListWidget#binary-workbench-symbol-offsets {
@@ -444,6 +464,12 @@ QPushButton#preferences-confirm {
 
 QPushButton#preferences-confirm:hover {
     border-color: $border-soft-success;
+}
+
+QPushButton#preferences-ok[compactSearch="true"],
+QPushButton#preferences-cancel[compactSearch="true"] {
+    min-width: $size-search-dialog-button-width;
+    max-width: $size-search-dialog-button-width;
 }
 
 QPushButton#binary-workbench-tab-close:focus,

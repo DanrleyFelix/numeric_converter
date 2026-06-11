@@ -1,8 +1,13 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QComboBox, QDialog, QListWidget, QPushButton
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.input_validators import (
+    set_decimal_integer_validator,
+    set_hex_value_validator,
+    set_python_identifier_validator,
+)
 from src.presentation.ui.components.binary_workbench.search.dialog_layout import (
     base_search_dialog_layout,
     finish_search_dialog,
@@ -11,15 +16,23 @@ from src.presentation.ui.components.binary_workbench.search.dialog_layout import
 from src.presentation.ui.components.binary_workbench.search.go_to_offsets import (
     resolve_go_to_offsets,
 )
+from src.presentation.ui.components.binary_workbench.search.results_list import SearchResultsList
 
 
 class BinaryWorkbenchGoToDialog(QDialog):
+    goToRequested = Signal(int)
+
     def __init__(self, context: BinaryWorkbenchTabContextDTO, parent=None) -> None:
         super().__init__(parent)
         self._context = context
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.GO_TO)
-        layout = base_search_dialog_layout(self, BINARY_WORKBENCH_TEXT.GO_TO, BINARY_WORKBENCH_TEXT.GO_TO_SUBTITLE)
+        layout = base_search_dialog_layout(
+            self,
+            BINARY_WORKBENCH_TEXT.GO_TO,
+            BINARY_WORKBENCH_TEXT.GO_TO_SUBTITLE,
+            include_header=False,
+        )
         self.target = QComboBox(self)
         self.target.setObjectName("binary-workbench-dialog-input")
         self.target.setCursor(Qt.PointingHandCursor)
@@ -40,11 +53,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
             BINARY_WORKBENCH_TEXT.INTERNAL_FILE_TARGET,
         ])
         self.value = search_line_edit(self, BINARY_WORKBENCH_TEXT.VALUE)
-        self.results = QListWidget(self)
-        self.results.setObjectName("binary-workbench-search-results")
-        self.results.setCursor(Qt.PointingHandCursor)
-        self.results.setFocusPolicy(Qt.NoFocus)
-        self.results.setMouseTracking(True)
+        self.results = SearchResultsList(self)
         resolve = QPushButton(BINARY_WORKBENCH_TEXT.GO_TO, self)
         resolve.setObjectName("preferences-cancel")
         resolve.setFocusPolicy(Qt.NoFocus)
@@ -53,9 +62,17 @@ class BinaryWorkbenchGoToDialog(QDialog):
         layout.addWidget(self.target)
         layout.addWidget(self.value)
         layout.addWidget(self.results)
+        self.target.currentTextChanged.connect(self._sync_value_validator)
         self.value.returnPressed.connect(self.refresh_results)
-        self.results.itemDoubleClicked.connect(lambda _: self.accept())
-        finish_search_dialog(layout, resolve, self.accept)
+        self.results.offsetActivated.connect(self.goToRequested)
+        finish_search_dialog(
+            layout,
+            resolve,
+            self.accept,
+            button_width=BINARY_WORKBENCH_LAYOUT.SEARCH_BUTTON_WIDTH,
+            spread_actions=True,
+        )
+        self._sync_value_validator(self.target.currentText())
 
     def selected_offsets(self) -> list[int]:
         if self.results.currentRow() >= 0:
@@ -75,3 +92,35 @@ class BinaryWorkbenchGoToDialog(QDialog):
             self.target.currentText(),
             self.value.text().strip(),
         )
+
+    def _sync_value_validator(self, target: str) -> None:
+        if target == BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET or target in self._context.reference_offset_bases:
+            self._keep_value_characters("0123456789abcdefABCDEF")
+            set_hex_value_validator(self.value)
+            return
+        if target in {
+            BINARY_WORKBENCH_TEXT.LBA_2048_TARGET,
+            BINARY_WORKBENCH_TEXT.LBA_2334_TARGET,
+            BINARY_WORKBENCH_TEXT.LBA_2352_TARGET,
+        }:
+            self._keep_value_characters("0123456789")
+            set_decimal_integer_validator(self.value)
+            return
+        self._keep_python_identifier()
+        set_python_identifier_validator(self.value)
+
+    def _keep_value_characters(self, allowed: str) -> None:
+        value = "".join(character for character in self.value.text() if character in allowed)
+        if value != self.value.text():
+            self.value.setText(value)
+
+    def _keep_python_identifier(self) -> None:
+        value = "".join(
+            character
+            for character in self.value.text()
+            if character == "_" or character.isascii() and character.isalnum()
+        )
+        while value and value[0].isdigit():
+            value = value[1:]
+        if value != self.value.text():
+            self.value.setText(value)

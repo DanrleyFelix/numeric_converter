@@ -1,7 +1,8 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
+    BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT,
     BINARY_WORKBENCH_BYTES_FORMATTER_TEXT,
 )
 
@@ -24,15 +25,11 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.TITLE)
         layout = QVBoxLayout(self)
-        title = QLabel(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.TITLE, self)
-        title.setObjectName("preferences-title")
-        subtitle = QLabel(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.SUBTITLE, self)
-        subtitle.setObjectName("preferences-subtitle")
-        subtitle.setWordWrap(True)
-        label = QLabel(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.GROUP_BYTES_LABEL, self)
-        label.setObjectName("preferences-section-title")
+        layout.setSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.VERTICAL_SPACING)
         self.group_bytes = QComboBox(self)
+        self.group_bytes.setObjectName("advanced-config-dropdown")
         self.group_bytes.setCursor(Qt.PointingHandCursor)
+        self.group_bytes.setFixedWidth(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.GROUP_BYTES_WIDTH)
         self.group_bytes.addItems(["1 byte", "2 bytes", "4 bytes"])
         current = current_group_bytes if current_group_bytes in {1, 2, 4} else 1
         self.group_bytes.setCurrentIndex({1: 0, 2: 1, 4: 2}[current])
@@ -50,18 +47,16 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.uppercase_instructions.setObjectName("binary-workbench-dialog-check")
         self.uppercase_instructions.setChecked(uppercase_instructions)
         self.uppercase_instructions.setCursor(Qt.PointingHandCursor)
-        ok = QPushButton("OK", self)
-        ok.setObjectName("preferences-ok")
+        ok = QPushButton(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.CONFIRM, self)
+        ok.setObjectName("preferences-confirm")
         ok.setFocusPolicy(Qt.NoFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addWidget(label)
         layout.addWidget(self.group_bytes)
         layout.addWidget(self.uppercase_bytes)
         layout.addWidget(self.uppercase_instructions)
-        layout.addWidget(ok, 0, Qt.AlignRight)
+        layout.addSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.CONFIRM_TOP_SPACING)
+        layout.addWidget(ok, 0, Qt.AlignCenter)
 
     def selected_group_bytes(self) -> int:
         return (1, 2, 4)[self.group_bytes.currentIndex()]

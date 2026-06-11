@@ -1,7 +1,10 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.preferences.constants import (
+    BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT,
+)
 
 _MAX_EXTRA_OFFSETS = 3
 
@@ -18,24 +21,20 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS)
         layout = QVBoxLayout(self)
-        title = QLabel(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS, self)
-        title.setObjectName("preferences-title")
-        subtitle = QLabel(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS_SUBTITLE, self)
-        subtitle.setObjectName("preferences-subtitle")
-        subtitle.setWordWrap(True)
+        layout.setSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.VERTICAL_SPACING)
         self._rows: list[tuple[QLineEdit, QLineEdit, QCheckBox]] = []
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
         for name in [value for value in reference_offsets if value != "File"][:_MAX_EXTRA_OFFSETS]:
             self._append_row(layout, name, reference_offset_bases.get(name, "0x00000000"), visible_columns.get(name, True))
         for _ in range(_MAX_EXTRA_OFFSETS - len(self._rows)):
             self._append_row(layout, "", "0x00000000", False)
-        ok = QPushButton("OK", self)
-        ok.setObjectName("preferences-ok")
+        ok = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
+        ok.setObjectName("preferences-confirm")
+        ok.setFixedWidth(BINARY_WORKBENCH_LAYOUT.PREFERENCE_CONFIRM_WIDTH)
         ok.setFocusPolicy(Qt.NoFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
-        layout.addWidget(ok, 0, Qt.AlignRight)
+        layout.addSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.CONFIRM_TOP_SPACING)
+        layout.addWidget(ok, 0, Qt.AlignCenter)
 
     def values(self) -> tuple[list[str], dict[str, str], dict[str, bool]]:
         offsets = ["File"]

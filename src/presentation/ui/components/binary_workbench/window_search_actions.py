@@ -16,6 +16,7 @@ class BinaryWorkbenchWindowSearchMixin:
         if current is None:
             return
         dialog = BinaryWorkbenchGoToDialog(current, self)
+        dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         offsets = dialog.selected_offsets()
@@ -28,6 +29,7 @@ class BinaryWorkbenchWindowSearchMixin:
 
     def _open_find(self) -> None:
         dialog = BinaryWorkbenchFindDialog(self.tabs.find_offsets, self)
+        dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         offset = dialog.selected_offset()

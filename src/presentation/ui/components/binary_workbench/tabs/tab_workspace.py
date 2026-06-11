@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
+from src.core.binary_workbench.mips_r3000a import build_source_line_rows
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     LBA_FILESYSTEM,
@@ -10,6 +12,10 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+)
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    labels_from_rows,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
@@ -114,14 +120,49 @@ class TabWorkspaceMixin:
         self,
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
+        rows = _rows_with_loaded_symbols(context)
+        labels = labels_from_rows(rows) if rows is not context.rows else context.labels
         return BinaryWorkbenchTabContextDTO(
             **{
                 **context.__dict__,
+                "rows": rows,
+                "labels": labels,
                 "symbol_offsets": symbol_offsets(
-                    context.rows,
+                    rows,
                     context.variables,
                     context.equates,
-                    context.labels,
+                    labels,
                 ),
             }
         )
+
+
+def _rows_with_loaded_symbols(
+    context: BinaryWorkbenchTabContextDTO,
+):
+    if context.kind not in {BINARY_WORKBENCH_TAB_KIND.ASSEMBLY, BINARY_WORKBENCH_TAB_KIND.SCRATCH}:
+        return context.rows
+    if not (context.variables or context.equates):
+        return context.rows
+    rows = build_source_line_rows(
+        [row.instruction for row in context.rows],
+        list(context.reference_offsets),
+        dict(context.reference_offset_bases),
+        binary_workbench_codec_for(context.cpu_arch),
+        _first_file_offset(context.rows),
+        variables=context.variables,
+        equates=context.equates,
+    )
+    return rows or context.rows
+
+
+def _first_file_offset(rows) -> int:
+    for row in rows:
+        value = row.offsets.get("File")
+        if not value or value == "-":
+            continue
+        try:
+            return int(value, 0)
+        except ValueError:
+            return 0
+    return 0

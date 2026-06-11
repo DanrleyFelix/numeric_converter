@@ -46,6 +46,7 @@ class BINARY_WORKBENCH_TEXT:
     FIND: str = "Find"
     SELECT_BLOCK: str = "Select Block"
     SELECT_ALL: str = "Select All"
+    CONFIRM: str = "Confirm"
     FILE_OFFSET: str = "File Offset"
     INSTRUCTION: str = 'Editor (Assembly Code)'
     RAW_INSTRUCTIONS: str = "Raw Instructions"
@@ -95,6 +96,7 @@ class BINARY_WORKBENCH_TEXT:
     VALUE: str = "Value"
     START_OFFSET: str = "Start Offset"
     END_OFFSET: str = "End Offset"
+    FIND_LENGTH: str = "Length"
     LENGTH_BYTES: str = "Length Bytes"
     FILE_OFFSET_TARGET: str = "File Offset"
     LBA_2048_TARGET: str = "LBA (2048 bytes)"

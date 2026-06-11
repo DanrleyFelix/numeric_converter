@@ -11,7 +11,6 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_button,
     symbol_field,
     symbol_input,
-    symbol_label,
 )
 
 
@@ -38,16 +37,14 @@ class BinaryWorkbenchLabelsDialog(QDialog):
         shell_layout = QVBoxLayout(shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        shell_layout.addWidget(symbol_label(BINARY_WORKBENCH_TEXT.LABELS, "workspace-table-title", shell))
-        shell_layout.addWidget(symbol_label(BINARY_WORKBENCH_TEXT.LABELS_SUBTITLE, "help-subtitle", shell))
         self.filter_input = symbol_input(
             BINARY_WORKBENCH_TEXT.FILTER,
             shell,
             "",
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_LIBRARY_NAME_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.LABELS_FILTER_WIDTH,
         )
         self.filter_input.textChanged.connect(self._apply_filter)
-        shell_layout.addWidget(symbol_field(BINARY_WORKBENCH_TEXT.FILTER, self.filter_input), 0, Qt.AlignLeft)
+        shell_layout.addWidget(self.filter_input, 0, Qt.AlignLeft)
         self._build_body(shell, shell_layout)
         for name, offset in sorted(labels.items(), key=lambda item: int(item[1], 0)):
             self._append_row(name, offset)
@@ -92,7 +89,6 @@ class BinaryWorkbenchLabelsDialog(QDialog):
 
     def _go_to(self, offset: str) -> None:
         self.goToRequested.emit(int(offset, 0))
-        self.accept()
 
 
 def _readonly_input(placeholder: str, parent: QWidget, value: str) -> QLineEdit:

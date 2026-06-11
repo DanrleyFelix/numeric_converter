@@ -34,8 +34,9 @@ class TabNavigationSearchMixin:
         query: str,
         start_offset: int | None = None,
         end_offset: int | None = None,
+        max_results: int | None = None,
     ) -> bool:
-        results = self.find_offsets(mode, query, start_offset, end_offset)
+        results = self.find_offsets(mode, query, start_offset, end_offset, max_results)
         page = self.currentWidget()
         if results and isinstance(page, BinaryWorkbenchEditorPage):
             page.go_to_offset(results[0])
@@ -47,11 +48,12 @@ class TabNavigationSearchMixin:
         query: str,
         start_offset: int | None = None,
         end_offset: int | None = None,
+        max_results: int | None = None,
     ) -> list[int]:
         page = self.currentWidget()
         if not isinstance(page, BinaryWorkbenchEditorPage):
             return []
-        results = page.find_offsets(mode, query, start_offset, end_offset)
+        results = page.find_offsets(mode, query, start_offset, end_offset, max_results)
         self._cache_search_results(mode, query, results, start_offset, end_offset)
         return results
 
