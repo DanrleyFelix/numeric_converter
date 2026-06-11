@@ -82,20 +82,16 @@ class BinaryWorkbenchViewPreferencesDTO:
 
 @dataclass(frozen=True)
 class BinaryWorkbenchEditRulesDTO:
-    allow_insert_shift: bool = False
-    allow_append_offsets: bool = True
-    allow_remove_shift: bool = False
-    allow_bytes_edit: bool = True
-    allow_assembly_edit: bool = True
+    allow_byte_shift: bool = False
+    allow_editor_edit: bool = True
+    allow_free_edit_after_original_end: bool = True
 
 
 def _default_assembly_edit_rules() -> BinaryWorkbenchEditRulesDTO:
     return BinaryWorkbenchEditRulesDTO(
-        allow_insert_shift=True,
-        allow_append_offsets=True,
-        allow_remove_shift=True,
-        allow_bytes_edit=True,
-        allow_assembly_edit=True,
+        allow_byte_shift=True,
+        allow_editor_edit=True,
+        allow_free_edit_after_original_end=True,
     )
 
 

@@ -113,13 +113,7 @@ class BinaryWorkbenchPreferencesRepository:
             ),
             assembly_edit_rules=self._edit_rules(
                 raw.get("assembly_edit_rules") if raw else None,
-                BinaryWorkbenchEditRulesDTO(
-                    allow_insert_shift=True,
-                    allow_append_offsets=True,
-                    allow_remove_shift=True,
-                    allow_bytes_edit=True,
-                    allow_assembly_edit=True,
-                ),
+                BinaryWorkbenchEditRulesDTO(allow_byte_shift=True),
             ),
         )
 
@@ -180,19 +174,28 @@ class BinaryWorkbenchPreferencesRepository:
         default: BinaryWorkbenchEditRulesDTO,
     ) -> BinaryWorkbenchEditRulesDTO:
         values = raw if isinstance(raw, dict) else {}
+        byte_shift = self._bool(
+            values.get("allow_byte_shift"),
+            self._bool(values.get("allow_insert_shift"), default.allow_byte_shift)
+            or self._bool(values.get("allow_remove_shift"), default.allow_byte_shift),
+        )
+        editor_edit = self._bool(
+            values.get("allow_editor_edit"),
+            self._bool(values.get("allow_bytes_edit"), default.allow_editor_edit)
+            and self._bool(values.get("allow_assembly_edit"), default.allow_editor_edit),
+        )
         return BinaryWorkbenchEditRulesDTO(
-            allow_insert_shift=self._bool(values.get("allow_insert_shift"), default.allow_insert_shift),
-            allow_append_offsets=self._bool(values.get("allow_append_offsets"), default.allow_append_offsets),
-            allow_remove_shift=self._bool(values.get("allow_remove_shift"), default.allow_remove_shift),
-            allow_bytes_edit=self._bool(values.get("allow_bytes_edit"), default.allow_bytes_edit),
-            allow_assembly_edit=self._bool(values.get("allow_assembly_edit"), default.allow_assembly_edit),
+            allow_byte_shift=byte_shift,
+            allow_editor_edit=editor_edit,
+            allow_free_edit_after_original_end=self._bool(
+                values.get("allow_free_edit_after_original_end"),
+                self._bool(values.get("allow_append_offsets"), default.allow_free_edit_after_original_end),
+            ),
         )
 
     def _edit_rules_payload(self, rules: BinaryWorkbenchEditRulesDTO) -> dict[str, bool]:
         return {
-            "allow_insert_shift": rules.allow_insert_shift,
-            "allow_append_offsets": rules.allow_append_offsets,
-            "allow_remove_shift": rules.allow_remove_shift,
-            "allow_bytes_edit": rules.allow_bytes_edit,
-            "allow_assembly_edit": rules.allow_assembly_edit,
+            "allow_byte_shift": rules.allow_byte_shift,
+            "allow_editor_edit": rules.allow_editor_edit,
+            "allow_free_edit_after_original_end": rules.allow_free_edit_after_original_end,
         }

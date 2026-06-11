@@ -4,6 +4,7 @@ from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
+from src.core.binary_workbench.version_line_comments import apply_line_comments
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
@@ -47,6 +48,7 @@ class EditorPageBinaryLoadingMixin:
                 dict(self._context.reference_offset_bases),
             )
         rows = apply_instruction_overlays(rows, self._context.instruction_overlays)
+        rows = self._apply_active_version_lines(rows)
         rows = apply_symbol_offsets(
             rows,
             self._context.variables,
@@ -99,6 +101,7 @@ class EditorPageBinaryLoadingMixin:
             overlays == self._context.byte_overlays
             and instruction_overlays == self._context.instruction_overlays
             and file_size == self._context.file_size
+            and rows == self._context.rows
         ):
             return
         labels = merged_instruction_labels(rows, instruction_overlays)
@@ -159,6 +162,19 @@ class EditorPageBinaryLoadingMixin:
         if len(data) < target_size:
             data += b"\x00" * (target_size - len(data))
         return _apply_overlay_bytes(offset, data, overlays)
+
+    def _apply_active_version_lines(self, rows: list) -> list:
+        version = next(
+            (
+                item
+                for item in self._context.versions
+                if item.name == self._context.active_version_name
+            ),
+            None,
+        )
+        if version is None or not version.instructions_by_line:
+            return rows
+        return apply_line_comments(rows, version.instructions_by_line, self._context.reference_offsets)
 
 
 def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:

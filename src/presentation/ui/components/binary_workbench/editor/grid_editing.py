@@ -5,6 +5,9 @@ from src.core.binary_workbench.mips_r3000a import (
     rebuild_rows_with_offsets,
 )
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
+from src.core.binary_workbench.virtual_instruction_reconcile import (
+    reconcile_locked_virtual_instructions,
+)
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
@@ -60,7 +63,7 @@ class GridEditingMixin:
         if updated is None:
             self._restore_editor_after_rejected_change(editing_bytes)
             return
-        if not self._rows_change_allowed(updated):
+        if not self._rows_change_allowed(updated, editing_bytes):
             self._restore_editor_after_rejected_change(editing_bytes)
             return
         if editing_bytes:
@@ -228,6 +231,17 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
+        if self._locked_virtual_instruction_edit():
+            return reconcile_locked_virtual_instructions(
+                lines,
+                self._rows,
+                self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+                self._offset_base_text(),
+                self._codec,
+                self._labels,
+                self._variables if variables is None else variables,
+                self._equates if equates is None else equates,
+            )
         rows = build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
@@ -240,6 +254,9 @@ class GridEditingMixin:
             False,
         )
         return self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
+
+    def _locked_virtual_instruction_edit(self) -> bool:
+        return self._virtual and not self._edit_rules.allow_byte_shift and not self._free_offset_window()
 
     def _source_rows_start_offset(self) -> int:
         return self._visible_start_offset if self._virtual else 0

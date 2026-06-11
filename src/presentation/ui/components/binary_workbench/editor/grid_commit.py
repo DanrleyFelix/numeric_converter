@@ -33,7 +33,7 @@ class GridCommitMixin:
         if rows is None:
             self._restore_editor_after_rejected_change(editing_bytes)
             return
-        if not self._editor_change_allowed(editing_bytes) or not self._rows_change_allowed(rows):
+        if not self._editor_change_allowed(editing_bytes) or not self._rows_change_allowed(rows, editing_bytes):
             self._restore_editor_after_rejected_change(editing_bytes)
             return
         self._rows = rows

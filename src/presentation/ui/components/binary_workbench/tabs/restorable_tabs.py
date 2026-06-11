@@ -1,12 +1,19 @@
 from pathlib import Path
 
-from src.modules.dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
+from src.modules.dtos import (
+    BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
+)
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
+)
 
 
 def restorable_state(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchStateDTO:
     tabs = [
-        tab
+        _with_default_version(tab)
         for tab in state.tabs
         if tab.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH or source_exists(tab)
     ]
@@ -22,3 +29,19 @@ def restorable_state(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchStateDTO:
 
 def source_exists(tab: BinaryWorkbenchTabContextDTO) -> bool:
     return bool(tab.source_path) and Path(tab.source_path).exists()
+
+
+def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchTabContextDTO:
+    if tab.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        return tab
+    if tab.versions:
+        active = tab.active_version_name or tab.versions[0].name
+        return BinaryWorkbenchTabContextDTO(**{**tab.__dict__, "active_version_name": active})
+    version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME)
+    return BinaryWorkbenchTabContextDTO(
+        **{
+            **tab.__dict__,
+            "versions": [version],
+            "active_version_name": version.name,
+        }
+    )

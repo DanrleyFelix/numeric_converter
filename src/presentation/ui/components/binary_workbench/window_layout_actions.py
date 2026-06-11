@@ -14,6 +14,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.new_scratch_action.triggered.connect(self.tabs.new_scratch_tab)
         self.toolbar.open_internal_action.triggered.connect(self._open_internal_file)
         self.toolbar.version_action.triggered.connect(self._open_version_actions)
+        self.toolbar.save_version_action.triggered.connect(self._update_version)
         self.toolbar.save_binary_file_action.triggered.connect(self._save_current_tab)
         self.toolbar.lba_filesystem_action.triggered.connect(self._open_lba_filesystem)
         self.toolbar.symbols_action.triggered.connect(self._open_symbols)
@@ -33,6 +34,7 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.open_file_action,
             self.toolbar.new_scratch_action,
             self.toolbar.version_action,
+            self.toolbar.save_version_action,
             self.toolbar.save_binary_file_action,
         ])
         self.toolbar.advanced_configuration_action.triggered.connect(self._open_advanced_configuration)

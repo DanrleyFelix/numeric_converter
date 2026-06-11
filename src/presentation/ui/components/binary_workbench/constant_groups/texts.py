@@ -29,6 +29,7 @@ class BINARY_WORKBENCH_TEXT:
     NEW_SCRATCH_CODE: str = "New Scratch Code"
     OPEN_INTERNAL_FILE: str = "Open Internal File"
     VERSION: str = "Version"
+    DEFAULT_VERSION_NAME: str = "default"
     CREATE_VERSION: str = "Create Version"
     ATT_CURRENT_VERSION: str = "Att Version"
     LOAD_VERSION: str = "Load Versions File"

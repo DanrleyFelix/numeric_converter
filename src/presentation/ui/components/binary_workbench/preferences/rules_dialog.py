@@ -25,32 +25,22 @@ class BinaryWorkbenchRulesDialog(QDialog):
             BINARY_WORKBENCH_RULES_LAYOUT.MARGIN,
         )
         layout.setSpacing(BINARY_WORKBENCH_RULES_LAYOUT.VERTICAL_SPACING)
-        self.insert_shift = self._check(
-            BINARY_WORKBENCH_RULES_TEXT.INSERT_SHIFT,
-            rules.allow_insert_shift,
+        self.byte_shift = self._check(
+            BINARY_WORKBENCH_RULES_TEXT.BYTE_SHIFT,
+            rules.allow_byte_shift,
         )
-        self.append_offsets = self._check(
-            BINARY_WORKBENCH_RULES_TEXT.APPEND_OFFSETS,
-            rules.allow_append_offsets,
+        self.editor_edit = self._check(
+            BINARY_WORKBENCH_RULES_TEXT.EDITOR_EDIT,
+            rules.allow_editor_edit,
         )
-        self.remove_shift = self._check(
-            BINARY_WORKBENCH_RULES_TEXT.REMOVE_SHIFT,
-            rules.allow_remove_shift,
-        )
-        self.bytes_edit = self._check(
-            BINARY_WORKBENCH_RULES_TEXT.BYTES_EDIT,
-            rules.allow_bytes_edit,
-        )
-        self.assembly_edit = self._check(
-            BINARY_WORKBENCH_RULES_TEXT.ASSEMBLY_EDIT,
-            rules.allow_assembly_edit,
+        self.free_after_end = self._check(
+            BINARY_WORKBENCH_RULES_TEXT.FREE_AFTER_END,
+            rules.allow_free_edit_after_original_end,
         )
         for control in (
-            self.insert_shift,
-            self.append_offsets,
-            self.remove_shift,
-            self.bytes_edit,
-            self.assembly_edit,
+            self.byte_shift,
+            self.editor_edit,
+            self.free_after_end,
         ):
             layout.addWidget(control)
         ok = QPushButton(BINARY_WORKBENCH_RULES_TEXT.CONFIRM, self)
@@ -64,11 +54,9 @@ class BinaryWorkbenchRulesDialog(QDialog):
 
     def selected_rules(self) -> BinaryWorkbenchEditRulesDTO:
         return BinaryWorkbenchEditRulesDTO(
-            allow_insert_shift=self.insert_shift.isChecked(),
-            allow_append_offsets=self.append_offsets.isChecked(),
-            allow_remove_shift=self.remove_shift.isChecked(),
-            allow_bytes_edit=self.bytes_edit.isChecked(),
-            allow_assembly_edit=self.assembly_edit.isChecked(),
+            allow_byte_shift=self.byte_shift.isChecked(),
+            allow_editor_edit=self.editor_edit.isChecked(),
+            allow_free_edit_after_original_end=self.free_after_end.isChecked(),
         )
 
     def _check(self, text: str, checked: bool) -> QCheckBox:

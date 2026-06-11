@@ -61,12 +61,21 @@ def lba_payload(
 
 
 def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
-    instructions = version.instructions_by_line or instructions_by_line_from_rows(version.rows)
+    line_instructions = (
+        version.instructions_by_line
+        if version.instructions_by_line or version.instruction_overlays
+        else instructions_by_line_from_rows(version.rows)
+    )
+    instructions = {
+        **{offset: instruction for offset, instruction in sorted(version.instruction_overlays.items())},
+        **{
+            str(line): instruction
+            for line, instruction in sorted(line_instructions.items())
+        },
+    }
     return {
         "name": version.name,
-        "instructions": {
-            str(line): instruction for line, instruction in sorted(instructions.items())
-        },
+        "instructions": instructions,
     }
 
 

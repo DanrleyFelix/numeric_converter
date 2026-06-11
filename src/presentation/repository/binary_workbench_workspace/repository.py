@@ -8,10 +8,10 @@ from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlay
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     labels_from_instruction_overlays,
-    rows_from_instructions_by_line,
     without_blank_instruction_overlays,
 )
-from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
+from src.core.binary_workbench.version_line_comments import apply_line_comments
+from src.modules.dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
@@ -93,6 +93,10 @@ class BinaryWorkbenchWorkspaceRepository:
         active = modules.get(ACTIVE_VERSION) if isinstance(modules.get(ACTIVE_VERSION), str) else None
         active_version = next((item for item in versions if item.name == active), None)
         active = active if active_version is not None else None
+        if not versions:
+            versions = list(tab.versions)
+            active = tab.active_version_name
+            active_version = next((item for item in versions if item.name == active), None)
         tab_byte_overlays, tab_instruction_overlays = without_blank_instruction_overlays(
             dict(tab.byte_overlays),
             dict(tab.instruction_overlays),
@@ -243,12 +247,8 @@ class BinaryWorkbenchWorkspaceRepository:
         tab: BinaryWorkbenchTabContextDTO,
         version: BinaryWorkbenchVersionDTO,
     ):
-        return rows_from_instructions_by_line(
-            version.instructions_by_line,
-            tab.original_rows or tab.rows,
-            list(tab.reference_offsets),
-            dict(tab.reference_offset_bases),
-        )
+        rows = _apply_instruction_overlays(tab.original_rows or tab.rows, version.instruction_overlays)
+        return apply_line_comments(rows, version.instructions_by_line, list(tab.reference_offsets))
 
     def _instruction_overlays_for_version(
         self,
@@ -257,8 +257,25 @@ class BinaryWorkbenchWorkspaceRepository:
     ) -> dict[str, str]:
         if version.instructions_by_line:
             return {
-                row.offsets.get("File", "0x00000000"): row.instruction
-                for row in self._version_rows(tab, version)
-                if row.instruction and row.offsets.get("File") != "-"
+                **version.instruction_overlays,
+                **{
+                    row.offsets.get("File", "0x00000000"): row.instruction
+                    for row in self._version_rows(tab, version)
+                    if row.instruction and row.offsets.get("File") != "-"
+                },
             }
         return dict(version.instruction_overlays)
+
+
+def _apply_instruction_overlays(
+    rows: list[BinaryWorkbenchRowDTO],
+    overlays: dict[str, str],
+) -> list[BinaryWorkbenchRowDTO]:
+    return [
+        BinaryWorkbenchRowDTO(
+            offsets=row.offsets,
+            instruction=overlays.get(row.offsets.get("File", "-"), row.instruction),
+            bytes_text=row.bytes_text,
+        )
+        for row in rows
+    ]

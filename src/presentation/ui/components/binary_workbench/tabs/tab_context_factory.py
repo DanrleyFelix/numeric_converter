@@ -8,6 +8,7 @@ from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
@@ -57,6 +58,8 @@ def create_binary_tab(
         rows=rows,
         file_size=file_size,
         original_file_size=file_size,
+        versions=[BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME)],
+        active_version_name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME,
         view_preferences=seed_view_preferences(state),
     )
 

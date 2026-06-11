@@ -40,11 +40,9 @@ class BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT:
 
 class BINARY_WORKBENCH_RULES_TEXT:
     TITLE: str = "Rules"
-    INSERT_SHIFT: str = "Allow new content that shifts bytes"
-    APPEND_OFFSETS: str = "Allow new content only at extra end offsets"
-    REMOVE_SHIFT: str = "Allow byte removal that shifts content back"
-    BYTES_EDIT: str = "Allow Bytes editing"
-    ASSEMBLY_EDIT: str = "Allow Assembly editor editing"
+    BYTE_SHIFT: str = "Allow byte shifting"
+    EDITOR_EDIT: str = "Allow Bytes or Assembly editor editing"
+    FREE_AFTER_END: str = "Allow free editing only after the original final offset"
     CONFIRM: str = "Confirm"
 
 

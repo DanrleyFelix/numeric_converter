@@ -6,15 +6,20 @@ from src.core.binary_workbench.file_ops import (
 )
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
-    instructions_by_line_from_rows,
-    rows_from_instructions_by_line,
     without_blank_instruction_overlays,
 )
+from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
+from src.core.binary_workbench.version_line_comments import apply_line_comments
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
+from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSION_PATH_PREFIX,
     VERSIONS,
 )
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    apply_instruction_overlays,
+)
+from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
 
 
@@ -35,6 +40,10 @@ class TabVersionsMixin:
         current = self.current_context()
         if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not current.active_version_name:
             return False
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.commit_current_editor_text()
+            current = page.current_context()
         current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != current.active_version_name]
@@ -118,6 +127,14 @@ class TabVersionsMixin:
         current: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchVersionDTO:
         current = compact_binary_context_overlays(current)
+        instruction_overlays, instructions_by_line = version_instruction_maps(
+            current.rows,
+            current.instruction_overlays,
+            binary_workbench_codec_for(current.cpu_arch),
+            current.labels,
+            current.variables,
+            current.equates,
+        )
         return BinaryWorkbenchVersionDTO(
             name=name,
             rows=build_version_rows_from_overlay(
@@ -125,11 +142,8 @@ class TabVersionsMixin:
                 list(current.reference_offsets),
                 dict(current.reference_offset_bases),
             ),
-            instruction_overlays=dict(current.instruction_overlays),
-            instructions_by_line=instructions_by_line_from_rows(
-                current.rows,
-                current.original_rows,
-            ),
+            instruction_overlays=instruction_overlays,
+            instructions_by_line=instructions_by_line,
         )
 
     def _rows_from_version(
@@ -137,14 +151,12 @@ class TabVersionsMixin:
         current: BinaryWorkbenchTabContextDTO,
         version: BinaryWorkbenchVersionDTO,
     ):
-        if version.instructions_by_line:
-            return rows_from_instructions_by_line(
-                version.instructions_by_line,
-                current.original_rows or current.rows,
-                list(current.reference_offsets),
-                dict(current.reference_offset_bases),
-            )
-        return apply_version_rows(current.original_rows, version.rows) if version.rows else current.rows
+        rows = apply_version_rows(current.original_rows, version.rows) if version.rows else (current.original_rows or current.rows)
+        if version.instruction_overlays:
+            rows = apply_instruction_overlays(rows, version.instruction_overlays)
+        if not version.instructions_by_line:
+            return rows
+        return apply_line_comments(rows, version.instructions_by_line, list(current.reference_offsets))
 
     def _instruction_overlays_from_version(
         self,
@@ -153,8 +165,11 @@ class TabVersionsMixin:
     ) -> dict[str, str]:
         if version.instructions_by_line:
             return {
-                row.offsets.get("File", "0x00000000"): row.instruction
-                for row in self._rows_from_version(current, version)
-                if row.instruction and row.offsets.get("File") != "-"
+                **version.instruction_overlays,
+                **{
+                    row.offsets.get("File", "0x00000000"): row.instruction
+                    for row in self._rows_from_version(current, version)
+                    if row.instruction and row.offsets.get("File") != "-"
+                },
             }
         return dict(version.instruction_overlays)

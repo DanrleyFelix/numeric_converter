@@ -34,7 +34,8 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
     selectionStarted = Signal(object)
     selectionAutoScrollAboutToStep = Signal(object)
     selectionAutoScrolled = Signal(object)
-    returnKeyPressed = Signal(object)
+    returnKeyPressed = Signal(object, object)
+    protectedEditKeyPressed = Signal(object, object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -56,6 +57,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._setup_completion_popup()
         self._selection_scroll_delta = 0
         self._return_key_handled = False
+        self._protected_edit_key_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
 
@@ -122,8 +124,14 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
             return
         if event.key() in {Qt.Key_Return, Qt.Key_Enter}:
             self._return_key_handled = False
-            self.returnKeyPressed.emit(self)
+            self.returnKeyPressed.emit(self, event)
             if self._return_key_handled:
+                event.accept()
+                return
+        if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
+            self._protected_edit_key_handled = False
+            self.protectedEditKeyPressed.emit(self, event)
+            if self._protected_edit_key_handled:
                 event.accept()
                 return
         if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
@@ -162,6 +170,9 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
 
     def mark_return_key_handled(self) -> None:
         self._return_key_handled = True
+
+    def mark_protected_edit_key_handled(self) -> None:
+        self._protected_edit_key_handled = True
 
     def wheelEvent(self, event) -> None:
         if self._shared_scrollbar is None:

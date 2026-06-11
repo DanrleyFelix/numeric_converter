@@ -58,6 +58,7 @@ class GridLayoutMixin:
             editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
             editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
             editor.returnKeyPressed.connect(self._handle_editor_return_key)
+            editor.protectedEditKeyPressed.connect(self._handle_editor_protected_edit_key)
 
     def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
         shell = QFrame(self)
