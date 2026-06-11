@@ -2,6 +2,9 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QTextCursor
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     COMPLETION_TOKEN,
     safe_int,
@@ -27,9 +30,9 @@ class EditorLabelNavigationMixin:
 
     def _token_contains_x(self, block, start: int, end: int, x: int) -> bool:
         cursor = QTextCursor(block)
-        cursor.setPosition(block.position() + start)
+        set_cursor_position(cursor, block.position() + start)
         left = self.cursorRect(cursor).left()
-        cursor.setPosition(block.position() + end)
+        set_cursor_position(cursor, block.position() + end)
         right = self.cursorRect(cursor).left()
         margin = BINARY_WORKBENCH_LAYOUT.EDITOR_LABEL_CLICK_MARGIN
         return left - margin <= x <= right + margin

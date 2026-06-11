@@ -45,6 +45,10 @@ class BinaryWorkbenchLbaFilesystemDialog(
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_TITLE)
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MIN_HEIGHT)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_MAX_HEIGHT,
+        )
         self.resize(BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.LBA_DIALOG_HEIGHT)
         self._libraries = {item.name: item for item in libraries or []}
         self._library_directory = default_directory
@@ -53,7 +57,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
         self._saved_library_path = ""
         self._loaded_library_name = ""
         self._loaded_library_path = ""
-        self._rows: list[tuple[QLineEdit, QLineEdit, QWidget]] = []
+        self._rows: list[tuple[QLineEdit, QLineEdit, QWidget, QWidget]] = []
         self._build_dialog(internal_files, default_library_name, lba_sector_size)
 
     def _build_dialog(

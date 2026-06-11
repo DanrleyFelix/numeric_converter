@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT,
@@ -26,6 +26,8 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.setWindowTitle(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.TITLE)
         layout = QVBoxLayout(self)
         layout.setSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.VERTICAL_SPACING)
+        group_bytes_label = QLabel(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.GROUP_BYTES_LABEL, self)
+        group_bytes_label.setObjectName("preferences-section-title")
         self.group_bytes = QComboBox(self)
         self.group_bytes.setObjectName("advanced-config-dropdown")
         self.group_bytes.setCursor(Qt.PointingHandCursor)
@@ -52,11 +54,13 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         ok.setFocusPolicy(Qt.NoFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
+        layout.addWidget(group_bytes_label)
         layout.addWidget(self.group_bytes)
         layout.addWidget(self.uppercase_bytes)
         layout.addWidget(self.uppercase_instructions)
         layout.addSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignCenter)
+        self.setFixedSize(self.sizeHint())
 
     def selected_group_bytes(self) -> int:
         return (1, 2, 4)[self.group_bytes.currentIndex()]

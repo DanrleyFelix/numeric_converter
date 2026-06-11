@@ -69,6 +69,8 @@ class BinaryWorkbenchPreferencesUseCase:
             uppercase_instructions=preferences.uppercase_instructions,
             block_size=max(1, preferences.block_size),
             cache_max_blocks=max(1, preferences.cache_max_blocks),
+            binary_edit_rules=preferences.binary_edit_rules,
+            assembly_edit_rules=preferences.assembly_edit_rules,
         )
 
 

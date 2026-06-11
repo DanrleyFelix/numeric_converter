@@ -3,6 +3,7 @@ from pathlib import Path
 from src.core.binary_workbench.file_ops import apply_version_rows
 from src.core.binary_workbench.mips_r3000a import rebuild_rows_with_offsets
 from src.modules.dtos import (
+    BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchViewPreferencesDTO,
@@ -29,6 +30,8 @@ class TabConfigurationMixin:
                 uppercase_instructions=self._preferences.uppercase_instructions,
                 block_size=block_size,
                 cache_max_blocks=cache_max_blocks,
+                binary_edit_rules=self._preferences.binary_edit_rules,
+                assembly_edit_rules=self._preferences.assembly_edit_rules,
             )
         )
         updates: dict[str, object] = {"cpu_arch": cpu_arch, "read_mode": read_mode}
@@ -55,11 +58,47 @@ class TabConfigurationMixin:
                 uppercase_instructions=uppercase_instructions,
                 block_size=self._preferences.block_size,
                 cache_max_blocks=self._preferences.cache_max_blocks,
+                binary_edit_rules=self._preferences.binary_edit_rules,
+                assembly_edit_rules=self._preferences.assembly_edit_rules,
             )
         )
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.load_preferences(self._preferences)
+
+    def edit_rules_for_current_context(self) -> BinaryWorkbenchEditRulesDTO:
+        current = self.current_context()
+        if current is None or current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+            BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+        }:
+            return self._preferences.assembly_edit_rules
+        return self._preferences.binary_edit_rules
+
+    def set_current_edit_rules(self, rules: BinaryWorkbenchEditRulesDTO) -> None:
+        current = self.current_context()
+        if current is None:
+            return
+        binary_rules = self._preferences.binary_edit_rules
+        assembly_rules = self._preferences.assembly_edit_rules
+        if current.kind in {BINARY_WORKBENCH_TAB_KIND.ASSEMBLY, BINARY_WORKBENCH_TAB_KIND.SCRATCH}:
+            assembly_rules = rules
+        else:
+            binary_rules = rules
+        self._set_preferences(
+            BinaryWorkbenchPreferencesDTO(
+                group_bytes=self._preferences.group_bytes,
+                uppercase_bytes=self._preferences.uppercase_bytes,
+                uppercase_instructions=self._preferences.uppercase_instructions,
+                block_size=self._preferences.block_size,
+                cache_max_blocks=self._preferences.cache_max_blocks,
+                binary_edit_rules=binary_rules,
+                assembly_edit_rules=assembly_rules,
+            )
+        )
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.set_preferences(self._preferences)
 
     def _set_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self._preferences = self._controller.normalize_preferences(preferences)

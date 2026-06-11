@@ -1,6 +1,9 @@
 from PySide6.QtGui import QTextCursor
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 
 
 class GridSelectionMixin:
@@ -9,8 +12,8 @@ class GridSelectionMixin:
         if positions is None:
             return
         cursor = self.bytes.textCursor()
-        cursor.setPosition(positions[0])
-        cursor.setPosition(positions[1], QTextCursor.KeepAnchor)
+        set_cursor_position(cursor, positions[0])
+        set_cursor_position(cursor, positions[1], QTextCursor.KeepAnchor)
         self.bytes.setTextCursor(cursor)
         self.bytes.setFocus()
         self._emit_selection_summary()
@@ -26,8 +29,8 @@ class GridSelectionMixin:
         if not start_block.isValid() or not end_block.isValid():
             return
         cursor = self.instructions.textCursor()
-        cursor.setPosition(start_block.position())
-        cursor.setPosition(end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
+        set_cursor_position(cursor, start_block.position())
+        set_cursor_position(cursor, end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
         self.instructions.setTextCursor(cursor)
         self.instructions.setFocus()
         self._emit_selection_summary()
@@ -36,13 +39,10 @@ class GridSelectionMixin:
         if self._virtual:
             self._select_all_focused_editor()
             return
-        self._rows = list(self._all_rows)
-        self._visible_start_offset = 0
-        self._render()
         self._select_all_focused_editor()
 
     def assembly_text(self) -> str:
-        return self.instructions.toPlainText()
+        return "\n".join(row.instruction for row in self.export_rows())
 
     def focused_editor_kind(self) -> str | None:
         if self._last_editor_kind is not None:

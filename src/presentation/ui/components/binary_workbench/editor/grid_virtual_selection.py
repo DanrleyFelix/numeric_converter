@@ -1,6 +1,9 @@
 from PySide6.QtGui import QTextCursor
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN, ROW_BYTES
 
 
@@ -66,8 +69,8 @@ class GridVirtualSelectionMixin:
         if positions is None:
             return
         cursor = self.bytes.textCursor()
-        cursor.setPosition(positions[0])
-        cursor.setPosition(positions[1], QTextCursor.KeepAnchor)
+        set_cursor_position(cursor, positions[0])
+        set_cursor_position(cursor, positions[1], QTextCursor.KeepAnchor)
         self.bytes.setTextCursor(cursor)
 
     def _select_visible_instruction_range(self, kind: str, start_offset: int, end_offset: int) -> None:
@@ -82,8 +85,8 @@ class GridVirtualSelectionMixin:
         if not start_block.isValid() or not end_block.isValid():
             return
         cursor = editor.textCursor()
-        cursor.setPosition(start_block.position())
-        cursor.setPosition(end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
+        set_cursor_position(cursor, start_block.position())
+        set_cursor_position(cursor, end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
         editor.setTextCursor(cursor)
 
     def _emit_virtual_selection_summary(self, kind: str, anchor_offset: int, cursor_offset: int) -> None:

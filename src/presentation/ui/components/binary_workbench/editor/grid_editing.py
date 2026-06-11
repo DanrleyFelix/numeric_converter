@@ -7,6 +7,9 @@ from src.core.binary_workbench.mips_r3000a import (
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.modules.dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import labels_from_rows
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     ROW_BYTES,
@@ -20,6 +23,9 @@ class GridEditingMixin:
     def _on_bytes_changed(self) -> None:
         if self._updating:
             return
+        if not self._editor_change_allowed(True):
+            self._restore_editor_after_rejected_change(True)
+            return
         if not self._has_meaningful_editor_change(self.bytes):
             return
         self._normalize_bytes_editor_text()
@@ -27,6 +33,9 @@ class GridEditingMixin:
 
     def _on_instructions_changed(self) -> None:
         if self._updating:
+            return
+        if not self._editor_change_allowed(False):
+            self._restore_editor_after_rejected_change(False)
             return
         if not self._has_meaningful_editor_change(self.instructions):
             return
@@ -47,9 +56,12 @@ class GridEditingMixin:
     def _sync_rows(self, lines: list[str], editing_bytes: bool) -> None:
         if self._updating:
             return
-        old_count = len(self._rows)
         updated = self._byte_rows_from_lines(lines) if editing_bytes else self._instruction_rows_from_lines(lines)
         if updated is None:
+            self._restore_editor_after_rejected_change(editing_bytes)
+            return
+        if not self._rows_change_allowed(updated):
+            self._restore_editor_after_rejected_change(editing_bytes)
             return
         if editing_bytes:
             updated = preserve_symbolic_rows(
@@ -65,24 +77,26 @@ class GridEditingMixin:
         if not editing_bytes:
             self._set_editing_labels(labels_from_rows(updated))
         if not self._virtual:
-            start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
-            self._all_rows[start : start + old_count] = updated
             self._all_rows = rebuild_rows_with_offsets(
-                self._all_rows,
+                updated,
                 self._columns or [BINARY_WORKBENCH_TEXT.FILE],
                 self._offset_base_text(),
             )
-            self._rows = self._all_rows[start : start + len(updated)]
+            self._rows = list(self._all_rows)
             self._total_size = len(self._all_rows) * ROW_BYTES
             self._configure_scrollbar()
             self.rowsChanged.emit(self.export_rows())
         else:
+            self._total_size = self._expanded_virtual_total_size(updated)
+            self._configure_scrollbar()
             self.rowsChanged.emit(self._rows)
         self._render_offsets()
         target = self.instructions if editing_bytes else self.bytes
         values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
         self._set_editor_text(target, values)
         self._render_raw_instructions()
+        if not self._virtual:
+            self._scroll_static_document(self.scrollbar.value())
         self._emit_selection_summary()
         source = self.bytes if editing_bytes else self.instructions
         self._remember_editor_text_signature(source)
@@ -185,7 +199,7 @@ class GridEditingMixin:
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
             self._offset_base_text(),
             self._codec,
-            self._visible_start_offset,
+            self._source_rows_start_offset(),
             labels,
             variables,
             equates,
@@ -214,17 +228,57 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
-        return build_source_line_rows(
+        rows = build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
             self._offset_base_text(),
             self._codec,
-            self._visible_start_offset,
+            self._source_rows_start_offset(),
             labels,
             self._variables if variables is None else variables,
             self._equates if equates is None else equates,
-            True,
+            False,
         )
+        return self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
+
+    def _source_rows_start_offset(self) -> int:
+        return self._visible_start_offset if self._virtual else 0
+
+    def _virtual_instruction_rows_with_previous_bytes(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None,
+    ) -> list[BinaryWorkbenchRowDTO] | None:
+        if rows is None:
+            return None
+        updated: list[BinaryWorkbenchRowDTO] = []
+        for index, row in enumerate(rows):
+            previous = self._row_at(index)
+            if row.bytes_text or previous.offsets.get(BINARY_WORKBENCH_TEXT.FILE) == "-":
+                updated.append(row)
+                continue
+            if index >= len(self._rows) and self._row_after_original_boundary(previous):
+                updated.append(
+                    BinaryWorkbenchRowDTO(
+                        offsets=previous.offsets,
+                        instruction=row.instruction,
+                        bytes_text="",
+                    )
+                )
+                continue
+            updated.append(
+                BinaryWorkbenchRowDTO(
+                    offsets=previous.offsets,
+                    instruction=row.instruction,
+                    bytes_text=previous.bytes_text,
+                )
+            )
+        return updated
+
+    def _row_after_original_boundary(self, row: BinaryWorkbenchRowDTO) -> bool:
+        try:
+            return int(row.offsets.get(BINARY_WORKBENCH_TEXT.FILE, "-"), 16) >= self._original_boundary()
+        except ValueError:
+            return False
 
     def _normalized_bytes_lines(self) -> list[str]:
         lines: list[str] = []
@@ -243,7 +297,7 @@ class GridEditingMixin:
         position = self.bytes.textCursor().position()
         self._set_editor_text(self.bytes, normalized.split("\n"))
         cursor = self.bytes.textCursor()
-        cursor.setPosition(min(position + (len(normalized) - len(text)), len(normalized)))
+        set_cursor_position(cursor, position + (len(normalized) - len(text)))
         self.bytes.setTextCursor(cursor)
 
     def _normalized_bytes_line(self, line: str) -> str:
@@ -264,6 +318,6 @@ class GridEditingMixin:
             position = self.instructions.textCursor().position()
             self._set_editor_text(self.instructions, normalized.split("\n"))
             cursor = self.instructions.textCursor()
-            cursor.setPosition(min(position, len(normalized)))
+            set_cursor_position(cursor, position)
             self.instructions.setTextCursor(cursor)
         return normalized.split("\n")

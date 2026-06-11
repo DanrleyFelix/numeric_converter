@@ -97,6 +97,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         layout.addWidget(self.cache_max_blocks)
         layout.addSpacing(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok)
+        self.setFixedSize(self.sizeHint())
 
     def selected_arch(self) -> str:
         return self.combo.currentText()

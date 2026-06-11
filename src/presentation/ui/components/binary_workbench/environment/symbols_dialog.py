@@ -44,6 +44,10 @@ class BinaryWorkbenchSymbolsDialog(
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SYMBOLS_TITLE)
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_MIN_HEIGHT)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MAX_HEIGHT,
+        )
         self.resize(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.FILE_DIALOG_HEIGHT)
         self._libraries = {item.name: item for item in libraries or []}
         self._symbols_directory = default_directory
@@ -53,7 +57,7 @@ class BinaryWorkbenchSymbolsDialog(
         self._loaded_library_name = ""
         self._loaded_library_path = ""
         self._symbol_offsets = dict(symbol_offsets or {})
-        self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget]] = []
+        self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget, QWidget]] = []
         self._build_dialog(variables, equates, labels, default_library_name)
 
     def _build_dialog(

@@ -34,6 +34,7 @@ class BinaryWorkbenchToolbar(QFrame):
         )
         self.bytes_formatter_action = QAction(BINARY_WORKBENCH_TEXT.BYTES_FORMATTER, self)
         self.reference_offsets_action = QAction(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS, self)
+        self.rules_action = QAction(BINARY_WORKBENCH_TEXT.RULES, self)
         self.go_to_action = QAction(BINARY_WORKBENCH_TEXT.GO_TO, self)
         self.find_action = QAction(BINARY_WORKBENCH_TEXT.FIND, self)
         self.select_block_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_BLOCK, self)
@@ -65,6 +66,7 @@ class BinaryWorkbenchToolbar(QFrame):
             self.bytes_formatter_action,
             self.reference_offsets_action,
             self.view_action,
+            self.rules_action,
             self.advanced_configuration_action,
         ]))
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.SEARCH, Icons.search(), [

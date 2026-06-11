@@ -251,6 +251,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
         rows=[] if is_virtual_binary else _rows(raw.get("rows")),
         file_size=_positive_int(raw.get("file_size"), 0),
+        original_file_size=_positive_int(raw.get("original_file_size"), 0),
         version_dirty=_bool(raw.get("version_dirty"), False)
         and bool(active_version_name or byte_overlays or instruction_overlays),
         byte_overlays=byte_overlays,
@@ -322,6 +323,7 @@ def binary_workbench_state_to_payload(
                 "last_open_offset": tab.last_open_offset,
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,
+                "original_file_size": tab.original_file_size,
                 "version_dirty": tab.version_dirty,
                 "byte_overlays": {} if _is_virtual_binary(tab) else dict(tab.byte_overlays),
                 "instruction_overlays": {} if _is_virtual_binary(tab) else dict(tab.instruction_overlays),

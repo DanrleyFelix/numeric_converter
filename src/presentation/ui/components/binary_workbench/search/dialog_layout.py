@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 
@@ -84,3 +84,9 @@ def search_line_edit(parent: QDialog, placeholder: str) -> QLineEdit:
     editor.setObjectName("binary-workbench-dialog-input")
     editor.setPlaceholderText(placeholder)
     return editor
+
+
+def configure_search_combo_popup(combo: QComboBox) -> None:
+    view = combo.view()
+    view.setViewportMargins(BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_LEFT_MARGIN, 0, 0, 0)
+    view.setSpacing(BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_SPACING)

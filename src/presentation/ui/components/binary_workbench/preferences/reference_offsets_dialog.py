@@ -20,6 +20,11 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MAX_HEIGHT,
+        )
+        self.setMinimumWidth(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MIN_WIDTH)
         layout = QVBoxLayout(self)
         layout.setSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.VERTICAL_SPACING)
         self._rows: list[tuple[QLineEdit, QLineEdit, QCheckBox]] = []

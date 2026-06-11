@@ -5,6 +5,9 @@ from src.core.binary_workbench.mips_r3000a import (
     raw_mips_instruction,
     validate_mips_hazards,
 )
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.constants.raw_instruction_style import (
     RAW_INSTRUCTION_HAZARD_ERROR_BACKGROUND_RGBA,
     RAW_INSTRUCTION_HAZARD_WARNING_BACKGROUND_RGBA,
@@ -59,7 +62,7 @@ class GridRawInstructionsMixin:
     def _raw_hazard_selection(self, block, severity: str) -> QTextEdit.ExtraSelection:
         selection = QTextEdit.ExtraSelection()
         selection.cursor = self.raw_instructions.textCursor()
-        selection.cursor.setPosition(block.position())
+        set_cursor_position(selection.cursor, block.position())
         selection.cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
         selection.format = QTextCharFormat()
         rgba = (

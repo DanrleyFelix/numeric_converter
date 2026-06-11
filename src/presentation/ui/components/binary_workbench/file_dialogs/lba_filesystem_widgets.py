@@ -1,5 +1,5 @@
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -11,11 +11,18 @@ def lba_input(
     parent: QWidget,
     value: str = "",
     width: int = BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_NAME_WIDTH,
+    *,
+    expanding: bool = False,
 ) -> QLineEdit:
     editor = QLineEdit(value, parent)
     editor.setObjectName("binary-workbench-dialog-input")
     editor.setPlaceholderText(placeholder)
-    editor.setFixedSize(width, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    if expanding:
+        editor.setMinimumWidth(0)
+        editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    else:
+        editor.setFixedSize(width, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
     return editor
 
 
@@ -24,6 +31,15 @@ def size_lba_input(widget: QWidget) -> None:
         BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_SECTOR_WIDTH,
         BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
     )
+
+
+def size_lba_action(button: QPushButton, width: int, *, expanding: bool = False) -> None:
+    if expanding:
+        button.setMinimumWidth(0)
+        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    else:
+        button.setFixedWidth(width)
+    button.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
 
 
 def lba_label(text: str, object_name: str, parent: QWidget) -> QLabel:

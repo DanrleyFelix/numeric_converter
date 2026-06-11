@@ -4,8 +4,11 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_edit_rules import (
+    GridEditRulesMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_editing import GridEditingMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_layout import GridLayoutMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_offsets import GridOffsetsMixin
@@ -29,6 +32,7 @@ class BinaryWorkbenchGrid(
     GridResizingMixin,
     GridRenderingMixin,
     GridRawInstructionsMixin,
+    GridEditRulesMixin,
     GridCommitMixin,
     GridEditingMixin,
     GridSelectionMixin,
@@ -57,6 +61,7 @@ class BinaryWorkbenchGrid(
         self._updating = False
         self._virtual = False
         self._total_size = 0
+        self._original_file_size = 0
         self._group_bytes = 1
         self._uppercase_bytes = True
         self._uppercase_instructions = True
@@ -67,10 +72,12 @@ class BinaryWorkbenchGrid(
         self._last_editor_kind: str | None = None
         self._dirty_editor_kind: str | None = None
         self._edit_origin_kind: str | None = None
+        self._edit_rules = BinaryWorkbenchEditRulesDTO()
         self._editor_text_signatures: dict[int, str] = {}
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._layout_refresh_scheduled = False
+        self._syncing_editor_scrollbars = False
         self._virtual_selection_anchor: int | None = None
         self._virtual_selection_kind: str | None = None
         self._virtual_selection_range: tuple[str, int, int] | None = None

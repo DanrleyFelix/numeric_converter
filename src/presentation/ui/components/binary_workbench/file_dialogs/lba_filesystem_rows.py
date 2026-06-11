@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from src.modules.dtos import BinaryWorkbenchInternalFileDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
@@ -7,6 +7,7 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
     LbaRemoveRowButton,
     lba_button,
     lba_input,
+    size_lba_action,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
@@ -18,7 +19,7 @@ from src.presentation.ui.components.workspace_table.constants.layout import WORK
 class LbaFilesystemRowsMixin:
     def mappings(self) -> list[BinaryWorkbenchInternalFileDTO]:
         rows: list[BinaryWorkbenchInternalFileDTO] = []
-        for name, lba, _ in self._rows:
+        for name, lba, _, _ in self._rows:
             if name.text().strip() and lba.text().strip():
                 rows.append(BinaryWorkbenchInternalFileDTO(name=name.text().strip(), start_lba=int(lba.text().strip(), 0)))
         return rows
@@ -29,45 +30,48 @@ class LbaFilesystemRowsMixin:
         self.lba.clear()
 
     def _clear_rows(self) -> None:
-        for _, _, row in self._rows:
+        for _, _, row, remove_slot in self._rows:
             row.deleteLater()
+            remove_slot.deleteLater()
         self._rows.clear()
 
     def _append_row(self, name: str, lba: str) -> None:
         row = QWidget(self.body)
         row.setObjectName("workspace-row")
+        row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_FIELD_SPACING)
         name_edit = lba_input(
             BINARY_WORKBENCH_TEXT.LBA_FILE_NAME,
             row,
             name,
             BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_NAME_WIDTH,
+            expanding=True,
         )
         lba_edit = lba_input(
             BINARY_WORKBENCH_TEXT.LBA_START,
             row,
             lba,
             BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_START_WIDTH,
+            expanding=True,
         )
         set_python_identifier_validator(name_edit)
         set_decimal_integer_validator(lba_edit)
         go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "binary-workbench-lba-action", row)
-        go_to.setFixedSize(
-            BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH,
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
-        )
+        size_lba_action(go_to, BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH, expanding=True)
         go_to.clicked.connect(lambda: self._go_to_lba(lba_edit.text()))
-        remove = LbaRemoveRowButton(row)
+        remove_slot = _remove_slot(self.remove_body)
+        remove = LbaRemoveRowButton(remove_slot)
         remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
-        remove.clicked.connect(lambda: self._remove_row(row))
-        layout.addWidget(name_edit, 0)
-        layout.addWidget(lba_edit, 0)
-        layout.addWidget(go_to, 0, Qt.AlignVCenter)
-        layout.addWidget(remove, 0, Qt.AlignVCenter)
-        self._rows.append((name_edit, lba_edit, row))
-        self.body_layout.addWidget(row, 0, Qt.AlignLeft)
+        remove.clicked.connect(lambda: self._remove_row(row, remove_slot))
+        layout.addWidget(name_edit, 1)
+        layout.addWidget(lba_edit, 1)
+        layout.addWidget(go_to, 1, Qt.AlignVCenter)
+        remove_slot.layout().addWidget(remove, 0, Qt.AlignCenter)
+        self._rows.append((name_edit, lba_edit, row, remove_slot))
+        self.body_layout.addWidget(row, 0)
+        self.remove_layout.addWidget(remove_slot, 0)
 
     def _go_to_lba(self, lba: str) -> None:
         try:
@@ -75,6 +79,15 @@ class LbaFilesystemRowsMixin:
         except ValueError:
             return
 
-    def _remove_row(self, row: QWidget) -> None:
+    def _remove_row(self, row: QWidget, remove_slot: QWidget) -> None:
         self._rows = [item for item in self._rows if item[2] is not row]
         row.deleteLater()
+        remove_slot.deleteLater()
+
+
+def _remove_slot(parent: QWidget) -> QWidget:
+    slot = QWidget(parent)
+    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    layout = QVBoxLayout(slot)
+    layout.setContentsMargins(0, 0, 0, 0)
+    return slot

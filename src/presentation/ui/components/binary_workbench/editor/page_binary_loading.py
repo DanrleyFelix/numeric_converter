@@ -26,7 +26,7 @@ class EditorPageBinaryLoadingMixin:
         self._loading_visible_rows = True
         visible_offset = max(0, offset)
         self._reader.prefetch_for_offset(visible_offset, direction)
-        source_data = self._reader.read(visible_offset, size, {})
+        source_data = self._read_visible_data(visible_offset, size, {})
         rows = build_rows_from_bytes(
             source_data,
             list(self._context.reference_offsets),
@@ -35,7 +35,11 @@ class EditorPageBinaryLoadingMixin:
         )
         self._context = compact_binary_context_overlays(self._context)
         if self._context.byte_overlays:
-            data = self._reader.read(visible_offset, size, overlay_bytes(self._context.byte_overlays))
+            data = self._read_visible_data(
+                visible_offset,
+                size,
+                overlay_bytes(self._context.byte_overlays),
+            )
             rows = build_rows_from_bytes(
                 data,
                 list(self._context.reference_offsets),
@@ -60,7 +64,7 @@ class EditorPageBinaryLoadingMixin:
             **{
                 **self._context.__dict__,
                 "rows": rows,
-                "file_size": self._reader.file_size,
+                "file_size": max(self._reader.file_size, self._context.file_size),
                 "last_open_offset": f"0x{visible_offset:08X}",
                 "labels": labels,
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
@@ -75,16 +79,27 @@ class EditorPageBinaryLoadingMixin:
             return
         overlays = dict(self._context.byte_overlays)
         instruction_overlays = self._instruction_overlays_for_rows(rows)
+        file_size = self._context.original_file_size or self._reader.file_size
         for row in rows:
             try:
                 offset = int(row.offsets.get("File", "0x0"), 16)
             except ValueError:
                 continue
             current = bytes.fromhex(row.bytes_text.replace(" ", ""))
+            file_size = max(file_size, offset + len(current))
             original = self._reader.read(offset, len(current), {})
             key = f"0x{offset:08X}"
             overlays.pop(key, None) if current == original else overlays.__setitem__(key, row.bytes_text)
-        if overlays == self._context.byte_overlays and instruction_overlays == self._context.instruction_overlays:
+        for offset, bytes_text in overlays.items():
+            try:
+                file_size = max(file_size, int(offset, 16) + (len(bytes_text.replace(" ", "")) // 2))
+            except ValueError:
+                continue
+        if (
+            overlays == self._context.byte_overlays
+            and instruction_overlays == self._context.instruction_overlays
+            and file_size == self._context.file_size
+        ):
             return
         labels = merged_instruction_labels(rows, instruction_overlays)
         symbol_rows = [*rows, *rows_from_overlays(instruction_overlays)]
@@ -94,6 +109,7 @@ class EditorPageBinaryLoadingMixin:
                 "byte_overlays": overlays,
                 "instruction_overlays": instruction_overlays,
                 "rows": rows,
+                "file_size": file_size,
                 "labels": labels,
                 "version_dirty": True,
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
@@ -126,12 +142,46 @@ class EditorPageBinaryLoadingMixin:
             return None
         return CachedBinaryReader(path, self._preferences.block_size, self._preferences.cache_max_blocks)
 
+    def _read_visible_data(
+        self,
+        offset: int,
+        size: int,
+        overlays: dict[int, bytes],
+    ) -> bytes:
+        if self._reader is None:
+            return b""
+        effective_size = max(self._reader.file_size, self._context.file_size)
+        if size <= 0 or offset >= effective_size:
+            return b""
+        target_size = min(size, effective_size - offset)
+        source_size = min(target_size, max(0, self._reader.file_size - offset))
+        data = self._reader.read(offset, source_size, {})
+        if len(data) < target_size:
+            data += b"\x00" * (target_size - len(data))
+        return _apply_overlay_bytes(offset, data, overlays)
+
 
 def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:
     return {
         int(offset, 16): bytes.fromhex(bytes_text.replace(" ", ""))
         for offset, bytes_text in values.items()
     }
+
+
+def _apply_overlay_bytes(start: int, data: bytes, overlays: dict[int, bytes]) -> bytes:
+    if not overlays:
+        return data
+    patched = bytearray(data)
+    end = start + len(data)
+    for patch_offset, patch_data in overlays.items():
+        patch_end = patch_offset + len(patch_data)
+        if patch_end <= start or patch_offset >= end:
+            continue
+        left = max(start, patch_offset)
+        right = min(end, patch_end)
+        source_left = left - patch_offset
+        patched[left - start : right - start] = patch_data[source_left : source_left + (right - left)]
+    return bytes(patched)
 
 
 def instruction_overlays_with_changed_rows(

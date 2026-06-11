@@ -1,6 +1,9 @@
 from PySide6.QtCore import QPoint
 from PySide6.QtGui import QCursor, QTextCursor
 
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 
 _SELECTION_SCROLL_EDGE_THRESHOLD = 18
@@ -33,7 +36,7 @@ class EditorSelectionScrollMixin:
         cursor = self.cursorForPosition(QPoint(max(position.x(), 0), max(position.y(), 0)))
         selection = self.textCursor()
         anchor = selection.anchor()
-        selection.setPosition(anchor)
-        selection.setPosition(cursor.position(), QTextCursor.KeepAnchor)
+        set_cursor_position(selection, anchor)
+        set_cursor_position(selection, cursor.position(), QTextCursor.KeepAnchor)
         self.setTextCursor(selection)
         self.selectionAutoScrolled.emit(self)

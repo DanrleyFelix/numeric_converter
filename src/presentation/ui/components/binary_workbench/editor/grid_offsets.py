@@ -10,7 +10,8 @@ class GridOffsetsMixin:
         return BinaryWorkbenchRowDTO(offsets=self._offsets_for_row(index))
 
     def _offsets_for_row(self, index: int) -> dict[str, str]:
-        file_offset = self._visible_start_offset + (index * ROW_BYTES)
+        start_offset = self._visible_start_offset if self._virtual else 0
+        file_offset = start_offset + (index * ROW_BYTES)
         bases = self._offset_bases()
         names = self._columns or [BINARY_WORKBENCH_TEXT.FILE]
         return {name: f"0x{bases.get(name, 0) + file_offset:08X}" for name in names}

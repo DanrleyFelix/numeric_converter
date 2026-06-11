@@ -15,6 +15,9 @@ from src.presentation.ui.components.binary_workbench.editor.editor_label_navigat
 from src.presentation.ui.components.binary_workbench.editor.editor_selection_scroll import (
     EditorSelectionScrollMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     ROW_BYTES,
 )
@@ -31,6 +34,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
     selectionStarted = Signal(object)
     selectionAutoScrollAboutToStep = Signal(object)
     selectionAutoScrolled = Signal(object)
+    returnKeyPressed = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -51,6 +55,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._completer.activated.connect(self._insert_completion)
         self._setup_completion_popup()
         self._selection_scroll_delta = 0
+        self._return_key_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
 
@@ -115,6 +120,12 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab} and self._accept_current_completion():
             event.accept()
             return
+        if event.key() in {Qt.Key_Return, Qt.Key_Enter}:
+            self._return_key_handled = False
+            self.returnKeyPressed.emit(self)
+            if self._return_key_handled:
+                event.accept()
+                return
         if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
             self.selectAllRequested.emit()
             event.accept()
@@ -146,8 +157,11 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
     def _move_cursor_to_edge(self, top: bool) -> None:
         cursor = self.textCursor()
         block = self.document().firstBlock() if top else self.document().lastBlock()
-        cursor.setPosition(block.position())
+        set_cursor_position(cursor, block.position())
         self.setTextCursor(cursor)
+
+    def mark_return_key_handled(self) -> None:
+        self._return_key_handled = True
 
     def wheelEvent(self, event) -> None:
         if self._shared_scrollbar is None:

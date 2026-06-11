@@ -309,10 +309,9 @@ QListWidget#binary-workbench-symbol-offsets::item {
     padding: $space-6;
 }
 
-QListWidget#binary-workbench-symbol-offsets::item:hover,
-QListWidget#binary-workbench-symbol-offsets::item:selected {
+QListWidget#binary-workbench-symbol-offsets::item:hover {
     background-color: $bg-workspace-row-hover;
-    border-color: $border-workspace-row-hover;
+    border-color: $border-soft-success;
     color: $text-main;
 }
 
@@ -320,6 +319,20 @@ QListWidget#binary-workbench-symbol-offsets::item:focus,
 QListWidget#binary-workbench-symbol-offsets::item:selected:focus,
 QListWidget#binary-workbench-symbol-offsets:focus {
     outline: none;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:selected,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus {
+    background-color: transparent;
+    border-color: transparent;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:selected:hover,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
 }
 
 QScrollArea#binary-workbench-version-scroll {

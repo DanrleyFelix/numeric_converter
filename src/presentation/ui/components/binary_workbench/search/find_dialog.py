@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.input_validators import (
 )
 from src.presentation.ui.components.binary_workbench.search.dialog_layout import (
     base_search_dialog_layout,
+    configure_search_combo_popup,
     finish_search_dialog,
     search_line_edit,
 )
@@ -30,6 +31,10 @@ class BinaryWorkbenchFindDialog(QDialog):
         self._offsets: list[int] = []
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.FIND)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_LAYOUT.SEARCH_DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MAX_HEIGHT,
+        )
         layout = base_search_dialog_layout(
             self,
             BINARY_WORKBENCH_TEXT.FIND,
@@ -42,6 +47,7 @@ class BinaryWorkbenchFindDialog(QDialog):
         )
         self.mode = QComboBox(self)
         self.mode.setObjectName("binary-workbench-dialog-input")
+        configure_search_combo_popup(self.mode)
         self.mode.setCursor(Qt.PointingHandCursor)
         self.mode.addItems([
             BINARY_WORKBENCH_TEXT.FIND_ASSEMBLY,

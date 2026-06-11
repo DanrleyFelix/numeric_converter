@@ -17,6 +17,7 @@ from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchAdvancedConfigDialog,
     BinaryWorkbenchBytesFormatterDialog,
     BinaryWorkbenchReferenceOffsetsDialog,
+    BinaryWorkbenchRulesDialog,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
     LBA_FILESYSTEM,
@@ -108,6 +109,14 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         if dialog.exec() == dialog.DialogCode.Accepted:
             offsets, bases, visible = dialog.values()
             self.tabs.set_current_reference_offsets(offsets, bases, visible)
+
+    def _open_rules(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchRulesDialog(self.tabs.edit_rules_for_current_context(), self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.tabs.set_current_edit_rules(dialog.selected_rules())
 
     def _open_internal_file(self) -> None:
         current = self.tabs.current_context()

@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from src.modules.dtos import (
+    BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
     FormattingOutputDTO,
     NumericWorkbenchPreferencesDTO,
@@ -106,6 +107,20 @@ class BinaryWorkbenchPreferencesRepository:
             uppercase_instructions=self._bool(raw.get("uppercase_instructions") if raw else None, True),
             block_size=self._positive_int(raw.get("block_size") if raw else None, 2048),
             cache_max_blocks=self._positive_int(raw.get("cache_max_blocks") if raw else None, 8000),
+            binary_edit_rules=self._edit_rules(
+                raw.get("binary_edit_rules") if raw else None,
+                BinaryWorkbenchEditRulesDTO(),
+            ),
+            assembly_edit_rules=self._edit_rules(
+                raw.get("assembly_edit_rules") if raw else None,
+                BinaryWorkbenchEditRulesDTO(
+                    allow_insert_shift=True,
+                    allow_append_offsets=True,
+                    allow_remove_shift=True,
+                    allow_bytes_edit=True,
+                    allow_assembly_edit=True,
+                ),
+            ),
         )
 
     def save(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
@@ -115,6 +130,8 @@ class BinaryWorkbenchPreferencesRepository:
             "uppercase_instructions": preferences.uppercase_instructions,
             "block_size": preferences.block_size,
             "cache_max_blocks": preferences.cache_max_blocks,
+            "binary_edit_rules": self._edit_rules_payload(preferences.binary_edit_rules),
+            "assembly_edit_rules": self._edit_rules_payload(preferences.assembly_edit_rules),
         }
         with open(self.file, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=4)
@@ -156,3 +173,26 @@ class BinaryWorkbenchPreferencesRepository:
     def _positive_int(self, raw: object, default: int) -> int:
         value = raw if isinstance(raw, int) else default
         return value if value > 0 else default
+
+    def _edit_rules(
+        self,
+        raw: object,
+        default: BinaryWorkbenchEditRulesDTO,
+    ) -> BinaryWorkbenchEditRulesDTO:
+        values = raw if isinstance(raw, dict) else {}
+        return BinaryWorkbenchEditRulesDTO(
+            allow_insert_shift=self._bool(values.get("allow_insert_shift"), default.allow_insert_shift),
+            allow_append_offsets=self._bool(values.get("allow_append_offsets"), default.allow_append_offsets),
+            allow_remove_shift=self._bool(values.get("allow_remove_shift"), default.allow_remove_shift),
+            allow_bytes_edit=self._bool(values.get("allow_bytes_edit"), default.allow_bytes_edit),
+            allow_assembly_edit=self._bool(values.get("allow_assembly_edit"), default.allow_assembly_edit),
+        )
+
+    def _edit_rules_payload(self, rules: BinaryWorkbenchEditRulesDTO) -> dict[str, bool]:
+        return {
+            "allow_insert_shift": rules.allow_insert_shift,
+            "allow_append_offsets": rules.allow_append_offsets,
+            "allow_remove_shift": rules.allow_remove_shift,
+            "allow_bytes_edit": rules.allow_bytes_edit,
+            "allow_assembly_edit": rules.allow_assembly_edit,
+        }

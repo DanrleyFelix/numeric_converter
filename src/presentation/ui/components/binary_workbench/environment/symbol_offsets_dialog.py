@@ -26,6 +26,12 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
         self.offsets.setObjectName("binary-workbench-symbol-offsets")
         self.offsets.setFocusPolicy(Qt.NoFocus)
         self.offsets.setMouseTracking(True)
+        self.offsets.setViewportMargins(
+            0,
+            0,
+            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
+            0,
+        )
         if offsets:
             self.offsets.setCursor(Qt.PointingHandCursor)
             self.offsets.addItems(offsets)

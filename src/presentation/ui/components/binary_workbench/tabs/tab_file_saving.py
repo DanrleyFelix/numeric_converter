@@ -10,6 +10,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
 )
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import is_assembly_path
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import rows_to_bytes
@@ -60,31 +61,57 @@ class TabFileSavingMixin:
         if not is_assembly_path(target):
             return False
         page = self.currentWidget()
-        rows = page.grid.export_rows() if isinstance(page, BinaryWorkbenchEditorPage) else current.rows
-        target.write_text(self._current_assembly_text(current), encoding="utf-8")
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.commit_current_editor_text()
+            current = page.current_context()
+            rows = page.grid.export_rows()
+            assembly_text = page.assembly_text()
+        else:
+            rows = current.rows
+            assembly_text = self._current_assembly_text(current)
+        target.write_text(assembly_text, encoding="utf-8")
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_ASSEMBLY_DIRECTORY, target)
-        self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, "rows": rows, "original_rows": rows}))
+        updated = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "rows": rows,
+                "original_rows": rows,
+                "file_size": len(rows) * ROW_BYTES,
+                "original_file_size": len(rows) * ROW_BYTES,
+            }
+        )
+        self._replace_context(updated.tab_id, updated)
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.replace_context(updated)
         return True
 
     def _current_assembly_text(self, current: BinaryWorkbenchTabContextDTO) -> str:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
+            page.commit_current_editor_text()
             return page.assembly_text()
         return "\n".join(row.instruction for row in current.rows)
 
     def _adopt_assembly_source(self, current: BinaryWorkbenchTabContextDTO, target: Path) -> None:
         page = self.currentWidget()
-        rows = page.grid.export_rows() if isinstance(page, BinaryWorkbenchEditorPage) else current.rows
-        self._set_current_context(
-            BinaryWorkbenchTabContextDTO(
-                **{
-                    **current.__dict__,
-                    "kind": BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
-                    "display_name": target.name,
-                    "source_path": str(target),
-                    "read_mode": "assembly",
-                    "rows": rows,
-                    "original_rows": rows,
-                }
-            )
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            current = page.current_context()
+            rows = page.grid.export_rows()
+        else:
+            rows = current.rows
+        updated = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "kind": BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+                "display_name": target.name,
+                "source_path": str(target),
+                "read_mode": "assembly",
+                "rows": rows,
+                "original_rows": rows,
+                "file_size": len(rows) * ROW_BYTES,
+                "original_file_size": len(rows) * ROW_BYTES,
+            }
         )
+        self._replace_context(updated.tab_id, updated)
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.replace_context(updated)

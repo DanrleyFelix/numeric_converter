@@ -31,23 +31,27 @@ class GridCommitMixin:
 
     def _commit_visible_rows(self, rows: list[BinaryWorkbenchRowDTO] | None, editing_bytes: bool) -> None:
         if rows is None:
+            self._restore_editor_after_rejected_change(editing_bytes)
             return
-        old_count = len(self._rows)
+        if not self._editor_change_allowed(editing_bytes) or not self._rows_change_allowed(rows):
+            self._restore_editor_after_rejected_change(editing_bytes)
+            return
         self._rows = rows
         if not editing_bytes:
             labels = labels_from_rows(rows)
             self._set_editing_labels(labels)
-        self._commit_rows_to_context(rows, old_count)
+        self._commit_rows_to_context(rows)
         self._render_raw_instructions()
         self._dirty_editor_kind = None
 
-    def _commit_rows_to_context(self, rows: list[BinaryWorkbenchRowDTO], old_count: int) -> None:
+    def _commit_rows_to_context(self, rows: list[BinaryWorkbenchRowDTO]) -> None:
         if not self._virtual:
-            start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
-            self._all_rows[start : start + old_count] = rows
+            self._all_rows = list(rows)
+            self._rows = list(rows)
             self._total_size = len(self._all_rows) * ROW_BYTES
             self._configure_scrollbar()
             self._render_offsets()
+            self._scroll_static_document(self.scrollbar.value())
             self.rowsChanged.emit(self.export_rows())
             return
         self._render_offsets()

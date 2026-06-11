@@ -13,18 +13,24 @@ class BinaryWorkbenchSelectBlockDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SELECT_BLOCK)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_LAYOUT.SEARCH_DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SEARCH_SELECT_BLOCK_DIALOG_MAX_HEIGHT,
+        )
         layout = base_search_dialog_layout(
             self,
             BINARY_WORKBENCH_TEXT.SELECT_BLOCK,
             BINARY_WORKBENCH_TEXT.SELECT_BLOCK_SUBTITLE,
             include_header=False,
             spacing=BINARY_WORKBENCH_LAYOUT.SEARCH_SELECT_BLOCK_SPACING,
+            margins=(
+                BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MARGIN_VERTICAL,
+                BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MARGIN_HORIZONTAL,
+            ),
         )
         self.start = search_line_edit(self, BINARY_WORKBENCH_TEXT.START_OFFSET)
         self.end = search_line_edit(self, BINARY_WORKBENCH_TEXT.END_OFFSET)
         self.length = search_line_edit(self, BINARY_WORKBENCH_TEXT.LENGTH_BYTES)
-        for editor in (self.start, self.end, self.length):
-            editor.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SEARCH_FIELD_WIDTH)
         ok = finish_search_dialog(
             layout,
             self.start,

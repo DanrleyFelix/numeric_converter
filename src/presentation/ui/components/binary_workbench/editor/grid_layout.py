@@ -56,6 +56,8 @@ class GridLayoutMixin:
             editor.selectionStarted.connect(self._clear_virtual_selection)
             editor.selectionAutoScrollAboutToStep.connect(self._capture_virtual_selection_anchor)
             editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
+            editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
+            editor.returnKeyPressed.connect(self._handle_editor_return_key)
 
     def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
         shell = QFrame(self)
@@ -92,9 +94,19 @@ class GridLayoutMixin:
         was_updating = self._updating
         self._updating = True
         try:
-            self.scrollbar.setRange(0, max(0, self._total_size - self.visible_size()))
+            maximum = max(0, self._total_size - self.visible_size())
+            target = min(max(0, self._aligned_scroll_offset(self._visible_start_offset)), maximum)
+            self._visible_start_offset = target
+            self.scrollbar.setRange(0, maximum)
             self.scrollbar.setSingleStep(ROW_BYTES)
             self.scrollbar.setPageStep(max(ROW_BYTES, self.visible_size()))
-            self.scrollbar.setValue(max(0, self._visible_start_offset))
+            self.scrollbar.setValue(target)
+            if not self._virtual:
+                self._scroll_static_document(target)
         finally:
             self._updating = was_updating
+
+    def _on_editor_scrollbar_changed(self, value: int) -> None:
+        if self._virtual or self._updating or self._syncing_editor_scrollbars:
+            return
+        self.scrollbar.setValue(value * ROW_BYTES)

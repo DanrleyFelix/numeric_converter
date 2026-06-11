@@ -23,6 +23,7 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     rows_from_path,
 )
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 
 
 def create_binary_tab(
@@ -37,6 +38,7 @@ def create_binary_tab(
     variables: dict[str, str] = {}
     equates: dict[str, str] = {}
     labels: dict[str, str] = {}
+    file_size = path.stat().st_size if path.exists() else 0
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
         kind=BINARY_WORKBENCH_TAB_KIND.BINARY,
@@ -53,7 +55,8 @@ def create_binary_tab(
         lba_sector_size=2352,
         original_rows=deepcopy(rows),
         rows=rows,
-        file_size=path.stat().st_size if path.exists() else 0,
+        file_size=file_size,
+        original_file_size=file_size,
         view_preferences=seed_view_preferences(state),
     )
 
@@ -91,6 +94,8 @@ def create_assembly_tab(
         symbol_offsets=symbol_offsets(rows, variables, equates, labels),
         original_rows=deepcopy(rows),
         rows=rows,
+        file_size=len(rows) * ROW_BYTES,
+        original_file_size=len(rows) * ROW_BYTES,
         view_preferences=seed_view_preferences(state),
     )
 
@@ -106,6 +111,8 @@ def create_scratch_tab(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchTabCont
         reference_offset_bases=dict(DEFAULT_REF_BASES),
         original_rows=deepcopy(rows),
         rows=rows,
+        file_size=len(rows) * ROW_BYTES,
+        original_file_size=len(rows) * ROW_BYTES,
         view_preferences=seed_view_preferences(state),
     )
 
@@ -126,6 +133,8 @@ def create_internal_tab(
             "read_mode": "bytes",
             "original_rows": deepcopy(rows),
             "rows": rows,
+            "file_size": len(data),
+            "original_file_size": len(data),
             "view_preferences": seed_view_preferences(state, parent.view_preferences),
         }
     )

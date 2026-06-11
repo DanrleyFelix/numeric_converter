@@ -20,6 +20,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.labels_action.triggered.connect(self._open_labels)
         self.toolbar.bytes_formatter_action.triggered.connect(self._open_bytes_formatter)
         self.toolbar.reference_offsets_action.triggered.connect(self._open_reference_offsets)
+        self.toolbar.rules_action.triggered.connect(self._open_rules)
         self.toolbar.go_to_action.triggered.connect(self._open_go_to)
         self.toolbar.find_action.triggered.connect(self._open_find)
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)

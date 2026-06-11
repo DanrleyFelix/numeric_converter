@@ -33,7 +33,7 @@ class GridResizingMixin:
                 1,
             )
         else:
-            self._render_static_window()
+            self._scroll_static_document(self.scrollbar.value())
 
     def _visible_row_count(self) -> int:
         line_height = max(1, self.instructions.fontMetrics().lineSpacing())

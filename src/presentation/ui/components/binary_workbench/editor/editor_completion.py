@@ -2,6 +2,9 @@ from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     COMPLETION_TOKEN,
     tooltip_values,
@@ -91,7 +94,7 @@ class EditorCompletionMixin:
     def _insert_completion(self, completion: str) -> None:
         if self._completion_cursor_position is not None:
             cursor = self.textCursor()
-            cursor.setPosition(self._completion_cursor_position)
+            set_cursor_position(cursor, self._completion_cursor_position)
             self.setTextCursor(cursor)
         prefix = self._current_completion_prefix()
         cursor = self.textCursor()
@@ -108,7 +111,7 @@ class EditorCompletionMixin:
 
     def _restore_completion_cursor(self, position: int) -> None:
         cursor = self.textCursor()
-        cursor.setPosition(min(position, self.document().characterCount() - 1))
+        set_cursor_position(cursor, position)
         self.setTextCursor(cursor)
         self.ensureCursorVisible()
 

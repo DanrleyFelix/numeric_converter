@@ -33,3 +33,22 @@ class BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT:
 class BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT:
     VERTICAL_SPACING: int = 16
     CONFIRM_TOP_SPACING: int = 10
+    DIALOG_MAX_WIDTH: int = 640
+    DIALOG_MAX_HEIGHT: int = 640
+    DIALOG_MIN_WIDTH: int = 400
+
+
+class BINARY_WORKBENCH_RULES_TEXT:
+    TITLE: str = "Rules"
+    INSERT_SHIFT: str = "Allow new content that shifts bytes"
+    APPEND_OFFSETS: str = "Allow new content only at extra end offsets"
+    REMOVE_SHIFT: str = "Allow byte removal that shifts content back"
+    BYTES_EDIT: str = "Allow Bytes editing"
+    ASSEMBLY_EDIT: str = "Allow Assembly editor editing"
+    CONFIRM: str = "Confirm"
+
+
+class BINARY_WORKBENCH_RULES_LAYOUT:
+    MARGIN: int = 20
+    VERTICAL_SPACING: int = 16
+    CONFIRM_TOP_SPACING: int = 10

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_button,
     symbol_input,
     symbol_kind_combo,
+    size_symbol_action,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -19,7 +20,7 @@ from src.presentation.ui.components.workspace_table.constants.layout import WORK
 class SymbolsDialogRowsMixin:
     def values(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
         targets = {"Variable": {}, "Equate": {}}
-        for kind, name, value, _ in self._rows:
+        for kind, name, value, _, _ in self._rows:
             if name.text().strip() and value.text().strip():
                 targets[kind.currentText()][name.text().strip()] = value.text().strip()
         return targets["Variable"], targets["Equate"], {}
@@ -35,8 +36,9 @@ class SymbolsDialogRowsMixin:
         self.value.clear()
 
     def _clear_rows(self) -> None:
-        for _, _, _, row in self._rows:
+        for _, _, _, row, remove_slot in self._rows:
             row.deleteLater()
+            remove_slot.deleteLater()
         self._rows.clear()
 
     def _append_row(self, kind: str, name: str, value: str) -> None:
@@ -46,27 +48,25 @@ class SymbolsDialogRowsMixin:
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
-        kind_combo = symbol_kind_combo(row, kind)
-        name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name)
-        value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value)
+        kind_combo = symbol_kind_combo(row, kind, expanding=True)
+        name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name, expanding=True)
+        value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value, expanding=True)
         set_python_identifier_validator(name_edit)
         offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "preferences-cancel", row)
-        offsets.setFixedSize(
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_ACTION_WIDTH,
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
-        )
+        size_symbol_action(offsets, BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_ACTION_WIDTH, expanding=True)
         offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
-        remove = SymbolRemoveRowButton(row)
+        remove_slot = _remove_slot(self.remove_body)
+        remove = SymbolRemoveRowButton(remove_slot)
         remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
-        remove.clicked.connect(lambda: self._remove_row(row))
-        layout.addWidget(kind_combo, 0)
-        layout.addWidget(name_edit, 0)
-        layout.addWidget(value_edit, 0)
-        layout.addWidget(offsets, 0)
-        layout.addWidget(remove, 0, Qt.AlignVCenter)
-        layout.addStretch(1)
-        self._rows.append((kind_combo, name_edit, value_edit, row))
+        remove.clicked.connect(lambda: self._remove_row(row, remove_slot))
+        layout.addWidget(kind_combo, 1)
+        layout.addWidget(name_edit, 1)
+        layout.addWidget(value_edit, 1)
+        layout.addWidget(offsets, 1)
+        remove_slot.layout().addWidget(remove, 0, Qt.AlignCenter)
+        self._rows.append((kind_combo, name_edit, value_edit, row, remove_slot))
         self.body_layout.addWidget(row, 0)
+        self.remove_layout.addWidget(remove_slot, 0)
         self._apply_filter()
 
     def _open_symbol_offsets(self, name: str) -> None:
@@ -76,12 +76,23 @@ class SymbolsDialogRowsMixin:
         dialog.goToRequested.connect(self.goToRequested.emit)
         dialog.exec()
 
-    def _remove_row(self, row: QWidget) -> None:
+    def _remove_row(self, row: QWidget, remove_slot: QWidget) -> None:
         self._rows = [item for item in self._rows if item[3] is not row]
         row.deleteLater()
+        remove_slot.deleteLater()
 
     def _apply_filter(self) -> None:
         query = self.filter_input.text().strip().lower()
-        for kind, name, value, row in self._rows:
+        for kind, name, value, row, remove_slot in self._rows:
             haystack = f"{kind.currentText()} {name.text()} {value.text()}".lower()
-            row.setVisible(not query or query in haystack)
+            visible = not query or query in haystack
+            row.setVisible(visible)
+            remove_slot.setVisible(visible)
+
+
+def _remove_slot(parent: QWidget) -> QWidget:
+    slot = QWidget(parent)
+    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    layout = QVBoxLayout(slot)
+    layout.setContentsMargins(0, 0, 0, 0)
+    return slot

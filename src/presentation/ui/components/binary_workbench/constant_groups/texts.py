@@ -42,6 +42,7 @@ class BINARY_WORKBENCH_TEXT:
     ADVANCED_CONFIGURATION: str = "Advanced Configuration"
     BYTES_FORMATTER: str = "Bytes Formatter"
     REFERENCE_OFFSETS: str = "Reference Offsets"
+    RULES: str = "Rules"
     GO_TO: str = "Go to"
     FIND: str = "Find"
     SELECT_BLOCK: str = "Select Block"

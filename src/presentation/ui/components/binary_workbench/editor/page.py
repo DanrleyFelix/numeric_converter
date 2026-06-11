@@ -5,8 +5,16 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchTabContextDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.modules.dtos import (
+    BinaryWorkbenchEditRulesDTO,
+    BinaryWorkbenchPreferencesDTO,
+    BinaryWorkbenchTabContextDTO,
+)
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TAB_KIND,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.editor.page_defaults import default_editor_kind, offset_from_hex
 from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import EditorPageBinaryLoadingMixin
 from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import EditorPageVirtualCopyMixin
@@ -14,6 +22,7 @@ from src.presentation.ui.components.binary_workbench.editor.page_context_updates
 from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
@@ -74,12 +83,20 @@ class BinaryWorkbenchEditorPage(
     def current_context(self) -> BinaryWorkbenchTabContextDTO:
         return self._context
 
-    def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
+    def replace_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context
+        self.grid.set_original_file_size(context.original_file_size)
+        self._set_cpu_arch_summary(context.cpu_arch)
+
+    def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = self._reader_for_context(context)
+        context = self._context_with_original_file_size(context)
+        self._context = context
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
         self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
+        self.grid.set_edit_rules(_edit_rules_for_context(context, self._preferences))
+        self.grid.set_original_file_size(context.original_file_size)
         self.grid.set_default_editor_kind(default_editor_kind(context))
         if self._reader is not None:
             self.grid.load_rows(
@@ -87,7 +104,7 @@ class BinaryWorkbenchEditorPage(
                 [],
                 self._preferences.group_bytes,
                 offset_from_hex(context.last_open_offset),
-                self._reader.file_size,
+                max(self._reader.file_size, context.file_size),
                 True,
                 self._preferences.uppercase_bytes,
                 self._preferences.uppercase_instructions,
@@ -114,6 +131,7 @@ class BinaryWorkbenchEditorPage(
 
     def set_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self._preferences = preferences
+        self.grid.set_edit_rules(_edit_rules_for_context(self._context, preferences))
 
     def set_cpu_arch(self, value: str) -> None:
         self._update_context({"cpu_arch": value})
@@ -150,3 +168,30 @@ class BinaryWorkbenchEditorPage(
         start, end = self._pending_selection
         self.grid.select_offsets(start, end)
         self._pending_selection = None
+
+    def _context_with_original_file_size(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> BinaryWorkbenchTabContextDTO:
+        if context.original_file_size > 0:
+            return context
+        original_file_size = self._reader.file_size if self._reader is not None else len(context.rows) * ROW_BYTES
+        return BinaryWorkbenchTabContextDTO(
+            **{
+                **context.__dict__,
+                "file_size": max(context.file_size, original_file_size),
+                "original_file_size": original_file_size,
+            }
+        )
+
+
+def _edit_rules_for_context(
+    context: BinaryWorkbenchTabContextDTO,
+    preferences: BinaryWorkbenchPreferencesDTO,
+) -> BinaryWorkbenchEditRulesDTO:
+    if context.kind in {
+        BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+        BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+    }:
+        return preferences.assembly_edit_rules
+    return preferences.binary_edit_rules

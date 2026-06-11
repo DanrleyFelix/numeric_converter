@@ -81,12 +81,37 @@ class BinaryWorkbenchViewPreferencesDTO:
 
 
 @dataclass(frozen=True)
+class BinaryWorkbenchEditRulesDTO:
+    allow_insert_shift: bool = False
+    allow_append_offsets: bool = True
+    allow_remove_shift: bool = False
+    allow_bytes_edit: bool = True
+    allow_assembly_edit: bool = True
+
+
+def _default_assembly_edit_rules() -> BinaryWorkbenchEditRulesDTO:
+    return BinaryWorkbenchEditRulesDTO(
+        allow_insert_shift=True,
+        allow_append_offsets=True,
+        allow_remove_shift=True,
+        allow_bytes_edit=True,
+        allow_assembly_edit=True,
+    )
+
+
+@dataclass(frozen=True)
 class BinaryWorkbenchPreferencesDTO:
     group_bytes: int = 1
     uppercase_bytes: bool = True
     uppercase_instructions: bool = True
     block_size: int = 2048
     cache_max_blocks: int = 8000
+    binary_edit_rules: BinaryWorkbenchEditRulesDTO = field(
+        default_factory=BinaryWorkbenchEditRulesDTO
+    )
+    assembly_edit_rules: BinaryWorkbenchEditRulesDTO = field(
+        default_factory=_default_assembly_edit_rules
+    )
 
 
 @dataclass(frozen=True)
@@ -156,6 +181,7 @@ class BinaryWorkbenchTabContextDTO:
     original_rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
     rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)
     file_size: int = 0
+    original_file_size: int = 0
     version_dirty: bool = False
     byte_overlays: dict[str, str] = field(default_factory=dict)
     instruction_overlays: dict[str, str] = field(default_factory=dict)

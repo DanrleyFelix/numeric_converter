@@ -32,8 +32,15 @@ class GridRenderingMixin:
         self._dirty_editor_kind = None
         self._visible_start_offset = start_offset
         self._last_visible_offset = start_offset
-        self._configure_scrollbar()
-        self.render_rows(rows, start_offset) if virtual else self._render_static_window()
+        if virtual:
+            self._configure_scrollbar()
+            self.render_rows(rows, start_offset)
+        else:
+            self._rows = list(rows)
+            self._visible_start_offset = 0
+            self._last_visible_offset = 0
+            self._render()
+            self._configure_scrollbar()
         self._schedule_layout_refresh()
 
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
@@ -67,15 +74,10 @@ class GridRenderingMixin:
 
     def set_visible_offset(self, offset: int) -> None:
         target = min(max(0, offset), self.scrollbar.maximum())
-        if not self._virtual and self._offset_is_visible(target):
-            return
         if self.scrollbar.value() == target:
             self._on_scrollbar_changed(target)
             return
         self.scrollbar.setValue(target)
-
-    def _offset_is_visible(self, offset: int) -> bool:
-        return self._visible_start_offset <= offset < self._visible_start_offset + (len(self._rows) * ROW_BYTES)
 
     def _render(self) -> None:
         self._resize_editors()
@@ -102,29 +104,38 @@ class GridRenderingMixin:
         spaces = padding // max(1, metrics.horizontalAdvance(" "))
         return f"{' ' * spaces}{text}"
 
-    def _render_static_window(self) -> None:
-        count = self._visible_row_count()
-        start = self._aligned_scroll_offset(self.scrollbar.value()) // ROW_BYTES
-        self._rows = self._all_rows[start : start + count]
-        self._visible_start_offset = start * ROW_BYTES
-        self._render()
-
     def _on_scrollbar_changed(self, value: int) -> None:
         if self._updating:
             return
         if not self._virtual:
-            self._render_static_window()
+            self._scroll_static_document(value)
             return
         offset = self._aligned_scroll_offset(value)
         direction = 1 if offset >= self._last_visible_offset else -1
         self._last_visible_offset = offset
         self.visibleWindowRequested.emit(offset, self.visible_size(), direction)
 
+    def _scroll_static_document(self, value: int) -> None:
+        offset = self._aligned_scroll_offset(value)
+        row_index = offset // ROW_BYTES
+        self._visible_start_offset = offset
+        self._last_visible_offset = offset
+        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions]
+        self._syncing_editor_scrollbars = True
+        try:
+            for editor in editors:
+                editor.verticalScrollBar().setValue(row_index)
+        finally:
+            self._syncing_editor_scrollbars = False
+
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
         was_updating = self._updating
         self._updating = True
+        scroll_value = editor.verticalScrollBar().value()
         try:
             editor.setPlainText("\n".join(lines))
+            if not self._virtual:
+                editor.verticalScrollBar().setValue(min(scroll_value, editor.verticalScrollBar().maximum()))
             self._remember_editor_text_signature(editor)
         finally:
             self._updating = was_updating
