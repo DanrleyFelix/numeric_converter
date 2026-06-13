@@ -37,7 +37,10 @@ class GridSelectionMixin:
 
     def select_all_content(self) -> None:
         if self._virtual:
-            self._select_all_focused_editor()
+            if self._total_size <= 0:
+                return
+            kind = self.focused_editor_kind() or BINARY_WORKBENCH_TEXT.INSTRUCTION
+            self.select_virtual_range(kind, 0, min(self._total_size, self._selection_limit_bytes) - 1)
             return
         self._select_all_focused_editor()
 
@@ -77,6 +80,10 @@ class GridSelectionMixin:
         editor = self._selected_or_focused_editor()
         cursor = editor.textCursor()
         if not cursor.hasSelection():
+            if self._virtual_selection_range is not None:
+                kind, anchor_offset, cursor_offset = self._virtual_selection_range
+                self._emit_virtual_selection_summary(kind, anchor_offset, cursor_offset)
+                return
             if self._virtual_selection_scrolling:
                 return
             self._clear_virtual_selection()

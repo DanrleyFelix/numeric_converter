@@ -24,7 +24,7 @@ class EditorPageVirtualCopyMixin:
 
     def _copy_virtual_bytes(self, start_offset: int, end_offset: int) -> str:
         size = max(0, end_offset - start_offset + 1)
-        data = self._reader.read(start_offset, size, overlay_bytes(self._context.byte_overlays))
+        data = self._reader.read_uncached(start_offset, size, overlay_bytes(self._context.byte_overlays))
         raw = data.hex().upper()
         return "\n".join(
             self.grid._display_bytes_text(raw[index : index + 8])
@@ -46,7 +46,7 @@ class EditorPageVirtualCopyMixin:
         aligned_start = start_offset - (start_offset % word_size)
         aligned_end = end_offset - (end_offset % word_size)
         size = max(0, aligned_end - aligned_start + word_size)
-        data = self._reader.read(aligned_start, size, overlay_bytes(self._context.byte_overlays))
+        data = self._reader.read_uncached(aligned_start, size, overlay_bytes(self._context.byte_overlays))
         rows = build_rows_from_bytes(
             data,
             list(self._context.reference_offsets),

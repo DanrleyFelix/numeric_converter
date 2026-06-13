@@ -34,10 +34,17 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             current.read_mode if current else BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
             preferences.block_size,
             preferences.cache_max_blocks,
+            preferences.selection_limit_bytes,
             self,
         )
         if dialog.exec() == dialog.DialogCode.Accepted:
-            self.tabs.set_current_advanced_config(dialog.selected_arch(), dialog.selected_read_mode(), dialog.selected_block_size(), dialog.selected_cache_max_blocks())
+            self.tabs.set_current_advanced_config(
+                dialog.selected_arch(),
+                dialog.selected_read_mode(),
+                dialog.selected_block_size(),
+                dialog.selected_cache_max_blocks(),
+                dialog.selected_selection_limit_bytes(),
+            )
 
     def _open_lba_filesystem(self) -> None:
         current = self.tabs.current_context()

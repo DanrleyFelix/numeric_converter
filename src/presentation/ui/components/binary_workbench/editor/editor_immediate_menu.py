@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
+
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
     use_white_menu_icons,
 )
 from src.presentation.ui.components.binary_workbench.editor.immediate_tokens import (
+    immediate_token_at_cursor,
     immediate_token_at_position,
+    variable_token_at_cursor,
     variable_token_at_position,
 )
 
@@ -14,13 +18,33 @@ class EditorImmediateMenuMixin:
     def set_immediate_symbol_menu_enabled(self, enabled: bool) -> None:
         self._immediate_symbol_menu_enabled = enabled
 
+    def handle_immediate_symbol_shortcut(self, key: int, modifiers: Qt.KeyboardModifiers) -> bool:
+        if not self._immediate_symbol_menu_enabled or not modifiers & Qt.AltModifier:
+            return False
+        if key == Qt.Key_W:
+            token = variable_token_at_cursor(self)
+            target = BINARY_WORKBENCH_TEXT.VARIABLE_TARGET
+        elif key == Qt.Key_E:
+            token = _equate_token_at_cursor(self)
+            target = BINARY_WORKBENCH_TEXT.EQUATE_TARGET
+        else:
+            return False
+        if token is None:
+            return False
+        self.immediateSymbolRequested.emit(target, token.value, token.start, token.end)
+        return True
+
     def contextMenuEvent(self, event) -> None:
         variable_token = variable_token_at_position(self, event.pos())
         immediate_token = immediate_token_at_position(self, event.pos())
         equate_token = immediate_token if variable_token == immediate_token else None
         label = self._label_at_position(event.pos())
         if (not self._immediate_symbol_menu_enabled or variable_token is None) and label is None:
-            super().contextMenuEvent(event)
+            menu = self.createStandardContextMenu()
+            menu.setObjectName("binary-workbench-editor-context-menu")
+            use_white_menu_icons(menu)
+            menu.exec(event.globalPos())
+            menu.deleteLater()
             return
         menu = self.createStandardContextMenu()
         menu.setObjectName("binary-workbench-editor-context-menu")
@@ -47,3 +71,9 @@ class EditorImmediateMenuMixin:
         elif selected is open_label and label is not None:
             self.labelOpenTabRequested.emit(*label)
         menu.deleteLater()
+
+
+def _equate_token_at_cursor(editor):
+    variable_token = variable_token_at_cursor(editor)
+    immediate_token = immediate_token_at_cursor(editor)
+    return immediate_token if variable_token == immediate_token else None

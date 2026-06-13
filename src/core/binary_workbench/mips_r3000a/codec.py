@@ -5,7 +5,11 @@ from importlib import import_module
 from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
 from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
+from src.core.binary_workbench.mips_r3000a.operands import word_bytes
 from src.modules.contracts import CPUArchCodec
+
+JUMP_NAVIGATION_BASE = 0xF800
+JUMP_NAVIGATION_MNEMONICS = {"j", "jump", "jal"}
 
 
 class PsxMipsR3000ACodec(CPUArchCodec):
@@ -35,7 +39,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         if lower.startswith(("word 0x", ".word 0x")):
             try:
                 hex_start = lower.index("0x") + 2
-                return int(normalized[hex_start:], 16).to_bytes(4, "little")
+                return word_bytes(int(normalized[hex_start:], 16))
             except (ValueError, IndexError):
                 return None
         if _is_branch_instruction(lower):
@@ -81,6 +85,25 @@ class PsxMipsR3000ACodec(CPUArchCodec):
     def bytes_text(self, data: bytes) -> str:
         return " ".join(f"{value:02X}" for value in data)
 
+    def jump_navigation_target(
+        self,
+        instruction: str,
+        operand: str,
+        symbols: dict[str, str] | None = None,
+    ) -> int | None:
+        code = _strip_label(_strip_comment(instruction)).strip()
+        parts = code.replace(",", " ").split()
+        if len(parts) < 2 or parts[0].lower() not in JUMP_NAVIGATION_MNEMONICS:
+            return None
+        if parts[1].lower() != operand.lower():
+            return None
+        try:
+            value = _navigation_value(operand, symbols or {})
+        except ValueError:
+            return None
+        target = value - JUMP_NAVIGATION_BASE
+        return target if target >= 0 else None
+
 
 def _module_exists(name: str) -> bool:
     try:
@@ -92,6 +115,22 @@ def _module_exists(name: str) -> bool:
 
 def _strip_comment(text: str) -> str:
     return text.split(";", 1)[0]
+
+
+def _strip_label(text: str) -> str:
+    if ":" not in text:
+        return text
+    left, right = text.split(":", 1)
+    label = left.strip()
+    if label and " " not in label and "\t" not in label:
+        return right
+    return text
+
+
+def _navigation_value(operand: str, symbols: dict[str, str]) -> int:
+    if operand.lower() in symbols:
+        return int(symbols[operand.lower()], 0)
+    return int(operand, 0)
 
 
 def _is_branch_instruction(text: str) -> bool:

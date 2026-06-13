@@ -51,11 +51,24 @@ QMenu::item {
 
 QMenu#binary-workbench-editor-context-menu {
     color: $text-main;
-    padding: $space-0 $space-0 $space-0 $space-10;
+    padding: $space-0;
 }
 
 QMenu#binary-workbench-editor-context-menu::item {
     color: $text-main;
+    margin: $margin-none;
+    border: none;
+    padding: $space-10;
+}
+
+QMenu#binary-workbench-editor-context-menu::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+}
+
+QMenu#binary-workbench-editor-context-menu::icon {
+    padding-left: $space-10;
+    padding-right: $space-10;
 }
 
 QMenu#binary-workbench-editor-context-menu::item:disabled {

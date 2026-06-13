@@ -92,6 +92,9 @@ class GridEditRulesMixin:
         editor.mark_return_key_handled()
 
     def _handle_editor_protected_edit_key(self, editor, event) -> None:
+        if self._protected_bytes_edit_key(editor):
+            self._handle_protected_bytes_edit_key(editor, event)
+            return
         if not self._protected_instruction_edit_key(editor):
             return
         cursor = editor.textCursor()
@@ -116,6 +119,27 @@ class GridEditRulesMixin:
                 return
             if self._original_offset_row(row) or self._original_offset_row(row + 1):
                 editor.mark_protected_edit_key_handled()
+
+    def _handle_protected_bytes_edit_key(self, editor, event) -> None:
+        cursor = editor.textCursor()
+        if cursor.hasSelection():
+            replace_selection_preserving_line_breaks(editor, cursor)
+            editor.mark_protected_edit_key_handled()
+            return
+        if event.key() == Qt.Key_Backspace and cursor.positionInBlock() == 0:
+            editor.mark_protected_edit_key_handled()
+            return
+        if event.key() == Qt.Key_Delete and cursor.positionInBlock() >= len(cursor.block().text()):
+            editor.mark_protected_edit_key_handled()
+
+    def _protected_bytes_edit_key(self, editor) -> bool:
+        return (
+            self._virtual
+            and editor is self.bytes
+            and self._edit_rules.allow_editor_edit
+            and not self._edit_rules.allow_byte_shift
+            and not self._free_offset_window()
+        )
 
     def _protected_instruction_edit_key(self, editor) -> bool:
         return (

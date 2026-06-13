@@ -31,7 +31,8 @@ class GridEditingMixin:
             return
         if not self._has_meaningful_editor_change(self.bytes):
             return
-        self._normalize_bytes_editor_text()
+        if not self._bytes_user_edit_in_progress():
+            self._normalize_bytes_editor_text()
         self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
 
     def _on_instructions_changed(self) -> None:
@@ -117,6 +118,7 @@ class GridEditingMixin:
         self._labels = labels
         self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
         self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
+        self.instructions.set_jump_navigation(self._codec, self._variables, self._equates)
         self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:
@@ -128,7 +130,7 @@ class GridEditingMixin:
                 rows.append(
                     BinaryWorkbenchRowDTO(
                         offsets=row.offsets,
-                        instruction="",
+                        instruction=self._bytes_fallback_instruction(row),
                         bytes_text="",
                     )
                 )
@@ -138,7 +140,7 @@ class GridEditingMixin:
                 rows.append(
                     BinaryWorkbenchRowDTO(
                         offsets=row.offsets,
-                        instruction="",
+                        instruction=self._bytes_fallback_instruction(row),
                         bytes_text="",
                     )
                 )
@@ -161,11 +163,17 @@ class GridEditingMixin:
                 )
         return self._rows_decoded_after_offset_rebuild(rows)
 
+    def _bytes_fallback_instruction(self, row: BinaryWorkbenchRowDTO) -> str:
+        return row.instruction if self._locked_virtual_bytes_edit() else ""
+
+    def _locked_virtual_bytes_edit(self) -> bool:
+        return self._virtual and not self._edit_rules.allow_byte_shift and not self._free_offset_window()
+
     def _rows_decoded_after_offset_rebuild(
         self,
         rows: list[BinaryWorkbenchRowDTO],
     ) -> list[BinaryWorkbenchRowDTO]:
-        rebuilt = rebuild_rows_with_offsets(
+        rebuilt = rows if self._virtual else rebuild_rows_with_offsets(
             rows,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
             self._offset_base_text(),
@@ -297,6 +305,12 @@ class GridEditingMixin:
         except ValueError:
             return False
 
+    def _bytes_user_edit_in_progress(self) -> bool:
+        return self.bytes.hasFocus() or bool(getattr(self.bytes, "_granular_editing", False))
+
+    def _instructions_user_edit_in_progress(self) -> bool:
+        return self.instructions.hasFocus() or bool(getattr(self.instructions, "_granular_editing", False))
+
     def _normalized_bytes_lines(self) -> list[str]:
         lines: list[str] = []
         for line in self.bytes.toPlainText().split("\n"):
@@ -331,7 +345,7 @@ class GridEditingMixin:
         normalized = normalize_instruction_text(text, self._uppercase_instructions)
         normalized = "\n".join(expand_pseudo_instructions(normalized.split("\n")))
         normalized = normalize_instruction_text(normalized, self._uppercase_instructions)
-        if normalized != text:
+        if normalized != text and not self._instructions_user_edit_in_progress():
             position = self.instructions.textCursor().position()
             self._set_editor_text(self.instructions, normalized.split("\n"))
             cursor = self.instructions.textCursor()

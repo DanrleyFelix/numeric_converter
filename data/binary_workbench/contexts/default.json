@@ -6,7 +6,7 @@
             "display_name": "call_umi.asm",
             "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\call_umi.asm",
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "assembly",
+            "read_mode": "Auto",
             "reference_offsets": [
                 "File"
             ],
@@ -24,15 +24,10 @@
                 "spell_dispacth": "0x26BA4"
             },
             "symbol_offsets": {
-                "card_id": [
-                    "0x00000028"
-                ],
+                "card_id": [],
                 "sp_a0": [],
                 "spell_dispacth": [],
-                "spell_id": [
-                    "0x00000030",
-                    "0x0000003C"
-                ],
+                "spell_id": [],
                 "test": [],
                 "equate_7bd4": []
             },
@@ -68,245 +63,655 @@
             "original_rows": [
                 {
                     "offset": "0x00000000",
-                    "instruction": "ADDIU  $sp,$sp,-0x10",
-                    "bytes_text": "F0 FF BD 27"
+                    "instruction": "word 0x49444441",
+                    "bytes_text": "41 44 44 49"
                 },
                 {
                     "offset": "0x00000004",
-                    "instruction": "SW     $a0,0x00($sp)",
-                    "bytes_text": "00 00 A4 AF"
+                    "instruction": "addiu $zero, $at, 0x2055",
+                    "bytes_text": "55 20 20 24"
                 },
                 {
                     "offset": "0x00000008",
-                    "instruction": "SW     $a1,0x04($sp)",
-                    "bytes_text": "04 00 A5 AF"
+                    "instruction": "addiu $t4, $at, 0x7073",
+                    "bytes_text": "73 70 2C 24"
                 },
                 {
                     "offset": "0x0000000C",
-                    "instruction": "SW     $ra,0x08($sp)",
-                    "bytes_text": "08 00 BF AF"
+                    "instruction": "sltiu $t4, $t1, 0x7073",
+                    "bytes_text": "73 70 2C 2D"
                 },
                 {
                     "offset": "0x00000010",
-                    "instruction": "LUI    $t0,0x801A",
-                    "bytes_text": "1A 80 08 3C"
+                    "instruction": "word 0x30317830",
+                    "bytes_text": "30 78 31 30"
                 },
                 {
                     "offset": "0x00000014",
-                    "instruction": "ORI    $t0,$t0,0x7BD4",
-                    "bytes_text": "D4 7B 08 35"
+                    "instruction": "word 0x57530A0D",
+                    "bytes_text": "0D 0A 53 57"
                 },
                 {
                     "offset": "0x00000018",
-                    "instruction": "SUBU   $t1,$t0,$v0",
-                    "bytes_text": "23 48 02 01"
+                    "instruction": "word 0x20202020",
+                    "bytes_text": "20 20 20 20"
                 },
                 {
                     "offset": "0x0000001C",
-                    "instruction": "SLTIU  $t0,$t1,0x0071",
-                    "bytes_text": "71 00 28 2D"
+                    "instruction": "word 0x30612420",
+                    "bytes_text": "20 24 61 30"
                 },
                 {
                     "offset": "0x00000020",
-                    "instruction": "BNE    $t0,$zero,0x8",
-                    "bytes_text": "F9 FF 00 15"
+                    "instruction": "word 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000024",
-                    "instruction": "LHU    $t0,0x000C($v0)",
-                    "bytes_text": "0C 00 48 94"
+                    "instruction": "word 0x73242830",
+                    "bytes_text": "30 28 24 73"
                 },
                 {
                     "offset": "0x00000028",
-                    "instruction": "ADDIU  $t1,$zero,@card_id",
-                    "bytes_text": "B3 01 09 24"
+                    "instruction": "j 0x834A5C0",
+                    "bytes_text": "70 29 0D 0A"
                 },
                 {
                     "offset": "0x0000002C",
-                    "instruction": "BNE    $t0,$t1,0x5",
-                    "bytes_text": "F5 FF 09 15"
+                    "instruction": "word 0x20205753",
+                    "bytes_text": "53 57 20 20"
                 },
                 {
                     "offset": "0x00000030",
-                    "instruction": "ADDIU  $a0,$zero,0x02A3",
-                    "bytes_text": "A3 02 04 24"
+                    "instruction": "addiu $zero, $at, 0x2020",
+                    "bytes_text": "20 20 20 24"
                 },
                 {
                     "offset": "0x00000034",
-                    "instruction": "JAL    0x26BA4",
-                    "bytes_text": "E9 9A 00 0C"
+                    "instruction": "word 0x302C3161",
+                    "bytes_text": "61 31 2C 30"
                 },
                 {
                     "offset": "0x00000038",
-                    "instruction": "ADDU   $a1,$zero,$zero",
-                    "bytes_text": "21 28 00 00"
+                    "instruction": "word 0x28343078",
+                    "bytes_text": "78 30 34 28"
                 },
                 {
                     "offset": "0x0000003C",
-                    "instruction": "ADDIU  $t0,$zero,0x02A3",
-                    "bytes_text": "A3 02 08 24"
+                    "instruction": "word 0x29707324",
+                    "bytes_text": "24 73 70 29"
                 },
                 {
                     "offset": "0x00000040",
-                    "instruction": "SH     $t0,0x024E($gp)",
-                    "bytes_text": "4E 02 88 A7"
+                    "instruction": "word 0x57530A0D",
+                    "bytes_text": "0D 0A 53 57"
                 },
                 {
                     "offset": "0x00000044",
-                    "instruction": "LW     $a0,0x00($sp)",
-                    "bytes_text": "00 00 A4 8F"
+                    "instruction": "word 0x20202020",
+                    "bytes_text": "20 20 20 20"
                 },
                 {
                     "offset": "0x00000048",
-                    "instruction": "LW     $a1,0x04($sp)",
-                    "bytes_text": "04 00 A5 8F"
+                    "instruction": "word 0x61722420",
+                    "bytes_text": "20 24 72 61"
                 },
                 {
                     "offset": "0x0000004C",
-                    "instruction": "LW     $ra,0x08($sp)",
-                    "bytes_text": "08 00 BF 8F"
+                    "instruction": "word 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000050",
-                    "instruction": "J      0x24D34",
-                    "bytes_text": "4D 93 00 08"
+                    "instruction": "word 0x73242838",
+                    "bytes_text": "38 28 24 73"
                 },
                 {
                     "offset": "0x00000054",
-                    "instruction": "ADDIU  $sp,$sp,0x10",
-                    "bytes_text": "10 00 BD 27"
+                    "instruction": "j 0x834A5C0",
+                    "bytes_text": "70 29 0D 0A"
+                },
+                {
+                    "offset": "0x00000058",
+                    "instruction": "word 0x2049554C",
+                    "bytes_text": "4C 55 49 20"
+                },
+                {
+                    "offset": "0x0000005C",
+                    "instruction": "addiu $zero, $at, 0x2020",
+                    "bytes_text": "20 20 20 24"
+                },
+                {
+                    "offset": "0x00000060",
+                    "instruction": "word 0x302C3074",
+                    "bytes_text": "74 30 2C 30"
+                },
+                {
+                    "offset": "0x00000064",
+                    "instruction": "word 0x31303878",
+                    "bytes_text": "78 38 30 31"
+                },
+                {
+                    "offset": "0x00000068",
+                    "instruction": "word 0x4F0A0D41",
+                    "bytes_text": "41 0D 0A 4F"
+                },
+                {
+                    "offset": "0x0000006C",
+                    "instruction": "word 0x20204952",
+                    "bytes_text": "52 49 20 20"
+                },
+                {
+                    "offset": "0x00000070",
+                    "instruction": "word 0x74242020",
+                    "bytes_text": "20 20 24 74"
+                },
+                {
+                    "offset": "0x00000074",
+                    "instruction": "word 0x74242C30",
+                    "bytes_text": "30 2C 24 74"
+                },
+                {
+                    "offset": "0x00000078",
+                    "instruction": "word 0x78302C30",
+                    "bytes_text": "30 2C 30 78"
+                },
+                {
+                    "offset": "0x0000007C",
+                    "instruction": "ori $a0, $v0, 0x4237",
+                    "bytes_text": "37 42 44 34"
+                },
+                {
+                    "offset": "0x00000080",
+                    "instruction": "word 0x55530A0D",
+                    "bytes_text": "0D 0A 53 55"
+                },
+                {
+                    "offset": "0x00000084",
+                    "instruction": "word 0x20205542",
+                    "bytes_text": "42 55 20 20"
+                },
+                {
+                    "offset": "0x00000088",
+                    "instruction": "word 0x31742420",
+                    "bytes_text": "20 24 74 31"
+                },
+                {
+                    "offset": "0x0000008C",
+                    "instruction": "word 0x3074242C",
+                    "bytes_text": "2C 24 74 30"
+                },
+                {
+                    "offset": "0x00000090",
+                    "instruction": "word 0x3076242C",
+                    "bytes_text": "2C 24 76 30"
+                },
+                {
+                    "offset": "0x00000094",
+                    "instruction": "word 0x4C530A0D",
+                    "bytes_text": "0D 0A 53 4C"
+                },
+                {
+                    "offset": "0x00000098",
+                    "instruction": "word 0x20554954",
+                    "bytes_text": "54 49 55 20"
+                },
+                {
+                    "offset": "0x0000009C",
+                    "instruction": "word 0x30742420",
+                    "bytes_text": "20 24 74 30"
+                },
+                {
+                    "offset": "0x000000A0",
+                    "instruction": "word 0x3174242C",
+                    "bytes_text": "2C 24 74 31"
+                },
+                {
+                    "offset": "0x000000A4",
+                    "instruction": "word 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
+                },
+                {
+                    "offset": "0x000000A8",
+                    "instruction": "jal 0x4C4DCC0",
+                    "bytes_text": "30 37 31 0D"
+                },
+                {
+                    "offset": "0x000000AC",
+                    "instruction": "word 0x454E420A",
+                    "bytes_text": "0A 42 4E 45"
+                },
+                {
+                    "offset": "0x000000B0",
+                    "instruction": "word 0x20202020",
+                    "bytes_text": "20 20 20 20"
+                },
+                {
+                    "offset": "0x000000B4",
+                    "instruction": "sltiu $s0, $at, 0x7424",
+                    "bytes_text": "24 74 30 2C"
+                },
+                {
+                    "offset": "0x000000B8",
+                    "instruction": "word 0x72657A24",
+                    "bytes_text": "24 7A 65 72"
+                },
+                {
+                    "offset": "0x000000BC",
+                    "instruction": "word 0x78302C6F",
+                    "bytes_text": "6F 2C 30 78"
+                },
+                {
+                    "offset": "0x000000C0",
+                    "instruction": "word 0x4C0A0D38",
+                    "bytes_text": "38 0D 0A 4C"
+                },
+                {
+                    "offset": "0x000000C4",
+                    "instruction": "word 0x20205548",
+                    "bytes_text": "48 55 20 20"
+                },
+                {
+                    "offset": "0x000000C8",
+                    "instruction": "word 0x74242020",
+                    "bytes_text": "20 20 24 74"
+                },
+                {
+                    "offset": "0x000000CC",
+                    "instruction": "word 0x78302C30",
+                    "bytes_text": "30 2C 30 78"
+                },
+                {
+                    "offset": "0x000000D0",
+                    "instruction": "word 0x43303030",
+                    "bytes_text": "30 30 30 43"
+                },
+                {
+                    "offset": "0x000000D4",
+                    "instruction": "word 0x30762428",
+                    "bytes_text": "28 24 76 30"
+                },
+                {
+                    "offset": "0x000000D8",
+                    "instruction": "word 0x410A0D29",
+                    "bytes_text": "29 0D 0A 41"
+                },
+                {
+                    "offset": "0x000000DC",
+                    "instruction": "word 0x55494444",
+                    "bytes_text": "44 44 49 55"
+                },
+                {
+                    "offset": "0x000000E0",
+                    "instruction": "word 0x74242020",
+                    "bytes_text": "20 20 24 74"
+                },
+                {
+                    "offset": "0x000000E4",
+                    "instruction": "word 0x7A242C31",
+                    "bytes_text": "31 2C 24 7A"
+                },
+                {
+                    "offset": "0x000000E8",
+                    "instruction": "sltiu $t7, $v1, 0x7265",
+                    "bytes_text": "65 72 6F 2C"
+                },
+                {
+                    "offset": "0x000000EC",
+                    "instruction": "word 0x72616340",
+                    "bytes_text": "40 63 61 72"
+                },
+                {
+                    "offset": "0x000000F0",
+                    "instruction": "word 0x64695F64",
+                    "bytes_text": "64 5F 69 64"
+                },
+                {
+                    "offset": "0x000000F4",
+                    "instruction": "word 0x4E420A0D",
+                    "bytes_text": "0D 0A 42 4E"
+                },
+                {
+                    "offset": "0x000000F8",
+                    "instruction": "word 0x20202045",
+                    "bytes_text": "45 20 20 20"
+                },
+                {
+                    "offset": "0x000000FC",
+                    "instruction": "word 0x30742420",
+                    "bytes_text": "20 24 74 30"
                 }
             ],
             "rows": [
                 {
                     "offset": "0x00000000",
-                    "instruction": "ADDIU  $sp,$sp,-0x10",
-                    "bytes_text": "F0 FF BD 27"
+                    "instruction": "WORD 0xC2023757",
+                    "bytes_text": "57 37 02 C2"
                 },
                 {
                     "offset": "0x00000004",
-                    "instruction": "SW     $a0,0x00($sp)",
-                    "bytes_text": "00 00 A4 AF"
+                    "instruction": "WORD 0x30317830",
+                    "bytes_text": "30 78 31 30"
                 },
                 {
                     "offset": "0x00000008",
-                    "instruction": "SW     $a1,0x04($sp)",
-                    "bytes_text": "04 00 A5 AF"
+                    "instruction": "WORD 0x57530A0D",
+                    "bytes_text": "0D 0A 53 57"
                 },
                 {
                     "offset": "0x0000000C",
-                    "instruction": "SW     $ra,0x08($sp)",
-                    "bytes_text": "08 00 BF AF"
+                    "instruction": "WORD 0x20202020",
+                    "bytes_text": "20 20 20 20"
                 },
                 {
                     "offset": "0x00000010",
-                    "instruction": "LUI    $t0,0x801A",
-                    "bytes_text": "1A 80 08 3C"
+                    "instruction": "WORD 0x30612420",
+                    "bytes_text": "20 24 61 30"
                 },
                 {
                     "offset": "0x00000014",
-                    "instruction": "ORI    $t0,$t0,0x7BD4",
-                    "bytes_text": "D4 7B 08 35"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000018",
-                    "instruction": "SUBU   $t1,$t0,$v0",
-                    "bytes_text": "23 48 02 01"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x0000001C",
-                    "instruction": "SLTIU  $t0,$t1,0x0071",
-                    "bytes_text": "71 00 28 2D"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000020",
-                    "instruction": "BNE    $t0,$zero,0x8",
-                    "bytes_text": "F9 FF 00 15"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000024",
-                    "instruction": "LHU    $t0,0x000C($v0)",
-                    "bytes_text": "0C 00 48 94"
-                },
-                {
-                    "offset": "-",
-                    "instruction": "ALSDKç",
-                    "bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "instruction": "Açslç",
-                    "bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "instruction": "; Veja que acima coloquei exemplos de offsets são inválidos, e portanto não há bytes nessas linhas.",
-                    "bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "instruction": "; É ASSIM QUE DEVE SER! Esse deve ser o comportamento esperado.",
-                    "bytes_text": ""
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000028",
-                    "instruction": "ADDIU  $t1,$zero,@card_id",
-                    "bytes_text": "B3 01 09 24"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x0000002C",
-                    "instruction": "BNE    $t0,$t1,0x5",
-                    "bytes_text": "F5 FF 09 15"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000030",
-                    "instruction": "ADDIU  $a0,$zero,@spell_id",
-                    "bytes_text": "4E 01 04 24"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
                 },
                 {
                     "offset": "0x00000034",
-                    "instruction": "JAL    0x26BA4",
-                    "bytes_text": "E9 9A 00 0C"
+                    "instruction": "WORD 0x20205753",
+                    "bytes_text": "53 57 20 20"
                 },
                 {
                     "offset": "0x00000038",
-                    "instruction": "ADDIU  $a1,$zero,0x1",
-                    "bytes_text": "01 00 05 24"
+                    "instruction": "ADDIU $zero, $at, 0x2020",
+                    "bytes_text": "20 20 20 24"
                 },
                 {
                     "offset": "0x0000003C",
-                    "instruction": "ADDIU  $t0,$zero,@spell_id",
-                    "bytes_text": "4E 01 08 24"
+                    "instruction": "WORD 0x302C3161",
+                    "bytes_text": "61 31 2C 30"
                 },
                 {
                     "offset": "0x00000040",
-                    "instruction": "SH     $t0,0x024E($gp)",
-                    "bytes_text": "4E 02 88 A7"
+                    "instruction": "WORD 0x28343078",
+                    "bytes_text": "78 30 34 28"
                 },
                 {
                     "offset": "0x00000044",
-                    "instruction": "LW     $a0,0x00($sp)",
-                    "bytes_text": "00 00 A4 8F"
+                    "instruction": "WORD 0x29707324",
+                    "bytes_text": "24 73 70 29"
                 },
                 {
                     "offset": "0x00000048",
-                    "instruction": "LW     $a1,0x04($sp)",
-                    "bytes_text": "04 00 A5 8F"
+                    "instruction": "WORD 0x57530A0D",
+                    "bytes_text": "0D 0A 53 57"
                 },
                 {
                     "offset": "0x0000004C",
-                    "instruction": "LW     $ra,0x08($sp)",
-                    "bytes_text": "08 00 BF 8F"
+                    "instruction": "WORD 0x20202020",
+                    "bytes_text": "20 20 20 20"
                 },
                 {
                     "offset": "0x00000050",
-                    "instruction": "J      0x24D34",
-                    "bytes_text": "4D 93 00 08"
+                    "instruction": "WORD 0x61722420",
+                    "bytes_text": "20 24 72 61"
                 },
                 {
                     "offset": "0x00000054",
-                    "instruction": "ADDIU  $sp,$sp,0x10",
-                    "bytes_text": "10 00 BD 27"
+                    "instruction": "WORD 0x3078302C",
+                    "bytes_text": "2C 30 78 30"
+                },
+                {
+                    "offset": "0x00000058",
+                    "instruction": "WORD 0x73242838",
+                    "bytes_text": "38 28 24 73"
+                },
+                {
+                    "offset": "0x0000005C",
+                    "instruction": "J 0x834A5C0",
+                    "bytes_text": "70 29 0D 0A"
+                },
+                {
+                    "offset": "0x00000060",
+                    "instruction": "WORD 0x2049554C",
+                    "bytes_text": "4C 55 49 20"
+                },
+                {
+                    "offset": "0x00000064",
+                    "instruction": "WORD 0x2049554C",
+                    "bytes_text": "4C 55 49 20"
+                },
+                {
+                    "offset": "0x00000068",
+                    "instruction": "ADDIU $zero, $at, 0x2020",
+                    "bytes_text": "20 20 20 24"
+                },
+                {
+                    "offset": "0x0000006C",
+                    "instruction": "WORD 0x302C3074",
+                    "bytes_text": "74 30 2C 30"
+                },
+                {
+                    "offset": "0x00000070",
+                    "instruction": "WORD 0x31303878",
+                    "bytes_text": "78 38 30 31"
+                },
+                {
+                    "offset": "0x00000074",
+                    "instruction": "WORD 0x4F0A0D41",
+                    "bytes_text": "41 0D 0A 4F"
+                },
+                {
+                    "offset": "0x00000078",
+                    "instruction": "WORD 0x20204952",
+                    "bytes_text": "52 49 20 20"
+                },
+                {
+                    "offset": "0x0000007C",
+                    "instruction": "WORD 0x74242020",
+                    "bytes_text": "20 20 24 74"
+                },
+                {
+                    "offset": "0x00000080",
+                    "instruction": "WORD 0x74242C30",
+                    "bytes_text": "30 2C 24 74"
+                },
+                {
+                    "offset": "0x00000084",
+                    "instruction": "WORD 0x78302C30",
+                    "bytes_text": "30 2C 30 78"
+                },
+                {
+                    "offset": "0x00000088",
+                    "instruction": "ORI $a0, $v0, 0x4237",
+                    "bytes_text": "37 42 44 34"
+                },
+                {
+                    "offset": "0x0000008C",
+                    "instruction": "WORD 0x55530A0D",
+                    "bytes_text": "0D 0A 53 55"
+                },
+                {
+                    "offset": "0x00000090",
+                    "instruction": "WORD 0x20205542",
+                    "bytes_text": "42 55 20 20"
+                },
+                {
+                    "offset": "0x00000094",
+                    "instruction": "WORD 0x31742420",
+                    "bytes_text": "20 24 74 31"
+                },
+                {
+                    "offset": "0x00000098",
+                    "instruction": "WORD 0x3074242C",
+                    "bytes_text": "2C 24 74 30"
+                },
+                {
+                    "offset": "0x0000009C",
+                    "instruction": "WORD 0x3076242C",
+                    "bytes_text": "2C 24 76 30"
+                },
+                {
+                    "offset": "0x000000A0",
+                    "instruction": "WORD 0x4C530A0D",
+                    "bytes_text": "0D 0A 53 4C"
+                },
+                {
+                    "offset": "0x000000A4",
+                    "instruction": "WORD 0x20554954",
+                    "bytes_text": "54 49 55 20"
+                },
+                {
+                    "offset": "0x000000A8",
+                    "instruction": "WORD 0x30742420",
+                    "bytes_text": "20 24 74 30"
+                },
+                {
+                    "offset": "0x000000AC",
+                    "instruction": "WORD 0x3174242C",
+                    "bytes_text": "2C 24 74 31"
+                },
+                {
+                    "offset": "0x000000B0",
+                    "instruction": "JAL 0x4C4DCC0",
+                    "bytes_text": "30 37 31 0D"
+                },
+                {
+                    "offset": "0x000000B4",
+                    "instruction": "WORD 0x454E420A",
+                    "bytes_text": "0A 42 4E 45"
+                },
+                {
+                    "offset": "0x000000B8",
+                    "instruction": "WORD 0x20202020",
+                    "bytes_text": "20 20 20 20"
+                },
+                {
+                    "offset": "0x000000BC",
+                    "instruction": "SLTIU $s0, $at, 0x7424",
+                    "bytes_text": "24 74 30 2C"
+                },
+                {
+                    "offset": "0x000000C0",
+                    "instruction": "WORD 0x72657A24",
+                    "bytes_text": "24 7A 65 72"
+                },
+                {
+                    "offset": "0x000000C4",
+                    "instruction": "WORD 0x78302C6F",
+                    "bytes_text": "6F 2C 30 78"
+                },
+                {
+                    "offset": "0x000000C8",
+                    "instruction": "WORD 0x4C0A0D38",
+                    "bytes_text": "38 0D 0A 4C"
+                },
+                {
+                    "offset": "0x000000CC",
+                    "instruction": "WORD 0x20205548",
+                    "bytes_text": "48 55 20 20"
+                },
+                {
+                    "offset": "0x000000D0",
+                    "instruction": "WORD 0x74242020",
+                    "bytes_text": "20 20 24 74"
+                },
+                {
+                    "offset": "0x000000D4",
+                    "instruction": "WORD 0x78302C30",
+                    "bytes_text": "30 2C 30 78"
+                },
+                {
+                    "offset": "0x000000D8",
+                    "instruction": "WORD 0x43303030",
+                    "bytes_text": "30 30 30 43"
+                },
+                {
+                    "offset": "0x000000DC",
+                    "instruction": "WORD 0x30762428",
+                    "bytes_text": "28 24 76 30"
+                },
+                {
+                    "offset": "0x000000E0",
+                    "instruction": "WORD 0x410A0D29",
+                    "bytes_text": "29 0D 0A 41"
+                },
+                {
+                    "offset": "0x000000E4",
+                    "instruction": "WORD 0x55494444",
+                    "bytes_text": "44 44 49 55"
+                },
+                {
+                    "offset": "-",
+                    "instruction": "",
+                    "bytes_text": ""
+                },
+                {
+                    "offset": "0x000000E8",
+                    "instruction": "WORD 0x7A242C31",
+                    "bytes_text": "31 2C 24 7A"
+                },
+                {
+                    "offset": "0x000000EC",
+                    "instruction": "SLTIU $t7, $v1, 0x7265",
+                    "bytes_text": "65 72 6F 2C"
+                },
+                {
+                    "offset": "0x000000F0",
+                    "instruction": "WORD 0x72616340",
+                    "bytes_text": "40 63 61 72"
+                },
+                {
+                    "offset": "0x000000F4",
+                    "instruction": "WORD 0x64695F64",
+                    "bytes_text": "64 5F 69 64"
+                },
+                {
+                    "offset": "0x000000F8",
+                    "instruction": "WORD 0x4E420A0D",
+                    "bytes_text": "0D 0A 42 4E"
+                },
+                {
+                    "offset": "0x000000FC",
+                    "instruction": "WORD 0x20202045",
+                    "bytes_text": "45 20 20 20"
+                },
+                {
+                    "offset": "0x00000100",
+                    "instruction": "WORD 0x30742420",
+                    "bytes_text": "20 24 74 30"
                 }
             ],
             "view_preferences": {
@@ -319,12 +724,12 @@
             }
         },
         {
-            "tab_id": "3dddb69b66f242b3ac234f40516084df",
+            "tab_id": "e0cd1b2087c343a6b447937e65c92fa5",
             "kind": "binary",
-            "display_name": "WA_MRG.MRG.bak",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\WA_MRG.MRG.bak",
+            "display_name": "SLUS_014.11.bak",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11.bak",
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "assembly",
+            "read_mode": "bytes",
             "reference_offsets": [
                 "File"
             ],
@@ -341,33 +746,18 @@
                 {
                     "name": "default",
                     "rows": [],
-                    "instructions": {
-                        "12": "; testando linha extra"
-                    }
+                    "instructions": {}
                 }
             ],
             "active_version_name": "default",
-            "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\WA_MRG_MRG_workspace_manifest.json",
-            "module_paths": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\WA_MRG_MRG_workspace_manifest_symbols.json",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\WA_MRG_MRG_workspace_manifest_lba.json",
-                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\WA_MRG_MRG_workspace_manifest_versions.json"
-            },
-            "module_directories": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables"
-            },
-            "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
-                "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "c676530ac2f9c1899a2eaa9c74bdf10210ec128005e6158e89b1b94ce7c12949"
-            },
-            "last_open_offset": "0x00000000",
+            "workspace_path": null,
+            "module_paths": {},
+            "module_directories": {},
+            "module_checksums": {},
+            "last_open_offset": "0x000211D4",
             "navigation_history": [],
-            "file_size": 37750784,
-            "original_file_size": 37750784,
+            "file_size": 1902592,
+            "original_file_size": 1902592,
             "version_dirty": true,
             "byte_overlays": {},
             "instruction_overlays": {},
@@ -383,7 +773,7 @@
             }
         }
     ],
-    "active_tab_id": "3dddb69b66f242b3ac234f40516084df",
+    "active_tab_id": "e0cd1b2087c343a6b447937e65c92fa5",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",

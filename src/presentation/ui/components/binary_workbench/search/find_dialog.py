@@ -40,10 +40,6 @@ class BinaryWorkbenchFindDialog(QDialog):
             BINARY_WORKBENCH_TEXT.FIND,
             BINARY_WORKBENCH_TEXT.FIND_SUBTITLE,
             include_header=False,
-            margins=(
-                BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MARGIN_VERTICAL,
-                BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MARGIN_HORIZONTAL,
-            ),
         )
         self.mode = QComboBox(self)
         self.mode.setObjectName("binary-workbench-dialog-input")

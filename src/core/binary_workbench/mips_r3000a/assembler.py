@@ -13,6 +13,7 @@ from src.core.binary_workbench.mips_r3000a.operands import (
     offset_operand,
     register,
     r_type,
+    word_bytes,
 )
 
 
@@ -43,7 +44,7 @@ def assemble_fallback(instruction: str, address: int) -> bytes | None:
             | (SPECIAL_BRANCH_RT[mnemonic] << 16)
             | offset
         )
-        return word.to_bytes(4, "little")
+        return word_bytes(word)
     return None
 
 
@@ -52,15 +53,15 @@ def _assemble_i_type(mnemonic: str, operands: list[str]) -> bytes | None:
     if mnemonic == "lui":
         rt, immediate = register(operands[0]), number(operands[1]) & 0xFFFF
         word = (opcode << 26) | (rt << 16) | immediate
-        return word.to_bytes(4, "little")
+        return word_bytes(word)
     if mnemonic in {"lw", "sw", "lh", "lhu", "sh", "lb", "lbu", "sb"}:
         rt = register(operands[0])
         immediate, base = offset_operand(operands[1])
         word = (opcode << 26) | (base << 21) | (rt << 16) | (immediate & 0xFFFF)
-        return word.to_bytes(4, "little")
+        return word_bytes(word)
     rt, rs, immediate = register(operands[0]), register(operands[1]), number(operands[2])
     word = (opcode << 26) | (rs << 21) | (rt << 16) | (immediate & 0xFFFF)
-    return word.to_bytes(4, "little")
+    return word_bytes(word)
 
 
 def _assemble_branch(mnemonic: str, operands: list[str]) -> bytes:
@@ -69,8 +70,8 @@ def _assemble_branch(mnemonic: str, operands: list[str]) -> bytes:
         rs = register(operands[0])
         offset = number(operands[1]) & 0xFFFF
         word = (opcode << 26) | (rs << 21) | offset
-        return word.to_bytes(4, "little")
+        return word_bytes(word)
     rs, rt = register(operands[0]), register(operands[1])
     offset = number(operands[2]) & 0xFFFF
     word = (opcode << 26) | (rs << 21) | (rt << 16) | offset
-    return word.to_bytes(4, "little")
+    return word_bytes(word)

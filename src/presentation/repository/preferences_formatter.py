@@ -1,6 +1,10 @@
 import json
 from pathlib import Path
 
+from src.core.binary_workbench.selection_limits import (
+    DEFAULT_SELECTION_LIMIT_BYTES,
+    normalized_selection_limit,
+)
 from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
@@ -107,6 +111,12 @@ class BinaryWorkbenchPreferencesRepository:
             uppercase_instructions=self._bool(raw.get("uppercase_instructions") if raw else None, True),
             block_size=self._positive_int(raw.get("block_size") if raw else None, 2048),
             cache_max_blocks=self._positive_int(raw.get("cache_max_blocks") if raw else None, 8000),
+            selection_limit_bytes=normalized_selection_limit(
+                self._positive_int(
+                    raw.get("selection_limit_bytes") if raw else None,
+                    DEFAULT_SELECTION_LIMIT_BYTES,
+                )
+            ),
             binary_edit_rules=self._edit_rules(
                 raw.get("binary_edit_rules") if raw else None,
                 BinaryWorkbenchEditRulesDTO(),
@@ -124,6 +134,7 @@ class BinaryWorkbenchPreferencesRepository:
             "uppercase_instructions": preferences.uppercase_instructions,
             "block_size": preferences.block_size,
             "cache_max_blocks": preferences.cache_max_blocks,
+            "selection_limit_bytes": preferences.selection_limit_bytes,
             "binary_edit_rules": self._edit_rules_payload(preferences.binary_edit_rules),
             "assembly_edit_rules": self._edit_rules_payload(preferences.assembly_edit_rules),
         }

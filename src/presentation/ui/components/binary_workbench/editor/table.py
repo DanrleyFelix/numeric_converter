@@ -3,6 +3,10 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
+from src.core.binary_workbench.selection_limits import (
+    DEFAULT_SELECTION_LIMIT_BYTES,
+    normalized_selection_limit,
+)
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
@@ -82,7 +86,11 @@ class BinaryWorkbenchGrid(
         self._virtual_selection_kind: str | None = None
         self._virtual_selection_range: tuple[str, int, int] | None = None
         self._virtual_selection_scrolling = False
+        self._selection_limit_bytes = DEFAULT_SELECTION_LIMIT_BYTES
         self._build_ui()
 
     def set_codec(self, codec: CPUArchCodec) -> None:
         self._codec = codec
+
+    def set_selection_limit_bytes(self, value: int) -> None:
+        self._selection_limit_bytes = normalized_selection_limit(value)

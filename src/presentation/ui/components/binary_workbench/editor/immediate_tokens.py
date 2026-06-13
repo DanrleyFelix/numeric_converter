@@ -35,11 +35,26 @@ def variable_token_at_position(editor: QPlainTextEdit, position: QPoint) -> Imme
     return _token_at_position(editor, position, MEMORY_OPERAND_TOKEN) or immediate_token_at_position(editor, position)
 
 
+def immediate_token_at_cursor(editor: QPlainTextEdit) -> ImmediateToken | None:
+    return _token_at_cursor(editor, IMMEDIATE_TOKEN)
+
+
+def variable_token_at_cursor(editor: QPlainTextEdit) -> ImmediateToken | None:
+    return _token_at_cursor(editor, MEMORY_OPERAND_TOKEN) or immediate_token_at_cursor(editor)
+
+
 def _token_at_position(editor: QPlainTextEdit, position: QPoint, pattern: re.Pattern[str]) -> ImmediateToken | None:
     cursor = editor.cursorForPosition(position)
-    block_ref = cursor.block()
+    return _token_at_block_position(cursor.block(), cursor.positionInBlock(), pattern)
+
+
+def _token_at_cursor(editor: QPlainTextEdit, pattern: re.Pattern[str]) -> ImmediateToken | None:
+    cursor = editor.textCursor()
+    return _token_at_block_position(cursor.block(), cursor.positionInBlock(), pattern)
+
+
+def _token_at_block_position(block_ref, column: int, pattern: re.Pattern[str]) -> ImmediateToken | None:
     block = block_ref.text()
-    column = cursor.positionInBlock()
     for match in pattern.finditer(block):
         if match.start() <= column <= match.end():
             return ImmediateToken(

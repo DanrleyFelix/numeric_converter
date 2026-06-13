@@ -6,6 +6,9 @@ from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QSc
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
+from src.presentation.ui.components.binary_workbench.editor.editor_granular_undo import (
+    EditorGranularUndoMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.editor_immediate_menu import (
     EditorImmediateMenuMixin,
 )
@@ -14,6 +17,9 @@ from src.presentation.ui.components.binary_workbench.editor.editor_label_navigat
 )
 from src.presentation.ui.components.binary_workbench.editor.editor_selection_scroll import (
     EditorSelectionScrollMixin,
+)
+from src.presentation.ui.components.binary_workbench.editor.editor_shortcuts import (
+    EditorShortcutMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -24,7 +30,15 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
-class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLabelNavigationMixin, EditorSelectionScrollMixin, QPlainTextEdit):
+class WorkbenchEditor(
+    EditorCompletionMixin,
+    EditorImmediateMenuMixin,
+    EditorLabelNavigationMixin,
+    EditorSelectionScrollMixin,
+    EditorShortcutMixin,
+    EditorGranularUndoMixin,
+    QPlainTextEdit,
+):
     focused = Signal()
     selectAllRequested = Signal()
     immediateSymbolRequested = Signal(str, str, int, int)
@@ -46,6 +60,8 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": []}
         self._symbol_tooltips: dict[str, str] = {}
         self._label_offsets: dict[str, tuple[str, int]] = {}
+        self._jump_codec = None
+        self._jump_symbols: dict[str, str] = {}
         self._completion_cursor_position: int | None = None
         self._immediate_symbol_menu_enabled = False
         self._completer = QCompleter(self._completion_model, self)
@@ -60,6 +76,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._protected_edit_key_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
+        self.setup_editor_shortcuts()
 
     def _setup_completion_popup(self) -> None:
         popup = QListView()
@@ -87,6 +104,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         self._stop_selection_scroll()
 
     def mousePressEvent(self, event) -> None:
+        self.clear_editor_occurrence_selection()
         self.selectionStarted.emit(self)
         super().mousePressEvent(event)
 
@@ -95,6 +113,7 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         super().focusInEvent(event)
 
     def focusOutEvent(self, event) -> None:
+        self.clear_editor_occurrence_selection()
         cursor = self.textCursor()
         if cursor.hasSelection():
             cursor.clearSelection()
@@ -103,11 +122,18 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
         super().focusOutEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if self.handle_immediate_symbol_shortcut(event.key(), event.modifiers()):
+            event.accept()
+            return
+        if self.handle_editor_shortcut(event):
+            event.accept()
+            return
         if event.matches(QKeySequence.Copy):
             self.copyRequested.emit(self)
             event.accept()
             return
         if event.matches(QKeySequence.Undo):
+            self.clear_editor_occurrence_selection()
             self.undo()
             event.accept()
             return
@@ -134,6 +160,10 @@ class WorkbenchEditor(EditorCompletionMixin, EditorImmediateMenuMixin, EditorLab
             if self._protected_edit_key_handled:
                 event.accept()
                 return
+        if self.handle_granular_text_edit(event):
+            self._refresh_completions()
+            event.accept()
+            return
         if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
             self.selectAllRequested.emit()
             event.accept()

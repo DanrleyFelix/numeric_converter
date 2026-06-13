@@ -27,6 +27,8 @@ class GridRenderingMixin:
         self._uppercase_bytes = uppercase_bytes
         self._uppercase_instructions = uppercase_instructions
         self._virtual = virtual
+        for editor in (*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions):
+            editor.set_large_binary_mode(virtual)
         self._total_size = total_size if virtual else len(rows) * ROW_BYTES
         self._all_rows = [] if virtual else list(rows)
         self._dirty_editor_kind = None
@@ -47,6 +49,8 @@ class GridRenderingMixin:
         self._rows = list(rows)
         self._visible_start_offset = start_offset
         self._render()
+        if self._virtual_selection_range is not None:
+            self._select_visible_virtual_range(*self._virtual_selection_range)
         self._dirty_editor_kind = None
 
     def set_symbols(
@@ -63,6 +67,7 @@ class GridRenderingMixin:
         self._instruction_highlighter.set_symbols(labels, variables, equates)
         self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)
+        self.instructions.set_jump_navigation(self._codec, variables, equates)
         if hasattr(self, "raw_instructions"):
             self._render_raw_instructions()
 

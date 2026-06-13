@@ -4,6 +4,7 @@ class BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT:
     READ_MODE_LABEL: str = "Read Mode"
     BLOCK_SIZE_LABEL: str = "Block Size"
     CACHE_MAX_BLOCKS_LABEL: str = "Cache Max Blocks"
+    SELECTION_LIMIT_LABEL: str = "Selection Limit"
     CONFIRM: str = "Confirm"
     OPTION_PSX_MIPS_R3000A: str = "PSX - Mips R3000A"
 

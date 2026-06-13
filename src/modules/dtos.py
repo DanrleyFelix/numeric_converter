@@ -102,6 +102,7 @@ class BinaryWorkbenchPreferencesDTO:
     uppercase_instructions: bool = True
     block_size: int = 2048
     cache_max_blocks: int = 8000
+    selection_limit_bytes: int = 2 * 1024 * 1024
     binary_edit_rules: BinaryWorkbenchEditRulesDTO = field(
         default_factory=BinaryWorkbenchEditRulesDTO
     )

@@ -1,19 +1,7 @@
 from PySide6.QtCore import QEvent, Qt, Signal
-from PySide6.QtWidgets import QApplication, QListWidget, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QListWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
-
-
-class SearchResultDelegate(QStyledItemDelegate):
-    def paint(self, painter, option: QStyleOptionViewItem, index) -> None:
-        adjusted = QStyleOptionViewItem(option)
-        adjusted.rect = option.rect.adjusted(
-            0,
-            0,
-            -BINARY_WORKBENCH_LAYOUT.SEARCH_RESULT_ITEM_RIGHT_INSET,
-            0,
-        )
-        super().paint(painter, adjusted, index)
 
 
 class SearchResultsList(QListWidget):
@@ -25,7 +13,6 @@ class SearchResultsList(QListWidget):
         self.setFocusPolicy(Qt.NoFocus)
         self.setMouseTracking(True)
         self.setSpacing(BINARY_WORKBENCH_LAYOUT.SEARCH_RESULT_ITEM_SPACING)
-        self.setItemDelegate(SearchResultDelegate(self))
         self.viewport().setMouseTracking(True)
         self.viewport().installEventFilter(self)
         self.itemClicked.connect(lambda item: self.offsetActivated.emit(int(item.text(), 0)))

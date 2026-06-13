@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
+from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
@@ -96,6 +97,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.set_codec(codec)
         self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
         self.grid.set_edit_rules(_edit_rules_for_context(context, self._preferences))
+        self.grid.set_selection_limit_bytes(self._preferences.selection_limit_bytes)
         self.grid.set_original_file_size(context.original_file_size)
         self.grid.set_default_editor_kind(default_editor_kind(context))
         if self._reader is not None:
@@ -132,14 +134,26 @@ class BinaryWorkbenchEditorPage(
     def set_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self._preferences = preferences
         self.grid.set_edit_rules(_edit_rules_for_context(self._context, preferences))
+        self.grid.set_selection_limit_bytes(preferences.selection_limit_bytes)
 
     def set_cpu_arch(self, value: str) -> None:
         self._update_context({"cpu_arch": value})
 
     def select_block(self, start_offset: int, end_offset: int) -> None:
+        first, last = sorted((start_offset, end_offset))
+        end_offset = capped_end_offset(first, last, self._preferences.selection_limit_bytes)
+        start_offset = first
         if self._reader is not None:
-            size = max(1, end_offset - start_offset + 1)
-            self._load_visible_rows(start_offset, size, 1)
+            self._load_visible_rows(start_offset, self.grid.visible_size(), 1)
+            kind = self.focused_editor_kind() or BINARY_WORKBENCH_TEXT.BYTES
+            if kind not in {
+                BINARY_WORKBENCH_TEXT.BYTES,
+                BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+                BINARY_WORKBENCH_TEXT.INSTRUCTION,
+            }:
+                kind = BINARY_WORKBENCH_TEXT.BYTES
+            self.grid.select_virtual_range(kind, start_offset, end_offset)
+            return
         else:
             self.grid.set_visible_offset(start_offset)
         if self.focused_editor_kind() == BINARY_WORKBENCH_TEXT.INSTRUCTION:
@@ -148,12 +162,6 @@ class BinaryWorkbenchEditorPage(
         self.grid.select_offsets(start_offset, end_offset)
 
     def select_all_content(self) -> None:
-        if self._reader is not None:
-            self._load_visible_rows(
-                0,
-                self._reader.file_size,
-                1,
-            )
         self.grid.select_all_content()
 
     def assembly_text(self) -> str:

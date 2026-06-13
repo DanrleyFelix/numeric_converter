@@ -1,7 +1,44 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QVBoxLayout,
+)
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+
+
+class SearchComboOptionDelegate(QStyledItemDelegate):
+    def sizeHint(self, option: QStyleOptionViewItem, index) -> QSize:
+        size = super().sizeHint(option, index)
+        margin = BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_TEXT_MARGIN
+        return QSize(size.width(), size.height() + (margin * 2))
+
+    def paint(self, painter, option: QStyleOptionViewItem, index) -> None:
+        painter.save()
+        painter.setFont(option.font)
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        if selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+            painter.setPen(option.palette.highlightedText().color())
+        else:
+            painter.fillRect(option.rect, option.palette.base())
+            painter.setPen(option.palette.text().color())
+        text_rect = option.rect.adjusted(
+            BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_TEXT_MARGIN,
+            BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_TEXT_MARGIN,
+            -BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_TEXT_MARGIN,
+            -BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_TEXT_MARGIN,
+        )
+        painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, str(index.data() or ""))
+        painter.restore()
 
 
 def base_search_dialog_layout(
@@ -88,5 +125,6 @@ def search_line_edit(parent: QDialog, placeholder: str) -> QLineEdit:
 
 def configure_search_combo_popup(combo: QComboBox) -> None:
     view = combo.view()
-    view.setViewportMargins(BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_LEFT_MARGIN, 0, 0, 0)
+    view.setViewportMargins(0, 0, 0, 0)
     view.setSpacing(BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_SPACING)
+    view.setItemDelegate(SearchComboOptionDelegate(view))

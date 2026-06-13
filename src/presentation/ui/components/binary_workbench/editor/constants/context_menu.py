@@ -1,4 +1,5 @@
 CONTEXT_MENU_ICON_COLOR = "#FFFFFF"
+CONTEXT_MENU_ICON_LEFT_INSET = 0
 CONTEXT_MENU_ICON_GLYPHS = {
     "Undo": "\uf0e2",
     "Redo": "\uf01e",
@@ -7,7 +8,19 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Paste": "\uf0ea",
     "Delete": "\uf2ed",
     "Select All": "\uf00a",
-    "Add variable name": "\uf02b",
-    "Add equate": "\uf52c",
+    "Add Variable": "\uf02b",
+    "Add Equate": "\uf52c",
     "Open Label in New Tab": "\uf35d",
+}
+
+CONTEXT_MENU_SHORTCUTS = {
+    "Undo": "Ctrl+Z",
+    "Redo": "Ctrl+Y",
+    "Cut": "Ctrl+X",
+    "Copy": "Ctrl+C",
+    "Paste": "Ctrl+V",
+    "Delete": "Backspace",
+    "Select All": "Ctrl+A",
+    "Add Variable": "Alt+W",
+    "Add Equate": "Alt+E",
 }

@@ -1,5 +1,6 @@
 from PySide6.QtGui import QTextCursor
 
+from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -8,6 +9,23 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
 
 
 class GridVirtualSelectionMixin:
+    def select_virtual_range(self, kind: str, start_offset: int, end_offset: int) -> None:
+        if not self._virtual:
+            return
+        normalized_start, normalized_end = self._normalized_virtual_range(
+            kind,
+            start_offset,
+            end_offset,
+        )
+        self._virtual_selection_anchor = normalized_start
+        self._virtual_selection_kind = kind
+        self._virtual_selection_range = (kind, normalized_start, normalized_end)
+        self._select_visible_virtual_range(kind, normalized_start, normalized_end)
+        editor = self._editor_for_selection_kind(kind)
+        if editor is not None:
+            editor.setFocus()
+        self._emit_virtual_selection_summary(kind, normalized_start, normalized_end)
+
     def _copy_editor_selection(self, editor) -> None:
         if self._virtual_selection_range is None:
             editor.copy()
@@ -17,7 +35,11 @@ class GridVirtualSelectionMixin:
             editor.copy()
             return
         first, last = sorted((anchor_offset, cursor_offset))
-        self.copySelectionRequested.emit(kind, first, last)
+        self.copySelectionRequested.emit(
+            kind,
+            first,
+            capped_end_offset(first, last, self._selection_limit_bytes),
+        )
 
     def _capture_virtual_selection_anchor(self, editor) -> None:
         if not self._virtual:
@@ -116,6 +138,27 @@ class GridVirtualSelectionMixin:
         if editor is self.instructions:
             return BINARY_WORKBENCH_TEXT.INSTRUCTION
         return None
+
+    def _editor_for_selection_kind(self, kind: str):
+        if kind == BINARY_WORKBENCH_TEXT.BYTES:
+            return self.bytes
+        if kind == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS:
+            return self.raw_instructions
+        if kind == BINARY_WORKBENCH_TEXT.INSTRUCTION:
+            return self.instructions
+        return None
+
+    def _normalized_virtual_range(
+        self,
+        kind: str,
+        start_offset: int,
+        end_offset: int,
+    ) -> tuple[int, int]:
+        first, last = sorted((max(0, start_offset), max(0, end_offset)))
+        if kind == BINARY_WORKBENCH_TEXT.BYTES:
+            return first, last
+        word_size = max(1, self._codec.word_size)
+        return first - (first % word_size), last - (last % word_size)
 
     def _offset_for_editor_position(self, editor, position: int) -> int:
         document = editor.document()

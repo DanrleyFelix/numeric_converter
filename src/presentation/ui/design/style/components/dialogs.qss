@@ -246,12 +246,12 @@ QListWidget#binary-workbench-search-results {
     color: $text-main;
     border: 1px solid $border-workspace-row;
     border-radius: $radius-10;
-    padding: $padding-search-results-list;
+    padding: $space-0;
 }
 
 QListWidget#binary-workbench-search-results::item {
-    border: 1px solid transparent;
-    border-radius: $radius-8;
+    border: none;
+    border-radius: $radius-0;
     padding: $space-6;
 }
 

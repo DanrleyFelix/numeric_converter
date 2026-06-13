@@ -24,6 +24,10 @@ class ImmediateSymbolNameDialog(QDialog):
         self._value = value
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(kind)
+        self.setMaximumSize(
+            BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_DIALOG_MAX_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_DIALOG_MAX_HEIGHT,
+        )
         self._build_dialog()
 
     def symbol_name(self) -> str:
@@ -37,25 +41,31 @@ class ImmediateSymbolNameDialog(QDialog):
         shell_layout = QVBoxLayout(shell)
         shell_layout.setContentsMargins(20, 20, 20, 16)
         shell_layout.setSpacing(12)
-        self.name_input = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, shell, _default_name(self._kind, self._value))
-        value_input = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, shell, self._value)
+        field_width = BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_FIELD_WIDTH
+        self.name_input = symbol_input(
+            BINARY_WORKBENCH_TEXT.SYMBOL_NAME,
+            shell,
+            _default_name(self._kind, self._value),
+            field_width,
+        )
+        value_input = symbol_input(
+            BINARY_WORKBENCH_TEXT.SYMBOL_VALUE,
+            shell,
+            self._value,
+            field_width,
+        )
         value_input.setReadOnly(True)
         row = QHBoxLayout()
         row.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_FIELD_SPACING)
-        row.addWidget(self.name_input)
-        row.addWidget(value_input)
-        shell_layout.addLayout(row)
-        actions = QHBoxLayout()
-        actions.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_ACTION_SPACING)
         ok = symbol_button("OK", "preferences-ok", shell)
         cancel = symbol_button("Cancel", "preferences-cancel", shell)
         for button in (ok, cancel):
-            button.setFixedSize(BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+            button.setFixedSize(field_width, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
-        actions.addWidget(ok, 0, Qt.AlignLeft)
-        actions.addWidget(cancel, 0, Qt.AlignLeft)
-        shell_layout.addLayout(actions)
+        row.addLayout(_field_action_column(self.name_input, ok))
+        row.addLayout(_field_action_column(value_input, cancel))
+        shell_layout.addLayout(row)
         layout.addWidget(shell)
 
 
@@ -64,3 +74,12 @@ def _default_name(kind: str, value: str) -> str:
     cleaned = value.lower().replace("-", "minus_").replace("+", "").replace("0x", "")
     cleaned = SYMBOL_NAME_CLEANUP.sub("_", cleaned.replace("$", "")).strip("_")
     return f"{prefix}_{cleaned or 'value'}"
+
+
+def _field_action_column(field, button) -> QVBoxLayout:
+    layout = QVBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_ACTION_SPACING)
+    layout.addWidget(field, 0, Qt.AlignLeft)
+    layout.addWidget(button, 0, Qt.AlignLeft)
+    return layout

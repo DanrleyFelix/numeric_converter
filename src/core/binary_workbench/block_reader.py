@@ -65,6 +65,16 @@ class CachedBinaryReader:
             remaining -= take
         return _apply_overlay(start, b"".join(chunks), overlay or {})
 
+    def read_uncached(self, offset: int, size: int, overlay: dict[int, bytes] | None = None) -> bytes:
+        if size <= 0 or offset >= self.file_size:
+            return b""
+        start = max(0, offset)
+        read_size = min(size, self.file_size - start)
+        with self._path.open("rb") as source:
+            source.seek(start)
+            data = source.read(read_size)
+        return _apply_overlay(start, data, overlay or {})
+
     def prefetch_for_offset(self, offset: int, direction: int) -> None:
         block_index = self.block_index_for_offset(offset)
         position = offset % self.block_size

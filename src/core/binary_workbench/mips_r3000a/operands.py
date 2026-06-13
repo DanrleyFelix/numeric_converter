@@ -3,6 +3,10 @@ from __future__ import annotations
 from src.core.binary_workbench.mips_r3000a.constants import REGISTERS
 
 
+def word_bytes(word: int) -> bytes:
+    return (word & 0xFFFFFFFF).to_bytes(4, "little")
+
+
 def register(token: str) -> int:
     return REGISTERS[token.lstrip("$").lower()]
 
@@ -18,11 +22,11 @@ def offset_operand(token: str) -> tuple[int, int]:
 
 def r_type(rs: int, rt: int, rd: int, shamt: int, funct: int) -> bytes:
     word = (rs << 21) | (rt << 16) | (rd << 11) | (shamt << 6) | funct
-    return word.to_bytes(4, "little")
+    return word_bytes(word)
 
 
 def j_type(opcode: int, target: int) -> bytes:
-    return ((opcode << 26) | (target & 0x03FFFFFF)).to_bytes(4, "little")
+    return word_bytes((opcode << 26) | (target & 0x03FFFFFF))
 
 
 def signed16(value: int) -> int:

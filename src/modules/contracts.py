@@ -38,3 +38,11 @@ class CPUArchCodec(ABC):
     @abstractmethod
     def bytes_text(self, data: bytes) -> str:
         raise NotImplementedError
+
+    def jump_navigation_target(
+        self,
+        instruction: str,
+        operand: str,
+        symbols: dict[str, str] | None = None,
+    ) -> int | None:
+        return None

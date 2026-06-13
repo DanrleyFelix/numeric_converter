@@ -49,6 +49,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.go_to_action.setShortcut(QKeySequence("Ctrl+G"))
         self.find_action.setShortcut(QKeySequence("Ctrl+F"))
         self.select_block_action.setShortcut(QKeySequence("Ctrl+E"))
+        self.select_block_action.setShortcutContext(Qt.ApplicationShortcut)
         self.select_all_action.setShortcut(QKeySequence("Ctrl+A"))
 
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.FILE, Icons.file(), [

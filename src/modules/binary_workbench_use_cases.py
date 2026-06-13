@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.core.binary_workbench.file_ops import overlay_from_version_rows
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
+from src.core.binary_workbench.selection_limits import normalized_selection_limit
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
@@ -70,6 +71,7 @@ class BinaryWorkbenchPreferencesUseCase:
             uppercase_instructions=preferences.uppercase_instructions,
             block_size=max(1, preferences.block_size),
             cache_max_blocks=max(1, preferences.cache_max_blocks),
+            selection_limit_bytes=normalized_selection_limit(preferences.selection_limit_bytes),
             binary_edit_rules=preferences.binary_edit_rules,
             assembly_edit_rules=preferences.assembly_edit_rules,
         )

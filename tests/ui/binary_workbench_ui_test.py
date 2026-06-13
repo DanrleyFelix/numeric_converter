@@ -7,7 +7,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QTextCursor
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
@@ -1415,6 +1415,182 @@ def test_binary_workbench_raw_instructions_virtual_selection_is_visible(tmp_path
     assert page.grid.raw_instructions.textCursor().selectedText().count("nop") == 5  # type: ignore[attr-defined]
 
 
+def test_binary_workbench_virtual_bytes_delete_preserves_raw_and_undo(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("F4 01 63 24 34 00 52 26") + bytes.fromhex("00 00 00 00") * 78)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    bytes_editor = page.grid.bytes  # type: ignore[attr-defined]
+    raw_editor = page.grid.raw_instructions  # type: ignore[attr-defined]
+    offset_editor = next(iter(page.grid._offset_editors.values()))  # type: ignore[attr-defined]
+    original_bytes = bytes_editor.toPlainText().splitlines()[:2]
+    original_raw = raw_editor.toPlainText().splitlines()[:2]
+    cursor = QTextCursor(bytes_editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(bytes_editor.document().findBlockByNumber(2).position(), QTextCursor.KeepAnchor)
+    bytes_editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert bytes_editor.toPlainText().splitlines()[:2] == ["", ""]
+    assert raw_editor.toPlainText().splitlines()[:2] == original_raw
+    assert offset_editor.toPlainText().splitlines()[:2] == ["0x00000000", "0x00000004"]
+    assert bytes_editor.textCursor().position() == 0
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    _app().processEvents()
+
+    assert bytes_editor.toPlainText().splitlines()[:2] == original_bytes
+
+
+def test_binary_workbench_virtual_empty_bytes_line_blocks_backspace_shift(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("F4 01 63 24") + bytes.fromhex("00 00 00 00") * 79)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    bytes_editor = page.grid.bytes  # type: ignore[attr-defined]
+    cursor = QTextCursor(bytes_editor.document())
+    first = bytes_editor.document().findBlockByNumber(0)
+    cursor.setPosition(first.position())
+    cursor.setPosition(first.position() + len(first.text()), QTextCursor.KeepAnchor)
+    bytes_editor.setTextCursor(cursor)
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+    text_after_clear = bytes_editor.toPlainText()
+
+    cursor = bytes_editor.textCursor()
+    cursor.setPosition(0)
+    bytes_editor.setTextCursor(cursor)
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert bytes_editor.toPlainText() == text_after_clear
+    assert bytes_editor.textCursor().position() == 0
+
+
+def test_binary_workbench_bytes_undo_keeps_multiple_nibble_steps(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    bytes_editor = page.grid.bytes  # type: ignore[attr-defined]
+    bytes_editor.setPlainText("")
+    _app().processEvents()
+    bytes_editor.setFocus()
+
+    for key, text in (
+        (Qt.Key_A, "A"),
+        (Qt.Key_B, "B"),
+        (Qt.Key_C, "C"),
+        (Qt.Key_D, "D"),
+    ):
+        QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier, text))
+        _app().processEvents()
+
+    assert bytes_editor.toPlainText() == "ABCD"
+
+    for expected in ("ABC", "AB", "A", ""):
+        QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+        _app().processEvents()
+        assert bytes_editor.toPlainText() == expected
+
+
+def test_binary_workbench_large_binary_editor_keeps_ctrl_d_and_ctrl_q(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(3, QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.ControlModifier))
+    _app().processEvents()
+    assert len(editor.extraSelections()) == 2
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Q, Qt.ControlModifier))
+    _app().processEvents()
+    assert len(editor.extraSelections()) == 2
+
+
+def test_binary_workbench_large_binary_instruction_line_replace_keeps_rows_and_undo(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("86 5B DE F2") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    original_lines = editor.toPlainText().splitlines()
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(editor.document().findBlockByNumber(1).position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_X, Qt.NoModifier, "X"))
+    _app().processEvents()
+
+    changed_lines = editor.toPlainText().splitlines()
+    assert changed_lines[0] == "X"
+    assert changed_lines[1] == original_lines[1]
+    assert len(changed_lines) == len(original_lines)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == original_lines
+
+
+def test_binary_workbench_large_binary_instruction_backspace_keeps_cursor_line(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("86 5B DE F2") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    first = editor.document().findBlockByNumber(0)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(first.position() + len(first.text()))
+    editor.setTextCursor(cursor)
+    expected_position = cursor.position() - 1
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.textCursor().blockNumber() == 0
+    assert editor.textCursor().position() == expected_position
+
+
 def test_binary_workbench_ctrl_c_copies_entire_raw_virtual_selection(tmp_path: Path):
     binary_path = tmp_path / "large.bin"
     binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
@@ -1859,6 +2035,7 @@ def test_binary_workbench_advanced_configuration_uses_confirm_and_block_size_opt
         BINARY_WORKBENCH_TEXT.AUTO_READ_MODE,
         2048,
         8000,
+        2 * 1024 * 1024,
     )
     dialog.show()
     _app().processEvents()
@@ -1873,6 +2050,7 @@ def test_binary_workbench_advanced_configuration_uses_confirm_and_block_size_opt
         "Read Mode",
         "Block Size",
         "Cache Max Blocks",
+        "Selection Limit",
     ]
     assert [combos[2].itemText(index) for index in range(combos[2].count())] == [
         "256",
@@ -1888,8 +2066,24 @@ def test_binary_workbench_advanced_configuration_uses_confirm_and_block_size_opt
         "8000",
         "16000",
     ]
+    assert [combos[4].itemText(index) for index in range(combos[4].count())] == [
+        "1MB",
+        "2MB",
+        "4MB",
+        "6MB",
+        "8MB",
+        "12MB",
+        "16MB",
+        "24MB",
+        "32MB",
+        "48MB",
+        "64MB",
+        "80MB",
+        "128MB",
+    ]
     assert dialog.selected_block_size() == 2048
     assert dialog.selected_cache_max_blocks() == 8000
+    assert dialog.selected_selection_limit_bytes() == 2 * 1024 * 1024
     assert "Confirm" in buttons
     assert "OK" not in buttons
     assert {combo.width() for combo in combos} == {200}
@@ -2040,6 +2234,51 @@ def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
     assert editor._candidates_for_prefix("_VAR") == ["_variable1"]
     assert editor._candidates_for_prefix("@") == ["@equate1"]
     assert editor._candidates_for_prefix("@EQU") == ["@equate1"]
+
+
+def test_binary_workbench_editor_undo_restores_backspace_one_key_at_a_time():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("WORD 0x3078302C")
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(cursor)
+
+    for _ in range(3):
+        QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+
+    assert editor.toPlainText() == "WORD 0x30783"
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    assert editor.toPlainText() == "WORD 0x307830"
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    assert editor.toPlainText() == "WORD 0x3078302"
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    assert editor.toPlainText() == "WORD 0x3078302C"
+
+
+def test_binary_workbench_editor_ctrl_q_keeps_previous_ctrl_d_selections():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("ADDIU $zero\nNOP\nADDIU $zero\nNOP\nADDIU $zero\nNOP\nADDIU $zero")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(5, QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    for _ in range(2):
+        QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.ControlModifier))
+
+    assert len(editor.extraSelections()) == 3
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Q, Qt.ControlModifier))
+
+    assert len(editor.extraSelections()) == 3
+    assert editor._occurrence_ranges[0] == (0, 5)
+    assert editor._occurrence_ranges[1] == (16, 21)
+    assert editor._occurrence_ranges[2] == (48, 53)
 
 
 def test_binary_workbench_symbol_completion_popup_selects_first_match():

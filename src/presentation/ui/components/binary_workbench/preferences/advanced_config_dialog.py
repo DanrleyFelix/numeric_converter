@@ -1,6 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
 
+from src.core.binary_workbench.selection_limits import (
+    BYTES_PER_MEGABYTE,
+    DEFAULT_SELECTION_LIMIT_BYTES,
+    SELECTION_LIMIT_OPTIONS_BYTES,
+    normalized_selection_limit,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -18,6 +24,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         current_read_mode: str,
         current_block_size: int,
         current_cache_max_blocks: int,
+        current_selection_limit_bytes: int,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -74,19 +81,37 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
                 )
             )
         )
+        selection_limit_label = QLabel(
+            BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.SELECTION_LIMIT_LABEL,
+            self,
+        )
+        selection_limit_label.setObjectName("preferences-section-title")
+        self.selection_limit = QComboBox(self)
+        self.selection_limit.setObjectName("advanced-config-dropdown")
+        self.selection_limit.setCursor(Qt.PointingHandCursor)
+        self.selection_limit.addItems(
+            [_selection_limit_label(value) for value in SELECTION_LIMIT_OPTIONS_BYTES]
+        )
+        self.selection_limit.setCurrentText(
+            _selection_limit_label(
+                normalized_selection_limit(
+                    current_selection_limit_bytes or DEFAULT_SELECTION_LIMIT_BYTES
+                )
+            )
+        )
         ok = QPushButton(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.CONFIRM, self)
         ok.setObjectName("preferences-confirm")
         ok.setFocusPolicy(Qt.NoFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
-        for control in (
+        _set_control_widths(
             self.combo,
             self.read_mode_combo,
             self.block_size,
             self.cache_max_blocks,
+            self.selection_limit,
             ok,
-        ):
-            control.setFixedWidth(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONTROL_WIDTH)
+        )
         layout.addWidget(arch_label)
         layout.addWidget(self.combo)
         layout.addWidget(read_mode_label)
@@ -95,6 +120,8 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         layout.addWidget(self.block_size)
         layout.addWidget(cache_label)
         layout.addWidget(self.cache_max_blocks)
+        layout.addWidget(selection_limit_label)
+        layout.addWidget(self.selection_limit)
         layout.addSpacing(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok)
         self.setFixedSize(self.sizeHint())
@@ -111,6 +138,9 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
     def selected_cache_max_blocks(self) -> int:
         return int(self.cache_max_blocks.currentText())
 
+    def selected_selection_limit_bytes(self) -> int:
+        return _selection_limit_bytes(self.selection_limit.currentText())
+
 
 def _nearest_block_size(value: int) -> int:
     options = BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.BLOCK_SIZE_OPTIONS
@@ -120,3 +150,17 @@ def _nearest_block_size(value: int) -> int:
 def _nearest_cache_max_blocks(value: int) -> int:
     options = BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CACHE_MAX_BLOCKS_OPTIONS
     return min(options, key=lambda option: abs(option - value))
+
+
+def _set_control_widths(*controls) -> None:
+    for control in controls:
+        control.setFixedWidth(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONTROL_WIDTH)
+
+
+def _selection_limit_label(value: int) -> str:
+    return f"{value // BYTES_PER_MEGABYTE}MB"
+
+
+def _selection_limit_bytes(label: str) -> int:
+    value = int(label.strip().upper().removesuffix("MB"))
+    return normalized_selection_limit(value * BYTES_PER_MEGABYTE)

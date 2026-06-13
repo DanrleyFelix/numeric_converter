@@ -19,7 +19,14 @@ class TabConfigurationMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.set_cpu_arch(value)
 
-    def set_current_advanced_config(self, cpu_arch: str, read_mode: str, block_size: int, cache_max_blocks: int) -> None:
+    def set_current_advanced_config(
+        self,
+        cpu_arch: str,
+        read_mode: str,
+        block_size: int,
+        cache_max_blocks: int,
+        selection_limit_bytes: int,
+    ) -> None:
         current = self.current_context()
         if current is None:
             return
@@ -30,6 +37,7 @@ class TabConfigurationMixin:
                 uppercase_instructions=self._preferences.uppercase_instructions,
                 block_size=block_size,
                 cache_max_blocks=cache_max_blocks,
+                selection_limit_bytes=selection_limit_bytes,
                 binary_edit_rules=self._preferences.binary_edit_rules,
                 assembly_edit_rules=self._preferences.assembly_edit_rules,
             )
@@ -58,6 +66,7 @@ class TabConfigurationMixin:
                 uppercase_instructions=uppercase_instructions,
                 block_size=self._preferences.block_size,
                 cache_max_blocks=self._preferences.cache_max_blocks,
+                selection_limit_bytes=self._preferences.selection_limit_bytes,
                 binary_edit_rules=self._preferences.binary_edit_rules,
                 assembly_edit_rules=self._preferences.assembly_edit_rules,
             )
@@ -92,6 +101,7 @@ class TabConfigurationMixin:
                 uppercase_instructions=self._preferences.uppercase_instructions,
                 block_size=self._preferences.block_size,
                 cache_max_blocks=self._preferences.cache_max_blocks,
+                selection_limit_bytes=self._preferences.selection_limit_bytes,
                 binary_edit_rules=binary_rules,
                 assembly_edit_rules=assembly_rules,
             )
