@@ -9,6 +9,8 @@ from src.presentation.ui.components.binary_workbench.editor.protected_edit impor
 )
 
 INSTRUCTIONS_PANEL = "binary-workbench-instructions-panel"
+BYTES_PANEL = "binary-workbench-bytes-panel"
+CODE_PANELS = {BYTES_PANEL, INSTRUCTIONS_PANEL}
 
 
 class EditorShortcutMixin:
@@ -23,6 +25,9 @@ class EditorShortcutMixin:
     def handle_editor_shortcut(self, event: QKeyEvent) -> bool:
         key = event.key()
         modifiers = event.modifiers()
+        if key == Qt.Key_Escape and self._occurrence_ranges:
+            self.clear_editor_occurrence_selection()
+            return True
         if self._large_binary_mode and self._is_instruction_editor():
             if _alt_only(modifiers) and key in {Qt.Key_Up, Qt.Key_Down}:
                 return True
@@ -42,6 +47,22 @@ class EditorShortcutMixin:
             return self._handle_occurrence_edit(event)
         return self._block_large_binary_multiline_edit(event)
 
+    def handle_alt_click_multicursor(self, event) -> bool:
+        if self.isReadOnly() or not self._is_code_editor():
+            return False
+        if event.button() != Qt.LeftButton or not _alt_only(event.modifiers()):
+            return False
+        clicked = self.cursorForPosition(event.position().toPoint())
+        clicked_range = (clicked.position(), clicked.position())
+        if not self._occurrence_ranges:
+            cursor = self.textCursor()
+            self._occurrence_ranges = [(cursor.position(), cursor.position())]
+        if clicked_range not in self._occurrence_ranges:
+            self._occurrence_ranges.append(clicked_range)
+        self._occurrence_query = ""
+        self._apply_occurrence_selection(clicked_range)
+        return True
+
     def _handle_large_binary_line_break_replacement(self, event: QKeyEvent) -> bool:
         if not event.text() or event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier):
             return False
@@ -57,6 +78,7 @@ class EditorShortcutMixin:
         self._occurrence_query = ""
         self._occurrence_ranges = []
         self.setExtraSelections([])
+        self.viewport().update()
 
     def _select_next_occurrence(self) -> bool:
         query = self._selected_or_cursor_word()
@@ -132,18 +154,27 @@ class EditorShortcutMixin:
         if event.matches(QKeySequence.Copy):
             QApplication.clipboard().setText("\n".join(self._text_for_range(item) for item in self._occurrence_ranges))
             return True
+        if self.isReadOnly():
+            return True
         if event.matches(QKeySequence.Cut):
             QApplication.clipboard().setText("\n".join(self._text_for_range(item) for item in self._occurrence_ranges))
             self._replace_occurrence_ranges("")
             return True
         if event.matches(QKeySequence.Paste):
-            self._replace_occurrence_ranges(QApplication.clipboard().text())
+            text = QApplication.clipboard().text()
+            if "\n" in text:
+                return True
+            self._replace_occurrence_ranges(text, self._occurrence_cursor_ranges(), True)
             return True
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
-            self._replace_occurrence_ranges("")
+            self._delete_multicursor_char(event.key() == Qt.Key_Backspace, self._occurrence_cursor_ranges())
+            return True
+        if event.key() in {Qt.Key_Return, Qt.Key_Enter}:
             return True
         if event.text() and not event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier):
-            self._replace_occurrence_ranges(event.text())
+            if "\n" in event.text():
+                return True
+            self._replace_occurrence_ranges(event.text(), self._occurrence_cursor_ranges(), True)
             return True
         return False
 
@@ -193,12 +224,23 @@ class EditorShortcutMixin:
             selection = QTextEdit.ExtraSelection()
             selection.cursor = QTextCursor(self.document())
             selection.cursor.setPosition(start)
-            selection.cursor.setPosition(end, QTextCursor.KeepAnchor)
-            selection.format.setBackground(self.palette().highlight())
-            selection.format.setForeground(self.palette().highlightedText())
-            selections.append(selection)
+            if start != end:
+                selection.cursor.setPosition(end, QTextCursor.KeepAnchor)
+                selection.format.setBackground(self.palette().highlight())
+                selection.format.setForeground(self.palette().highlightedText())
+                selections.append(selection)
         self.setExtraSelections(selections)
         self._set_text_selection(*active_range)
+        self.viewport().update()
+
+    def _occurrence_cursor_ranges(self) -> list[tuple[int, int]]:
+        return [(end, end) for _, end in self._occurrence_ranges]
+
+    def multicursor_positions(self) -> list[int]:
+        return [end for _, end in self._occurrence_ranges]
+
+    def has_multicursor_ranges(self) -> bool:
+        return bool(self._occurrence_ranges)
 
     def _set_text_selection(self, start: int, end: int) -> None:
         cursor = QTextCursor(self.document())
@@ -210,15 +252,87 @@ class EditorShortcutMixin:
         start, end = item
         return self.toPlainText()[start:end]
 
-    def _replace_occurrence_ranges(self, value: str) -> None:
+    def _replace_occurrence_ranges(
+        self,
+        value: str,
+        ranges: list[tuple[int, int]] | None = None,
+        keep_multicursor: bool | None = None,
+    ) -> None:
+        ranges = list(self._occurrence_ranges if ranges is None else ranges)
+        keep_multicursor = self._all_occurrence_ranges_empty(ranges) if keep_multicursor is None else keep_multicursor
         cursor = QTextCursor(self.document())
         cursor.beginEditBlock()
-        for start, end in sorted(self._occurrence_ranges, reverse=True):
+        for start, end in sorted(ranges, reverse=True):
             cursor.setPosition(start)
             cursor.setPosition(end, QTextCursor.KeepAnchor)
             cursor.insertText(value)
         cursor.endEditBlock()
+        if keep_multicursor:
+            self._occurrence_ranges = self._shifted_multicursor_ranges(ranges, len(value))
+            self._apply_occurrence_selection(self._occurrence_ranges[-1])
+            return
         self.clear_editor_occurrence_selection()
+
+    def _all_occurrence_ranges_empty(self, ranges: list[tuple[int, int]] | None = None) -> bool:
+        ranges = self._occurrence_ranges if ranges is None else ranges
+        return bool(ranges) and all(start == end for start, end in ranges)
+
+    def _shifted_multicursor_ranges(self, ranges: list[tuple[int, int]], inserted_length: int) -> list[tuple[int, int]]:
+        shifted = []
+        for index, (start, _) in enumerate(sorted(ranges)):
+            position = start + (inserted_length * (index + 1))
+            shifted.append((position, position))
+        return shifted
+
+    def _delete_multicursor_char(self, previous: bool, ranges: list[tuple[int, int]]) -> None:
+        delete_ranges = self._multicursor_delete_ranges(previous, ranges)
+        if not delete_ranges:
+            self._occurrence_ranges = list(ranges)
+            self._apply_occurrence_selection(self._occurrence_ranges[-1])
+            return
+        cursor = QTextCursor(self.document())
+        cursor.beginEditBlock()
+        for start, end in sorted(delete_ranges, reverse=True):
+            cursor.setPosition(start)
+            cursor.setPosition(end, QTextCursor.KeepAnchor)
+            cursor.removeSelectedText()
+        cursor.endEditBlock()
+        self._occurrence_ranges = self._ranges_after_multicursor_delete(ranges, delete_ranges)
+        self._apply_occurrence_selection(self._occurrence_ranges[-1])
+
+    def _multicursor_delete_ranges(
+        self,
+        previous: bool,
+        ranges: list[tuple[int, int]],
+    ) -> list[tuple[int, int]]:
+        delete_ranges = []
+        for position, _ in ranges:
+            block = self.document().findBlock(position)
+            if not block.isValid():
+                continue
+            block_start = block.position()
+            block_end = block_start + len(block.text())
+            if previous:
+                if position <= block_start:
+                    continue
+                delete_ranges.append((position - 1, position))
+                continue
+            if position >= block_end:
+                continue
+            delete_ranges.append((position, position + 1))
+        return list(dict.fromkeys(delete_ranges))
+
+    def _ranges_after_multicursor_delete(
+        self,
+        ranges: list[tuple[int, int]],
+        delete_ranges: list[tuple[int, int]],
+    ) -> list[tuple[int, int]]:
+        updated = []
+        for position, _ in sorted(ranges):
+            shift = sum(end - start for start, end in delete_ranges if end <= position)
+            updated_position = position - shift
+            updated.append((updated_position, updated_position))
+        return updated
 
     def _selected_block_range(self) -> tuple[int, int]:
         cursor = self.textCursor()
@@ -247,6 +361,9 @@ class EditorShortcutMixin:
 
     def _is_instruction_editor(self) -> bool:
         return self.objectName() == INSTRUCTIONS_PANEL
+
+    def _is_code_editor(self) -> bool:
+        return self.objectName() in CODE_PANELS
 
 
 def _ctrl_only(modifiers: Qt.KeyboardModifiers) -> bool:

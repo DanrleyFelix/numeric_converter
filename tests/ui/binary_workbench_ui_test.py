@@ -6,8 +6,8 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, QPoint, Qt
-from PySide6.QtGui import QKeyEvent, QTextCursor
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
@@ -2279,6 +2279,134 @@ def test_binary_workbench_editor_ctrl_q_keeps_previous_ctrl_d_selections():
     assert editor._occurrence_ranges[0] == (0, 5)
     assert editor._occurrence_ranges[1] == (16, 21)
     assert editor._occurrence_ranges[2] == (48, 53)
+
+
+def test_binary_workbench_ctrl_d_edits_at_occurrence_ends():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("NOP\nADD\nNOP")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(3, QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.ControlModifier))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_X, Qt.NoModifier, "X"))
+
+    assert editor.toPlainText().splitlines() == ["NOPX", "ADD", "NOPX"]
+    assert len(editor.multicursor_positions()) == 2
+    assert all(start == end for start, end in editor._occurrence_ranges)
+
+
+def test_binary_workbench_instruction_alt_click_edits_multiple_lines():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.resize(320, 120)
+    editor.show()
+    editor.setPlainText("NOP\nNOP\nNOP")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    editor.setTextCursor(cursor)
+
+    _alt_click_editor_line(editor, 1, 0)
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_A, Qt.NoModifier, "A"))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.NoModifier, "D"))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.NoModifier, "D"))
+
+    assert editor.toPlainText().splitlines() == ["ADDNOP", "ADDNOP", "NOP"]
+    assert len(editor.multicursor_positions()) == 2
+
+
+def test_binary_workbench_bytes_alt_click_edits_multiple_lines():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.resize(320, 120)
+    editor.show()
+    editor.setPlainText("AA BB CC DD\n11 22 33 44")
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    editor.setTextCursor(cursor)
+
+    _alt_click_editor_line(editor, 1, 2)
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_F, Qt.NoModifier, "F"))
+
+    assert editor.toPlainText().splitlines() == ["AAF BB CC DD", "11F 22 33 44"]
+    assert len(editor.multicursor_positions()) == 2
+
+
+def test_binary_workbench_multicursors_clear_on_escape_and_plain_click():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.resize(320, 120)
+    editor.show()
+    editor.setPlainText("NOP\nNOP\nNOP")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    editor.setTextCursor(cursor)
+
+    _alt_click_editor_line(editor, 1, 0)
+    assert editor.has_multicursor_ranges() is True
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Escape, Qt.NoModifier))
+    assert editor.has_multicursor_ranges() is False
+
+    _alt_click_editor_line(editor, 1, 0)
+    assert editor.has_multicursor_ranges() is True
+
+    _mouse_press_editor_line(editor, 2, 0, Qt.NoModifier)
+    assert editor.has_multicursor_ranges() is False
+
+
+def test_binary_workbench_large_binary_alt_click_backspace_keeps_lines(tmp_path: Path):
+    binary_path = tmp_path / "large.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 80)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    original_lines = editor.toPlainText().splitlines()
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    editor.setTextCursor(cursor)
+
+    _alt_click_editor_line(editor, 1, 0)
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == original_lines
+    assert len(page.grid.export_rows()) == len(original_lines)  # type: ignore[attr-defined]
+
+
+def _alt_click_editor_line(editor: WorkbenchEditor, line: int, column: int) -> None:
+    _mouse_press_editor_line(editor, line, column, Qt.AltModifier)
+
+
+def _mouse_press_editor_line(
+    editor: WorkbenchEditor,
+    line: int,
+    column: int,
+    modifiers: Qt.KeyboardModifier,
+) -> None:
+    block = editor.document().findBlockByNumber(line)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(block.position() + column)
+    point = editor.cursorRect(cursor).center()
+    event = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(point),
+        Qt.LeftButton,
+        Qt.LeftButton,
+        modifiers,
+    )
+    editor.mousePressEvent(event)
 
 
 def test_binary_workbench_symbol_completion_popup_selects_first_match():

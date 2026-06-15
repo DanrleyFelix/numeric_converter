@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent, QStringListModel, Qt, QTimer, Signal
-from PySide6.QtGui import QKeyEvent, QKeySequence
+from PySide6.QtGui import QKeyEvent, QKeySequence, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
@@ -104,9 +104,26 @@ class WorkbenchEditor(
         self._stop_selection_scroll()
 
     def mousePressEvent(self, event) -> None:
+        if self.handle_alt_click_multicursor(event):
+            self.selectionStarted.emit(self)
+            event.accept()
+            return
         self.clear_editor_occurrence_selection()
         self.selectionStarted.emit(self)
         super().mousePressEvent(event)
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if not self.has_multicursor_ranges():
+            return
+        painter = QPainter(self.viewport())
+        color = self.palette().highlight().color()
+        width = max(2, self.cursorWidth())
+        for position in self.multicursor_positions():
+            cursor = QTextCursor(self.document())
+            cursor.setPosition(position)
+            rect = self.cursorRect(cursor)
+            painter.fillRect(rect.x(), rect.y(), width, rect.height(), color)
 
     def focusInEvent(self, event) -> None:
         self.focused.emit()

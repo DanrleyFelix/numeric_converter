@@ -731,9 +731,12 @@
             "cpu_arch": "PSX - Mips R3000A",
             "read_mode": "bytes",
             "reference_offsets": [
-                "File"
+                "File",
+                "Ram offset"
             ],
-            "reference_offset_bases": {},
+            "reference_offset_bases": {
+                "Ram offset": "0x8000f800"
+            },
             "labels": {},
             "equates": {},
             "variables": {},
@@ -754,7 +757,7 @@
             "module_paths": {},
             "module_directories": {},
             "module_checksums": {},
-            "last_open_offset": "0x000211D4",
+            "last_open_offset": "0x00000000",
             "navigation_history": [],
             "file_size": 1902592,
             "original_file_size": 1902592,
@@ -767,7 +770,9 @@
                 "visible_columns": {
                     "File": true,
                     "Instruction": true,
-                    "Bytes": true
+                    "Bytes": true,
+                    "Ram offset": true,
+                    "Editor (Assembly Code)": true
                 },
                 "decoded_text_tables": []
             }
