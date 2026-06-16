@@ -5,6 +5,12 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QTextCursor
 
+from src.presentation.ui.components.binary_workbench.editor.bytes_input import (
+    bytes_delete_allowed,
+    bytes_insert_allowed,
+    is_bytes_editor,
+)
+
 
 TEXT_INPUT_BLOCKED_MODIFIERS = (
     Qt.ControlModifier
@@ -28,6 +34,12 @@ class EditorGranularUndoMixin:
             return False
         if event.modifiers() != Qt.NoModifier:
             return False
+        if is_bytes_editor(self) and not bytes_delete_allowed(
+            self,
+            event.key() == Qt.Key_Backspace,
+            self.bytes_line_shift_allowed(),
+        ):
+            return True
         if event.key() == Qt.Key_Backspace:
             operation = lambda cursor: cursor.deletePreviousChar()
         else:
@@ -41,6 +53,12 @@ class EditorGranularUndoMixin:
         text = event.text()
         if not text or text in {"\t", "\r", "\n"}:
             return False
+        if is_bytes_editor(self) and not bytes_insert_allowed(
+            text,
+            self.toPlainText(),
+            [(self.textCursor().selectionStart(), self.textCursor().selectionEnd())],
+        ):
+            return True
         self._run_granular_edit(lambda cursor: cursor.insertText(text))
         return True
 

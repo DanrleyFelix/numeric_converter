@@ -4,23 +4,36 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication, QTextEdit
 
+from src.presentation.ui.components.binary_workbench.editor.bytes_input import (
+    BYTES_PANEL,
+    bytes_insert_allowed,
+    bytes_paste_replacement,
+    bytes_replacement_allowed,
+    is_bytes_editor,
+)
 from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
     replace_selection_preserving_line_breaks,
 )
 
 INSTRUCTIONS_PANEL = "binary-workbench-instructions-panel"
-BYTES_PANEL = "binary-workbench-bytes-panel"
 CODE_PANELS = {BYTES_PANEL, INSTRUCTIONS_PANEL}
 
 
 class EditorShortcutMixin:
     def setup_editor_shortcuts(self) -> None:
         self._large_binary_mode = False
+        self._bytes_line_shift_allowed = False
         self._occurrence_query = ""
         self._occurrence_ranges: list[tuple[int, int]] = []
 
     def set_large_binary_mode(self, enabled: bool) -> None:
         self._large_binary_mode = enabled
+
+    def set_bytes_line_shift_allowed(self, enabled: bool) -> None:
+        self._bytes_line_shift_allowed = enabled
+
+    def bytes_line_shift_allowed(self) -> bool:
+        return self._bytes_line_shift_allowed
 
     def handle_editor_shortcut(self, event: QKeyEvent) -> bool:
         key = event.key()
@@ -35,6 +48,10 @@ class EditorShortcutMixin:
                 return True
             if self._handle_large_binary_line_break_replacement(event):
                 return True
+        if is_bytes_editor(self) and key == Qt.Key_Tab:
+            return True
+        if is_bytes_editor(self) and not self.bytes_line_shift_allowed() and key in {Qt.Key_Return, Qt.Key_Enter}:
+            return True
         if _ctrl_only(modifiers) and key == Qt.Key_D:
             return self._select_next_occurrence()
         if _ctrl_only(modifiers) and key == Qt.Key_Q:
@@ -45,6 +62,8 @@ class EditorShortcutMixin:
             return self._duplicate_selected_lines(key == Qt.Key_Up)
         if len(self._occurrence_ranges) > 1:
             return self._handle_occurrence_edit(event)
+        if event.matches(QKeySequence.Paste) and is_bytes_editor(self):
+            return self._handle_bytes_paste()
         return self._block_large_binary_multiline_edit(event)
 
     def handle_alt_click_multicursor(self, event) -> bool:
@@ -70,6 +89,22 @@ class EditorShortcutMixin:
         if not cursor.hasSelection() or "\n" not in cursor.selection().toPlainText():
             return False
         replace_selection_preserving_line_breaks(self, cursor, event.text())
+        return True
+
+    def _handle_bytes_paste(self) -> bool:
+        text = QApplication.clipboard().text()
+        cursor = self.textCursor()
+        replacement = bytes_paste_replacement(
+            text,
+            self.toPlainText(),
+            cursor.selectionStart(),
+            cursor.selectionEnd(),
+            self.bytes_line_shift_allowed(),
+        )
+        if replacement is None:
+            return True
+        cursor.insertText(replacement)
+        self.setTextCursor(cursor)
         return True
 
     def clear_editor_occurrence_selection(self) -> None:
@@ -162,9 +197,10 @@ class EditorShortcutMixin:
             return True
         if event.matches(QKeySequence.Paste):
             text = QApplication.clipboard().text()
-            if "\n" in text:
+            replacement = self._multicursor_paste_replacement(text)
+            if replacement is None:
                 return True
-            self._replace_occurrence_ranges(text, self._occurrence_cursor_ranges(), True)
+            self._replace_occurrence_ranges(replacement, self._occurrence_cursor_ranges(), True)
             return True
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
             self._delete_multicursor_char(event.key() == Qt.Key_Backspace, self._occurrence_cursor_ranges())
@@ -173,6 +209,8 @@ class EditorShortcutMixin:
             return True
         if event.text() and not event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier):
             if "\n" in event.text():
+                return True
+            if not self._multicursor_insert_allowed(event.text()):
                 return True
             self._replace_occurrence_ranges(event.text(), self._occurrence_cursor_ranges(), True)
             return True
@@ -235,6 +273,28 @@ class EditorShortcutMixin:
 
     def _occurrence_cursor_ranges(self) -> list[tuple[int, int]]:
         return [(end, end) for _, end in self._occurrence_ranges]
+
+    def _multicursor_insert_allowed(self, text: str) -> bool:
+        if not is_bytes_editor(self):
+            return True
+        return bytes_insert_allowed(text, self.toPlainText(), self._occurrence_cursor_ranges())
+
+    def _multicursor_paste_replacement(self, text: str) -> str | None:
+        if not is_bytes_editor(self):
+            return None if "\n" in text else text
+        first, _ = self._occurrence_cursor_ranges()[0]
+        replacement = bytes_paste_replacement(
+            text,
+            self.toPlainText(),
+            first,
+            first,
+            False,
+        )
+        if replacement is None:
+            return None
+        if not bytes_replacement_allowed(replacement, self.toPlainText(), self._occurrence_cursor_ranges()):
+            return None
+        return replacement
 
     def multicursor_positions(self) -> list[int]:
         return [end for _, end in self._occurrence_ranges]

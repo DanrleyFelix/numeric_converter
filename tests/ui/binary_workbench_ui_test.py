@@ -2325,7 +2325,7 @@ def test_binary_workbench_bytes_alt_click_edits_multiple_lines():
     editor.setObjectName("binary-workbench-bytes-panel")
     editor.resize(320, 120)
     editor.show()
-    editor.setPlainText("AA BB CC DD\n11 22 33 44")
+    editor.setPlainText("AA BB\n11 22")
     cursor = editor.textCursor()
     cursor.setPosition(2)
     editor.setTextCursor(cursor)
@@ -2333,8 +2333,129 @@ def test_binary_workbench_bytes_alt_click_edits_multiple_lines():
     _alt_click_editor_line(editor, 1, 2)
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_F, Qt.NoModifier, "F"))
 
-    assert editor.toPlainText().splitlines() == ["AAF BB CC DD", "11F 22 33 44"]
+    assert editor.toPlainText().splitlines() == ["AAF BB", "11F 22"]
     assert len(editor.multicursor_positions()) == 2
+
+
+def test_binary_workbench_bytes_rejects_non_hex_and_ninth_character():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("AA BB CC DD")
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_G, Qt.NoModifier, "G"))
+    assert editor.toPlainText() == "AA BB CC DD"
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_F, Qt.NoModifier, "F"))
+    assert editor.toPlainText() == "AA BB CC DD"
+
+
+def test_binary_workbench_bytes_pastes_spaced_four_byte_row():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("00 00 00 00")
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.Document)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("AA BB CC DD")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText() == "AA BB CC DD"
+
+
+def test_binary_workbench_bytes_pastes_eight_bytes_over_two_locked_rows():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("00 00 00 00\n11 11 11 11")
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.Document)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("AA BB CC DD\n22 33 44 55")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText() == "AA BB CC DD\n22 33 44 55"
+
+
+def test_binary_workbench_bytes_locked_paste_removes_clipboard_line_breaks():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("00 00 00 00")
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.Document)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("AA BB\nCC DD")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText() == "AA BB CC DD"
+
+
+def test_binary_workbench_bytes_shift_paste_keeps_offsets_with_line_limit():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.set_bytes_line_shift_allowed(True)
+    editor.setPlainText("")
+    app.clipboard().setText("AA BB CC DD 22 33 44 55")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText() == "AA BB CC DD\n22 33 44 55"
+
+
+def test_binary_workbench_bytes_multicursor_rejects_full_lines():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.resize(320, 120)
+    editor.show()
+    editor.setPlainText("AA BB CC DD\n11 22 33 44")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("AA BB CC DD"))
+    editor.setTextCursor(cursor)
+
+    _alt_click_editor_line(editor, 1, len("11 22 33 44"))
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_F, Qt.NoModifier, "F"))
+
+    assert editor.toPlainText().splitlines() == ["AA BB CC DD", "11 22 33 44"]
+    assert len(editor.multicursor_positions()) == 2
+
+
+def test_binary_workbench_bytes_backspace_does_not_join_lines():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("AA\nBB")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("AA\n"))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+
+    assert editor.toPlainText() == "AA\nBB"
+
+
+def test_binary_workbench_bytes_backspace_joins_lines_when_shift_allowed():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.set_bytes_line_shift_allowed(True)
+    editor.setPlainText("AA\nBB")
+    cursor = editor.textCursor()
+    cursor.setPosition(len("AA\n"))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+
+    assert editor.toPlainText() == "AABB"
 
 
 def test_binary_workbench_multicursors_clear_on_escape_and_plain_click():

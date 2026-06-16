@@ -16,6 +16,7 @@ COMMENT_LINE_PREFIX = "; "
 class GridEditRulesMixin:
     def set_edit_rules(self, rules: BinaryWorkbenchEditRulesDTO) -> None:
         self._edit_rules = rules
+        self.bytes.set_bytes_line_shift_allowed(rules.allow_byte_shift)
 
     def set_original_file_size(self, value: int) -> None:
         self._original_file_size = max(0, value)
