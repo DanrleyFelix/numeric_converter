@@ -1,5 +1,5 @@
 class HELP_WINDOW_TEXT:
-    TITLE: str = "User Guide"
+    TITLE: str = "Guide"
     PREVIOUS: str = "Previous"
     NEXT: str = "Next"
     PAGE_TEMPLATE: str = "Page {current} of {total}"

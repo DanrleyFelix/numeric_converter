@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QToolButton, QVBoxLayout
 
 from src.presentation.ui.components.converter_panel.constants import (
     CONVERTER_PANEL_FIELDS,
@@ -28,11 +28,9 @@ class ConverterPanel(QFrame):
         for kind, label_text in CONVERTER_PANEL_FIELDS.items():
             row = QHBoxLayout()
             row.setSpacing(CONVERTER_PANEL_LAYOUT.ROW_SPACING)
-            label = QLabel(label_text)
-            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            label.setFixedWidth(CONVERTER_PANEL_LAYOUT.LABEL_WIDTH)
             editor = ConverterInputEdit(kind)
             editor.setObjectName(f"converter-{kind}")
+            editor.setPlaceholderText(label_text)
             editor.valueEdited.connect(self.inputEdited.emit)
             self.inputs[kind] = editor
             copy_raw = QToolButton()
@@ -46,7 +44,6 @@ class ConverterPanel(QFrame):
             )
             copy_raw.clicked.connect(editor.copy_raw_to_clipboard)
             self.copy_raw_buttons[kind] = copy_raw
-            row.addWidget(label)
             row.addWidget(editor, 1)
             row.addWidget(copy_raw)
             main.addLayout(row)
@@ -54,3 +51,10 @@ class ConverterPanel(QFrame):
     def set_values(self, raw_values: dict[str, str], display_values: dict[str, str]) -> None:
         for key, editor in self.inputs.items():
             editor.set_content(raw_values.get(key, ""), display_values.get(key, ""))
+
+    def copy_focused_raw(self) -> bool:
+        for editor in self.inputs.values():
+            if editor.hasFocus():
+                editor.copy_raw_to_clipboard()
+                return True
+        return False

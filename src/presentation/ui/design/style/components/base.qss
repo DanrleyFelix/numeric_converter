@@ -11,7 +11,9 @@ QPlainTextEdit {
     font-family: $font-base;
     font-size: $fs-c-md;
     color: $text-main;
-    padding-top: $space-4;
+    placeholder-text-color: $text-placeholder;
+    padding-top: $space-8;
+    padding-bottom: $space-8;
     padding-left: $space-8;
     padding-right: $space-8;
 }

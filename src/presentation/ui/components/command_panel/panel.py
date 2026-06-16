@@ -48,8 +48,8 @@ class CommandPanel(QFrame):
         self.show_logs_button.setFocusPolicy(Qt.NoFocus)
 
         header_row.addWidget(self.show_variables_button)
-        header_row.addWidget(self.show_logs_button)
         header_row.addStretch(1)
+        header_row.addWidget(self.show_logs_button)
 
         feedback_row = QHBoxLayout()
         feedback_row.setContentsMargins(0, 0, 0, 0)

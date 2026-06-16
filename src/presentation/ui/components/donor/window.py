@@ -22,7 +22,6 @@ class DonorWindow(QMainWindow):
         )
         layout.setSpacing(DONOR_LAYOUT.ROOT_SPACING)
 
-        layout.addWidget(self._label("workspace-table-title", DONOR_TEXT.TITLE))
         layout.addWidget(self._label("donor-subtitle", DONOR_TEXT.SUBTITLE))
         layout.addWidget(self._card(DONOR_TEXT.PIX_LABEL, DONOR_TEXT.PIX_KEY))
         layout.addWidget(self._card(DONOR_TEXT.BANK_LABEL, DONOR_TEXT.BANK_ACCOUNT))

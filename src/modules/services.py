@@ -4,6 +4,7 @@ from src.modules.dtos import (
     ApplicationContextDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
+    CommandLogPreferencesDTO,
     FormattingOutputDTO,
     NumericWorkbenchPreferencesDTO,
     ProgramContextDTO,
@@ -35,8 +36,20 @@ class FormattingPreferencesService:
         self._repository.save_preferences(
             NumericWorkbenchPreferencesDTO(
                 formatters=preferences.formatters,
+                log_preferences=preferences.log_preferences,
                 key_panel_visible=key_panel_visible,
                 auto_convert_enabled=auto_convert_enabled,
+            )
+        )
+
+    def update_log_preferences(self, log_preferences: CommandLogPreferencesDTO) -> None:
+        preferences = self._repository.load_preferences()
+        self._repository.save_preferences(
+            NumericWorkbenchPreferencesDTO(
+                formatters=preferences.formatters,
+                log_preferences=log_preferences,
+                key_panel_visible=preferences.key_panel_visible,
+                auto_convert_enabled=preferences.auto_convert_enabled,
             )
         )
 

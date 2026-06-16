@@ -41,6 +41,7 @@ class CommandEdit(QPlainTextEdit):
         self.blockCountChanged.connect(self.updatePromptAreaWidth)
         self.updateRequest.connect(self.updatePromptArea)
         self.updatePromptAreaWidth(0)
+        self.setTabChangesFocus(False)
 
     def set_completions(self, values: list[str]) -> None:
         self._variable_completions = list(values)
@@ -86,13 +87,17 @@ class CommandEdit(QPlainTextEdit):
             if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
                 if event.key() == Qt.Key_Escape:
                     self._hide_history_popup()
-                event.ignore()
+                event.accept()
                 return
         elif event.key() == Qt.Key_Up:
             self._show_history_popup()
             event.accept()
             return
         elif event.key() == Qt.Key_Down:
+            event.accept()
+            return
+
+        if event.key() in (Qt.Key_Tab, Qt.Key_Backtab):
             event.accept()
             return
 

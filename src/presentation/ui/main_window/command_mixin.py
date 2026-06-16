@@ -122,6 +122,10 @@ class MainWindowCommandMixin:
         self._render_converter(output)
         self.footer.set_status(MAIN_WINDOW_TEXT.COMMAND_RESULT_SENT, COLOR.SUCCESS)
 
+    def _copy_focused_converter_raw(self: MainWindow) -> None:
+        if self.body.converter_panel.copy_focused_raw():
+            self.footer.set_status(MAIN_WINDOW_TEXT.RAW_VALUE_COPIED, COLOR.SUCCESS)
+
     def _render_converter(self: MainWindow, display_values: dict[str, str]) -> None:
         self._syncing_converter = True
         self.body.converter_panel.set_values(

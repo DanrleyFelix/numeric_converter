@@ -6,8 +6,14 @@ from src.core.command_window.expression_inspector import (
     has_trailing_identifier_fragment,
     is_standalone_identifier_fragment,
 )
+from src.core.command_window.logs import should_store_command_log
 from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
-from src.modules.dtos import CommandContextDTO, CommandEntryDTO, CommandRenderResultDTO
+from src.modules.dtos import (
+    CommandContextDTO,
+    CommandEntryDTO,
+    CommandLogPreferencesDTO,
+    CommandRenderResultDTO,
+)
 from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.command_window.editing import trim_invalid_suffix
 from src.presentation.presenter.command_window.rendering import (
@@ -34,6 +40,7 @@ class CommandWindowPresenter:
         self._controller = controller
         self._formatter = formatter
         self._state = CommandWindowState()
+        self._log_preferences = CommandLogPreferencesDTO()
 
     @property
     def history(self) -> list[CommandEntryDTO]:
@@ -90,7 +97,11 @@ class CommandWindowPresenter:
 
             formatted = self._formatter.format_decimal(result)
             cmd_window_context.add_to_history(self._state.active_line)
-            self._state.store_submission(formatted, result)
+            store_log = should_store_command_log(
+                self._state.active_line,
+                self._log_preferences,
+            )
+            self._state.store_submission(formatted, result, store_log)
             self._state.reset_after_submission()
             return render_submission_success(formatted)
         except Exception as error:
@@ -109,7 +120,6 @@ class CommandWindowPresenter:
     def remove_log(self, index: int) -> None:
         if 0 <= index < len(self._state.history):
             self._state.history.pop(index)
-        cmd_window_context.remove_history_line(index)
 
     def remove_variable(self, name: str) -> None:
         cmd_window_context.remove_variable(name)
@@ -129,6 +139,9 @@ class CommandWindowPresenter:
     def load_context(self, context: CommandContextDTO) -> None:
         self._state.load_context(context)
         cmd_window_context.restore(context.variables, context.instructions)
+
+    def set_log_preferences(self, preferences: CommandLogPreferencesDTO) -> None:
+        self._log_preferences = preferences
 
     def _render_unknown_variable(
         self,

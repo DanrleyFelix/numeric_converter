@@ -8,6 +8,7 @@ from src.core.binary_workbench.selection_limits import (
 from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
+    CommandLogPreferencesDTO,
     FormattingOutputDTO,
     NumericWorkbenchPreferencesDTO,
 )
@@ -43,6 +44,7 @@ class FormattingPreferencesRepository:
                     zero_pad=ctx.get(key, {}).get("zero_pad", DEFAULT_FORMATTER[key].zero_pad))
                 for key in DEFAULT_FORMATTER
             },
+            log_preferences=self._log_preferences(raw.get("logs", {})),
             key_panel_visible=raw.get("key_panel_visible", True),
             auto_convert_enabled=raw.get("auto_convert_enabled", False),
         )
@@ -77,6 +79,7 @@ class FormattingPreferencesRepository:
         self.save_preferences(
             NumericWorkbenchPreferencesDTO(
                 formatters=context,
+                log_preferences=preferences.log_preferences,
                 key_panel_visible=preferences.key_panel_visible,
                 auto_convert_enabled=preferences.auto_convert_enabled,
             )
@@ -88,11 +91,33 @@ class FormattingPreferencesRepository:
                 k: {"group_size": v.group_size, "zero_pad": v.zero_pad}
                 for k, v in preferences.formatters.items()
             },
+            "logs": {
+                "enabled": preferences.log_preferences.enabled,
+                "assignment_only": preferences.log_preferences.assignment_only,
+                "single_unary_only": preferences.log_preferences.single_unary_only,
+                "no_operator": preferences.log_preferences.no_operator,
+                "assignment_operator": preferences.log_preferences.assignment_operator,
+                "binary_operator_only": preferences.log_preferences.binary_operator_only,
+            },
             "key_panel_visible": preferences.key_panel_visible,
             "auto_convert_enabled": preferences.auto_convert_enabled,
         }
         with open(self.file, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=4)
+
+    def _log_preferences(self, raw: object) -> CommandLogPreferencesDTO:
+        values = raw if isinstance(raw, dict) else {}
+        return CommandLogPreferencesDTO(
+            enabled=self._bool(values.get("enabled"), True),
+            assignment_only=self._bool(values.get("assignment_only"), True),
+            single_unary_only=self._bool(values.get("single_unary_only"), True),
+            no_operator=self._bool(values.get("no_operator"), True),
+            assignment_operator=self._bool(values.get("assignment_operator"), True),
+            binary_operator_only=self._bool(values.get("binary_operator_only"), False),
+        )
+
+    def _bool(self, raw: object, default: bool) -> bool:
+        return raw if isinstance(raw, bool) else default
 
 
 class BinaryWorkbenchPreferencesRepository:

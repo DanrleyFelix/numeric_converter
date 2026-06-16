@@ -40,9 +40,16 @@ class CommandWindowState:
         self.active_line = sanitized
         self.last_validation_state = validation_state
 
-    def store_submission(self, formatted: str, raw_result: Number) -> None:
+    def store_submission(
+        self,
+        formatted: str,
+        raw_result: Number,
+        store_log: bool = True,
+    ) -> None:
         self.last_result_formatted = formatted
         self.last_result_raw = raw_result
+        if not store_log:
+            return
         append_limited(
             self.history,
             CommandEntryDTO(input=self.active_line, output=formatted),

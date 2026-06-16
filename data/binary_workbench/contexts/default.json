@@ -385,7 +385,7 @@
             "rows": [
                 {
                     "offset": "0x00000000",
-                    "instruction": "WORD 0xC2023757",
+                    "instruction": "word 0xC2023757",
                     "bytes_text": "57 37 02 C2"
                 },
                 {

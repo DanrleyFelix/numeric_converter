@@ -1,9 +1,10 @@
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QToolButton
 
 from src.presentation.ui.components.toolbar_constants import (
     TOOLBAR_LAYOUT,
+    TOOLBAR_SHORTCUT,
     TOOLBAR_SIZE,
     TOOLBAR_TEXT,
 )
@@ -25,6 +26,7 @@ class Toolbar(QFrame):
         self.load_workspace_action = QAction(TOOLBAR_TEXT.LOAD_WORKSPACE, self)
 
         self.converter_preferences_action = QAction(TOOLBAR_TEXT.CONVERTER, self)
+        self.log_preferences_action = QAction(TOOLBAR_TEXT.LOGS, self)
         self.toggle_key_panel_action = QAction(TOOLBAR_TEXT.SHOW_KEY_PANEL, self)
         self.toggle_key_panel_action.setCheckable(True)
         self.toggle_key_panel_action.setChecked(True)
@@ -34,6 +36,7 @@ class Toolbar(QFrame):
         self.binary_workbench_action = QAction(TOOLBAR_TEXT.BINARY_WORKBENCH, self)
         self.user_guide_action = QAction(TOOLBAR_TEXT.USER_GUIDE, self)
         self.donor_action = QAction(TOOLBAR_TEXT.DONOR, self)
+        self._configure_shortcuts()
 
         file_menu = QMenu(self)
         file_menu.addAction(self.save_workspace_action)
@@ -41,6 +44,7 @@ class Toolbar(QFrame):
 
         preferences_menu = QMenu(self)
         preferences_menu.addAction(self.converter_preferences_action)
+        preferences_menu.addAction(self.log_preferences_action)
         preferences_menu.addAction(self.toggle_key_panel_action)
         preferences_menu.addAction(self.auto_convert_action)
 
@@ -76,6 +80,22 @@ class Toolbar(QFrame):
         layout.addWidget(self.preferences_button)
         layout.addWidget(self.help_button)
         layout.addStretch()
+
+    def _configure_shortcuts(self) -> None:
+        shortcuts = (
+            (self.save_workspace_action, TOOLBAR_SHORTCUT.SAVE_WORKSPACE),
+            (self.load_workspace_action, TOOLBAR_SHORTCUT.LOAD_WORKSPACE),
+            (self.converter_preferences_action, TOOLBAR_SHORTCUT.CONVERTER),
+            (self.log_preferences_action, TOOLBAR_SHORTCUT.LOGS),
+            (self.binary_workbench_action, TOOLBAR_SHORTCUT.BINARY_WORKBENCH),
+            (self.toggle_key_panel_action, TOOLBAR_SHORTCUT.SHOW_KEY_PANEL),
+            (self.auto_convert_action, TOOLBAR_SHORTCUT.AUTO_CONVERT),
+            (self.user_guide_action, TOOLBAR_SHORTCUT.GUIDE),
+            (self.donor_action, TOOLBAR_SHORTCUT.DONOR),
+        )
+        for action, shortcut in shortcuts:
+            action.setShortcut(QKeySequence(shortcut))
+            action.setShortcutContext(Qt.WindowShortcut)
 
     def _build_menu_button(
         self,

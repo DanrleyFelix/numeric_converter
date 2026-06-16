@@ -11,7 +11,7 @@ from src.presentation.repository.binary_workbench_workspace.constants import SCH
 from src.presentation.ui.components import BinaryWorkbenchWindow
 from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
-from src.presentation.ui.components.preferences_dialog import PreferencesDialog
+from src.presentation.ui.components.preferences_dialog import LogPreferencesDialog, PreferencesDialog
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
@@ -83,7 +83,7 @@ class MainWindowDialogsMixin:
         path, _ = QFileDialog.getSaveFileName(
             self,
             MAIN_WINDOW_TEXT.SAVE_WORKSPACE_TITLE,
-            str(self._state_service.binary_workspace_directory / MAIN_WINDOW_TEXT.WORKSPACE_FILENAME),
+            str(self._state_service.workspace_directory / MAIN_WINDOW_TEXT.WORKSPACE_FILENAME),
             MAIN_WINDOW_TEXT.FILE_FILTER,
         )
         if not path:
@@ -104,7 +104,7 @@ class MainWindowDialogsMixin:
         path, _ = QFileDialog.getOpenFileName(
             self,
             MAIN_WINDOW_TEXT.LOAD_WORKSPACE_TITLE,
-            str(self._state_service.binary_workspace_directory),
+            str(self._state_service.workspace_directory),
             MAIN_WINDOW_TEXT.FILE_FILTER,
         )
         if not path:
@@ -142,6 +142,20 @@ class MainWindowDialogsMixin:
         if output is not None:
             self._render_converter(output)
 
+        self.footer.set_status(MAIN_WINDOW_TEXT.PREFERENCES_UPDATED)
+        self._autosave_state()
+
+    def _open_log_preferences(self: MainWindow) -> None:
+        dialog = LogPreferencesDialog(
+            preferences=self._preferences_service.get_preferences().log_preferences,
+            parent=self,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+
+        preferences = dialog.selected_preferences()
+        self._preferences_service.update_log_preferences(preferences)
+        self._command_presenter.set_log_preferences(preferences)
         self.footer.set_status(MAIN_WINDOW_TEXT.PREFERENCES_UPDATED)
         self._autosave_state()
 

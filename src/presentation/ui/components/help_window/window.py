@@ -47,9 +47,6 @@ class HelpWindow(QDialog):
             HELP_WINDOW_MARGIN.ROOT_BOTTOM,
         )
         root.setSpacing(HELP_WINDOW_SPACING.ROOT)
-        title = QLabel(HELP_WINDOW_TEXT.TITLE)
-        title.setObjectName("help-title")
-        root.addWidget(title)
         content = QHBoxLayout()
         content.setSpacing(HELP_WINDOW_SPACING.CONTENT)
         self.navigation = QListWidget()

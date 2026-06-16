@@ -16,5 +16,15 @@ PAGE = HelpPageDefinition(
         </ul>
         <h2>Data location</h2>
         <p>Numeric context lives under <code>data/numeric_workbench/contexts</code>, preferences under <code>data/numeric_workbench/preferences.json</code>, and Binary Workbench manifests under <code>data/binary_workbench/workspaces</code>.</p>
+        <h2>Application shortcuts</h2>
+        <ul>
+            <li><code>Ctrl+S</code>: save workspace.</li>
+            <li><code>Ctrl+O</code>: load workspace.</li>
+            <li><code>Alt+B</code>: open Binary Workbench.</li>
+            <li><code>Alt+G</code>: open Guide.</li>
+            <li><code>Alt+D</code>: open Donor.</li>
+            <li><code>Alt+V</code>: open Variables table.</li>
+            <li><code>Alt+N</code>: open Logs table.</li>
+        </ul>
     """,
 )

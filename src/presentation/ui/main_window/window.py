@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow
 
@@ -60,6 +61,7 @@ class MainWindow(
         self._logs_window: WorkspaceTableDialog | None = None
         self._variables_window: WorkspaceTableDialog | None = None
         self._auto_convert_enabled = False
+        self._size_before_key_panel_show: QSize | None = None
         self._window_sizes = {}
         self._syncing_converter = False
         self._syncing_command = False
@@ -74,6 +76,7 @@ class MainWindow(
 
         self._bind_events()
         self._load_default_state()
+        self.body.focus_decimal()
         self._loaded = True
 
     def closeEvent(self, event: QCloseEvent) -> None:

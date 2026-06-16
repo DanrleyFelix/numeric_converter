@@ -49,6 +49,16 @@ class FormattingOutputDTO:
 
 
 @dataclass(frozen=True)
+class CommandLogPreferencesDTO:
+    enabled: bool = True
+    assignment_only: bool = True
+    single_unary_only: bool = True
+    no_operator: bool = True
+    assignment_operator: bool = True
+    binary_operator_only: bool = False
+
+
+@dataclass(frozen=True)
 class ConversionResultDTO:
     values: dict[str, Any]
     formatting: dict[str, FormattingOutputDTO]
@@ -228,6 +238,9 @@ class ApplicationContextDTO:
 class NumericWorkbenchPreferencesDTO:
     formatters: dict[str, FormattingOutputDTO] = field(
         default_factory=_default_formatter_preferences
+    )
+    log_preferences: CommandLogPreferencesDTO = field(
+        default_factory=CommandLogPreferencesDTO
     )
     key_panel_visible: bool = True
     auto_convert_enabled: bool = False

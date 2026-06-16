@@ -406,10 +406,17 @@ QComboBox#advanced-config-dropdown::drop-down {
     width: $space-24;
 }
 
-QComboBox#advanced-config-dropdown::down-arrow {
+QComboBox#advanced-config-dropdown::down-arrow,
+QComboBox#preferences-group-size::down-arrow {
     image: none;
     width: 0px;
     height: 0px;
+}
+
+QComboBox#preferences-group-size::drop-down {
+    background-color: transparent;
+    border: none;
+    width: 0px;
 }
 
 QLabel#donor-section-title {

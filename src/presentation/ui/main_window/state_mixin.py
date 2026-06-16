@@ -50,6 +50,7 @@ class MainWindowStateMixin:
         preferences = preferences or self._preferences_service.get_preferences()
         self._window_sizes = dict(context.window_sizes)
         self._auto_convert_enabled = preferences.auto_convert_enabled
+        self._command_presenter.set_log_preferences(preferences.log_preferences)
         self._command_presenter.load_context(context.command)
         self._refresh_workspace_windows()
         self._sync_binary_workbench_window_state()

@@ -58,6 +58,7 @@ $help-border-soft:        #172842;
    =============================== */
 $text-main:               #EAEAF5;
 $text-muted:              #B5B5C5;
+$text-placeholder:        #A0A0A099;
 $text-workspace-header:   #D5DCEC;
 $text-success:            #46A06A;
 $text-danger:             #FF8B96;
