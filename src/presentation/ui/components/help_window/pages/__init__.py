@@ -4,10 +4,12 @@ from src.presentation.ui.components.help_window.pages.converter import PAGE as C
 from src.presentation.ui.components.help_window.pages.key_panel import PAGE as KEY_PANEL_PAGE
 from src.presentation.ui.components.help_window.pages.overview import PAGE as OVERVIEW_PAGE
 from src.presentation.ui.components.help_window.pages.preferences import PAGE as PREFERENCES_PAGE
+from src.presentation.ui.components.help_window.pages.shortcuts import PAGE as SHORTCUTS_PAGE
 
 
 HELP_PAGES = [
     OVERVIEW_PAGE,
+    SHORTCUTS_PAGE,
     CONVERTER_PAGE,
     COMMAND_WINDOW_PAGE,
     CONTEXT_WORKSPACE_PAGE,

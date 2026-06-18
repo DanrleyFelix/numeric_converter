@@ -1,6 +1,6 @@
 class PREFERENCES_DIALOG_SIZE:
     WIDTH: int = 520
-    HEIGHT: int = 340
+    HEIGHT: int = 460
     ACTION_BUTTON_WIDTH: int = 160
     ACTION_BUTTON_HEIGHT: int = 38
     GROUP_SIZE_WIDTH: int = 86

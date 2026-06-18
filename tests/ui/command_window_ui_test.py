@@ -113,11 +113,49 @@ def test_toolbar_action_has_no_icon_and_help_window_has_no_redundant_title():
 
     window._open_help()
     assert window._help_window.findChild(QLabel, "help-title") is None
+    nav_titles = [
+        window._help_window.navigation.item(index).text()
+        for index in range(window._help_window.navigation.count())
+    ]
+    assert nav_titles == [
+        "Overview",
+        "Shortcuts",
+        "Converter",
+        "Command Window",
+        "Context and Workspace",
+        "Key Panel",
+        "Preferences",
+    ]
     page = window._help_window.pages.currentWidget()
     browser = page.findChild(QTextBrowser, "help-page")
     assert browser is not None
     assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
     assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
+    window._help_window.navigation.setCurrentRow(1)
+    shortcuts_page = window._help_window.pages.currentWidget()
+    shortcuts_browser = shortcuts_page.findChild(QTextBrowser, "help-page")
+    shortcuts_text = shortcuts_browser.toPlainText()
+    for shortcut in (
+        "Ctrl+S",
+        "Ctrl+O",
+        "Alt+B",
+        "Alt+G",
+        "Alt+D",
+        "Alt+P",
+        "Alt+L",
+        "Alt+S",
+        "Alt+X",
+        "Tab",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "Alt+C",
+        "Alt+V",
+        "Alt+N",
+    ):
+        assert shortcut in shortcuts_text
 
 
 def test_tools_menu_exposes_binary_workbench_and_placeholders():
@@ -447,6 +485,7 @@ def test_preferences_dialog_only_shows_converter_formatting():
     dialog = PreferencesDialog(formatting=formatting)
 
     assert dialog.minimumSize() == dialog.maximumSize()
+    assert dialog.height() == 460
     assert dialog.findChild(QLabel, "preferences-title") is None
     assert dialog.findChild(QLabel, "preferences-subtitle") is not None
     assert dialog.findChild(QLabel, "preferences-section-title") is None
