@@ -74,6 +74,7 @@ class BinaryWorkbenchWindow(
         self.footer_status.setObjectName("binary-workbench-footer-status")
         self.statusBar().hide()
         self.tabs.statusChanged.connect(self._show_status)
+        self.tabs.statusWarningChanged.connect(self._show_warning_status)
         self.tabs.stateChanged.connect(self.stateChanged.emit)
         self.tabs.preferencesChanged.connect(self.preferencesChanged.emit)
         self.tabs.programContextChanged.connect(self.programContextChanged.emit)
@@ -113,7 +114,16 @@ class BinaryWorkbenchWindow(
         self.sizePersistRequested.emit(self.width(), self.height())
         super().closeEvent(event)
 
-    def _show_status(self, message: str, timeout: int = 0) -> None:
+    def _show_status(self, message: str, timeout: int = 0, error: bool = False) -> None:
+        self._set_status(message, timeout, "error" if error else "ready")
+
+    def _show_warning_status(self, message: str) -> None:
+        self._set_status(message, 0, "warning")
+
+    def _set_status(self, message: str, timeout: int, kind: str) -> None:
+        self.footer_status.setProperty("statusKind", kind)
+        self.footer_status.style().unpolish(self.footer_status)
+        self.footer_status.style().polish(self.footer_status)
         self.footer_status.setText(message)
         self.statusBar().showMessage(message, timeout)
 

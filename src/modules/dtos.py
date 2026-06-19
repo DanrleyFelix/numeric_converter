@@ -22,6 +22,7 @@ def _default_binary_workbench_directories() -> dict[str, str]:
         "symbols": "",
         "versions": "",
         "encoding_tables": "",
+        "commands": "",
     }
 
 
@@ -183,6 +184,7 @@ class BinaryWorkbenchTabContextDTO:
     module_paths: dict[str, str] = field(default_factory=dict)
     module_directories: dict[str, str] = field(default_factory=dict)
     module_checksums: dict[str, str] = field(default_factory=dict)
+    custom_commands: dict[str, list[str]] = field(default_factory=dict)
     last_open_offset: str = "0x00000000"
     navigation_history: list[str] = field(default_factory=list)
     original_rows: list[BinaryWorkbenchRowDTO] = field(default_factory=list)

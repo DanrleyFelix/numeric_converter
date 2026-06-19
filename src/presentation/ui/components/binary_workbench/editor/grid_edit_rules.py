@@ -79,6 +79,9 @@ class GridEditRulesMixin:
         return max(self._total_size, self._visible_start_offset + (len(rows) * ROW_BYTES))
 
     def _handle_editor_return_key(self, editor, event) -> None:
+        if self._apply_instruction_command(editor):
+            editor.mark_return_key_handled()
+            return
         if self._shift_return_should_insert_comment(editor, event):
             self._insert_comment_line(editor)
             editor.mark_return_key_handled()

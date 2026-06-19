@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
@@ -42,11 +43,13 @@ class BinaryWorkbenchEditorPage(
 ):
     contextChanged = Signal(object)
     openLabelTabRequested = Signal(str, int)
+    statusWarningRequested = Signal(str)
 
     def __init__(
         self,
         context: BinaryWorkbenchTabContextDTO,
         preferences: BinaryWorkbenchPreferencesDTO | None = None,
+        command_directory: Path | None = None,
     ) -> None:
         super().__init__()
         self._context = context
@@ -60,7 +63,9 @@ class BinaryWorkbenchEditorPage(
         )
         layout.setSpacing(0)
         self.grid = BinaryWorkbenchGrid(binary_workbench_codec_for(context.cpu_arch))
+        self.grid.set_command_directory(command_directory)
         self.grid.rowsChanged.connect(self._on_rows_changed)
+        self.grid.commandsChanged.connect(self._on_commands_changed)
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
         self.grid.copySelectionRequested.connect(self._copy_virtual_selection)
@@ -68,6 +73,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.labelActivated.connect(self.go_to_instruction_offset)
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
+        self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
         self._reader: CachedBinaryReader | None = None
         self._loading_visible_rows = False
         self._pending_selection: tuple[int, int] | None = None
@@ -96,6 +102,7 @@ class BinaryWorkbenchEditorPage(
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
         self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
+        self.grid.set_custom_commands(context.custom_commands)
         self.grid.set_edit_rules(_edit_rules_for_context(context, self._preferences))
         self.grid.set_selection_limit_bytes(self._preferences.selection_limit_bytes)
         self.grid.set_original_file_size(context.original_file_size)
@@ -166,6 +173,19 @@ class BinaryWorkbenchEditorPage(
 
     def assembly_text(self) -> str:
         return self.grid.assembly_text()
+
+    def set_custom_commands(self, commands: dict[str, list[str]]) -> None:
+        self.grid.set_custom_commands(commands)
+        self._update_context({"custom_commands": commands})
+
+    def set_command_directory(self, path: Path | None) -> None:
+        self.grid.set_command_directory(path)
+
+    def replace_custom_command(self, name: str, instructions: list[str]) -> bool:
+        return self.grid.replace_custom_command(name, instructions)
+
+    def remove_custom_command(self, name: str) -> bool:
+        return self.grid.remove_custom_command(name)
 
     def focused_editor_kind(self) -> str | None:
         return self.grid.focused_editor_kind()

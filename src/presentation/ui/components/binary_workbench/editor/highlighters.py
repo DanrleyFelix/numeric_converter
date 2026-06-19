@@ -14,6 +14,7 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     invalid_instruction,
     text_format,
 )
+from src.core.binary_workbench.editor.commands.registry import is_editor_command_line
 from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
     psx_mips_highlight_color,
     psx_mips_required_highlight_color,
@@ -51,6 +52,9 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self.rehighlight()
 
     def highlightBlock(self, text: str) -> None:
+        if is_editor_command_line(text):
+            self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("command")))
+            return
         comment_start = text.find(";")
         raw_code = text if comment_start < 0 else text[:comment_start]
         code_start, code = code_without_label(raw_code)

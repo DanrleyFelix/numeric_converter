@@ -20,6 +20,7 @@ class EditorCompletionMixin:
     ) -> None:
         self.set_label_offsets(labels)
         self._completion_items = {
+            **self._completion_items,
             "label": sorted(labels),
             "variable": sorted(f"_{name.lstrip('_')}" for name in variables),
             "equate": sorted(f"@{name.lstrip('@')}" for name in equates),
@@ -60,6 +61,8 @@ class EditorCompletionMixin:
 
     def _candidates_for_prefix(self, prefix: str) -> list[str]:
         normalized = prefix.lower()
+        if normalized.startswith("/"):
+            return [item for item in self._completion_items["command"] if item.lower().startswith(normalized)]
         if normalized.startswith("_"):
             return [item for item in self._completion_items["variable"] if item.lower().startswith(normalized)]
         if normalized.startswith("@"):
@@ -108,6 +111,9 @@ class EditorCompletionMixin:
         self._completion_cursor_position = None
         self._restore_completion_cursor(position)
         QTimer.singleShot(0, lambda: self._restore_completion_cursor(position))
+
+    def set_command_completions(self, commands: list[str]) -> None:
+        self._completion_items = {**self._completion_items, "command": sorted(commands)}
 
     def _restore_completion_cursor(self, position: int) -> None:
         cursor = self.textCursor()

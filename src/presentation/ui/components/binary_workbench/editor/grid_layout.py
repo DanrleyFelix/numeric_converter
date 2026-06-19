@@ -43,6 +43,7 @@ class GridLayoutMixin:
         self.instructions.textChanged.connect(self._on_instructions_changed)
         self.instructions.set_immediate_symbol_menu_enabled(True)
         self.instructions.immediateSymbolRequested.connect(self.immediateSymbolRequested)
+        self.instructions.addCommandRequested.connect(self._add_custom_command_from_selection)
         self.instructions.labelActivated.connect(self.labelActivated)
         self.instructions.labelOpenTabRequested.connect(self.labelOpenTabRequested)
         self.raw_instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS))

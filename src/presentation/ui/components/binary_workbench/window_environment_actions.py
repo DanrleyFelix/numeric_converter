@@ -6,6 +6,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TIMING,
 )
 from src.presentation.ui.components.binary_workbench.environment import (
+    BinaryWorkbenchCommandsDialog,
     BinaryWorkbenchLabelsDialog,
     BinaryWorkbenchSymbolsDialog,
 )
@@ -20,6 +21,7 @@ from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchRulesDialog,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
+    COMMANDS,
     LBA_FILESYSTEM,
     SYMBOLS,
 )
@@ -98,6 +100,64 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog = BinaryWorkbenchLabelsDialog(current.labels, self)
         dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
         dialog.exec()
+
+    def _open_commands(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchCommandsDialog(
+            current.custom_commands,
+            self.tabs.directory_for(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY),
+            self,
+        )
+        dialog.commandLoadRequested.connect(lambda path: self._load_command(dialog, Path(path)))
+        dialog.commandSaveRequested.connect(lambda path: self._save_commands(dialog, Path(path)))
+        dialog.commandRemoveRequested.connect(lambda name: self._remove_command(dialog, name))
+        dialog.commandInstructionsChangeRequested.connect(
+            lambda name, instructions: self._replace_command_instructions(dialog, name, instructions)
+        )
+        dialog.exec()
+
+    def _load_command(self, dialog: BinaryWorkbenchCommandsDialog, path: Path) -> None:
+        if not self.tabs.load_custom_commands_from_path(path):
+            self._show_status(
+                BINARY_WORKBENCH_TEXT.STATUS_COMMAND_INVALID_INSTRUCTIONS,
+                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+                error=True,
+            )
+            return
+        self.tabs.set_directory(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY, path.parent)
+        self.tabs.set_current_module_path(COMMANDS, path)
+        dialog.set_default_directory(str(path.parent))
+        dialog.set_commands(self.tabs.custom_commands_for_current_context())
+
+    def _save_commands(self, dialog: BinaryWorkbenchCommandsDialog, path: Path) -> None:
+        target = self.tabs.save_custom_commands_to_path(path)
+        if target is None:
+            return
+        self.tabs.set_directory(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY, target.parent)
+        dialog.set_default_directory(str(target.parent))
+        dialog.set_commands(self.tabs.custom_commands_for_current_context())
+
+    def _remove_command(self, dialog: BinaryWorkbenchCommandsDialog, name: str) -> None:
+        if not self.tabs.remove_custom_command(name):
+            return
+        dialog.set_commands(self.tabs.custom_commands_for_current_context())
+
+    def _replace_command_instructions(
+        self,
+        dialog: BinaryWorkbenchCommandsDialog,
+        name: str,
+        instructions: list[str],
+    ) -> None:
+        if not self.tabs.replace_custom_command(name, instructions):
+            self._show_status(
+                BINARY_WORKBENCH_TEXT.STATUS_COMMAND_INVALID_INSTRUCTIONS,
+                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+                error=True,
+            )
+            return
+        dialog.set_commands(self.tabs.custom_commands_for_current_context())
 
     def _open_bytes_formatter(self) -> None:
         current = self.tabs.current_context()

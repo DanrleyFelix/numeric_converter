@@ -20,6 +20,9 @@ class EditorPageContextMixin:
             return
         self._update_context(symbol_updates(self._context, rows))
 
+    def _on_commands_changed(self, commands: dict[str, list[str]]) -> None:
+        self._update_context({"custom_commands": commands})
+
     def _set_summary(self, text: str) -> None:
         update_selection_summary(
             (self.offset_summary, self.summary, self.length_summary),

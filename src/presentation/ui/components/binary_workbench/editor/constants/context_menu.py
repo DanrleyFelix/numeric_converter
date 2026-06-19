@@ -11,6 +11,7 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Add Variable": "\uf02b",
     "Add Equate": "\uf52c",
     "Open Label in New Tab": "\uf35d",
+    "Add Command": "\uf0fe",
 }
 
 CONTEXT_MENU_SHORTCUTS = {
@@ -23,4 +24,5 @@ CONTEXT_MENU_SHORTCUTS = {
     "Select All": "Ctrl+A",
     "Add Variable": "Alt+W",
     "Add Equate": "Alt+E",
+    "Add Command": "Alt+K",
 }

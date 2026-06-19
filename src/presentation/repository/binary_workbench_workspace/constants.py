@@ -7,6 +7,7 @@ SYMBOLS = "symbols"
 LBA_FILESYSTEM = "lba_filesystem"
 VERSIONS = "versions"
 ENCODING_TABLES = "encoding_tables"
+COMMANDS = "commands"
 ACTIVE_VERSION = "active_version"
 
 MODULE_KEYS = (
@@ -14,6 +15,7 @@ MODULE_KEYS = (
     LBA_FILESYSTEM,
     VERSIONS,
     ENCODING_TABLES,
+    COMMANDS,
 )
 
 MODULE_FOLDERS = {
@@ -21,11 +23,13 @@ MODULE_FOLDERS = {
     LBA_FILESYSTEM: "LBA File System",
     VERSIONS: "Versions",
     ENCODING_TABLES: "Encoding Tables",
+    COMMANDS: "commands",
 }
 
 MODULE_SUFFIXES = {
     SYMBOLS: "symbols",
     LBA_FILESYSTEM: "lba",
+    COMMANDS: "commands",
 }
 
 VERSION_PATH_PREFIX = "version:"

@@ -40,6 +40,7 @@ PSX_MIPS_HIGHLIGHTER = {
     "label": "#FFD166",
     "equate": "#FF4FD8",
     "variable": "#FF4FD8",
+    "command": "#4F6DFF",
     "invalid_instruction": "#CD1C1C",
     "comment": "#7F879B",
 }

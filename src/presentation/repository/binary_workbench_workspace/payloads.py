@@ -10,6 +10,12 @@ from src.modules.dtos import (
     BinaryWorkbenchVersionDTO,
 )
 from src.modules.utils import normalize_string_map
+from src.core.binary_workbench.editor.commands.payloads import (
+    commands_from_context as editor_commands_from_context,
+    commands_from_payload as editor_commands_from_payload,
+    commands_payload as editor_commands_payload,
+    commands_to_context,
+)
 from src.presentation.repository.binary_workbench_payload import (
     _instruction_overlays,
     _internal_files,
@@ -77,6 +83,21 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
         "name": version.name,
         "instructions": instructions,
     }
+
+
+def commands_payload(name: str, commands: dict[str, list[str]]) -> dict[str, object]:
+    return {
+        "name": name,
+        **editor_commands_payload(editor_commands_from_context(commands)),
+    }
+
+
+def commands_from_payload(payload: dict[str, object] | None) -> dict[str, list[str]]:
+    commands = {
+        command.name: command
+        for command in editor_commands_from_payload(payload)
+    }
+    return commands_to_context(commands)
 
 
 def versions_payload(

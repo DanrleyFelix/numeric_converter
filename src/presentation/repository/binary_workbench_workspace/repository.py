@@ -15,6 +15,7 @@ from src.modules.dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
+    COMMANDS,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
@@ -35,6 +36,8 @@ from src.presentation.repository.binary_workbench_workspace.manifest import (
     tab_checksums,
 )
 from src.presentation.repository.binary_workbench_workspace.payloads import (
+    commands_from_payload,
+    commands_payload,
     lba_from_payload,
     lba_payload,
     source_matches,
@@ -89,6 +92,7 @@ class BinaryWorkbenchWorkspaceRepository:
         module_paths = module_paths_from_manifest(modules, self._directory)
         variables, equates = symbols_from_payload(read_json(Path(module_paths.get(SYMBOLS, ""))))
         sector_size, files = lba_from_payload(read_json(Path(module_paths.get(LBA_FILESYSTEM, ""))))
+        custom_commands = commands_from_payload(read_json(Path(module_paths.get(COMMANDS, ""))))
         versions = self._versions_from_manifest(modules)
         active = modules.get(ACTIVE_VERSION) if isinstance(modules.get(ACTIVE_VERSION), str) else None
         active_version = next((item for item in versions if item.name == active), None)
@@ -120,6 +124,7 @@ class BinaryWorkbenchWorkspaceRepository:
                 **tab.__dict__,
                 "variables": variables,
                 "equates": equates,
+                "custom_commands": custom_commands,
                 "internal_files": files,
                 "lba_sector_size": sector_size,
                 "versions": versions,
@@ -145,6 +150,7 @@ class BinaryWorkbenchWorkspaceRepository:
                     sector_size,
                     files,
                     loaded.versions,
+                    loaded.custom_commands,
                 ),
             }
         )
@@ -166,6 +172,7 @@ class BinaryWorkbenchWorkspaceRepository:
         stem = safe_stem(target.stem)
         module_paths[SYMBOLS] = str(self._write_module(directories, module_paths, SYMBOLS, stem, symbols_payload(stem, tab.variables, tab.equates)))
         module_paths[LBA_FILESYSTEM] = str(self._write_module(directories, module_paths, LBA_FILESYSTEM, stem, lba_payload(stem, tab.lba_sector_size, tab.internal_files)))
+        module_paths[COMMANDS] = str(self._write_module(directories, module_paths, COMMANDS, stem, commands_payload(stem, tab.custom_commands)))
         version_paths = self._write_versions(tab, directories, module_paths, stem)
         manifest = manifest_payload(tab, self._directory, module_paths, version_paths, directories)
         write_json(target, manifest)

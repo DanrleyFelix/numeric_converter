@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
@@ -10,6 +12,9 @@ from src.core.binary_workbench.selection_limits import (
 from src.modules.contracts import CPUArchCodec
 from src.modules.dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_commands import (
+    GridCommandsMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_edit_rules import (
     GridEditRulesMixin,
 )
@@ -35,6 +40,7 @@ class BinaryWorkbenchGrid(
     GridLayoutMixin,
     GridResizingMixin,
     GridRenderingMixin,
+    GridCommandsMixin,
     GridRawInstructionsMixin,
     GridEditRulesMixin,
     GridCommitMixin,
@@ -53,6 +59,8 @@ class BinaryWorkbenchGrid(
     immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
+    commandsChanged = Signal(dict)
+    commandWarningRequested = Signal(str)
 
     def __init__(self, codec: CPUArchCodec) -> None:
         super().__init__()
@@ -77,6 +85,8 @@ class BinaryWorkbenchGrid(
         self._dirty_editor_kind: str | None = None
         self._edit_origin_kind: str | None = None
         self._edit_rules = BinaryWorkbenchEditRulesDTO()
+        self._custom_commands = {}
+        self._command_directory: Path | None = None
         self._editor_text_signatures: dict[int, str] = {}
         self._visible_start_offset = 0
         self._last_visible_offset = 0
@@ -88,6 +98,7 @@ class BinaryWorkbenchGrid(
         self._virtual_selection_scrolling = False
         self._selection_limit_bytes = DEFAULT_SELECTION_LIMIT_BYTES
         self._build_ui()
+        self._refresh_command_completions()
 
     def set_codec(self, codec: CPUArchCodec) -> None:
         self._codec = codec

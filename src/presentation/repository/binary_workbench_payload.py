@@ -246,6 +246,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         module_paths=normalize_string_map(raw.get("module_paths")),
         module_directories=normalize_string_map(raw.get("module_directories")),
         module_checksums=normalize_string_map(raw.get("module_checksums")),
+        custom_commands=_string_list_map(raw.get("custom_commands")),
         last_open_offset=str(raw.get("last_open_offset", "0x00000000")),
         navigation_history=normalize_string_list(raw.get("navigation_history")),
         original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
@@ -320,6 +321,10 @@ def binary_workbench_state_to_payload(
                 "module_paths": dict(tab.module_paths),
                 "module_directories": dict(tab.module_directories),
                 "module_checksums": dict(tab.module_checksums),
+                "custom_commands": {
+                    key: list(value)
+                    for key, value in tab.custom_commands.items()
+                },
                 "last_open_offset": tab.last_open_offset,
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,

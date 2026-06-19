@@ -4,7 +4,8 @@ QFrame#workspace-table-shell {
     border-radius: $radius-18;
 }
 
-QWidget#workspace-table-header {
+QWidget#workspace-table-header,
+QFrame#workspace-table-header {
     background-color: $bg-workspace-header;
     border: none;
     border-top-left-radius: $radius-18;

@@ -3,6 +3,7 @@ from pathlib import Path
 from src.modules.dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
+    COMMANDS,
     ENCODING_TABLES,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
@@ -12,6 +13,7 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSIONS,
 )
 from src.presentation.repository.binary_workbench_workspace.payloads import (
+    commands_payload,
     checksum,
     lba_payload,
     source_payload,
@@ -33,7 +35,7 @@ def module_directories(manifest: dict[str, object], directory: Path) -> dict[str
 def module_paths(modules: dict[str, object], directory: Path) -> dict[str, str]:
     paths = {
         key: str(resolve_module_path(value, directory))
-        for key in (SYMBOLS, LBA_FILESYSTEM)
+        for key in (SYMBOLS, LBA_FILESYSTEM, COMMANDS)
         if isinstance((value := modules.get(key)), str)
     }
     raw_versions = modules.get(VERSIONS) if isinstance(modules.get(VERSIONS), dict) else {}
@@ -57,6 +59,7 @@ def manifest_payload(
         "modules": {
             SYMBOLS: relative_module_path(Path(paths[SYMBOLS]), directory),
             LBA_FILESYSTEM: relative_module_path(Path(paths[LBA_FILESYSTEM]), directory),
+            COMMANDS: relative_module_path(Path(paths[COMMANDS]), directory),
             VERSIONS: version_paths,
             ACTIVE_VERSION: tab.active_version_name,
             ENCODING_TABLES: None,
@@ -72,14 +75,16 @@ def tab_checksums(tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
         tab.lba_sector_size,
         tab.internal_files,
         tab.versions,
+        tab.custom_commands,
     )
 
 
-def checksums_for(variables, equates, sector_size, files, versions) -> dict[str, str]:
+def checksums_for(variables, equates, sector_size, files, versions, commands) -> dict[str, str]:
     return {
         SYMBOLS: checksum(symbols_payload("", variables, equates)),
         LBA_FILESYSTEM: checksum(lba_payload("", sector_size, files)),
         VERSIONS: checksum({"versions": [version_payload(item) for item in versions]}),
+        COMMANDS: checksum(commands_payload("", commands)),
     }
 
 

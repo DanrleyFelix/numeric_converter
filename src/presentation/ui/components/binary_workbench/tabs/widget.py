@@ -17,6 +17,9 @@ from src.presentation.repository.binary_workbench_workspace import (
 from src.presentation.ui.components.binary_workbench.tabs.tab_configuration import (
     TabConfigurationMixin,
 )
+from src.presentation.ui.components.binary_workbench.tabs.tab_commands import (
+    TabCommandsMixin,
+)
 from src.presentation.ui.components.binary_workbench.tabs.tab_file_saving import (
     TabFileSavingMixin,
 )
@@ -45,6 +48,7 @@ class BinaryWorkbenchTabs(
     TabPageManagementMixin,
     TabOpeningMixin,
     TabConfigurationMixin,
+    TabCommandsMixin,
     TabLibrariesMixin,
     TabVersionsMixin,
     TabWorkspaceMixin,
@@ -56,6 +60,7 @@ class BinaryWorkbenchTabs(
     preferencesChanged = Signal(object)
     programContextChanged = Signal(object)
     statusChanged = Signal(str)
+    statusWarningChanged = Signal(str)
     closeRequested = Signal(int)
 
     def __init__(

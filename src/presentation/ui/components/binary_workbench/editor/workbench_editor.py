@@ -44,6 +44,7 @@ class WorkbenchEditor(
     immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
     labelOpenTabRequested = Signal(str, int)
+    addCommandRequested = Signal(str, str)
     copyRequested = Signal(object)
     selectionStarted = Signal(object)
     selectionAutoScrollAboutToStep = Signal(object)
@@ -57,7 +58,7 @@ class WorkbenchEditor(
         self.viewport().setMouseTracking(True)
         self._shared_scrollbar: QScrollBar | None = None
         self._completion_model = QStringListModel(self)
-        self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": []}
+        self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": [], "command": []}
         self._symbol_tooltips: dict[str, str] = {}
         self._label_offsets: dict[str, tuple[str, int]] = {}
         self._jump_codec = None
