@@ -88,6 +88,7 @@ class BINARY_WORKBENCH_TEXT:
     ADD_EQUATE_FROM_IMMEDIATE: str = "Add Equate"
     OPEN_LABEL_NEW_TAB: str = "Open Label in New Tab"
     ADD_COMMAND: str = "Add Command"
+    COMMAND_INSTRUCTION_HEADER: str = "Instruction"
     COMMAND_NAME: str = "Command Name"
     SHOW: str = "Show"
     LOAD: str = "Load"

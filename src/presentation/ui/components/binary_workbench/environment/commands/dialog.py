@@ -97,12 +97,16 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         header = QFrame(self.shell)
         header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         row = QHBoxLayout(header)
-        row.setContentsMargins(0, 0, _actions_right_margin(), 0)
-        row.setSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_GAP)
-        row.addWidget(header_cell(BINARY_WORKBENCH_TEXT.COMMANDS, header), 1)
-        instructions = header_cell(BINARY_WORKBENCH_TEXT.INSTRUCTIONS, header, Qt.AlignCenter)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+        commands = header_cell(BINARY_WORKBENCH_TEXT.COMMANDS, header)
+        commands.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH)
+        row.addWidget(commands, 0)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_COLUMN_GAP)
+        instructions = header_cell(BINARY_WORKBENCH_TEXT.COMMAND_INSTRUCTION_HEADER, header, Qt.AlignLeft)
         instructions.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_SHOW_WIDTH)
         row.addWidget(instructions, 0)
+        row.addStretch(1)
         parent.addWidget(header, 0)
 
     def _build_body(self, parent: QVBoxLayout) -> None:
@@ -119,6 +123,7 @@ class BinaryWorkbenchCommandsDialog(QDialog):
             0,
             10,
             BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN
+            + BINARY_WORKBENCH_LAYOUT.ROW_SCROLLBAR_RESERVED_WIDTH
             + BINARY_WORKBENCH_LAYOUT.COMMANDS_ACTION_RIGHT_INSET,
             10,
         )
@@ -144,17 +149,24 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         footer_frame = QFrame(self)
         footer_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         footer = QHBoxLayout(footer_frame)
-        footer.setContentsMargins(0, 0, 0, 0)
-        footer.setSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_GAP)
+        footer.setContentsMargins(
+            BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN,
+            0,
+            0,
+            0,
+        )
+        footer.setSpacing(0)
         load = symbol_button(BINARY_WORKBENCH_TEXT.LOAD, "preferences-ok", footer_frame)
         save = symbol_button(BINARY_WORKBENCH_TEXT.SAVE, "preferences-ok", footer_frame)
         for button in (load, save):
+            button.setProperty("commandAction", "true")
             size_symbol_action(button, BINARY_WORKBENCH_LAYOUT.COMMANDS_LOAD_WIDTH)
         load.clicked.connect(self._request_load)
         save.clicked.connect(self._request_save)
         footer.addWidget(load, 0, Qt.AlignLeft)
-        footer.addStretch(1)
+        footer.addSpacing(_right_column_start() - BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN - BINARY_WORKBENCH_LAYOUT.COMMANDS_LOAD_WIDTH)
         footer.addWidget(save, 0, Qt.AlignRight)
+        footer.addStretch(1)
         parent.addWidget(footer_frame, 0)
 
     def _refresh_rows(self) -> None:
@@ -171,19 +183,23 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         row_widget.setObjectName("workspace-row")
         row = QHBoxLayout(row_widget)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_GAP)
+        row.setSpacing(0)
         label = QLabel(f"/{name}", row_widget)
         label.setObjectName("binary-workbench-command-name")
+        label.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH)
         label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         show = symbol_button(BINARY_WORKBENCH_TEXT.SHOW, "preferences-ok", row_widget)
+        show.setProperty("commandAction", "true")
         size_symbol_action(show, BINARY_WORKBENCH_LAYOUT.COMMANDS_SHOW_WIDTH)
         show.clicked.connect(lambda: self._edit_instructions(name, instructions))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)
         remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
         remove.clicked.connect(lambda: self.commandRemoveRequested.emit(name))
-        row.addWidget(label, 1)
+        row.addWidget(label, 0)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_COLUMN_GAP)
         row.addWidget(show, 0, Qt.AlignRight | Qt.AlignVCenter)
+        row.addStretch(1)
         remove_slot.layout().addWidget(remove, 0, Qt.AlignCenter)
         self._rows.append((row_widget, remove_slot, name, instructions))
         self.body_layout.addWidget(row_widget, 0)
@@ -222,6 +238,14 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         )
         if path:
             self.commandSaveRequested.emit(path)
+
+
+def _right_column_start() -> int:
+    return (
+        BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN
+        + BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH
+        + BINARY_WORKBENCH_LAYOUT.COMMANDS_COLUMN_GAP
+    )
 
 
 def _actions_right_margin() -> int:

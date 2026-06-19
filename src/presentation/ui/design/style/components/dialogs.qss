@@ -515,6 +515,11 @@ QPushButton#preferences-cancel[compactSearch="true"] {
     max-width: $size-search-dialog-button-width;
 }
 
+QPushButton#preferences-ok[commandAction="true"] {
+    min-width: $size-dialog-button-min-width;
+    max-width: $size-dialog-button-min-width;
+}
+
 QPushButton#binary-workbench-tab-close:focus,
 QToolButton#binary-workbench-tab-nav-button:focus,
 QPushButton#preferences-ok:focus,
