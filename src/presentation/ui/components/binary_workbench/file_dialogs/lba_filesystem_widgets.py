@@ -26,22 +26,6 @@ def lba_input(
     return editor
 
 
-def size_lba_input(widget: QWidget) -> None:
-    widget.setFixedSize(
-        BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_SECTOR_WIDTH,
-        BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT,
-    )
-
-
-def size_lba_action(button: QPushButton, width: int, *, expanding: bool = False) -> None:
-    if expanding:
-        button.setMinimumWidth(0)
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-    else:
-        button.setFixedWidth(width)
-    button.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
-
-
 def lba_label(text: str, object_name: str, parent: QWidget) -> QLabel:
     label = QLabel(text, parent)
     label.setObjectName(object_name)

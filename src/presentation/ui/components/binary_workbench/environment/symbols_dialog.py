@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchSymbolsDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchSymbolsDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_json import (
     SymbolsDialogJsonMixin,

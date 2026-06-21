@@ -5,11 +5,12 @@ from src.core.binary_workbench.mips_r3000a.preprocessor import strip_comment
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     instruction_code,
 )
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
+    BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET,
+)
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
-
-FILE_OFFSET = "File"
-EMPTY_OFFSET = "-"
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 def reconcile_locked_virtual_instructions(

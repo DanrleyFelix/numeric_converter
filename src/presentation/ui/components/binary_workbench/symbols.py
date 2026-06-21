@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 def symbol_offsets(

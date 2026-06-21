@@ -4,10 +4,11 @@ from pathlib import Path
 
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.mips_r3000a import build_source_line_rows
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchViewPreferencesDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     COMMANDS,
     LBA_FILESYSTEM,
+    OFFSET_REGIONS,
     SYMBOLS,
     VERSIONS,
 )
@@ -23,6 +24,7 @@ from src.presentation.ui.components.binary_workbench.symbols import symbol_offse
 DIRECTORY_KEYS = {
     BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY: SYMBOLS,
     BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY: LBA_FILESYSTEM,
+    BINARY_WORKBENCH_STATE.OFFSET_REGIONS_DIRECTORY: OFFSET_REGIONS,
     BINARY_WORKBENCH_STATE.VERSIONS_DIRECTORY: VERSIONS,
     BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY: COMMANDS,
 }
@@ -113,6 +115,9 @@ class TabWorkspaceMixin:
                 context.internal_files,
                 context.versions,
                 context.custom_commands,
+                context.encoding_tables,
+                context.offset_regions,
+                context.view_preferences != BinaryWorkbenchViewPreferencesDTO(),
             )
         )
 

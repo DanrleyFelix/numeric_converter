@@ -1,4 +1,4 @@
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 
 

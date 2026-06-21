@@ -13,7 +13,7 @@ from src.core.command_window.tokenizer import Token, TokenType, Tokenizer, Token
 from src.core.command_window.validator.errors import ValidationError
 from src.core.command_window.validator.sequence_validator import SequenceValidator
 from src.core.command_window.validator.structure_validator import StructureValidator
-from src.core.constants import BASE_PREFIXES, MULTI_CHAR_OPERATORS, TEXTUAL_OPERATORS
+from src.core.command_window.constants import BASE_PREFIXES, MULTI_CHAR_OPERATORS, TEXTUAL_OPERATORS
 
 
 class PartialExpressionAnalyzer:

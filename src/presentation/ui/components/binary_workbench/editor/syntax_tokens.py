@@ -4,20 +4,19 @@ import re
 
 from PySide6.QtGui import QColor, QTextCharFormat
 
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.constants import HEX_DIGIT_PATTERN
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
     PSX_MIPS_KNOWN_MNEMONICS,
 )
 
-BYTE_TOKEN = re.compile(r"[0-9A-Fa-f]{2}")
-HEX_TOKEN = re.compile(r"0x[0-9A-Fa-f]+")
+BYTE_TOKEN = re.compile(rf"{HEX_DIGIT_PATTERN}{{2}}")
+HEX_TOKEN = re.compile(rf"0x{HEX_DIGIT_PATTERN}+")
 REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
 COMPLETION_TOKEN = re.compile(r"/[A-Za-z0-9_]*|[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")
 EQUATE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*")
-ROW_BYTES = 4
-
-
 def address_from_row(row: BinaryWorkbenchRowDTO) -> int:
     return safe_int(row.offsets.get("File", "0x0"))
 

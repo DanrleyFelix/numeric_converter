@@ -27,6 +27,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.symbols_action = QAction(BINARY_WORKBENCH_TEXT.SYMBOLS, self)
         self.labels_action = QAction(BINARY_WORKBENCH_TEXT.LABELS, self)
         self.lba_filesystem_action = QAction(BINARY_WORKBENCH_TEXT.LBA_FILESYSTEM, self)
+        self.offset_regions_action = QAction(BINARY_WORKBENCH_TEXT.OFFSET_REGIONS, self)
         self.commands_action = QAction(BINARY_WORKBENCH_TEXT.COMMANDS, self)
         self.encoding_tables_action = QAction(BINARY_WORKBENCH_TEXT.ENCODING_TABLES, self)
         self.view_action = QAction(BINARY_WORKBENCH_TEXT.VIEW, self)
@@ -64,6 +65,7 @@ class BinaryWorkbenchToolbar(QFrame):
             self.symbols_action,
             self.labels_action,
             self.lba_filesystem_action,
+            self.offset_regions_action,
             self.commands_action,
             self.encoding_tables_action,
         ]))

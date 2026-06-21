@@ -8,14 +8,15 @@ from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_ro
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.constants import HEX_DIGITS
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import labels_from_rows
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
-    ROW_BYTES,
     address_from_row,
     normalize_bytes_text,
     normalize_instruction_text,
@@ -332,7 +333,7 @@ class GridEditingMixin:
         self.bytes.setTextCursor(cursor)
 
     def _normalized_bytes_line(self, line: str) -> str:
-        raw = "".join(char for char in line if char in "0123456789abcdefABCDEF")
+        raw = "".join(char for char in line if char in HEX_DIGITS)
         raw = raw[: ROW_BYTES * 2]
         raw = raw.upper() if self._uppercase_bytes else raw
         normalized = normalize_bytes_text(raw, 1, False)

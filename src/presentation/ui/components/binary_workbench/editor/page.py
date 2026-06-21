@@ -7,7 +7,9 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.core.binary_workbench.selection_limits import capped_end_offset
-from src.modules.dtos import (
+from src.core.binary_workbench.encoding_tables import enabled_encoding_values
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchTabContextDTO,
@@ -24,7 +26,6 @@ from src.presentation.ui.components.binary_workbench.editor.page_context_updates
 from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
@@ -101,6 +102,10 @@ class BinaryWorkbenchEditorPage(
         self._context = context
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
+        self.grid.set_decoded_text_values(enabled_encoding_values(
+            context.encoding_tables,
+            context.view_preferences.decoded_text_tables,
+        ))
         self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
         self.grid.set_custom_commands(context.custom_commands)
         self.grid.set_edit_rules(_edit_rules_for_context(context, self._preferences))

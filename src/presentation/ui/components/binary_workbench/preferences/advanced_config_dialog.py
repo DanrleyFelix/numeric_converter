@@ -7,6 +7,10 @@ from src.core.binary_workbench.selection_limits import (
     SELECTION_LIMIT_OPTIONS_BYTES,
     normalized_selection_limit,
 )
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -100,9 +104,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
             )
         )
         ok = QPushButton(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.CONFIRM, self)
-        ok.setObjectName("preferences-confirm")
-        ok.setFocusPolicy(Qt.NoFocus)
-        ok.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_action(ok)
         ok.clicked.connect(self.accept)
         _set_control_widths(
             self.combo,
@@ -110,7 +112,6 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
             self.block_size,
             self.cache_max_blocks,
             self.selection_limit,
-            ok,
         )
         layout.addWidget(arch_label)
         layout.addWidget(self.combo)
@@ -123,7 +124,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         layout.addWidget(selection_limit_label)
         layout.addWidget(self.selection_limit)
         layout.addSpacing(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONFIRM_TOP_SPACING)
-        layout.addWidget(ok)
+        layout.addWidget(ok, 0, Qt.AlignHCenter)
         self.setFixedSize(self.sizeHint())
 
     def selected_arch(self) -> str:
@@ -154,7 +155,10 @@ def _nearest_cache_max_blocks(value: int) -> int:
 
 def _set_control_widths(*controls) -> None:
     for control in controls:
-        control.setFixedWidth(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONTROL_WIDTH)
+        configure_binary_workbench_combo(
+            control,
+            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+        )
 
 
 def _selection_limit_label(value: int) -> str:

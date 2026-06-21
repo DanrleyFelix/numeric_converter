@@ -5,7 +5,7 @@ from src.core.binary_workbench.context_overlays import compact_binary_context_ov
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 from src.core.binary_workbench.version_line_comments import apply_line_comments
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,

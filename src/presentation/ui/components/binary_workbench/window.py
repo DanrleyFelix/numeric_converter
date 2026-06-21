@@ -4,12 +4,12 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QLabel, QMainWindow
 
-from src.modules.dtos import (
+from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
-    ProgramContextDTO,
-    WindowSizeDTO,
 )
+from src.modules.shared_dtos import WindowSizeDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -34,12 +34,16 @@ from src.presentation.ui.components.binary_workbench.window_search_actions impor
 from src.presentation.ui.components.binary_workbench.window_version_actions import (
     BinaryWorkbenchWindowVersionMixin,
 )
+from src.presentation.ui.components.binary_workbench.window_workspace_configuration_actions import (
+    BinaryWorkbenchWindowWorkspaceConfigurationMixin,
+)
 
 
 class BinaryWorkbenchWindow(
     BinaryWorkbenchWindowLayoutMixin,
     BinaryWorkbenchWindowFileActionsMixin,
     BinaryWorkbenchWindowEnvironmentMixin,
+    BinaryWorkbenchWindowWorkspaceConfigurationMixin,
     BinaryWorkbenchWindowSearchMixin,
     BinaryWorkbenchWindowVersionMixin,
     BinaryWorkbenchWindowCloseMixin,
@@ -128,8 +132,4 @@ class BinaryWorkbenchWindow(
         self.statusBar().showMessage(message, timeout)
 
     def _placeholder_actions(self):
-        return (
-            self.toolbar.encoding_tables_action,
-            self.toolbar.view_action,
-            self.toolbar.help_action,
-        )
+        return (self.toolbar.help_action,)

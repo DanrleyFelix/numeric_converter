@@ -5,13 +5,13 @@ from src.core.binary_workbench.selection_limits import (
     DEFAULT_SELECTION_LIMIT_BYTES,
     normalized_selection_limit,
 )
-from src.modules.dtos import (
+from src.modules.application_dtos import NumericWorkbenchPreferencesDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
-    CommandLogPreferencesDTO,
-    FormattingOutputDTO,
-    NumericWorkbenchPreferencesDTO,
 )
+from src.modules.command_window_dtos import CommandLogPreferencesDTO
+from src.modules.converter_dtos import FormattingOutputDTO
 
 DEFAULT_FORMATTER: dict[str, FormattingOutputDTO] = {
     "decimal": FormattingOutputDTO(3, False),

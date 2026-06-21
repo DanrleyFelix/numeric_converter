@@ -5,8 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
+    BinaryWorkbenchEncodingTableDTO,
     BinaryWorkbenchInternalFileDTO,
+    BinaryWorkbenchOffsetRegionDTO,
+    BinaryWorkbenchViewPreferencesDTO,
     BinaryWorkbenchVersionDTO,
 )
 from src.modules.utils import normalize_string_map
@@ -67,13 +70,23 @@ def lba_payload(
 
 
 def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
-    line_instructions = (
+    overlays = (
+        version.instruction_overlays
+        if isinstance(version.instruction_overlays, dict)
+        else {}
+    )
+    stored = (
         version.instructions_by_line
-        if version.instructions_by_line or version.instruction_overlays
-        else instructions_by_line_from_rows(version.rows)
+        if isinstance(version.instructions_by_line, dict)
+        else {}
+    )
+    line_instructions = (
+        stored
+        if stored or overlays
+        else instructions_by_line_from_rows(version.rows) or {}
     )
     instructions = {
-        **{offset: instruction for offset, instruction in sorted(version.instruction_overlays.items())},
+        **{offset: instruction for offset, instruction in sorted(overlays.items())},
         **{
             str(line): instruction
             for line, instruction in sorted(line_instructions.items())
@@ -83,6 +96,99 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
         "name": version.name,
         "instructions": instructions,
     }
+
+
+def encoding_tables_payload(
+    name: str,
+    tables: list[BinaryWorkbenchEncodingTableDTO],
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "tables": {
+            table.name: {f"0x{byte:02X}": text for byte, text in sorted(table.values.items())}
+            for table in tables
+        },
+    }
+
+
+def encoding_tables_from_payload(
+    payload: dict[str, object] | None,
+) -> list[BinaryWorkbenchEncodingTableDTO]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("tables"), dict):
+        return []
+    tables: list[BinaryWorkbenchEncodingTableDTO] = []
+    for name, raw_values in payload["tables"].items():
+        if not isinstance(name, str) or not isinstance(raw_values, dict):
+            continue
+        values: dict[int, str] = {}
+        for key, text in raw_values.items():
+            try:
+                byte = int(str(key), 0)
+            except ValueError:
+                continue
+            if 0 <= byte <= 0xFF and isinstance(text, str) and text:
+                values[byte] = text
+        if values:
+            tables.append(BinaryWorkbenchEncodingTableDTO(name=name, values=values))
+    return tables
+
+
+def offset_regions_payload(
+    name: str,
+    regions: list[BinaryWorkbenchOffsetRegionDTO],
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "regions": [
+            {"name": region.name, "offset": region.offset, "details": region.details}
+            for region in regions
+        ],
+    }
+
+
+def offset_regions_from_payload(
+    payload: dict[str, object] | None,
+) -> list[BinaryWorkbenchOffsetRegionDTO]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("regions"), list):
+        return []
+    regions: list[BinaryWorkbenchOffsetRegionDTO] = []
+    for item in payload["regions"]:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            continue
+        offset = item.get("offset")
+        if not isinstance(offset, int) or offset < 0:
+            continue
+        details = item.get("details")
+        regions.append(BinaryWorkbenchOffsetRegionDTO(
+            name=item["name"],
+            offset=offset,
+            details=details if isinstance(details, str) else "",
+        ))
+    return regions
+
+
+def view_preferences_payload(value: BinaryWorkbenchViewPreferencesDTO) -> dict[str, object]:
+    return {
+        "visible_columns": dict(value.visible_columns),
+        "decoded_text_tables": list(value.decoded_text_tables),
+    }
+
+
+def view_preferences_from_payload(
+    raw: object,
+    fallback: BinaryWorkbenchViewPreferencesDTO,
+) -> BinaryWorkbenchViewPreferencesDTO:
+    if not isinstance(raw, dict):
+        return fallback
+    visible = raw.get("visible_columns")
+    enabled = raw.get("decoded_text_tables")
+    return BinaryWorkbenchViewPreferencesDTO(
+        visible_columns={
+            **fallback.visible_columns,
+            **({str(key): bool(value) for key, value in visible.items()} if isinstance(visible, dict) else {}),
+        },
+        decoded_text_tables=[str(item) for item in enabled] if isinstance(enabled, list) else list(fallback.decoded_text_tables),
+    )
 
 
 def commands_payload(name: str, commands: dict[str, list[str]]) -> dict[str, object]:

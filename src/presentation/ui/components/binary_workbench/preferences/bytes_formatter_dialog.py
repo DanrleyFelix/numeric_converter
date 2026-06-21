@@ -1,6 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
 
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+    configure_binary_workbench_control_height,
+)
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT,
     BINARY_WORKBENCH_BYTES_FORMATTER_TEXT,
@@ -31,7 +37,10 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.group_bytes = QComboBox(self)
         self.group_bytes.setObjectName("advanced-config-dropdown")
         self.group_bytes.setCursor(Qt.PointingHandCursor)
-        self.group_bytes.setFixedWidth(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.GROUP_BYTES_WIDTH)
+        configure_binary_workbench_combo(
+            self.group_bytes,
+            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+        )
         self.group_bytes.addItems(["1 byte", "2 bytes", "4 bytes"])
         current = current_group_bytes if current_group_bytes in {1, 2, 4} else 1
         self.group_bytes.setCurrentIndex({1: 0, 2: 1, 4: 2}[current])
@@ -49,10 +58,10 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.uppercase_instructions.setObjectName("binary-workbench-dialog-check")
         self.uppercase_instructions.setChecked(uppercase_instructions)
         self.uppercase_instructions.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_control_height(self.uppercase_bytes)
+        configure_binary_workbench_control_height(self.uppercase_instructions)
         ok = QPushButton(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.CONFIRM, self)
-        ok.setObjectName("preferences-confirm")
-        ok.setFocusPolicy(Qt.NoFocus)
-        ok.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_action(ok)
         ok.clicked.connect(self.accept)
         layout.addWidget(group_bytes_label)
         layout.addWidget(self.group_bytes)

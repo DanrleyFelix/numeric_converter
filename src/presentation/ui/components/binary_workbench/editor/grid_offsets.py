@@ -1,6 +1,6 @@
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 
 class GridOffsetsMixin:

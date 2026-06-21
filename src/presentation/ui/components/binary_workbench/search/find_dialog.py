@@ -3,6 +3,7 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
+from src.modules.constants import HEX_DIGITS_LOWER
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
@@ -66,9 +67,6 @@ class BinaryWorkbenchFindDialog(QDialog):
         layout.addWidget(self.length)
         layout.addWidget(self.results)
         search_button = QPushButton(BINARY_WORKBENCH_TEXT.FIND, self)
-        search_button.setObjectName("preferences-cancel")
-        search_button.setFocusPolicy(Qt.NoFocus)
-        search_button.setCursor(Qt.PointingHandCursor)
         search_button.clicked.connect(self.refresh_results)
         self.query.returnPressed.connect(self.refresh_results)
         self.start.returnPressed.connect(self.refresh_results)
@@ -79,7 +77,6 @@ class BinaryWorkbenchFindDialog(QDialog):
             layout,
             search_button,
             self.accept,
-            button_width=BINARY_WORKBENCH_LAYOUT.SEARCH_BUTTON_WIDTH,
             spread_actions=True,
         )
         self._sync_query_validator(self.mode.currentText())
@@ -130,7 +127,7 @@ class BinaryWorkbenchFindDialog(QDialog):
         if mode != BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES:
             self.query.setValidator(None)
             return
-        clean = "".join(character for character in self.query.text().lower() if character in "0123456789abcdef")
+        clean = "".join(character for character in self.query.text().lower() if character in HEX_DIGITS_LOWER)
         if clean != self.query.text():
             self.query.setText(clean)
         set_hex_bytes_validator(self.query)

@@ -1,6 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.environment.symbol_offsets_dialog import (
@@ -11,7 +16,6 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_button,
     symbol_input,
     symbol_kind_combo,
-    size_symbol_action,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -51,9 +55,12 @@ class SymbolsDialogRowsMixin:
         kind_combo = symbol_kind_combo(row, kind, expanding=True)
         name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name, expanding=True)
         value_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, row, value, expanding=True)
+        configure_binary_workbench_combo(kind_combo)
+        configure_binary_workbench_line_edit(name_edit)
+        configure_binary_workbench_line_edit(value_edit)
         set_python_identifier_validator(name_edit)
-        offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "preferences-cancel", row)
-        size_symbol_action(offsets, BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_ACTION_WIDTH, expanding=True)
+        offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "", row)
+        configure_binary_workbench_action(offsets)
         offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)
@@ -92,7 +99,7 @@ class SymbolsDialogRowsMixin:
 
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
-    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
     layout.setContentsMargins(0, 0, 0, 0)
     return slot

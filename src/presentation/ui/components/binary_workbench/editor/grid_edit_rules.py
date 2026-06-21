@@ -1,14 +1,14 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 
-from src.modules.dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import set_cursor_position
 from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
     remove_editor_block,
     replace_selection_preserving_line_breaks,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 COMMENT_LINE_PREFIX = "; "
 

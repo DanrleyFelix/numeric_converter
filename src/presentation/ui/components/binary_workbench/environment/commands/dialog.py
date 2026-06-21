@@ -19,11 +19,14 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_filter,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     SymbolRemoveRowButton,
     symbol_button,
     symbol_input,
-    size_symbol_action,
 )
 from src.presentation.ui.components.binary_workbench.environment.commands.dialog_helpers import (
     edit_command_instructions,
@@ -87,9 +90,10 @@ class BinaryWorkbenchCommandsDialog(QDialog):
             BINARY_WORKBENCH_TEXT.FILTER,
             self,
             "",
-            BINARY_WORKBENCH_LAYOUT.LABELS_FILTER_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH,
             search_icon=True,
         )
+        configure_binary_workbench_filter(self.filter_input)
         self.filter_input.textChanged.connect(self._apply_filter)
         parent.addWidget(self.filter_input, 0, Qt.AlignLeft)
 
@@ -104,7 +108,7 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         row.addWidget(commands, 0)
         row.addSpacing(BINARY_WORKBENCH_LAYOUT.COMMANDS_COLUMN_GAP)
         instructions = header_cell(BINARY_WORKBENCH_TEXT.COMMAND_INSTRUCTION_HEADER, header, Qt.AlignLeft)
-        instructions.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_SHOW_WIDTH)
+        instructions.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH)
         row.addWidget(instructions, 0)
         row.addStretch(1)
         parent.addWidget(header, 0)
@@ -149,23 +153,18 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         footer_frame = QFrame(self)
         footer_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         footer = QHBoxLayout(footer_frame)
-        footer.setContentsMargins(
-            BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN,
-            0,
-            0,
-            0,
-        )
+        footer.setContentsMargins(0, 0, 0, 0)
         footer.setSpacing(0)
-        load = symbol_button(BINARY_WORKBENCH_TEXT.LOAD, "preferences-ok", footer_frame)
-        save = symbol_button(BINARY_WORKBENCH_TEXT.SAVE, "preferences-ok", footer_frame)
+        load = symbol_button(BINARY_WORKBENCH_TEXT.LOAD, "", footer_frame)
+        save = symbol_button(BINARY_WORKBENCH_TEXT.SAVE, "", footer_frame)
         for button in (load, save):
-            button.setProperty("commandAction", "true")
-            size_symbol_action(button, BINARY_WORKBENCH_LAYOUT.COMMANDS_LOAD_WIDTH)
+            configure_binary_workbench_action(button)
         load.clicked.connect(self._request_load)
         save.clicked.connect(self._request_save)
-        footer.addWidget(load, 0, Qt.AlignLeft)
-        footer.addSpacing(_right_column_start() - BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN - BINARY_WORKBENCH_LAYOUT.COMMANDS_LOAD_WIDTH)
-        footer.addWidget(save, 0, Qt.AlignRight)
+        footer.addStretch(1)
+        footer.addWidget(load)
+        footer.addSpacing(BINARY_WORKBENCH_LAYOUT.MAX_RELATED_CONTROL_GAP)
+        footer.addWidget(save)
         footer.addStretch(1)
         parent.addWidget(footer_frame, 0)
 
@@ -188,9 +187,8 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         label.setObjectName("binary-workbench-command-name")
         label.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH)
         label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        show = symbol_button(BINARY_WORKBENCH_TEXT.SHOW, "preferences-ok", row_widget)
-        show.setProperty("commandAction", "true")
-        size_symbol_action(show, BINARY_WORKBENCH_LAYOUT.COMMANDS_SHOW_WIDTH)
+        show = symbol_button(BINARY_WORKBENCH_TEXT.SHOW, "", row_widget)
+        configure_binary_workbench_action(show)
         show.clicked.connect(lambda: self._edit_instructions(name, instructions))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)
@@ -240,30 +238,9 @@ class BinaryWorkbenchCommandsDialog(QDialog):
             self.commandSaveRequested.emit(path)
 
 
-def _right_column_start() -> int:
-    return (
-        BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MARGIN
-        + BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH
-        + BINARY_WORKBENCH_LAYOUT.COMMANDS_COLUMN_GAP
-    )
-
-
-def _actions_right_margin() -> int:
-    return _delete_gutter_width() + BINARY_WORKBENCH_LAYOUT.COMMANDS_ACTION_RIGHT_INSET
-
-
-def _delete_gutter_width() -> int:
-    return (
-        WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH
-        + BINARY_WORKBENCH_LAYOUT.ROW_DELETE_COLUMN_SPACING
-        + BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN
-        + BINARY_WORKBENCH_LAYOUT.ROW_SCROLLBAR_RESERVED_WIDTH
-    )
-
-
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
-    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
     layout.setContentsMargins(0, 0, 0, 0)
     return slot

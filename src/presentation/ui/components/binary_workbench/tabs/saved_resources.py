@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.core.binary_workbench.resource_identity import matching_file_identifiers
-from src.modules.dtos import BinaryWorkbenchLbaFilesystemDTO, BinaryWorkbenchStateDTO, BinaryWorkbenchSymbolsDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchLbaFilesystemDTO, BinaryWorkbenchStateDTO, BinaryWorkbenchSymbolsDTO
 
 
 def matching_lba_filesystem(

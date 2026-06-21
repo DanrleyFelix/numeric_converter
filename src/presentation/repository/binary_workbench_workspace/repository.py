@@ -11,15 +11,17 @@ from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
 from src.core.binary_workbench.version_line_comments import apply_line_comments
-from src.modules.dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
     COMMANDS,
+    ENCODING_TABLES,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
     SCHEMA_VERSION,
+    OFFSET_REGIONS,
     SYMBOLS,
     VERSION_PATH_PREFIX,
     VERSIONS,
@@ -38,14 +40,19 @@ from src.presentation.repository.binary_workbench_workspace.manifest import (
 from src.presentation.repository.binary_workbench_workspace.payloads import (
     commands_from_payload,
     commands_payload,
+    encoding_tables_from_payload,
+    encoding_tables_payload,
     lba_from_payload,
     lba_payload,
+    offset_regions_from_payload,
+    offset_regions_payload,
     source_matches,
     symbols_from_payload,
     symbols_payload,
     version_from_payload,
     versions_from_payload,
     versions_payload,
+    view_preferences_from_payload,
 )
 
 
@@ -59,11 +66,16 @@ class BinaryWorkbenchWorkspaceRepository:
         self._directory.mkdir(parents=True, exist_ok=True)
         for folder in MODULE_FOLDERS.values():
             (self._directory / folder).mkdir(parents=True, exist_ok=True)
+        self._decoded_tables_directory = self._directory.parent / "decoded_tables"
+        self._decoded_tables_directory.mkdir(parents=True, exist_ok=True)
     @property
     def directory(self) -> Path:
         return self._directory
     def default_module_directories(self) -> dict[str, str]:
         return default_module_directories(self._directory)
+    @property
+    def decoded_tables_directory(self) -> Path:
+        return self._decoded_tables_directory
     def find_for_source(self, path: Path, preferred: Path | None = None) -> Path | None:
         if preferred is not None and preferred.exists():
             payload = read_json(preferred)
@@ -93,6 +105,12 @@ class BinaryWorkbenchWorkspaceRepository:
         variables, equates = symbols_from_payload(read_json(Path(module_paths.get(SYMBOLS, ""))))
         sector_size, files = lba_from_payload(read_json(Path(module_paths.get(LBA_FILESYSTEM, ""))))
         custom_commands = commands_from_payload(read_json(Path(module_paths.get(COMMANDS, ""))))
+        encoding_tables = encoding_tables_from_payload(read_json(Path(module_paths.get(ENCODING_TABLES, ""))))
+        offset_regions = offset_regions_from_payload(read_json(Path(module_paths.get(OFFSET_REGIONS, ""))))
+        view_preferences = view_preferences_from_payload(
+            manifest.get("view_preferences"),
+            tab.view_preferences,
+        )
         versions = self._versions_from_manifest(modules)
         active = modules.get(ACTIVE_VERSION) if isinstance(modules.get(ACTIVE_VERSION), str) else None
         active_version = next((item for item in versions if item.name == active), None)
@@ -127,6 +145,9 @@ class BinaryWorkbenchWorkspaceRepository:
                 "custom_commands": custom_commands,
                 "internal_files": files,
                 "lba_sector_size": sector_size,
+                "encoding_tables": encoding_tables,
+                "offset_regions": offset_regions,
+                "view_preferences": view_preferences,
                 "versions": versions,
                 "active_version_name": active,
                 "read_mode": "assembly"
@@ -151,6 +172,9 @@ class BinaryWorkbenchWorkspaceRepository:
                     files,
                     loaded.versions,
                     loaded.custom_commands,
+                    loaded.encoding_tables,
+                    loaded.offset_regions,
+                    loaded.view_preferences,
                 ),
             }
         )
@@ -173,6 +197,8 @@ class BinaryWorkbenchWorkspaceRepository:
         module_paths[SYMBOLS] = str(self._write_module(directories, module_paths, SYMBOLS, stem, symbols_payload(stem, tab.variables, tab.equates)))
         module_paths[LBA_FILESYSTEM] = str(self._write_module(directories, module_paths, LBA_FILESYSTEM, stem, lba_payload(stem, tab.lba_sector_size, tab.internal_files)))
         module_paths[COMMANDS] = str(self._write_module(directories, module_paths, COMMANDS, stem, commands_payload(stem, tab.custom_commands)))
+        module_paths[ENCODING_TABLES] = str(self._write_module(directories, module_paths, ENCODING_TABLES, stem, encoding_tables_payload(stem, tab.encoding_tables)))
+        module_paths[OFFSET_REGIONS] = str(self._write_module(directories, module_paths, OFFSET_REGIONS, stem, offset_regions_payload(stem, tab.offset_regions)))
         version_paths = self._write_versions(tab, directories, module_paths, stem)
         manifest = manifest_payload(tab, self._directory, module_paths, version_paths, directories)
         write_json(target, manifest)

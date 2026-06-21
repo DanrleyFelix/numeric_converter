@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QPlainTextEdit
 
-IMMEDIATE_TOKEN = re.compile(r"(?<![\w$])[-+]?(?:0x[0-9A-Fa-f]+|\d+)(?![\w])")
-MEMORY_OPERAND_TOKEN = re.compile(r"(?<![\w$])[-+]?(?:0x[0-9A-Fa-f]+|\d+)\(\$?[A-Za-z][A-Za-z0-9_]*\)")
+from src.modules.constants import HEX_DIGIT_PATTERN
+
+IMMEDIATE_TOKEN = re.compile(rf"(?<![\w$])[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+)(?![\w])")
+MEMORY_OPERAND_TOKEN = re.compile(rf"(?<![\w$])[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+)\(\$?[A-Za-z][A-Za-z0-9_]*\)")
 
 
 @dataclass(frozen=True)

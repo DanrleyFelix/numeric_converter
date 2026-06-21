@@ -1,7 +1,9 @@
 import binascii
 import sys
 
-from src.core.converter.errors import ConverterValidationError, MAX_BYTE_LENGTH
+from src.core.converter.constants import MAX_BYTE_LENGTH
+from src.core.converter.errors import ConverterValidationError
+from src.modules.constants import BINARY_DIGITS, DECIMAL_DIGITS
 
 if hasattr(sys, "set_int_max_str_digits"):
     sys.set_int_max_str_digits(0)
@@ -45,7 +47,7 @@ class Converter:
         clean = Converter._normalize(bin_str)
         if not clean:
             return 0
-        if any(char not in "01" for char in clean):
+        if any(char not in BINARY_DIGITS for char in clean):
             raise ConverterValidationError("Binary input accepts only 0 and 1.")
         Converter._validate_byte_length(max(1, (len(clean) + 7) // 8))
         return int(clean, 2)
@@ -82,7 +84,7 @@ class Converter:
     def _parse_decimal(value: str) -> int:
         if not value:
             return 0
-        if not value.isdigit():
+        if any(char not in DECIMAL_DIGITS for char in value):
             raise ConverterValidationError("Decimal input accepts only digits.")
         parsed = int(value)
         Converter._resolve_byte_length(parsed)

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
-from src.modules.dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchStateDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchStateDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 
 

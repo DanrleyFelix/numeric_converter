@@ -1,7 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
@@ -10,8 +15,6 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
     lba_button,
     lba_inline_field,
     lba_input,
-    size_lba_action,
-    size_lba_input,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
@@ -26,18 +29,22 @@ class LbaFilesystemLayoutMixin:
         footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         row = QHBoxLayout(footer)
         row.setContentsMargins(0, 0, _delete_gutter_width(), 0)
-        row.setSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_FIELD_SPACING)
+        row.setSpacing(0)
         load = lba_button(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LOAD, "binary-workbench-lba-action", footer)
         save = lba_button(BINARY_WORKBENCH_FILE_DIALOG_TEXT.SAVE, "binary-workbench-lba-action", footer)
         ok = lba_button(BINARY_WORKBENCH_FILE_DIALOG_TEXT.OK, "binary-workbench-lba-action", footer)
         for button in (load, save, ok):
-            size_lba_action(button, BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH, expanding=True)
+            configure_binary_workbench_action(button)
         load.clicked.connect(self._load_library_json_dialog)
         save.clicked.connect(self._save_library_json_dialog)
         ok.clicked.connect(self.accept)
-        row.addWidget(load, 1)
-        row.addWidget(ok, 1)
-        row.addWidget(save, 1)
+        row.addStretch(1)
+        row.addWidget(load)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_SPACING)
+        row.addWidget(ok)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_SPACING)
+        row.addWidget(save)
+        row.addStretch(1)
         parent.addWidget(footer, 0)
 
     def _build_library_controls(
@@ -54,7 +61,10 @@ class LbaFilesystemLayoutMixin:
         self.sector_size.setObjectName("binary-workbench-dialog-input")
         self.sector_size.addItems(["2048 bytes", "2334 bytes", "2352 bytes"])
         self.sector_size.setCurrentText(f"{lba_sector_size if lba_sector_size in {2048, 2334, 2352} else 2352} bytes")
-        size_lba_input(self.sector_size)
+        configure_binary_workbench_combo(
+            self.sector_size,
+            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+        )
         row.addWidget(lba_inline_field(BINARY_WORKBENCH_FILE_DIALOG_TEXT.LBA_SECTOR_LABEL, self.sector_size), 0)
         parent.addWidget(library, 0, Qt.AlignLeft)
 
@@ -76,10 +86,12 @@ class LbaFilesystemLayoutMixin:
             width=BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_START_WIDTH,
             expanding=True,
         )
+        configure_binary_workbench_line_edit(self.name)
+        configure_binary_workbench_line_edit(self.lba)
         set_python_identifier_validator(self.name)
         set_decimal_integer_validator(self.lba)
         add = lba_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "binary-workbench-lba-action", self.shell)
-        size_lba_action(add, BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH, expanding=True)
+        configure_binary_workbench_action(add)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(self.name, 1)
         row.addWidget(self.lba, 1)

@@ -1,12 +1,13 @@
 from PySide6.QtWidgets import QPlainTextEdit
 
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
-    ROW_BYTES,
     normalize_bytes_text,
     normalize_instruction_text,
 )
+from src.core.binary_workbench.encoding_tables import decode_hex_bytes
 
 
 class GridRenderingMixin:
@@ -21,13 +22,27 @@ class GridRenderingMixin:
         uppercase_bytes: bool = True,
         uppercase_instructions: bool = True,
     ) -> None:
-        offsets = [name for name in columns if name not in {BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION}]
+        content_columns = {
+            BINARY_WORKBENCH_TEXT.BYTES,
+            BINARY_WORKBENCH_TEXT.DECODED_TEXT,
+            BINARY_WORKBENCH_TEXT.INSTRUCTION,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        }
+        offsets = [name for name in columns if name not in content_columns]
         self._sync_offset_columns(offsets)
+        visible = set(columns)
+        self.offsets_host.setVisible(bool(offsets))
+        self.raw_shell.setVisible(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS in visible)
+        self.bytes_shell.setVisible(BINARY_WORKBENCH_TEXT.BYTES in visible)
+        self.decoded_shell.setVisible(BINARY_WORKBENCH_TEXT.DECODED_TEXT in visible)
+        self.instructions_shell.setVisible(True)
+        if self._last_editor_kind not in visible:
+            self._last_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
         self._group_bytes = group_bytes if group_bytes in {1, 2, 4} else 1
         self._uppercase_bytes = uppercase_bytes
         self._uppercase_instructions = uppercase_instructions
         self._virtual = virtual
-        for editor in (*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions):
+        for editor in (*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions):
             editor.set_large_binary_mode(virtual)
         self._total_size = total_size if virtual else len(rows) * ROW_BYTES
         self._all_rows = [] if virtual else list(rows)
@@ -87,6 +102,7 @@ class GridRenderingMixin:
     def _render(self) -> None:
         self._resize_editors()
         self._set_editor_text(self.bytes, [self._display_bytes_text(row.bytes_text) for row in self._rows])
+        self._set_editor_text(self.decoded_text, [decode_hex_bytes(row.bytes_text, self._decoded_text_values) for row in self._rows])
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
         self._instruction_highlighter.rehighlight()
         self._render_raw_instructions()
@@ -125,7 +141,7 @@ class GridRenderingMixin:
         row_index = offset // ROW_BYTES
         self._visible_start_offset = offset
         self._last_visible_offset = offset
-        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions]
+        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions]
         self._syncing_editor_scrollbars = True
         try:
             for editor in editors:

@@ -241,10 +241,20 @@ QLineEdit#binary-workbench-dialog-input {
     border: 1px solid $border-workspace-row;
     border-radius: $radius-10;
     min-height: 32px;
-    padding: $space-6 $space-10;
 }
 
 QLineEdit#binary-workbench-dialog-input:focus {
+    border: 1px solid $border-focus;
+}
+
+QLineEdit#binary-workbench-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+}
+
+QLineEdit#binary-workbench-input:focus {
     border: 1px solid $border-focus;
 }
 
@@ -254,7 +264,6 @@ QComboBox#binary-workbench-dialog-input {
     border: 1px solid $border-workspace-row;
     border-radius: $radius-10;
     min-height: 32px;
-    padding: $space-6 $space-10;
 }
 
 QComboBox#binary-workbench-dialog-input::drop-down {
@@ -376,7 +385,6 @@ QPushButton#binary-workbench-version-active {
     border-radius: $radius-8;
     color: $text-main;
     min-height: $size-dialog-button-min-height;
-    padding: $space-6 $space-10;
     text-align: left;
     outline: none;
 }
@@ -484,12 +492,8 @@ QPushButton#preferences-confirm {
     background-color: $bg-button;
 }
 
-QPushButton#binary-workbench-lba-action {
+QPushButton#binary-workbench-action {
     background-color: $bg-button;
-    min-height: $size-dialog-button-min-height;
-    min-width: $size-lba-action-width;
-    max-width: $size-lba-action-width;
-    padding: $padding-dialog-button;
     border-radius: $radius-10;
 }
 
@@ -497,7 +501,7 @@ QPushButton#preferences-ok:hover,
 QPushButton#preferences-cancel:hover,
 QPushButton#preferences-confirm:hover,
 QPushButton#help-nav-button:hover,
-QPushButton#binary-workbench-lba-action:hover {
+QPushButton#binary-workbench-action:hover {
     background-color: $bg-toolbar-button-hover;
 }
 
@@ -509,23 +513,12 @@ QPushButton#preferences-confirm:hover {
     border-color: $border-soft-success;
 }
 
-QPushButton#preferences-ok[compactSearch="true"],
-QPushButton#preferences-cancel[compactSearch="true"] {
-    min-width: $size-search-dialog-button-width;
-    max-width: $size-search-dialog-button-width;
-}
-
-QPushButton#preferences-ok[commandAction="true"] {
-    min-width: $size-dialog-button-min-width;
-    max-width: $size-dialog-button-min-width;
-}
-
 QPushButton#binary-workbench-tab-close:focus,
 QToolButton#binary-workbench-tab-nav-button:focus,
 QPushButton#preferences-ok:focus,
 QPushButton#preferences-cancel:focus,
 QPushButton#preferences-confirm:focus,
 QPushButton#help-nav-button:focus,
-QPushButton#binary-workbench-lba-action:focus {
+QPushButton#binary-workbench-action:focus {
     outline: none;
 }

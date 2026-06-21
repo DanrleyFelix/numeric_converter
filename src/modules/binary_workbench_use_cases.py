@@ -6,11 +6,11 @@ from src.core.binary_workbench.selection_limits import normalized_selection_limi
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
-from src.modules.dtos import (
+from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
-    ProgramContextDTO,
 )
 
 

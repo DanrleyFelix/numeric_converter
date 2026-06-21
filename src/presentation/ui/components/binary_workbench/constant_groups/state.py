@@ -8,5 +8,6 @@ class BINARY_WORKBENCH_STATE:
     SYMBOLS_DIRECTORY: str = "symbols"
     VERSIONS_DIRECTORY: str = "versions"
     ENCODING_TABLES_DIRECTORY: str = "encoding_tables"
+    OFFSET_REGIONS_DIRECTORY: str = "offset_regions"
     COMMANDS_DIRECTORY: str = "commands"
     RECENT_FILES_LIMIT: int = 12

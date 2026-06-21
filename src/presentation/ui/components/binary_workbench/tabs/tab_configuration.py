@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.core.binary_workbench.file_ops import apply_version_rows
 from src.core.binary_workbench.mips_r3000a import rebuild_rows_with_offsets
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchTabContextDTO,
@@ -132,7 +132,12 @@ class TabConfigurationMixin:
         if current is None:
             return
         preferences = BinaryWorkbenchViewPreferencesDTO(
-            visible_columns={**current.view_preferences.visible_columns, **visible_columns, "File": True, BINARY_WORKBENCH_TEXT.BYTES: True, BINARY_WORKBENCH_TEXT.INSTRUCTION: True},
+            visible_columns={
+                **current.view_preferences.visible_columns,
+                **visible_columns,
+                "File": current.view_preferences.visible_columns.get("File", True),
+                BINARY_WORKBENCH_TEXT.INSTRUCTION: True,
+            },
             decoded_text_tables=list(current.view_preferences.decoded_text_tables),
         )
         rows = rebuild_rows_with_offsets(current.rows, reference_offsets, reference_offset_bases)

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+)
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruction, strip_comment
 from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instructions,
 )
-
-EMPTY_OFFSET = "-"
-ROW_BYTES = 4
-
 
 def build_source_line_rows(
     lines: list[str],

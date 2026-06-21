@@ -10,6 +10,12 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog 
 from src.presentation.ui.components.binary_workbench.environment.symbol_offsets_dialog import (
     BinaryWorkbenchSymbolOffsetsDialog,
 )
+from src.presentation.ui.components.binary_workbench.environment.encoding_tables import (
+    BinaryWorkbenchEncodingTablesDialog,
+)
+from src.presentation.ui.components.binary_workbench.environment.offset_regions import (
+    BinaryWorkbenchOffsetRegionsDialog,
+)
 
 
 __all__ = [
@@ -17,4 +23,6 @@ __all__ = [
     "BinaryWorkbenchLabelsDialog",
     "BinaryWorkbenchSymbolsDialog",
     "BinaryWorkbenchSymbolOffsetsDialog",
+    "BinaryWorkbenchEncodingTablesDialog",
+    "BinaryWorkbenchOffsetRegionsDialog",
 ]

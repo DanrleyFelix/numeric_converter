@@ -8,12 +8,13 @@ from src.core.binary_workbench.mips_r3000a.preprocessor import (
 from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instruction,
 )
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_FILE_OFFSET as DEFAULT_OFFSET,
+    BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+)
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.source_line_rows import build_source_line_rows
-
-ROW_BYTES = 4
-DEFAULT_OFFSET = "0x00000000"
-FILE_OFFSET = "File"
 
 
 def without_blank_instruction_overlays(

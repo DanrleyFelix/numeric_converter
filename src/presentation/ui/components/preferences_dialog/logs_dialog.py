@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
-from src.modules.dtos import CommandLogPreferencesDTO
+from src.modules.command_window_dtos import CommandLogPreferencesDTO
 from src.presentation.ui.components.preferences_dialog.constants import (
     LOG_PREFERENCES_SIZE,
     LOG_PREFERENCES_SPACING,

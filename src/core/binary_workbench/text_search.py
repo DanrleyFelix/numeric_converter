@@ -1,7 +1,6 @@
-from src.modules.dtos import BinaryWorkbenchRowDTO
-
-
-ANSI_TEXT_ENCODING = "cp1252"
+from src.modules.binary_workbench_constants import ANSI_WINDOWS_ENCODING as ANSI_TEXT_ENCODING
+from src.modules.constants import HEX_DIGITS_LOWER
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 def ansi_text_bytes(text: str) -> bytes:
@@ -128,7 +127,7 @@ def find_hex_nibbles_in_rows(
 
 def hex_nibbles(value: str) -> str:
     clean = "".join(character for character in value.lower() if not character.isspace())
-    return clean if clean and all(character in "0123456789abcdef" for character in clean) else ""
+    return clean if clean and all(character in HEX_DIGITS_LOWER for character in clean) else ""
 
 
 def _row_chunks(rows: list[BinaryWorkbenchRowDTO]) -> list[tuple[int, bytes]]:

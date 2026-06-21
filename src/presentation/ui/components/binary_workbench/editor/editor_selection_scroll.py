@@ -4,7 +4,7 @@ from PySide6.QtGui import QCursor, QTextCursor
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 _SELECTION_SCROLL_EDGE_THRESHOLD = 18
 _SELECTION_SCROLL_INTERVAL_MS = 20

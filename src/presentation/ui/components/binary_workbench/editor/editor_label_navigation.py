@@ -3,6 +3,7 @@ import re
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QTextCursor
 
+from src.modules.constants import HEX_DIGIT_PATTERN
 from src.modules.contracts import CPUArchCodec
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
@@ -13,7 +14,7 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     safe_int,
 )
 
-JUMP_TARGET_TOKEN = re.compile(r"[@_]?[A-Za-z_][A-Za-z0-9_]*|[-+]?(?:0x[0-9A-Fa-f]+|\d+)")
+JUMP_TARGET_TOKEN = re.compile(rf"[@_]?[A-Za-z_][A-Za-z0-9_]*|[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+)")
 
 
 class EditorLabelNavigationMixin:

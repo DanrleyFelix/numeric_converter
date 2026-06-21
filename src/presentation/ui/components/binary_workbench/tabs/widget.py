@@ -6,10 +6,10 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QToolButton, QWidget
 
 from src.controllers.binary_workbench_controller import BinaryWorkbenchController
-from src.modules.dtos import (
+from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
-    ProgramContextDTO,
 )
 from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
@@ -34,6 +34,9 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_page_management im
 )
 from src.presentation.ui.components.binary_workbench.tabs.tab_state import TabStateMixin
 from src.presentation.ui.components.binary_workbench.tabs.tab_versions import TabVersionsMixin
+from src.presentation.ui.components.binary_workbench.tabs.tab_view_configuration import (
+    TabViewConfigurationMixin,
+)
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import (
     TabWorkspaceMixin,
 )
@@ -48,6 +51,7 @@ class BinaryWorkbenchTabs(
     TabPageManagementMixin,
     TabOpeningMixin,
     TabConfigurationMixin,
+    TabViewConfigurationMixin,
     TabCommandsMixin,
     TabLibrariesMixin,
     TabVersionsMixin,

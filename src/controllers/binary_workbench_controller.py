@@ -6,11 +6,11 @@ from src.modules.binary_workbench_use_cases import (
     binary_version_has_unsaved_edits,
     rows_have_meaningful_edits,
 )
-from src.modules.dtos import (
+from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
-    ProgramContextDTO,
 )
 
 

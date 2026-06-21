@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.modules.dtos import (
-    ApplicationContextDTO,
-    CommandContextDTO,
-    CommandEntryDTO,
-    ConverterStateDTO,
-    WindowSizeDTO,
-)
+from src.modules.application_dtos import ApplicationContextDTO
+from src.modules.command_window_dtos import CommandContextDTO, CommandEntryDTO
+from src.modules.converter_dtos import ConverterStateDTO
+from src.modules.shared_dtos import WindowSizeDTO
 
 
 def converter_fields(raw: dict[str, Any]) -> dict[str, str]:

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchViewPreferencesDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
     COMMANDS,
@@ -9,15 +9,20 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     MODULE_FOLDERS,
     SCHEMA_VERSION,
     SYMBOLS,
+    OFFSET_REGIONS,
+    VIEW_PREFERENCES,
     VERSION_PATH_PREFIX,
     VERSIONS,
 )
 from src.presentation.repository.binary_workbench_workspace.payloads import (
     commands_payload,
     checksum,
+    encoding_tables_payload,
     lba_payload,
+    offset_regions_payload,
     source_payload,
     symbols_payload,
+    view_preferences_payload,
     version_payload,
 )
 
@@ -35,7 +40,7 @@ def module_directories(manifest: dict[str, object], directory: Path) -> dict[str
 def module_paths(modules: dict[str, object], directory: Path) -> dict[str, str]:
     paths = {
         key: str(resolve_module_path(value, directory))
-        for key in (SYMBOLS, LBA_FILESYSTEM, COMMANDS)
+        for key in (SYMBOLS, LBA_FILESYSTEM, COMMANDS, ENCODING_TABLES, OFFSET_REGIONS)
         if isinstance((value := modules.get(key)), str)
     }
     raw_versions = modules.get(VERSIONS) if isinstance(modules.get(VERSIONS), dict) else {}
@@ -62,9 +67,11 @@ def manifest_payload(
             COMMANDS: relative_module_path(Path(paths[COMMANDS]), directory),
             VERSIONS: version_paths,
             ACTIVE_VERSION: tab.active_version_name,
-            ENCODING_TABLES: None,
+            ENCODING_TABLES: relative_module_path(Path(paths[ENCODING_TABLES]), directory),
+            OFFSET_REGIONS: relative_module_path(Path(paths[OFFSET_REGIONS]), directory),
         },
         "module_directories": directories,
+        VIEW_PREFERENCES: view_preferences_payload(tab.view_preferences),
     }
 
 
@@ -76,15 +83,32 @@ def tab_checksums(tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
         tab.internal_files,
         tab.versions,
         tab.custom_commands,
+        tab.encoding_tables,
+        tab.offset_regions,
+        tab.view_preferences,
     )
 
 
-def checksums_for(variables, equates, sector_size, files, versions, commands) -> dict[str, str]:
+def checksums_for(
+    variables,
+    equates,
+    sector_size,
+    files,
+    versions,
+    commands,
+    encoding_tables=(),
+    offset_regions=(),
+    view_preferences=None,
+) -> dict[str, str]:
+    view_preferences = view_preferences or BinaryWorkbenchViewPreferencesDTO()
     return {
         SYMBOLS: checksum(symbols_payload("", variables, equates)),
         LBA_FILESYSTEM: checksum(lba_payload("", sector_size, files)),
         VERSIONS: checksum({"versions": [version_payload(item) for item in versions]}),
         COMMANDS: checksum(commands_payload("", commands)),
+        ENCODING_TABLES: checksum(encoding_tables_payload("", list(encoding_tables))),
+        OFFSET_REGIONS: checksum(offset_regions_payload("", list(offset_regions))),
+        VIEW_PREFERENCES: checksum(view_preferences_payload(view_preferences)),
     }
 
 

@@ -6,7 +6,7 @@ from src.core.command_window.validator.errors import (
     ParenthesisMismatchError,
 )
 from src.core.command_window.validator.validation_state import ValidationState
-from src.core.constants import (
+from src.core.command_window.constants import (
     ARITHMETIC_OPERATORS,
     ASSIGNMENT_OPERATOR,
     CONDITIONAL_OPERATORS,

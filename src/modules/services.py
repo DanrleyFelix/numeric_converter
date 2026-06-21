@@ -1,15 +1,14 @@
 from pathlib import Path
 
-from src.modules.dtos import (
+from src.modules.application_dtos import (
     ApplicationContextDTO,
-    BinaryWorkbenchPreferencesDTO,
-    BinaryWorkbenchStateDTO,
-    CommandLogPreferencesDTO,
-    FormattingOutputDTO,
     NumericWorkbenchPreferencesDTO,
     ProgramContextDTO,
     WorkspaceStateDTO,
 )
+from src.modules.binary_workbench_dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchStateDTO
+from src.modules.command_window_dtos import CommandLogPreferencesDTO
+from src.modules.converter_dtos import FormattingOutputDTO
 
 
 class FormattingPreferencesService:

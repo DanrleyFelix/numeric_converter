@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.controllers.converter_controller import ConverterController
 from src.core.converter import NumericValidator
-from src.modules.dtos import ConversionResultDTO, FormattingOutputDTO
+from src.modules.converter_dtos import ConversionResultDTO, FormattingOutputDTO
 from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.formatters.clean_formatter import CleanFormatter
 from src.presentation.presenter.converter.formatting import (

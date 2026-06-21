@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from src.modules.dtos import (
+from src.modules.application_dtos import (
     ApplicationContextDTO,
-    BinaryWorkbenchStateDTO,
     ProgramContextDTO,
     WorkspaceStateDTO,
 )
+from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO
 from src.presentation.repository.binary_workbench_payload import (
     binary_workbench_state_from_payload,
     binary_workbench_state_to_payload,

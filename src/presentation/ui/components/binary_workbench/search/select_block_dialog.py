@@ -34,17 +34,15 @@ class BinaryWorkbenchSelectBlockDialog(QDialog):
         set_hex_value_validator(self.start)
         set_hex_value_validator(self.end)
         set_decimal_integer_validator(self.length)
-        ok = finish_search_dialog(
+        finish_search_dialog(
             layout,
             self.start,
             self.end,
             self.length,
             self.accept,
             confirm_text=BINARY_WORKBENCH_TEXT.CONFIRM,
-            confirm_object_name="preferences-confirm",
             center_confirm=True,
         )
-        ok.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SEARCH_FIELD_WIDTH)
 
     def selected_range(self) -> tuple[int, int] | None:
         try:

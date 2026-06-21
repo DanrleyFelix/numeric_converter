@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import TypeVar
 
 from src.core.command_window.validator.errors import UnknownVariableError
-from src.core.constants import MULTI_CHAR_OPERATORS
+from src.core.command_window.constants import MULTI_CHAR_OPERATORS
 
 T = TypeVar("T")
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-LABEL_SEPARATOR = ":"
+from src.modules.binary_workbench_constants import ASSEMBLY_LABEL_SEPARATOR as LABEL_SEPARATOR
 
 
 def expand_pseudo_instructions(lines: list[str]) -> list[str]:

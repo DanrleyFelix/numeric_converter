@@ -1,12 +1,17 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+    configure_binary_workbench_filter,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
     symbol_input,
     symbol_kind_combo,
-    size_symbol_action,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -27,6 +32,7 @@ class SymbolsDialogLayoutMixin:
             BINARY_WORKBENCH_LAYOUT.SYMBOL_FILTER_WIDTH,
             search_icon=True,
         )
+        configure_binary_workbench_filter(self.filter_input)
         self.filter_input.textChanged.connect(self._apply_filter)
         row.addWidget(self.filter_input, 0, Qt.AlignLeft | Qt.AlignVCenter)
         row.addStretch(1)
@@ -39,18 +45,22 @@ class SymbolsDialogLayoutMixin:
         footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         row = QHBoxLayout(footer)
         row.setContentsMargins(0, 0, _delete_gutter_width(), 0)
-        row.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
-        load = symbol_button("Load", "preferences-cancel", footer)
-        save = symbol_button("Save", "preferences-ok", footer)
-        ok = symbol_button("OK", "preferences-ok", footer)
+        row.setSpacing(0)
+        load = symbol_button("Load", "", footer)
+        save = symbol_button("Save", "", footer)
+        ok = symbol_button("OK", "", footer)
         for button in (load, save, ok):
-            size_symbol_action(button, BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_WIDTH, expanding=True)
+            configure_binary_workbench_action(button)
         load.clicked.connect(self._load_library_json_dialog)
         save.clicked.connect(self._save_library_json_dialog)
         ok.clicked.connect(self.accept)
-        row.addWidget(load, 1)
-        row.addWidget(ok, 1)
-        row.addWidget(save, 1)
+        row.addStretch(1)
+        row.addWidget(load)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
+        row.addWidget(ok)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
+        row.addWidget(save)
+        row.addStretch(1)
         parent.addWidget(footer, 0)
 
     def _build_entry(self, parent: QVBoxLayout) -> None:
@@ -63,9 +73,12 @@ class SymbolsDialogLayoutMixin:
         self.kind = symbol_kind_combo(entry, "Variable", expanding=True)
         self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, entry, expanding=True)
         self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, entry, expanding=True)
+        configure_binary_workbench_combo(self.kind)
+        configure_binary_workbench_line_edit(self.name)
+        configure_binary_workbench_line_edit(self.value)
         set_python_identifier_validator(self.name)
-        add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "preferences-ok", entry)
-        size_symbol_action(add, BINARY_WORKBENCH_LAYOUT.SYMBOL_ADD_ACTION_WIDTH, expanding=True)
+        add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "", entry)
+        configure_binary_workbench_action(add)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(self.kind, 1)
         row.addWidget(self.name, 1)

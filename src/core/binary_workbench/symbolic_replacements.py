@@ -3,13 +3,16 @@ from __future__ import annotations
 import re
 
 from src.core.binary_workbench.mips_r3000a import raw_mips_instruction
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_FILE_OFFSET as DEFAULT_FILE_OFFSET,
+    BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET_COLUMN,
+)
+from src.modules.constants import HEX_DIGIT_PATTERN
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
-FILE_OFFSET_COLUMN = "File"
-DEFAULT_FILE_OFFSET = "0x00000000"
-NUMBER_TOKEN = re.compile(r"(?<![\w$])-?(?:0x[0-9A-Fa-f]+|\d+)(?!\w)")
-MEMORY_OPERAND_TOKEN = re.compile(r"(?<![\w$])-?(?:0x[0-9A-Fa-f]+|\d+)\(\$?[A-Za-z][A-Za-z0-9_]*\)")
+NUMBER_TOKEN = re.compile(rf"(?<![\w$])-?(?:0x{HEX_DIGIT_PATTERN}+|\d+)(?!\w)")
+MEMORY_OPERAND_TOKEN = re.compile(rf"(?<![\w$])-?(?:0x{HEX_DIGIT_PATTERN}+|\d+)\(\$?[A-Za-z][A-Za-z0-9_]*\)")
 
 
 def apply_symbol_offsets(

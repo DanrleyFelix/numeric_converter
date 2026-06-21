@@ -1,7 +1,5 @@
-from src.core.converter.errors import MAX_BYTE_LENGTH
-
-
-HEX_CHARS = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+from src.core.converter.constants import MAX_BYTE_LENGTH
+from src.modules.constants import BINARY_DIGITS, DECIMAL_DIGITS, HEX_DIGITS
 
 
 def display_padding_len(display: str, raw_value: str) -> int:
@@ -38,10 +36,10 @@ def display_position_from_raw_index(display: str, raw_value: str, raw_index: int
 
 def is_valid_char(input_type: str, char: str) -> bool:
     if input_type == "decimal":
-        return char.isdigit()
+        return char in DECIMAL_DIGITS
     if input_type == "binary":
-        return char in {"0", "1"}
-    return char.upper() in HEX_CHARS
+        return char in BINARY_DIGITS
+    return char in HEX_DIGITS
 
 
 def normalize_char(input_type: str, char: str) -> str:

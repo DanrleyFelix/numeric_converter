@@ -12,7 +12,7 @@ from src.core.command_window.textual_operator_context import (
     unary_right_delimited,
 )
 from src.core.command_window.tokenizer.token import Token, TokenType
-from src.core.constants import TEXTUAL_OPERATORS
+from src.core.command_window.constants import TEXTUAL_OPERATORS
 
 
 class TextualOperatorNormalizer:

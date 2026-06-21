@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from src.core.binary_workbench.mips_r3000a import editor_mips_instruction
 from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruction
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
+    BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+)
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
-FILE_OFFSET = "File"
-EMPTY_OFFSET = "-"
 INVALID_INSTRUCTION_PREFIX = "Invalid instruction:"
-ROW_BYTES = 4
 
 
 def version_instruction_maps(

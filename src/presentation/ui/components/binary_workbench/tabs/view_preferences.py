@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from src.modules.dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchViewPreferencesDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchViewPreferencesDTO
 
 
 def seed_view_preferences(

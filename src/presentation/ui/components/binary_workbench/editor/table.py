@@ -10,7 +10,7 @@ from src.core.binary_workbench.selection_limits import (
     normalized_selection_limit,
 )
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_commands import (
     GridCommandsMixin,
@@ -77,6 +77,7 @@ class BinaryWorkbenchGrid(
         self._group_bytes = 1
         self._uppercase_bytes = True
         self._uppercase_instructions = True
+        self._decoded_text_values: dict[int, str] = {}
         self._labels: dict[str, str] = {}
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
@@ -105,3 +106,6 @@ class BinaryWorkbenchGrid(
 
     def set_selection_limit_bytes(self, value: int) -> None:
         self._selection_limit_bytes = normalized_selection_limit(value)
+
+    def set_decoded_text_values(self, values: dict[int, str]) -> None:
+        self._decoded_text_values = dict(values)

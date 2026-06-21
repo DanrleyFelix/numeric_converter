@@ -15,9 +15,11 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
-    size_symbol_action,
 )
 
 
@@ -38,15 +40,18 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
     shell_layout.setSpacing(20)
     editor = QPlainTextEdit(shell)
     editor.setObjectName("binary-workbench-command-instructions")
+    margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
+    editor.setViewportMargins(margin, margin, margin, margin)
     editor.setPlainText("\n".join(instructions))
     shell_layout.addWidget(editor, 1)
     footer = QHBoxLayout()
     footer.setContentsMargins(0, 0, 0, 0)
     footer.addStretch(1)
-    ok = symbol_button(BINARY_WORKBENCH_TEXT.OK, "preferences-ok", shell)
-    size_symbol_action(ok, BINARY_WORKBENCH_LAYOUT.COMMANDS_OK_WIDTH)
+    ok = symbol_button(BINARY_WORKBENCH_TEXT.OK, "", shell)
+    configure_binary_workbench_action(ok)
     ok.clicked.connect(dialog.accept)
     footer.addWidget(ok, 0)
+    footer.addStretch(1)
     shell_layout.addLayout(footer)
     layout.addWidget(shell, 1)
     if dialog.exec() != QDialog.DialogCode.Accepted:

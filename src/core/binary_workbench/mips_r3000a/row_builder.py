@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as _ROW_BYTES
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
 from src.core.binary_workbench.mips_r3000a.preprocessor import editor_mips_instruction
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
@@ -9,9 +10,6 @@ from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     labels_from_source_rows,
     offset_values,
 )
-
-_ROW_BYTES = 4
-
 
 def build_rows_from_bytes(
     data: bytes,

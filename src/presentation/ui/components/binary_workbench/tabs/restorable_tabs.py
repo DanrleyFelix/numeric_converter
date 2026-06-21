@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,

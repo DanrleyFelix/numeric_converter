@@ -5,7 +5,7 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 
 class GridResizingMixin:
     def _resize_editors(self) -> None:
-        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.instructions]
+        editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions]
         for editor in editors:
             editor.setMinimumHeight(BINARY_WORKBENCH_LAYOUT.EDITOR_MIN_HEIGHT)
 
@@ -65,6 +65,10 @@ class GridResizingMixin:
         if names == self._columns:
             return
         self._columns = names
+        self.offsets_host.setFixedWidth(
+            (len(names) * BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH)
+            + (max(0, len(names) - 1) * BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
+        )
         self._offset_editors.clear()
         while self.offsets_layout.count():
             item = self.offsets_layout.takeAt(0)

@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import re
 
+from src.modules.binary_workbench_constants import (
+    ASSEMBLY_LABEL_SEPARATOR as LABEL_SEPARATOR,
+    BINARY_WORKBENCH_DEFAULT_FILE_OFFSET as DEFAULT_FILE_OFFSET,
+    BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET_COLUMN,
+)
 from src.modules.contracts import CPUArchCodec
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.core.binary_workbench.symbolic_replacements import (
     apply_symbol_offsets,
     replace_matching_symbol,
     with_offset_symbols,
 )
-
-FILE_OFFSET_COLUMN = "File"
-DEFAULT_FILE_OFFSET = "0x00000000"
-LABEL_SEPARATOR = ":"
-
 
 def preserve_symbolic_rows(
     rows: list[BinaryWorkbenchRowDTO],

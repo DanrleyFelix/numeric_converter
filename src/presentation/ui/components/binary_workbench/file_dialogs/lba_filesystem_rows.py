@@ -1,13 +1,16 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_widgets import (
     LbaRemoveRowButton,
     lba_button,
     lba_input,
-    size_lba_action,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
@@ -56,10 +59,12 @@ class LbaFilesystemRowsMixin:
             BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_START_WIDTH,
             expanding=True,
         )
+        configure_binary_workbench_line_edit(name_edit)
+        configure_binary_workbench_line_edit(lba_edit)
         set_python_identifier_validator(name_edit)
         set_decimal_integer_validator(lba_edit)
-        go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "binary-workbench-lba-action", row)
-        size_lba_action(go_to, BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_WIDTH, expanding=True)
+        go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "", row)
+        configure_binary_workbench_action(go_to)
         go_to.clicked.connect(lambda: self._go_to_lba(lba_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = LbaRemoveRowButton(remove_slot)
@@ -87,7 +92,7 @@ class LbaFilesystemRowsMixin:
 
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
-    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
     layout.setContentsMargins(0, 0, 0, 0)
     return slot

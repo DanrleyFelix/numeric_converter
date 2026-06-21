@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
 
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,

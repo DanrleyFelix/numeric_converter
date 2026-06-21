@@ -10,6 +10,7 @@ from src.presentation.ui.components.binary_workbench.preferences.reference_offse
 from src.presentation.ui.components.binary_workbench.preferences.rules_dialog import (
     BinaryWorkbenchRulesDialog,
 )
+from src.presentation.ui.components.binary_workbench.preferences.view import BinaryWorkbenchViewDialog
 
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "BinaryWorkbenchBytesFormatterDialog",
     "BinaryWorkbenchReferenceOffsetsDialog",
     "BinaryWorkbenchRulesDialog",
+    "BinaryWorkbenchViewDialog",
 ]

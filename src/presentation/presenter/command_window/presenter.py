@@ -8,7 +8,7 @@ from src.core.command_window.expression_inspector import (
 )
 from src.core.command_window.logs import should_store_command_log
 from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
-from src.modules.dtos import (
+from src.modules.command_window_dtos import (
     CommandContextDTO,
     CommandEntryDTO,
     CommandLogPreferencesDTO,

@@ -1,11 +1,13 @@
 from dataclasses import replace
 from pathlib import Path
 
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_FILE_OFFSET as FIRST_OFFSET,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+)
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 
-FIRST_OFFSET = "0x00000000"
 NOP_BYTES = "00000000"
-ROW_BYTES = 4
 
 
 def discard_legacy_nop_overlays(

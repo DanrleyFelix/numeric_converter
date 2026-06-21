@@ -1,6 +1,7 @@
 from PySide6.QtGui import QTextCursor
 
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN, ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN
 
 
 class GridSelectionRangesMixin:

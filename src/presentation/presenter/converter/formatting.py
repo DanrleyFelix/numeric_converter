@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.modules.dtos import FormattingOutputDTO
+from src.modules.converter_dtos import FormattingOutputDTO
 from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.converter.constants import CONVERTER_TYPE
 

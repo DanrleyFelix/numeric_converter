@@ -3,7 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes, build_scratch_rows
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchStateDTO,
@@ -24,7 +24,7 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     rows_from_path,
 )
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 
 def create_binary_tab(

@@ -1,4 +1,4 @@
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TAB_KIND,
@@ -33,12 +33,21 @@ class EditorPageContextMixin:
         self.cpu_arch_summary.setText(BINARY_WORKBENCH_TEXT.CPU_ARCH_SUMMARY_TEMPLATE.format(cpu_arch=value))
 
     def _visible_columns(self) -> list[str]:
+        visible = self._context.view_preferences.visible_columns
         offsets = [
             name
             for name in self._context.reference_offsets
-            if self._context.view_preferences.visible_columns.get(name, True)
+            if visible.get(name, True)
         ]
-        return [*offsets, BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION]
+        columns = [*offsets]
+        if visible.get(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, True):
+            columns.append(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS)
+        if visible.get(BINARY_WORKBENCH_TEXT.BYTES, True):
+            columns.append(BINARY_WORKBENCH_TEXT.BYTES)
+        if visible.get(BINARY_WORKBENCH_TEXT.DECODED_TEXT, False):
+            columns.append(BINARY_WORKBENCH_TEXT.DECODED_TEXT)
+        columns.append(BINARY_WORKBENCH_TEXT.INSTRUCTION)
+        return columns
 
     def _update_context(self, updates: dict[str, object]) -> None:
         self._context = BinaryWorkbenchTabContextDTO(**{**self._context.__dict__, **updates})

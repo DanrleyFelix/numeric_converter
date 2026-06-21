@@ -5,20 +5,23 @@ from typing import Any
 from src.core.binary_workbench.context_overlays import (
     compact_binary_context_overlays,
 )
+from src.core.binary_workbench.encoding_tables import encoding_table_from_payload
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_overlays import (
     instructions_by_line_from_rows,
     without_blank_instruction_overlays,
 )
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchInternalFileDTO,
+    BinaryWorkbenchEncodingTableDTO,
+    BinaryWorkbenchOffsetRegionDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
     BinaryWorkbenchViewPreferencesDTO,
-    WindowSizeDTO,
 )
+from src.modules.shared_dtos import WindowSizeDTO
 from src.modules.utils import normalize_string_list, normalize_string_map
 
 
@@ -31,15 +34,23 @@ def _string_list_map(raw: object) -> dict[str, list[str]]:
 def _visible_columns(raw: object) -> dict[str, bool]:
     if not isinstance(raw, dict):
         return BinaryWorkbenchViewPreferencesDTO().visible_columns
-    return {str(key): bool(value) for key, value in raw.items()}
+    return {
+        **BinaryWorkbenchViewPreferencesDTO().visible_columns,
+        **{str(key): bool(value) for key, value in raw.items()},
+    }
 
 
 def _view_preferences(raw: object) -> BinaryWorkbenchViewPreferencesDTO:
     if not isinstance(raw, dict):
         return BinaryWorkbenchViewPreferencesDTO()
+    enabled = raw.get("decoded_text_tables")
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns=_visible_columns(raw.get("visible_columns")),
-        decoded_text_tables=normalize_string_list(raw.get("decoded_text_tables")),
+        decoded_text_tables=(
+            normalize_string_list(enabled)
+            if isinstance(enabled, list)
+            else BinaryWorkbenchViewPreferencesDTO().decoded_text_tables
+        ),
     )
 
 
@@ -93,13 +104,46 @@ def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, str]:
 
 
 def _version_instructions_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, str]:
-    values = version.instructions_by_line or instructions_by_line_from_rows(
-        version.rows,
+    stored = version.instructions_by_line
+    values = stored if isinstance(stored, dict) and stored else (
+        instructions_by_line_from_rows(version.rows) or {}
     )
     return {
         str(line): instruction
         for line, instruction in sorted(values.items())
     }
+
+
+def _encoding_tables(raw: object) -> list[BinaryWorkbenchEncodingTableDTO]:
+    if not isinstance(raw, list):
+        return []
+    tables: list[BinaryWorkbenchEncodingTableDTO] = []
+    for item in raw:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            continue
+        table = encoding_table_from_payload(item.get("values"), item["name"])
+        if table is not None:
+            tables.append(table)
+    return tables
+
+
+def _offset_regions(raw: object) -> list[BinaryWorkbenchOffsetRegionDTO]:
+    if not isinstance(raw, list):
+        return []
+    regions: list[BinaryWorkbenchOffsetRegionDTO] = []
+    for item in raw:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            continue
+        offset = item.get("offset")
+        if not isinstance(offset, int) or offset < 0:
+            continue
+        details = item.get("details")
+        regions.append(BinaryWorkbenchOffsetRegionDTO(
+            name=item["name"],
+            offset=offset,
+            details=details if isinstance(details, str) else "",
+        ))
+    return regions
 
 
 def _internal_files(raw: object) -> list[BinaryWorkbenchInternalFileDTO]:
@@ -238,6 +282,8 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         internal_files=_internal_files(raw.get("internal_files")),
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
+        offset_regions=_offset_regions(raw.get("offset_regions")),
+        encoding_tables=_encoding_tables(raw.get("encoding_tables")),
         versions=_versions(raw.get("versions")),
         active_version_name=active_version_name,
         workspace_path=str(raw.get("workspace_path"))
@@ -306,13 +352,22 @@ def binary_workbench_state_to_payload(
                 ],
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
+                "offset_regions": [
+                    {"name": item.name, "offset": item.offset, "details": item.details}
+                    for item in tab.offset_regions
+                ],
+                "encoding_tables": [
+                    {
+                        "name": table.name,
+                        "values": {f"0x{byte:02X}": text for byte, text in table.values.items()},
+                    }
+                    for table in tab.encoding_tables
+                ],
                 "versions": [
                     {
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
-                        "instructions": {
-                            **_version_instructions_payload(version),
-                        },
+                        "instructions": _version_instructions_payload(version),
                     }
                     for version in tab.versions
                 ],

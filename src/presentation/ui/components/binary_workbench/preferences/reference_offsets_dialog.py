@@ -1,6 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_control_height,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT,
@@ -33,10 +38,7 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         for _ in range(_MAX_EXTRA_OFFSETS - len(self._rows)):
             self._append_row(layout, "", "0x00000000", False)
         ok = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
-        ok.setObjectName("preferences-confirm")
-        ok.setFixedWidth(BINARY_WORKBENCH_LAYOUT.PREFERENCE_CONFIRM_WIDTH)
-        ok.setFocusPolicy(Qt.NoFocus)
-        ok.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_action(ok)
         ok.clicked.connect(self.accept)
         layout.addSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignCenter)
@@ -65,12 +67,21 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         name_field = QLineEdit(name, self)
         name_field.setObjectName("binary-workbench-dialog-input")
         name_field.setPlaceholderText(BINARY_WORKBENCH_TEXT.REFERENCE_NAME)
+        configure_binary_workbench_line_edit(
+            name_field,
+            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+        )
         base_field = QLineEdit(base, self)
         base_field.setObjectName("binary-workbench-dialog-input")
         base_field.setPlaceholderText(BINARY_WORKBENCH_TEXT.REFERENCE_BASE)
+        configure_binary_workbench_line_edit(
+            base_field,
+            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+        )
         visible_box = QCheckBox(BINARY_WORKBENCH_TEXT.REFERENCE_VISIBLE, self)
         visible_box.setChecked(visible)
         visible_box.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_control_height(visible_box)
         row.addWidget(name_field, 2)
         row.addWidget(base_field, 2)
         row.addWidget(visible_box, 1)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.constants import HEX_DIGITS
 
 BYTES_PANEL = "binary-workbench-bytes-panel"
-HEX_CHARACTERS = frozenset("0123456789abcdefABCDEF")
 DISPLAY_SEPARATOR = " "
 MAX_LINE_HEX_CHARACTERS = ROW_BYTES * 2
 
@@ -13,13 +13,13 @@ def is_bytes_editor(editor) -> bool:
 
 
 def bytes_insert_allowed(text: str, document_text: str, ranges: list[tuple[int, int]]) -> bool:
-    if not text or any(char not in HEX_CHARACTERS for char in text):
+    if not text or any(char not in HEX_DIGITS for char in text):
         return False
     return bytes_replacement_allowed(text, document_text, ranges)
 
 
 def bytes_replacement_allowed(text: str, document_text: str, ranges: list[tuple[int, int]]) -> bool:
-    if not text or any(char not in HEX_CHARACTERS and char != DISPLAY_SEPARATOR for char in text):
+    if not text or any(char not in HEX_DIGITS and char != DISPLAY_SEPARATOR for char in text):
         return False
     for start, end in ranges:
         if not _range_accepts_text(document_text, start, end, text):
@@ -68,7 +68,7 @@ def _range_accepts_text(document_text: str, start: int, end: int, text: str) -> 
     line = document_text[line_start:line_end]
     updated = f"{line[:relative_start]}{text}{line[relative_end:]}"
     return (
-        all(char in HEX_CHARACTERS or char == DISPLAY_SEPARATOR for char in updated)
+        all(char in HEX_DIGITS or char == DISPLAY_SEPARATOR for char in updated)
         and _hex_count(updated) <= MAX_LINE_HEX_CHARACTERS
     )
 
@@ -80,15 +80,15 @@ def _line_bounds(text: str, position: int) -> tuple[int, int]:
 
 
 def _hex_count(text: str) -> int:
-    return sum(1 for char in text if char in HEX_CHARACTERS)
+    return sum(1 for char in text if char in HEX_DIGITS)
 
 
 def _allowed_paste_character(char: str) -> bool:
-    return char in HEX_CHARACTERS or char.isspace()
+    return char in HEX_DIGITS or char.isspace()
 
 
 def _hex_stream(text: str) -> str:
-    return "".join(char for char in text if char in HEX_CHARACTERS)
+    return "".join(char for char in text if char in HEX_DIGITS)
 
 
 def _format_hex_line(hex_text: str) -> str:
@@ -138,6 +138,6 @@ def _document_is_valid(text: str) -> bool:
 
 def _line_is_valid(line: str) -> bool:
     return (
-        all(char in HEX_CHARACTERS or char == DISPLAY_SEPARATOR for char in line)
+        all(char in HEX_DIGITS or char == DISPLAY_SEPARATOR for char in line)
         and _hex_count(line) <= MAX_LINE_HEX_CHARACTERS
     )

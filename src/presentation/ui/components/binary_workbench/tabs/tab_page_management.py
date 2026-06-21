@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton, QTabBar
 
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.repository.binary_workbench_workspace.constants import COMMANDS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage

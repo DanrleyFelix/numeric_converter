@@ -5,6 +5,7 @@ from src.core.binary_workbench.mips_r3000a import (
     raw_mips_instruction,
     validate_mips_hazards,
 )
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -12,7 +13,7 @@ from src.presentation.ui.components.binary_workbench.editor.constants.raw_instru
     RAW_INSTRUCTION_HAZARD_ERROR_BACKGROUND_RGBA,
     RAW_INSTRUCTION_HAZARD_WARNING_BACKGROUND_RGBA,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES, address_from_row
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import address_from_row
 
 
 class GridRawInstructionsMixin:

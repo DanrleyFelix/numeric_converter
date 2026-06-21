@@ -4,10 +4,10 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QMainWindow
 
-from src.modules.dtos import (
+from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
-    ProgramContextDTO,
 )
 from src.modules.services import (
     BinaryWorkbenchPreferencesService,

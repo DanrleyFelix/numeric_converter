@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLabel, QListWidget, QPushButton, QVBoxLayout
 
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
 )

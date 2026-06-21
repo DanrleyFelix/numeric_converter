@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.core.binary_workbench.editor.commands.payloads import commands_from_payload
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import COMMANDS
 from src.presentation.repository.binary_workbench_workspace.payloads import (

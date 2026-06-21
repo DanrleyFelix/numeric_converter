@@ -10,7 +10,7 @@ from src.core.binary_workbench.version_overlays import (
 )
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.version_line_comments import apply_line_comments
-from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSION_PATH_PREFIX,

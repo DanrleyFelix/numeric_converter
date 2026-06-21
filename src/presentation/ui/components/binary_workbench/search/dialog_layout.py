@@ -12,6 +12,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_combo,
+    configure_binary_workbench_line_edit,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 
 
@@ -73,8 +78,6 @@ def finish_search_dialog(
     layout: QVBoxLayout,
     *widgets,
     confirm_text: str = "OK",
-    button_width: int | None = None,
-    confirm_object_name: str = "preferences-ok",
     center_confirm: bool = False,
     spread_actions: bool = False,
 ) -> QPushButton:
@@ -84,22 +87,18 @@ def finish_search_dialog(
     for widget in content_widgets:
         layout.addWidget(widget)
     ok = QPushButton(confirm_text)
-    ok.setObjectName(confirm_object_name)
-    ok.setFocusPolicy(Qt.NoFocus)
-    ok.setCursor(Qt.PointingHandCursor)
-    if button_width is not None:
-        ok.setFixedWidth(button_width)
-        ok.setProperty("compactSearch", True)
-        if action_button is not None:
-            action_button.setFixedWidth(button_width)
-            action_button.setProperty("compactSearch", True)
+    configure_binary_workbench_action(ok)
+    if action_button is not None:
+        configure_binary_workbench_action(action_button)
     ok.clicked.connect(callback)
     row = QHBoxLayout()
     row.setContentsMargins(0, 0, 0, 0)
     if action_button is not None and spread_actions:
-        row.addWidget(action_button)
         row.addStretch(1)
+        row.addWidget(action_button)
+        row.addSpacing(BINARY_WORKBENCH_LAYOUT.MAX_RELATED_CONTROL_GAP)
         row.addWidget(ok)
+        row.addStretch(1)
     elif action_button is not None:
         row.addWidget(action_button)
         row.addSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
@@ -120,10 +119,18 @@ def search_line_edit(parent: QDialog, placeholder: str) -> QLineEdit:
     editor = QLineEdit(parent)
     editor.setObjectName("binary-workbench-dialog-input")
     editor.setPlaceholderText(placeholder)
+    configure_binary_workbench_line_edit(
+        editor,
+        BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+    )
     return editor
 
 
 def configure_search_combo_popup(combo: QComboBox) -> None:
+    configure_binary_workbench_combo(
+        combo,
+        BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+    )
     view = combo.view()
     view.setViewportMargins(0, 0, 0, 0)
     view.setSpacing(BINARY_WORKBENCH_LAYOUT.SEARCH_COMBO_OPTION_SPACING)

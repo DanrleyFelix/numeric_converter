@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.modules.dtos import CommandRenderResultDTO
+from src.modules.command_window_dtos import CommandRenderResultDTO
 from src.modules.utils import COLOR
 
 

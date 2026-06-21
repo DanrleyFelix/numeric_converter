@@ -1,7 +1,8 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.constants import DECIMAL_DIGITS, HEX_DIGITS
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
@@ -61,9 +62,6 @@ class BinaryWorkbenchGoToDialog(QDialog):
         self.value = search_line_edit(self, BINARY_WORKBENCH_TEXT.VALUE)
         self.results = SearchResultsList(self)
         resolve = QPushButton(BINARY_WORKBENCH_TEXT.GO_TO, self)
-        resolve.setObjectName("preferences-cancel")
-        resolve.setFocusPolicy(Qt.NoFocus)
-        resolve.setCursor(Qt.PointingHandCursor)
         resolve.clicked.connect(self.refresh_results)
         layout.addWidget(self.target)
         layout.addWidget(self.value)
@@ -75,7 +73,6 @@ class BinaryWorkbenchGoToDialog(QDialog):
             layout,
             resolve,
             self.accept,
-            button_width=BINARY_WORKBENCH_LAYOUT.SEARCH_BUTTON_WIDTH,
             spread_actions=True,
         )
         self._sync_value_validator(self.target.currentText())
@@ -101,7 +98,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
 
     def _sync_value_validator(self, target: str) -> None:
         if target == BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET or target in self._context.reference_offset_bases:
-            self._keep_value_characters("0123456789abcdefABCDEF")
+            self._keep_value_characters(HEX_DIGITS)
             set_hex_value_validator(self.value)
             return
         if target in {
@@ -109,7 +106,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
             BINARY_WORKBENCH_TEXT.LBA_2334_TARGET,
             BINARY_WORKBENCH_TEXT.LBA_2352_TARGET,
         }:
-            self._keep_value_characters("0123456789")
+            self._keep_value_characters(DECIMAL_DIGITS)
             set_decimal_integer_validator(self.value)
             return
         self._keep_python_identifier()
@@ -126,7 +123,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
             for character in self.value.text()
             if character == "_" or character.isascii() and character.isalnum()
         )
-        while value and value[0].isdigit():
+        while value and value[0] in DECIMAL_DIGITS:
             value = value[1:]
         if value != self.value.text():
             self.value.setText(value)

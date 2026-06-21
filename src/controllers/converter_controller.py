@@ -1,4 +1,4 @@
-from src.modules.dtos import ConversionResultDTO, FormattingOutputDTO
+from src.modules.converter_dtos import ConversionResultDTO, FormattingOutputDTO
 from src.modules.use_cases import ConverterUseCase
 
 

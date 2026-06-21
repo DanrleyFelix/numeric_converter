@@ -1,4 +1,4 @@
-MAX_BYTE_LENGTH = 4096
+from src.core.converter.constants import MAX_BYTE_LENGTH
 
 
 class ConverterValidationError(ValueError):

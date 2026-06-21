@@ -4,15 +4,14 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSignalBlocker, QSize
 
-from src.modules.dtos import (
+from src.modules.application_dtos import (
     ApplicationContextDTO,
-    BinaryWorkbenchPreferencesDTO,
-    BinaryWorkbenchStateDTO,
-    ConverterStateDTO,
     NumericWorkbenchPreferencesDTO,
     ProgramContextDTO,
-    WindowSizeDTO,
 )
+from src.modules.binary_workbench_dtos import BinaryWorkbenchPreferencesDTO, BinaryWorkbenchStateDTO
+from src.modules.converter_dtos import ConverterStateDTO
+from src.modules.shared_dtos import WindowSizeDTO
 from src.modules.utils import COLOR
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_TEXT
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT

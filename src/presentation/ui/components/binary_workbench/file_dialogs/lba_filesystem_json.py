@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QFileDialog
 
-from src.modules.dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,

@@ -1,6 +1,6 @@
 from typing import List
 from numbers import Number
-from src.core.constants import OPERATOR_INFO, ASSOC
+from src.core.command_window.constants import ASSOC, OPERATOR_INFO
 from src.core.command_window.tokenizer import Token, TokenType
 from src.core.command_window.evaluator.apply_operator import apply_operator
 from src.core.command_window.evaluator.errors import EvaluationError

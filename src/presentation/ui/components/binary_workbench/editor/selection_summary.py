@@ -2,17 +2,18 @@ import re
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel
 
+from src.modules.constants import HEX_UPPER_DIGIT_PATTERN
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
 
 _SELECTION = re.compile(
-    r"Offset: 0x(?P<offset>[0-9A-F]+) \| "
-    r"Selected: 0x(?P<first>[0-9A-F]+)\.\.0x(?P<last>[0-9A-F]+) \| "
+    rf"Offset: 0x(?P<offset>{HEX_UPPER_DIGIT_PATTERN}+) \| "
+    rf"Selected: 0x(?P<first>{HEX_UPPER_DIGIT_PATTERN}+)\.\.0x(?P<last>{HEX_UPPER_DIGIT_PATTERN}+) \| "
     r"Length: (?P<length>\d+) bytes"
 )
-_OFFSET = re.compile(r"Offset: 0x(?P<offset>[0-9A-F]+)")
+_OFFSET = re.compile(rf"Offset: 0x(?P<offset>{HEX_UPPER_DIGIT_PATTERN}+)")
 
 
 def selection_summary_label(text: str, parent) -> QLabel:

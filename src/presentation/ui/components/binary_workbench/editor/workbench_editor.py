@@ -4,6 +4,7 @@ from PySide6.QtCore import QEvent, QStringListModel, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
 from src.presentation.ui.components.binary_workbench.editor.editor_granular_undo import (
@@ -23,9 +24,6 @@ from src.presentation.ui.components.binary_workbench.editor.editor_shortcuts imp
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
-)
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
-    ROW_BYTES,
 )
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 

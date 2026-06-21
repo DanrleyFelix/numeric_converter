@@ -5,12 +5,12 @@ from src.core.binary_workbench.file_ops import (
     save_binary_as_assembly,
     save_versioned_binary,
 )
-from src.modules.dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import is_assembly_path
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import rows_to_bytes

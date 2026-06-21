@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from src.modules.dtos import BinaryWorkbenchRowDTO
-
-LABEL_SEPARATOR = ":"
-DEFAULT_FILE_OFFSET = "0x00000000"
+from src.modules.binary_workbench_constants import (
+    ASSEMBLY_LABEL_SEPARATOR as LABEL_SEPARATOR,
+    BINARY_WORKBENCH_DEFAULT_FILE_OFFSET as DEFAULT_FILE_OFFSET,
+)
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 def apply_instruction_overlays(

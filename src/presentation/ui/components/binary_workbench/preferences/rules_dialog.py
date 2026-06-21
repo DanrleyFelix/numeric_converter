@@ -1,7 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QDialog, QPushButton, QVBoxLayout
 
-from src.modules.dtos import BinaryWorkbenchEditRulesDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_action,
+    configure_binary_workbench_control_height,
+)
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_RULES_LAYOUT,
     BINARY_WORKBENCH_RULES_TEXT,
@@ -44,9 +48,7 @@ class BinaryWorkbenchRulesDialog(QDialog):
         ):
             layout.addWidget(control)
         ok = QPushButton(BINARY_WORKBENCH_RULES_TEXT.CONFIRM, self)
-        ok.setObjectName("preferences-confirm")
-        ok.setFocusPolicy(Qt.NoFocus)
-        ok.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_action(ok)
         ok.clicked.connect(self.accept)
         layout.addSpacing(BINARY_WORKBENCH_RULES_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignCenter)
@@ -64,4 +66,5 @@ class BinaryWorkbenchRulesDialog(QDialog):
         item.setObjectName("binary-workbench-dialog-check")
         item.setChecked(checked)
         item.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_control_height(item)
         return item

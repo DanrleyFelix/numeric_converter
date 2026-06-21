@@ -1,3 +1,6 @@
+from src.modules.constants import HEX_KEYS
+
+
 class KEY_PANEL_SIZE:
     BUTTON_MIN_HEIGHT: int = 34
     BUTTON_MIN_WIDTH: int = 56
@@ -10,8 +13,7 @@ class KEY_PANEL_LAYOUT:
 
 
 KEY_PANEL_KEYS: list[str] = [
-    "0", "1", "2", "3", "4", "5", "6", "7",
-    "8", "9", "A", "B", "C", "D", "E", "F",
+    *HEX_KEYS,
     "+", "-", "x", "/", "^", "==", "!=", ">=", "<=",
     "=", "&", "|", "~", "NOT", "OR", "AND", "XOR", ">>", "<<",
     "(", ")", "0x", "0b",

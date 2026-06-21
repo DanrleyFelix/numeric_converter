@@ -1,11 +1,12 @@
 from PySide6.QtGui import QTextCursor
 
 from src.core.binary_workbench.selection_limits import capped_end_offset
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN, ROW_BYTES
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN
 
 
 class GridVirtualSelectionMixin:

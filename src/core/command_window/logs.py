@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from src.core.command_window.textual_operator_context import previous_allows_unary
 from src.core.command_window.tokenizer import Token, TokenType, Tokenizer
-from src.modules.dtos import CommandLogPreferencesDTO
+from src.modules.command_window_dtos import CommandLogPreferencesDTO
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QScro
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.highlighters import BytesHighlighter, InstructionHighlighter
-from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import ROW_BYTES
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 
 
@@ -18,6 +18,7 @@ class GridLayoutMixin:
         self.canvas_layout.setContentsMargins(0, 0, 0, 0)
         self.canvas_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
         self.offsets_host = QFrame(self.canvas)
+        self.offsets_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self.offsets_layout = QHBoxLayout(self.offsets_host)
         self.offsets_layout.setContentsMargins(0, 0, 0, 0)
         self.offsets_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
@@ -26,6 +27,7 @@ class GridLayoutMixin:
         self.scrollbar.valueChanged.connect(self._on_scrollbar_changed)
         self.raw_shell, self.raw_instructions = self._panel(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, "binary-workbench-raw-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_RAW_INSTRUCTION_WIDTH)
         self.bytes_shell, self.bytes = self._panel(BINARY_WORKBENCH_TEXT.BYTES, "binary-workbench-bytes-panel", False, BINARY_WORKBENCH_LAYOUT.EDITOR_BYTES_WIDTH)
+        self.decoded_shell, self.decoded_text = self._panel(BINARY_WORKBENCH_TEXT.DECODED_TEXT, "binary-workbench-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_DECODED_TEXT_WIDTH)
         self.instructions_shell, self.instructions = self._panel(BINARY_WORKBENCH_TEXT.INSTRUCTION, "binary-workbench-instructions-panel", False)
         self._bytes_highlighter = BytesHighlighter(self.bytes.document())
         self._raw_instruction_highlighter = InstructionHighlighter(self.raw_instructions.document())
@@ -34,6 +36,7 @@ class GridLayoutMixin:
         self.canvas_layout.addWidget(self.offsets_host, 0)
         self.canvas_layout.addWidget(self.raw_shell, 0)
         self.canvas_layout.addWidget(self.bytes_shell, 0)
+        self.canvas_layout.addWidget(self.decoded_shell, 0)
         self.canvas_layout.addWidget(self.instructions_shell, 1)
         layout.addWidget(self.canvas, 1)
         layout.addWidget(self.scrollbar, 0)
@@ -60,6 +63,8 @@ class GridLayoutMixin:
             editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
             editor.returnKeyPressed.connect(self._handle_editor_return_key)
             editor.protectedEditKeyPressed.connect(self._handle_editor_protected_edit_key)
+        self.decoded_text.copyRequested.connect(lambda source: source.copy())
+        self.decoded_text.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
 
     def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
         shell = QFrame(self)
@@ -71,6 +76,9 @@ class GridLayoutMixin:
         label = QLabel(label_text, shell)
         label.setObjectName("binary-workbench-column-label")
         editor = self._editor(object_name, read_only, width)
+        if width is not None:
+            shell.setFixedWidth(width)
+            shell.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         layout.addWidget(label, 0)
         layout.addWidget(editor, 1)
         return shell, editor

@@ -8,9 +8,8 @@ from src.core.binary_workbench.mips_r3000a import (
 from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
-from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
-
-ROW_BYTES = 4
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 
 
 def compact_binary_context_overlays(

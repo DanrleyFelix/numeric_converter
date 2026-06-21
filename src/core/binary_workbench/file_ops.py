@@ -5,7 +5,7 @@ from shutil import copyfile
 
 from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
-from src.modules.dtos import (
+from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchRowDTO,
 )

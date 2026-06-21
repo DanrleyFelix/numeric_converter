@@ -5,7 +5,7 @@ from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
 )
-from src.modules.dtos import BinaryWorkbenchRowDTO
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 DEFAULT_REFS = ["File"]
 DEFAULT_REF_BASES = {"File": "0x00000000"}
