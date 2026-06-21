@@ -62,7 +62,7 @@
                 "commands": "4981315ff1014025e6bde0e31937299854a347a679f5d26fa0f46b996b0988e0",
                 "encoding_tables": "a00048af5a5563e2931b5f8cd60b1f722f068f079a42c68fe376b68ea6a4b27c",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "view_preferences": "f9da44b565d37d3bc9fe58b9e40fc646680ac2c84475fbd2ebeb2afa9b6af33a"
+                "view_preferences": "c25d26b16ef05ddd040de404196e4ff9dd6701cfb33dc3d4a5a253aab6e809e1"
             },
             "custom_commands": {
                 "teste": [
@@ -729,7 +729,9 @@
                     "Bytes": true,
                     "Instruction": true
                 },
-                "decoded_text_tables": []
+                "decoded_text_tables": [
+                    "ASCII (ANSI windows)"
+                ]
             }
         },
         {
@@ -746,10 +748,16 @@
             "reference_offset_bases": {
                 "Ram offset": "0x8000f800"
             },
-            "labels": {},
+            "labels": {
+                "l1": "0x0000000C"
+            },
             "equates": {},
             "variables": {},
-            "symbol_offsets": {},
+            "symbol_offsets": {
+                "l1": [
+                    "0x0000000C"
+                ]
+            },
             "search_cache": {},
             "internal_files": [],
             "lba_sector_size": 2352,
@@ -785,14 +793,20 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "04ad08beaa58c81445bf9a307062142ffb6573de791517b43fcb9293caad433a",
-                "commands": "620b88f28b01972a275b5ea483058b54a8fc1763a01fcae0b25b85bc7318c60a",
+                "versions": "3c0df9af9ab9c1c00b0b91faf9374f651714cf59fccfc8ed2c9f1608545af7fd",
+                "commands": "f28308110014399462d5c186cfd593b19af6059fd531801b4ece4d0a8cb59a92",
                 "encoding_tables": "a00048af5a5563e2931b5f8cd60b1f722f068f079a42c68fe376b68ea6a4b27c",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "d5f25c17fabccddba3e9eeba20926578cc1bfd4b42fe9a8ef4b54a3ba281d447"
             },
-            "custom_commands": {},
-            "last_open_offset": "0x00000000",
+            "custom_commands": {
+                "ads": [
+                    "NOP",
+                    "NOP",
+                    "NOP"
+                ]
+            },
+            "last_open_offset": "0x0000000C",
             "navigation_history": [],
             "file_size": 1902592,
             "original_file_size": 1902592,
@@ -1025,7 +1039,7 @@
             }
         }
     ],
-    "active_tab_id": "93d1d629a2c048ed810983002fa203ab",
+    "active_tab_id": "e0cd1b2087c343a6b447937e65c92fa5",
     "share_view_preferences": false,
     "directories": {
         "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",

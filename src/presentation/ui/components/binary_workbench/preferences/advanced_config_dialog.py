@@ -8,8 +8,8 @@ from src.core.binary_workbench.selection_limits import (
     normalized_selection_limit,
 )
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
     configure_binary_workbench_combo,
+    configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -104,7 +104,7 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
             )
         )
         ok = QPushButton(BINARY_WORKBENCH_ADVANCED_CONFIG_TEXT.CONFIRM, self)
-        configure_binary_workbench_action(ok)
+        configure_binary_workbench_dialog_action(ok)
         ok.clicked.connect(self.accept)
         _set_control_widths(
             self.combo,
@@ -125,7 +125,10 @@ class BinaryWorkbenchAdvancedConfigDialog(QDialog):
         layout.addWidget(self.selection_limit)
         layout.addSpacing(BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignHCenter)
-        self.setFixedSize(self.sizeHint())
+        self.setFixedSize(
+            BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.DIALOG_WIDTH,
+            self.sizeHint().height(),
+        )
 
     def selected_arch(self) -> str:
         return self.combo.currentText()
@@ -157,7 +160,7 @@ def _set_control_widths(*controls) -> None:
     for control in controls:
         configure_binary_workbench_combo(
             control,
-            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+            BINARY_WORKBENCH_ADVANCED_CONFIG_LAYOUT.CONTROL_WIDTH,
         )
 
 

@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_line_edit,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
@@ -64,7 +64,7 @@ class LbaFilesystemRowsMixin:
         set_python_identifier_validator(name_edit)
         set_decimal_integer_validator(lba_edit)
         go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "", row)
-        configure_binary_workbench_action(go_to)
+        configure_binary_workbench_dialog_action(go_to)
         go_to.clicked.connect(lambda: self._go_to_lba(lba_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = LbaRemoveRowButton(remove_slot)

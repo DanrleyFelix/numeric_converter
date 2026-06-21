@@ -11,7 +11,7 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ANSI_TABLE_N
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEncodingTableDTO
 from src.modules.utils import read_json
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_dialog_button,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT, BINARY_WORKBENCH_TIMING
@@ -39,7 +39,7 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         layout.setContentsMargins(*(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_MARGIN,) * 4)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_GAP)
         load = QPushButton(BINARY_WORKBENCH_TEXT.LOAD_TABLE, self)
-        configure_binary_workbench_action(load)
+        configure_binary_workbench_dialog_action(load)
         load.clicked.connect(self._load_table)
         layout.addWidget(load, 0, Qt.AlignHCenter)
         scroll = QScrollArea(self)

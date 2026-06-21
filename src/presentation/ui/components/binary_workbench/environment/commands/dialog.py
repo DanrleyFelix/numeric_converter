@@ -20,8 +20,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_filter,
+    configure_binary_workbench_line_edit,
 )
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     SymbolRemoveRowButton,
@@ -94,6 +95,7 @@ class BinaryWorkbenchCommandsDialog(QDialog):
             search_icon=True,
         )
         configure_binary_workbench_filter(self.filter_input)
+        configure_binary_workbench_line_edit(self.filter_input)
         self.filter_input.textChanged.connect(self._apply_filter)
         parent.addWidget(self.filter_input, 0, Qt.AlignLeft)
 
@@ -158,14 +160,12 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         load = symbol_button(BINARY_WORKBENCH_TEXT.LOAD, "", footer_frame)
         save = symbol_button(BINARY_WORKBENCH_TEXT.SAVE, "", footer_frame)
         for button in (load, save):
-            configure_binary_workbench_action(button)
+            configure_binary_workbench_dialog_action(button)
         load.clicked.connect(self._request_load)
         save.clicked.connect(self._request_save)
+        footer.addWidget(load, 0, Qt.AlignLeft)
         footer.addStretch(1)
-        footer.addWidget(load)
-        footer.addSpacing(BINARY_WORKBENCH_LAYOUT.MAX_RELATED_CONTROL_GAP)
-        footer.addWidget(save)
-        footer.addStretch(1)
+        footer.addWidget(save, 0, Qt.AlignRight)
         parent.addWidget(footer_frame, 0)
 
     def _refresh_rows(self) -> None:
@@ -188,7 +188,7 @@ class BinaryWorkbenchCommandsDialog(QDialog):
         label.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_LEFT_COLUMN_WIDTH)
         label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         show = symbol_button(BINARY_WORKBENCH_TEXT.SHOW, "", row_widget)
-        configure_binary_workbench_action(show)
+        configure_binary_workbench_dialog_action(show)
         show.clicked.connect(lambda: self._edit_instructions(name, instructions))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)

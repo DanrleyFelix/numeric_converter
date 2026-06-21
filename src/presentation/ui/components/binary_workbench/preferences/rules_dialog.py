@@ -3,8 +3,8 @@ from PySide6.QtWidgets import QCheckBox, QDialog, QPushButton, QVBoxLayout
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
     configure_binary_workbench_control_height,
+    configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_RULES_LAYOUT,
@@ -48,7 +48,7 @@ class BinaryWorkbenchRulesDialog(QDialog):
         ):
             layout.addWidget(control)
         ok = QPushButton(BINARY_WORKBENCH_RULES_TEXT.CONFIRM, self)
-        configure_binary_workbench_action(ok)
+        configure_binary_workbench_dialog_action(ok)
         ok.clicked.connect(self.accept)
         layout.addSpacing(BINARY_WORKBENCH_RULES_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignCenter)

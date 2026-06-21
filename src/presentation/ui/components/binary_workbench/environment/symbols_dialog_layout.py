@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_combo,
     configure_binary_workbench_filter,
     configure_binary_workbench_line_edit,
@@ -33,6 +33,7 @@ class SymbolsDialogLayoutMixin:
             search_icon=True,
         )
         configure_binary_workbench_filter(self.filter_input)
+        configure_binary_workbench_line_edit(self.filter_input)
         self.filter_input.textChanged.connect(self._apply_filter)
         row.addWidget(self.filter_input, 0, Qt.AlignLeft | Qt.AlignVCenter)
         row.addStretch(1)
@@ -50,17 +51,15 @@ class SymbolsDialogLayoutMixin:
         save = symbol_button("Save", "", footer)
         ok = symbol_button("OK", "", footer)
         for button in (load, save, ok):
-            configure_binary_workbench_action(button)
+            configure_binary_workbench_dialog_action(button)
         load.clicked.connect(self._load_library_json_dialog)
         save.clicked.connect(self._save_library_json_dialog)
         ok.clicked.connect(self.accept)
+        row.addWidget(load, 0, Qt.AlignLeft)
         row.addStretch(1)
-        row.addWidget(load)
-        row.addSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
-        row.addWidget(ok)
-        row.addSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_FOOTER_ACTION_SPACING)
-        row.addWidget(save)
+        row.addWidget(ok, 0, Qt.AlignHCenter)
         row.addStretch(1)
+        row.addWidget(save, 0, Qt.AlignRight)
         parent.addWidget(footer, 0)
 
     def _build_entry(self, parent: QVBoxLayout) -> None:
@@ -78,7 +77,7 @@ class SymbolsDialogLayoutMixin:
         configure_binary_workbench_line_edit(self.value)
         set_python_identifier_validator(self.name)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "", entry)
-        configure_binary_workbench_action(add)
+        configure_binary_workbench_dialog_action(add)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(self.kind, 1)
         row.addWidget(self.name, 1)

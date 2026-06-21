@@ -2,9 +2,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
     configure_binary_workbench_combo,
     configure_binary_workbench_control_height,
+    configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
@@ -61,7 +61,7 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         configure_binary_workbench_control_height(self.uppercase_bytes)
         configure_binary_workbench_control_height(self.uppercase_instructions)
         ok = QPushButton(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.CONFIRM, self)
-        configure_binary_workbench_action(ok)
+        configure_binary_workbench_dialog_action(ok)
         ok.clicked.connect(self.accept)
         layout.addWidget(group_bytes_label)
         layout.addWidget(self.group_bytes)

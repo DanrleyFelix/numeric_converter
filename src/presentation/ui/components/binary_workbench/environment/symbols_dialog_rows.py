@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_combo,
     configure_binary_workbench_line_edit,
 )
@@ -60,7 +60,7 @@ class SymbolsDialogRowsMixin:
         configure_binary_workbench_line_edit(value_edit)
         set_python_identifier_validator(name_edit)
         offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "", row)
-        configure_binary_workbench_action(offsets)
+        configure_binary_workbench_dialog_action(offsets)
         offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)

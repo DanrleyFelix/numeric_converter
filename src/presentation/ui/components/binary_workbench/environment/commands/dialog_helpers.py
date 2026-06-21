@@ -16,7 +16,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
@@ -48,7 +48,7 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
     footer.setContentsMargins(0, 0, 0, 0)
     footer.addStretch(1)
     ok = symbol_button(BINARY_WORKBENCH_TEXT.OK, "", shell)
-    configure_binary_workbench_action(ok)
+    configure_binary_workbench_dialog_action(ok)
     ok.clicked.connect(dialog.accept)
     footer.addWidget(ok, 0)
     footer.addStretch(1)

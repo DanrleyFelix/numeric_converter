@@ -3,8 +3,8 @@ from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QScrollArea, QSize
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
     configure_binary_workbench_combo,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_line_edit,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
@@ -34,17 +34,15 @@ class LbaFilesystemLayoutMixin:
         save = lba_button(BINARY_WORKBENCH_FILE_DIALOG_TEXT.SAVE, "binary-workbench-lba-action", footer)
         ok = lba_button(BINARY_WORKBENCH_FILE_DIALOG_TEXT.OK, "binary-workbench-lba-action", footer)
         for button in (load, save, ok):
-            configure_binary_workbench_action(button)
+            configure_binary_workbench_dialog_action(button)
         load.clicked.connect(self._load_library_json_dialog)
         save.clicked.connect(self._save_library_json_dialog)
         ok.clicked.connect(self.accept)
+        row.addWidget(load, 0, Qt.AlignLeft)
         row.addStretch(1)
-        row.addWidget(load)
-        row.addSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_SPACING)
-        row.addWidget(ok)
-        row.addSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_ACTION_SPACING)
-        row.addWidget(save)
+        row.addWidget(ok, 0, Qt.AlignHCenter)
         row.addStretch(1)
+        row.addWidget(save, 0, Qt.AlignRight)
         parent.addWidget(footer, 0)
 
     def _build_library_controls(
@@ -91,7 +89,7 @@ class LbaFilesystemLayoutMixin:
         set_python_identifier_validator(self.name)
         set_decimal_integer_validator(self.lba)
         add = lba_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "binary-workbench-lba-action", self.shell)
-        configure_binary_workbench_action(add)
+        configure_binary_workbench_dialog_action(add)
         add.clicked.connect(self._append_from_entry)
         row.addWidget(self.name, 1)
         row.addWidget(self.lba, 1)

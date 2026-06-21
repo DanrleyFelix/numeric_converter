@@ -2,8 +2,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
     configure_binary_workbench_dialog_button,
+    configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -31,7 +31,7 @@ class BinaryWorkbenchViewDialog(QDialog):
             layout.addWidget(button, 0, Qt.AlignHCenter)
         layout.addStretch(1)
         confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
-        configure_binary_workbench_action(confirm)
+        configure_binary_workbench_dialog_action(confirm)
         confirm.clicked.connect(self.accept)
         layout.addWidget(confirm, 0, Qt.AlignHCenter)
 

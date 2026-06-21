@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_filter,
     configure_binary_workbench_line_edit,
 )
@@ -62,6 +62,7 @@ class BinaryWorkbenchLabelsDialog(QDialog):
             search_icon=True,
         )
         configure_binary_workbench_filter(self.filter_input)
+        configure_binary_workbench_line_edit(self.filter_input)
         self.filter_input.textChanged.connect(self._apply_filter)
         shell_layout.addWidget(self.filter_input, 0, Qt.AlignLeft)
         shell_layout.addSpacing(BINARY_WORKBENCH_LAYOUT.LABELS_FILTER_BOTTOM_SPACING)
@@ -100,7 +101,7 @@ class BinaryWorkbenchLabelsDialog(QDialog):
         name_edit = _readonly_input(BINARY_WORKBENCH_TEXT.LABEL_NAME, row, name)
         offset_edit = _readonly_input(BINARY_WORKBENCH_TEXT.OFFSET, row, offset)
         go_to = symbol_button(BINARY_WORKBENCH_TEXT.GO_TO, "", row)
-        configure_binary_workbench_action(go_to)
+        configure_binary_workbench_dialog_action(go_to)
         go_to.clicked.connect(lambda: self._go_to(offset))
         layout.addWidget(name_edit, 1)
         layout.addWidget(offset_edit, 1)
