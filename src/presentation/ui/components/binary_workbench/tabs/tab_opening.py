@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.core.binary_workbench.file_ops import extract_internal_file_bytes
+from src.core.binary_workbench.psx_sector_layout import extract_internal_file_bytes
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.modules.utils import read_json
 from src.presentation.repository.binary_workbench_workspace.constants import (

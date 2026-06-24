@@ -13,6 +13,8 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.open_file_action.triggered.connect(self._open_any_file)
         self.toolbar.new_scratch_action.triggered.connect(self.tabs.new_scratch_tab)
         self.toolbar.open_internal_action.triggered.connect(self._open_internal_file)
+        self.tabs.currentChanged.connect(self._sync_internal_file_action)
+        self.tabs.stateChanged.connect(self._sync_internal_file_action)
         self.toolbar.version_action.triggered.connect(self._open_version_actions)
         self.toolbar.save_version_action.triggered.connect(self._update_version)
         self.toolbar.save_binary_file_action.triggered.connect(self._save_current_tab)
@@ -37,6 +39,7 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.select_all_action,
             self.toolbar.open_file_action,
             self.toolbar.new_scratch_action,
+            self.toolbar.open_internal_action,
             self.toolbar.version_action,
             self.toolbar.save_version_action,
             self.toolbar.save_binary_file_action,
@@ -44,6 +47,13 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.advanced_configuration_action.triggered.connect(self._open_advanced_configuration)
         for action in self._placeholder_actions():
             action.triggered.connect(lambda _, name=action.text(): self._show_status(BINARY_WORKBENCH_TEXT.STATUS_PLACEHOLDER_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS))
+        self._sync_internal_file_action()
+
+    def _sync_internal_file_action(self, *_args) -> None:
+        current = self.tabs.current_context()
+        self.toolbar.open_internal_action.setEnabled(
+            bool(current and current.source_path and current.internal_files)
+        )
 
     def _build_ui(self) -> None:
         shell = QWidget()

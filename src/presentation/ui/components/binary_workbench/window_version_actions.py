@@ -56,7 +56,7 @@ class BinaryWorkbenchWindowVersionMixin:
 
     def _change_version(self) -> None:
         current = self.tabs.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if not self._supports_versions(current):
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         if not current.versions:
@@ -78,7 +78,7 @@ class BinaryWorkbenchWindowVersionMixin:
 
     def _load_version(self) -> None:
         current = self.tabs.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if not self._supports_versions(current):
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         path, _ = QFileDialog.getOpenFileName(
@@ -95,3 +95,10 @@ class BinaryWorkbenchWindowVersionMixin:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_LOADED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+
+    @staticmethod
+    def _supports_versions(current) -> bool:
+        return current is not None and current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }

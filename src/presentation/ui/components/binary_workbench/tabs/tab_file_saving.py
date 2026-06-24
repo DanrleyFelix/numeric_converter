@@ -1,10 +1,12 @@
 from pathlib import Path
 
 from src.core.binary_workbench.file_ops import (
+    build_internal_version_rows_from_overlay,
     build_version_rows_from_overlay,
     save_binary_as_assembly,
     save_versioned_binary,
 )
+from src.core.binary_workbench.psx_sector_io import save_internal_versioned_binary
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
     BINARY_WORKBENCH_STATE,
@@ -26,6 +28,26 @@ class TabFileSavingMixin:
                 return False
             rows = build_version_rows_from_overlay(current.byte_overlays, list(current.reference_offsets), dict(current.reference_offset_bases))
             save_versioned_binary(Path(current.source_path), output_path, rows)
+        elif current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+            if not current.source_path or current.internal_file_start_lba is None:
+                return False
+            rows = build_internal_version_rows_from_overlay(
+                Path(current.source_path),
+                current.internal_file_start_lba,
+                current.internal_files,
+                current.lba_sector_size,
+                current.byte_overlays,
+                list(current.reference_offsets),
+                dict(current.reference_offset_bases),
+                current.original_rows,
+                current.rows,
+            )
+            save_internal_versioned_binary(
+                Path(current.source_path),
+                output_path,
+                rows,
+                current.lba_sector_size,
+            )
         else:
             output_path.write_bytes(rows_to_bytes(current.rows))
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_FILE_DIRECTORY, output_path)
@@ -53,7 +75,10 @@ class TabFileSavingMixin:
 
     def save_current_source_file(self) -> bool:
         current = self.current_context()
-        if current is None or current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if current is None or current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }:
             return False
         if not current.source_path:
             return False

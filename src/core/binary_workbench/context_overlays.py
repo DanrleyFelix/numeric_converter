@@ -20,10 +20,11 @@ def compact_binary_context_overlays(
         dict(context.instruction_overlays),
     )
     source = Path(context.source_path) if context.source_path else None
-    versions = [
-        compact_binary_version_overlays(source, version)
-        for version in context.versions
-    ]
+    versions = (
+        [compact_binary_version_overlays(source, version) for version in context.versions]
+        if context.kind == "binary"
+        else list(context.versions)
+    )
     if (
         context.kind == "binary"
         and source is not None

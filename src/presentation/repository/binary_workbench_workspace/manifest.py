@@ -57,7 +57,13 @@ def manifest_payload(
     version_paths: dict[str, str],
     directories: dict[str, str],
 ) -> dict[str, object]:
-    source = source_payload(Path(tab.source_path)) if tab.source_path else {"directory": "", "filename": tab.display_name}
+    source: dict[str, object] = (
+        dict(source_payload(Path(tab.source_path)))
+        if tab.source_path
+        else {"directory": "", "filename": tab.display_name}
+    )
+    if tab.internal_file_start_lba is not None:
+        source["internal_file_start_lba"] = tab.internal_file_start_lba
     return {
         "schema_version": SCHEMA_VERSION,
         "source": source,

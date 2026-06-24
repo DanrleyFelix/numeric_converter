@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import (
     apply_version_rows,
+    build_internal_version_rows_from_overlay,
     build_version_rows_from_overlay,
     overlay_from_version_rows,
 )
@@ -26,7 +29,7 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
 class TabVersionsMixin:
     def create_version(self, name: str) -> bool:
         current = self.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if not self._is_versioned_context(current):
             return False
         current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
@@ -38,7 +41,7 @@ class TabVersionsMixin:
 
     def update_current_version(self, name: str) -> bool:
         current = self.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not current.active_version_name:
+        if not self._is_versioned_context(current) or not current.active_version_name:
             return False
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
@@ -54,7 +57,7 @@ class TabVersionsMixin:
 
     def load_version(self, name: str) -> bool:
         current = self.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if not self._is_versioned_context(current):
             return False
         current = compact_binary_context_overlays(current)
         version = next((item for item in current.versions if item.name == name), None)
@@ -92,7 +95,7 @@ class TabVersionsMixin:
 
     def load_versions_file(self, path) -> str | None:
         current = self.current_context()
-        if current is None or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if not self._is_versioned_context(current):
             return None
         loaded = self._workspace_repository.load_versions_file(path)
         if not loaded:
@@ -135,16 +138,40 @@ class TabVersionsMixin:
             current.variables,
             current.equates,
         )
-        return BinaryWorkbenchVersionDTO(
-            name=name,
-            rows=build_version_rows_from_overlay(
+        rows = build_version_rows_from_overlay(
+            current.byte_overlays,
+            list(current.reference_offsets),
+            dict(current.reference_offset_bases),
+        )
+        if (
+            current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
+            and current.source_path
+            and current.internal_file_start_lba is not None
+        ):
+            rows = build_internal_version_rows_from_overlay(
+                Path(current.source_path),
+                current.internal_file_start_lba,
+                current.internal_files,
+                current.lba_sector_size,
                 current.byte_overlays,
                 list(current.reference_offsets),
                 dict(current.reference_offset_bases),
-            ),
+                current.original_rows,
+                current.rows,
+            )
+        return BinaryWorkbenchVersionDTO(
+            name=name,
+            rows=rows,
             instruction_overlays=instruction_overlays,
             instructions_by_line=instructions_by_line,
         )
+
+    @staticmethod
+    def _is_versioned_context(current: BinaryWorkbenchTabContextDTO | None) -> bool:
+        return current is not None and current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }
 
     def _rows_from_version(
         self,

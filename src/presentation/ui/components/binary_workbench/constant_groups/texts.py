@@ -29,7 +29,7 @@ class BINARY_WORKBENCH_TEXT:
     HELP: str = "Guide"
     OPEN_FILE: str = "Open File"
     NEW_SCRATCH_CODE: str = "New Scratch Code"
-    OPEN_INTERNAL_FILE: str = "Internal File"
+    OPEN_INTERNAL_FILE: str = "Internal Files"
     VERSION: str = "Version"
     CREATE_VERSION: str = "Create Version"
     ATT_CURRENT_VERSION: str = "Att Version"

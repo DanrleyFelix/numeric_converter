@@ -309,6 +309,8 @@ def _apply_instruction_overlays(
             offsets=row.offsets,
             instruction=overlays.get(row.offsets.get("File", "-"), row.instruction),
             bytes_text=row.bytes_text,
+            original_instruction=row.original_instruction,
+            original_bytes_text=row.original_bytes_text,
         )
         for row in rows
     ]

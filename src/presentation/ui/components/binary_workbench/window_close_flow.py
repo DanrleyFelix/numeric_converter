@@ -36,7 +36,10 @@ class BinaryWorkbenchWindowCloseMixin:
         current = self.tabs.current_context()
         if current is None:
             return False
-        if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }:
             return self._save_binary_workspace_for_close(current)
         if current.source_path and self.tabs.save_current_source_file():
             self._show_status(

@@ -13,7 +13,7 @@ NOP_BYTES = "00000000"
 def discard_legacy_nop_overlays(
     context: BinaryWorkbenchTabContextDTO,
 ) -> BinaryWorkbenchTabContextDTO:
-    if context.active_version_name is None:
+    if context.kind != "binary" or context.active_version_name is None:
         return context
     protected = _active_version_offsets(context)
     invalid = {

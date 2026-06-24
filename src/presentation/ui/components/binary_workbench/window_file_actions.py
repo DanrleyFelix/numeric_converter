@@ -53,6 +53,9 @@ class BinaryWorkbenchWindowFileActionsMixin:
         current = self.tabs.current_context()
         if current is None:
             return
+        if current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+            self._save_file()
+            return
         if current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY and current.source_path and self.tabs.save_current_source_file():
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_SAVED_TEMPLATE.format(name=Path(current.source_path).name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return

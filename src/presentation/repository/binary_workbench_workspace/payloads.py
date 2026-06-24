@@ -26,6 +26,7 @@ from src.core.binary_workbench.editor.commands.payloads import (
 from src.presentation.repository.binary_workbench_payload import (
     _instruction_overlays,
     _internal_files,
+    _row_payload,
     _rows,
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
@@ -49,6 +50,8 @@ def source_payload(path: Path) -> dict[str, str]:
 
 def source_matches(payload: object, path: Path) -> bool:
     if not isinstance(payload, dict):
+        return False
+    if payload.get("internal_file_start_lba") is not None:
         return False
     current = source_payload(path)
     return (
@@ -99,6 +102,7 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
     return {
         "name": version.name,
         "instructions": instructions,
+        "rows": [_row_payload(row) for row in version.rows],
     }
 
 
@@ -214,12 +218,18 @@ def versions_payload(
     versions: list[BinaryWorkbenchVersionDTO],
     active_version: str | None = None,
 ) -> dict[str, object]:
+    payloads: dict[str, dict[str, object]] = {}
+    for version in versions:
+        item = version_payload(version)
+        instructions = item.get("instructions")
+        entry = dict(instructions) if isinstance(instructions, dict) else {}
+        rows = item.get("rows")
+        if isinstance(rows, list) and rows:
+            entry["rows"] = rows
+        payloads[version.name] = entry
     return {
         "active_version": active_version,
-        "versions": {
-            version.name: version_payload(version)["instructions"]
-            for version in versions
-        },
+        "versions": payloads,
     }
 
 
@@ -274,12 +284,15 @@ def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkb
         single = version_from_payload(payload, str(payload.get("name", "version")))
         return [single] if single is not None else []
     versions: list[BinaryWorkbenchVersionDTO] = []
-    for name, instructions in raw_versions.items():
-        if not isinstance(name, str) or not isinstance(instructions, dict):
+    for name, raw_version in raw_versions.items():
+        if not isinstance(name, str) or not isinstance(raw_version, dict):
             continue
+        instructions = raw_version.get("instructions")
+        instructions = instructions if isinstance(instructions, dict) else raw_version
         versions.append(
             BinaryWorkbenchVersionDTO(
                 name=name,
+                rows=_rows(raw_version.get("rows")),
                 instructions_by_line=_instructions_by_line(instructions),
                 instruction_overlays=_instruction_overlays(instructions),
             )

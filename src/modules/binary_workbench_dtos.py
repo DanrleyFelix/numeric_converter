@@ -86,6 +86,8 @@ class BinaryWorkbenchRowDTO:
     offsets: dict[str, str] = field(default_factory=dict)
     instruction: str = ""
     bytes_text: str = "00 00 00 00"
+    original_instruction: str = ""
+    original_bytes_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -112,6 +114,7 @@ class BinaryWorkbenchTabContextDTO:
     symbol_offsets: dict[str, list[str]] = field(default_factory=dict)
     search_cache: dict[str, list[str]] = field(default_factory=dict)
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
+    internal_file_start_lba: int | None = None
     lba_sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
     named_regions: list[str] = field(default_factory=list)
     offset_regions: list[BinaryWorkbenchOffsetRegionDTO] = field(default_factory=list)

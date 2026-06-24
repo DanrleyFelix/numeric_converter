@@ -63,6 +63,8 @@ def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[st
         "version_dirty": context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY,
         "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),
     }
+    if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+        return _internal_updates(context, rows, updates)
     if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
         return updates
     instruction_overlays = {
@@ -81,6 +83,35 @@ def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[st
     )
     return {
         **updates,
+        "byte_overlays": byte_overlays,
+        "instruction_overlays": instruction_overlays,
+    }
+
+
+def _internal_updates(
+    context: BinaryWorkbenchTabContextDTO,
+    rows: list,
+    updates: dict[str, object],
+) -> dict[str, object]:
+    original = {row.offsets.get("File"): row for row in context.original_rows}
+    byte_overlays: dict[str, str] = {}
+    instruction_overlays: dict[str, str] = {}
+    for row in rows:
+        offset = row.offsets.get("File")
+        if not offset or offset == "-":
+            continue
+        source = original.get(offset)
+        if source is None or source.bytes_text != row.bytes_text:
+            byte_overlays[offset] = row.bytes_text
+        if source is None or source.instruction != row.instruction:
+            instruction_overlays[offset] = row.instruction
+    byte_overlays, instruction_overlays = without_blank_instruction_overlays(
+        byte_overlays,
+        instruction_overlays,
+    )
+    return {
+        **updates,
+        "version_dirty": bool(byte_overlays or instruction_overlays),
         "byte_overlays": byte_overlays,
         "instruction_overlays": instruction_overlays,
     }

@@ -19,6 +19,10 @@ from src.modules.binary_workbench_dtos import (
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    VERSION_PATH_PREFIX,
+    VERSIONS,
+)
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     DEFAULT_REF_BASES,
@@ -131,6 +135,7 @@ def create_internal_tab(
     data: bytes,
 ) -> BinaryWorkbenchTabContextDTO:
     rows = build_rows_from_bytes(data, list(parent.reference_offsets), 0, dict(parent.reference_offset_bases))
+    version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
     return BinaryWorkbenchTabContextDTO(
         **{
             **parent.__dict__,
@@ -138,10 +143,23 @@ def create_internal_tab(
             "kind": BINARY_WORKBENCH_TAB_KIND.INTERNAL,
             "display_name": internal_file.name,
             "read_mode": "bytes",
+            "internal_file_start_lba": internal_file.start_lba,
             "original_rows": deepcopy(rows),
             "rows": rows,
             "file_size": len(data),
             "original_file_size": len(data),
+            "versions": [version],
+            "active_version_name": version.name,
+            "workspace_path": None,
+            "module_paths": {
+                key: value
+                for key, value in parent.module_paths.items()
+                if key != VERSIONS and not key.startswith(VERSION_PATH_PREFIX)
+            },
+            "module_checksums": {},
+            "version_dirty": False,
+            "byte_overlays": {},
+            "instruction_overlays": {},
             "view_preferences": seed_view_preferences(state, parent.view_preferences),
         }
     )

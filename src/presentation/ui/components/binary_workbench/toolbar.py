@@ -45,6 +45,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
         self.open_file_action.setShortcut(QKeySequence("Ctrl+O"))
         self.new_scratch_action.setShortcut(QKeySequence("Ctrl+N"))
+        self.open_internal_action.setShortcut(QKeySequence("Alt+I"))
         self.version_action.setShortcut(QKeySequence("Alt+V"))
         self.save_version_action.setShortcut(QKeySequence("Alt+S"))
         self.save_binary_file_action.setShortcut(QKeySequence("Ctrl+S"))

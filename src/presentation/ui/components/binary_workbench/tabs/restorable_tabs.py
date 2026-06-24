@@ -32,7 +32,10 @@ def source_exists(tab: BinaryWorkbenchTabContextDTO) -> bool:
 
 
 def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchTabContextDTO:
-    if tab.kind != BINARY_WORKBENCH_TAB_KIND.BINARY:
+    if tab.kind not in {
+        BINARY_WORKBENCH_TAB_KIND.BINARY,
+        BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+    }:
         return tab
     if tab.versions:
         active = tab.active_version_name or tab.versions[0].name

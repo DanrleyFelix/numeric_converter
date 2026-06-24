@@ -95,16 +95,21 @@ def _rows(raw: object) -> list[BinaryWorkbenchRowDTO]:
                 offsets=offsets,
                 instruction=str(item.get("instruction", "")),
                 bytes_text=str(item.get("bytes_text", "00 00 00 00")),
+                original_instruction=str(item.get("original_instruction", "")),
+                original_bytes_text=str(item.get("original_bytes_text", "")),
             )
         )
     return rows
 
 
-def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, str]:
+def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, object]:
     return {
         "offset": row.offsets.get("File", "0x00000000"),
+        "offsets": dict(row.offsets),
         "instruction": row.instruction,
         "bytes_text": row.bytes_text,
+        "original_instruction": row.original_instruction,
+        "original_bytes_text": row.original_bytes_text,
     }
 
 
@@ -265,6 +270,11 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     source_path = raw.get("source_path")
     is_virtual_binary = kind == "binary"
     reference_offsets = _reference_offsets(raw)
+    internal_files = _internal_files(raw.get("internal_files"))
+    internal_file_start_lba = _int_offset(raw.get("internal_file_start_lba"))
+    if internal_file_start_lba is None and kind == "internal":
+        selected = next((item for item in internal_files if item.name == display_name), None)
+        internal_file_start_lba = selected.start_lba if selected is not None else None
     active_version_name = str(raw.get("active_version_name")) if isinstance(raw.get("active_version_name"), str) else None
     byte_overlays, instruction_overlays = (
         ({}, {})
@@ -290,7 +300,8 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         variables=normalize_string_map(raw.get("variables")),
         symbol_offsets=_string_list_map(raw.get("symbol_offsets")),
         search_cache=_string_list_map(raw.get("search_cache")),
-        internal_files=_internal_files(raw.get("internal_files")),
+        internal_files=internal_files,
+        internal_file_start_lba=internal_file_start_lba,
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
         offset_regions=_offset_regions(raw.get("offset_regions")),
@@ -361,6 +372,7 @@ def binary_workbench_state_to_payload(
                     {"name": item.name, "start_lba": item.start_lba}
                     for item in tab.internal_files
                 ],
+                "internal_file_start_lba": tab.internal_file_start_lba,
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
                 "offset_regions": [

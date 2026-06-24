@@ -980,13 +980,17 @@ def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path
 
     assert tool is not None
     tool.open_binary_path(binary_path)
+    assert tool.toolbar.open_internal_action.isEnabled() is False
+    assert tool.toolbar.open_internal_action.shortcut().toString() == "Alt+I"
     tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO(name="slus", start_lba=0)])
+    assert tool.toolbar.open_internal_action.isEnabled() is True
     tool.tabs.open_internal_tab("slus")
     state = tool.export_state()
 
     assert tool.tabs.count() == 2
     assert state.tabs[-1].kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
     assert state.tabs[-1].display_name == "slus"
+    assert state.tabs[-1].internal_file_start_lba == 0
     assert state.tabs[-1].rows[0].offsets["File"] == "0x00000000"
     assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
 
@@ -1007,6 +1011,35 @@ def test_binary_workbench_lba_filesystem_allows_non_binary_file_backed_tabs(tmp_
     assert state.tabs[-1].kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
     assert state.tabs[-1].display_name == "chunk"
     assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
+
+
+def test_binary_workbench_internal_file_versions_and_saves_back_to_bin_offsets(tmp_path: Path):
+    source = bytearray(2352)
+    source[24:28] = bytes.fromhex("AA BB CC DD")
+    binary_path = tmp_path / "disc.bin"
+    output_path = tmp_path / "patched.bin"
+    binary_path.write_bytes(source)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("SLUS", 0)])
+    tool.tabs.open_internal_tab("SLUS")
+    page = tool.tabs.currentWidget()
+    lines = page.grid.bytes.toPlainText().splitlines()  # type: ignore[attr-defined]
+    lines[0] = "11 22 33 44"
+    page.grid.bytes.setPlainText("\n".join(lines))  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert tool.tabs.create_version("internal-v1") is True
+    version = tool.tabs.current_context().versions[-1]
+    assert version.rows[0].offsets == {"File": "0x00000000", "Binary": "0x00000018"}
+    assert version.rows[0].original_bytes_text == "AA BB CC DD"
+    assert tool.tabs.save_current_binary_copy(output_path) is True
+    assert binary_path.read_bytes()[24:28] == bytes.fromhex("AA BB CC DD")
+    assert output_path.read_bytes()[24:28] == bytes.fromhex("11 22 33 44")
 
 
 def test_binary_workbench_versioning_saves_modified_copy_without_touching_original(tmp_path: Path):
