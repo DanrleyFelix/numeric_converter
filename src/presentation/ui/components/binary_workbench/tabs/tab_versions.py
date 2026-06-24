@@ -4,9 +4,11 @@ from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import (
     apply_version_rows,
-    build_internal_version_rows_from_overlay,
     build_version_rows_from_overlay,
     overlay_from_version_rows,
+)
+from src.core.binary_workbench.internal_version_rows import (
+    build_internal_version_rows_from_overlay,
 )
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,

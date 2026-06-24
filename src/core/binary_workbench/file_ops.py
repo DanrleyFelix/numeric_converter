@@ -5,15 +5,8 @@ from shutil import copyfile
 
 from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
-from src.core.binary_workbench.psx_sector_layout import (
-    binary_offset_for_internal,
-    internal_file_spans,
-)
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_BINARY_OFFSET_COLUMN
-from src.modules.binary_workbench_dtos import (
-    BinaryWorkbenchInternalFileDTO,
-    BinaryWorkbenchRowDTO,
-)
+from src.core.binary_workbench.version_overlays import offset_values
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 def apply_version_rows(
@@ -36,55 +29,10 @@ def build_version_rows_from_overlay(
         offset = int(key, 16)
         rows.append(
             BinaryWorkbenchRowDTO(
-                offsets=_offset_values(offset, offset_names, offset_bases),
+                offsets=offset_values(offset, offset_names, offset_bases),
                 bytes_text=bytes_text,
             )
         )
-    return rows
-
-
-def build_internal_version_rows_from_overlay(
-    source_path: Path,
-    start_lba: int,
-    internal_files: list[BinaryWorkbenchInternalFileDTO],
-    sector_size: int,
-    byte_overlays: dict[str, str],
-    offset_names: list[str],
-    offset_bases: dict[str, str],
-    original_rows: list[BinaryWorkbenchRowDTO],
-    current_rows: list[BinaryWorkbenchRowDTO],
-) -> list[BinaryWorkbenchRowDTO]:
-    target = next((item for item in internal_files if item.start_lba == start_lba), None)
-    if target is None:
-        return []
-    spans = internal_file_spans(source_path, target, internal_files, sector_size)
-    original_by_offset = {row.offsets.get("File"): row for row in original_rows}
-    current_by_offset = {row.offsets.get("File"): row for row in current_rows}
-    internal_size = spans[-1].internal_start + spans[-1].size if spans else 0
-    rows: list[BinaryWorkbenchRowDTO] = []
-    for row in build_version_rows_from_overlay(byte_overlays, offset_names, offset_bases):
-        file_offset = row.offsets.get("File", "0x00000000")
-        internal_offset = int(file_offset, 16)
-        binary_offset = binary_offset_for_internal(spans, internal_offset)
-        if binary_offset is None:
-            continue
-        original = original_by_offset.get(file_offset)
-        current = current_by_offset.get(file_offset)
-        modified = bytes.fromhex(row.bytes_text.replace(" ", ""))[: internal_size - internal_offset]
-        if not modified:
-            continue
-        original_bytes = (
-            bytes.fromhex(original.bytes_text.replace(" ", ""))[: len(modified)]
-            if original is not None
-            else b""
-        )
-        rows.append(BinaryWorkbenchRowDTO(
-            offsets={**row.offsets, BINARY_WORKBENCH_BINARY_OFFSET_COLUMN: f"0x{binary_offset:08X}"},
-            instruction=current.instruction if current is not None else "",
-            bytes_text=" ".join(f"{byte:02X}" for byte in modified),
-            original_instruction=original.instruction if original is not None else "",
-            original_bytes_text=" ".join(f"{byte:02X}" for byte in original_bytes),
-        ))
     return rows
 
 
@@ -146,15 +94,3 @@ def _overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:
         int(offset, 16): bytes.fromhex(bytes_text.replace(" ", ""))
         for offset, bytes_text in values.items()
     }
-
-
-def _offset_values(
-    offset: int,
-    offset_names: list[str],
-    offset_bases: dict[str, str],
-) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for name in offset_names:
-        base = 0 if name == "File" else int(offset_bases.get(name, "0x0"), 0)
-        values[name] = f"0x{base + offset:08X}"
-    return values

@@ -7,7 +7,7 @@ from src.core.binary_workbench.text_search import (
     hex_nibbles,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import (
+from src.presentation.ui.components.binary_workbench.editor.page_overlays import (
     overlay_bytes,
 )
 

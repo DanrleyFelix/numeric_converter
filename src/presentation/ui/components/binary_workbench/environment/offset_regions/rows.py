@@ -14,6 +14,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
+    configure_dialog_text_context_menu,
+)
 from src.presentation.ui.components.binary_workbench.environment.offset_regions.constants import (
     OFFSET_REGIONS_SIZE,
     OFFSET_REGIONS_SPACING,
@@ -138,6 +141,7 @@ class OffsetRegionDetailsDialog(QDialog):
         layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
         layout.setSpacing(OFFSET_REGIONS_SPACING.DETAILS_DIALOG)
         self.editor = QPlainTextEdit(self)
+        configure_dialog_text_context_menu(self.editor)
         self.editor.setPlainText(details)
         layout.addWidget(self.editor, 1)
         footer = QHBoxLayout()

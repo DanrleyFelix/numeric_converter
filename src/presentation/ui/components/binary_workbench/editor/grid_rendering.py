@@ -96,6 +96,12 @@ class GridRenderingMixin:
     def visible_size(self) -> int:
         return self._visible_row_count() * ROW_BYTES
 
+    def set_virtual_total_size(self, size: int) -> None:
+        if not self._virtual or size == self._total_size:
+            return
+        self._total_size = max(0, size)
+        self._configure_scrollbar()
+
     def export_rows(self) -> list[BinaryWorkbenchRowDTO]:
         return list(self._all_rows if not self._virtual else self._rows)
 

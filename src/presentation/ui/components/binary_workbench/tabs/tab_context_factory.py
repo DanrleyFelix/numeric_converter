@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
-from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes, build_scratch_rows
+from src.core.binary_workbench.mips_r3000a import build_scratch_rows
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
     BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
@@ -11,17 +11,12 @@ from src.modules.binary_workbench_constants import (
 )
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
-    BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
-)
-from src.presentation.repository.binary_workbench_workspace.constants import (
-    VERSION_PATH_PREFIX,
-    VERSIONS,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
@@ -125,43 +120,6 @@ def create_scratch_tab(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchTabCont
         file_size=len(rows) * ROW_BYTES,
         original_file_size=len(rows) * ROW_BYTES,
         view_preferences=seed_view_preferences(state),
-    )
-
-
-def create_internal_tab(
-    state: BinaryWorkbenchStateDTO,
-    parent: BinaryWorkbenchTabContextDTO,
-    internal_file: BinaryWorkbenchInternalFileDTO,
-    data: bytes,
-) -> BinaryWorkbenchTabContextDTO:
-    rows = build_rows_from_bytes(data, list(parent.reference_offsets), 0, dict(parent.reference_offset_bases))
-    version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
-    return BinaryWorkbenchTabContextDTO(
-        **{
-            **parent.__dict__,
-            "tab_id": uuid4().hex,
-            "kind": BINARY_WORKBENCH_TAB_KIND.INTERNAL,
-            "display_name": internal_file.name,
-            "read_mode": "bytes",
-            "internal_file_start_lba": internal_file.start_lba,
-            "original_rows": deepcopy(rows),
-            "rows": rows,
-            "file_size": len(data),
-            "original_file_size": len(data),
-            "versions": [version],
-            "active_version_name": version.name,
-            "workspace_path": None,
-            "module_paths": {
-                key: value
-                for key, value in parent.module_paths.items()
-                if key != VERSIONS and not key.startswith(VERSION_PATH_PREFIX)
-            },
-            "module_checksums": {},
-            "version_dirty": False,
-            "byte_overlays": {},
-            "instruction_overlays": {},
-            "view_preferences": seed_view_preferences(state, parent.view_preferences),
-        }
     )
 
 

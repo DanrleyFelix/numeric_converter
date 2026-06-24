@@ -1,12 +1,16 @@
 from pathlib import Path
 
+from src.core.binary_workbench.internal_file_patch import patches_from_overlays
+from src.core.binary_workbench.internal_file_reader import InternalFileView
+from src.core.binary_workbench.internal_file_region import define_internal_file_region
+from src.core.binary_workbench.internal_versioned_binary_saver import (
+    save_internal_versioned_binary,
+)
 from src.core.binary_workbench.file_ops import (
-    build_internal_version_rows_from_overlay,
     build_version_rows_from_overlay,
     save_binary_as_assembly,
     save_versioned_binary,
 )
-from src.core.binary_workbench.psx_sector_io import save_internal_versioned_binary
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
     BINARY_WORKBENCH_STATE,
@@ -31,23 +35,29 @@ class TabFileSavingMixin:
         elif current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             if not current.source_path or current.internal_file_start_lba is None:
                 return False
-            rows = build_internal_version_rows_from_overlay(
+            target = next(
+                (
+                    item
+                    for item in current.internal_files
+                    if item.start_lba == current.internal_file_start_lba
+                ),
+                None,
+            )
+            if target is None:
+                return False
+            region = define_internal_file_region(
                 Path(current.source_path),
-                current.internal_file_start_lba,
+                target,
                 current.internal_files,
                 current.lba_sector_size,
-                current.byte_overlays,
-                list(current.reference_offsets),
-                dict(current.reference_offset_bases),
-                current.original_rows,
-                current.rows,
             )
-            save_internal_versioned_binary(
-                Path(current.source_path),
-                output_path,
-                rows,
-                current.lba_sector_size,
+            view = InternalFileView(
+                region,
+                self._preferences.block_size,
+                self._preferences.cache_max_blocks,
             )
+            patches = patches_from_overlays(view, current.byte_overlays)
+            save_internal_versioned_binary(region, output_path, patches)
         else:
             output_path.write_bytes(rows_to_bytes(current.rows))
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_FILE_DIRECTORY, output_path)

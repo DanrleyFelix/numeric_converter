@@ -269,6 +269,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         return None
     source_path = raw.get("source_path")
     is_virtual_binary = kind == "binary"
+    uses_virtual_rows = kind in {"binary", "internal"}
     reference_offsets = _reference_offsets(raw)
     internal_files = _internal_files(raw.get("internal_files"))
     internal_file_start_lba = _int_offset(raw.get("internal_file_start_lba"))
@@ -317,8 +318,8 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         custom_commands=_string_list_map(raw.get("custom_commands")),
         last_open_offset=str(raw.get("last_open_offset", "0x00000000")),
         navigation_history=normalize_string_list(raw.get("navigation_history")),
-        original_rows=[] if is_virtual_binary else _rows(raw.get("original_rows")),
-        rows=[] if is_virtual_binary else _rows(raw.get("rows")),
+        original_rows=[] if uses_virtual_rows else _rows(raw.get("original_rows")),
+        rows=[] if uses_virtual_rows else _rows(raw.get("rows")),
         file_size=_positive_int(raw.get("file_size"), 0),
         original_file_size=_positive_int(raw.get("original_file_size"), 0),
         version_dirty=_bool(raw.get("version_dirty"), False)
@@ -410,8 +411,8 @@ def binary_workbench_state_to_payload(
                 "version_dirty": tab.version_dirty,
                 "byte_overlays": {} if _is_virtual_binary(tab) else dict(tab.byte_overlays),
                 "instruction_overlays": {} if _is_virtual_binary(tab) else dict(tab.instruction_overlays),
-                "original_rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.original_rows],
-                "rows": [] if _is_virtual_binary(tab) else [_row_payload(row) for row in tab.rows],
+                "original_rows": [] if _uses_virtual_rows(tab) else [_row_payload(row) for row in tab.original_rows],
+                "rows": [] if _uses_virtual_rows(tab) else [_row_payload(row) for row in tab.rows],
                 "view_preferences": {
                     "visible_columns": dict(tab.view_preferences.visible_columns),
                     "decoded_text_tables": list(tab.view_preferences.decoded_text_tables),
@@ -433,6 +434,10 @@ def binary_workbench_state_to_payload(
 
 def _is_virtual_binary(tab: BinaryWorkbenchTabContextDTO) -> bool:
     return tab.kind == "binary"
+
+
+def _uses_virtual_rows(tab: BinaryWorkbenchTabContextDTO) -> bool:
+    return tab.kind in {"binary", "internal"}
 
 
 def _reference_offsets(raw: dict[str, Any]) -> list[str]:

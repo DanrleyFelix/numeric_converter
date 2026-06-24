@@ -59,6 +59,8 @@ class TabStateMixin:
         context = self.context_at(index)
         if context is None:
             return False
+        if context.kind == "internal":
+            return self.has_unsaved_version_edits(context)
         if context.kind == "binary":
             return self.has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
         return self._controller.rows_have_unsaved_edits(

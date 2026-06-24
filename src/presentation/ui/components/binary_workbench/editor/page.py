@@ -27,6 +27,7 @@ from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy im
 from src.presentation.ui.components.binary_workbench.editor.page_context_updates import EditorPageContextMixin
 from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
+from src.presentation.ui.components.binary_workbench.editor.page_reader import reader_for_context
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
@@ -34,6 +35,7 @@ from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 
 if TYPE_CHECKING:
     from src.core.binary_workbench.block_reader import CachedBinaryReader
+    from src.core.binary_workbench.internal_file_reader import InternalFileView
 
 
 class BinaryWorkbenchEditorPage(
@@ -77,7 +79,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
         self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
-        self._reader: CachedBinaryReader | None = None
+        self._reader: CachedBinaryReader | InternalFileView | None = None
         self._loading_visible_rows = False
         self._pending_selection: tuple[int, int] | None = None
         footer, (
@@ -99,7 +101,7 @@ class BinaryWorkbenchEditorPage(
         self._set_cpu_arch_summary(context.cpu_arch)
 
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
-        self._reader = self._reader_for_context(context)
+        self._reader = reader_for_context(context, self._preferences)
         context = self._context_with_original_file_size(context)
         self._context = context
         codec = binary_workbench_codec_for(context.cpu_arch)
@@ -224,6 +226,12 @@ def _edit_rules_for_context(
     context: BinaryWorkbenchTabContextDTO,
     preferences: BinaryWorkbenchPreferencesDTO,
 ) -> BinaryWorkbenchEditRulesDTO:
+    if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+        return BinaryWorkbenchEditRulesDTO(
+            allow_byte_shift=False,
+            allow_editor_edit=preferences.binary_edit_rules.allow_editor_edit,
+            allow_free_edit_after_original_end=False,
+        )
     if context.kind in {
         BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
         BINARY_WORKBENCH_TAB_KIND.SCRATCH,

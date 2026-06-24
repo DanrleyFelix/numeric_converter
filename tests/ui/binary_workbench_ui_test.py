@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.dtos import (
@@ -18,6 +18,7 @@ from src.modules.dtos import (
     BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT,
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
@@ -41,6 +42,7 @@ from src.presentation.ui.components.binary_workbench.editor import (
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
+    BinaryWorkbenchInternalFileDialog,
     BinaryWorkbenchLbaFilesystemDialog,
     BinaryWorkbenchVersionActionsDialog,
     BinaryWorkbenchVersionChangeDialog,
@@ -971,6 +973,8 @@ def test_binary_workbench_ignores_semicolon_comments_when_loading_assembly(tmp_p
 
 def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path):
     source = bytearray(2352)
+    source[:12] = b"\x00" + (b"\xFF" * 10) + b"\x00"
+    source[15] = 2
     source[24:28] = bytes.fromhex("AA BB CC DD")
     binary_path = tmp_path / "disc.bin"
     binary_path.write_bytes(source)
@@ -1015,6 +1019,8 @@ def test_binary_workbench_lba_filesystem_allows_non_binary_file_backed_tabs(tmp_
 
 def test_binary_workbench_internal_file_versions_and_saves_back_to_bin_offsets(tmp_path: Path):
     source = bytearray(2352)
+    source[:12] = b"\x00" + (b"\xFF" * 10) + b"\x00"
+    source[15] = 2
     source[24:28] = bytes.fromhex("AA BB CC DD")
     binary_path = tmp_path / "disc.bin"
     output_path = tmp_path / "patched.bin"
@@ -2011,6 +2017,23 @@ def test_binary_workbench_context_menu_uses_white_icons():
         assert all(pixel.red() == 255 and pixel.green() == 255 and pixel.blue() == 255 for pixel in white_pixels)
 
 
+def test_binary_workbench_internal_file_dialog_uses_standard_minimal_layout():
+    _app()
+    dialog = BinaryWorkbenchInternalFileDialog([BinaryWorkbenchInternalFileDTO("WA_MRG.MRG", 24)])
+    dialog.show()
+    _app().processEvents()
+    buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
+    items = dialog.findChild(QListWidget, "binary-workbench-search-results")
+
+    assert dialog.windowTitle() == "Open Internal File"
+    assert dialog.findChildren(QLabel) == []
+    assert dialog.layout().getContentsMargins() == BINARY_WORKBENCH_DIALOG_LAYOUT.DIALOG_MARGINS
+    assert items is not None
+    assert items.item(0).text() == "WA_MRG.MRG"
+    assert set(buttons) == {"Cancel", "OK"}
+    assert buttons["Cancel"].mapTo(dialog, QPoint()).x() < buttons["OK"].mapTo(dialog, QPoint()).x()
+
+
 def test_binary_workbench_lba_filesystem_uses_editable_rows():
     _app()
     dialog = BinaryWorkbenchLbaFilesystemDialog([BinaryWorkbenchInternalFileDTO("SLUS", 24)])
@@ -2054,8 +2077,19 @@ def test_binary_workbench_lba_filesystem_uses_editable_rows():
     buttons["Go to"].click()
     fields[2].setText("WA_MRG.MRG")
     fields[3].setText("10010")
+    _app().clipboard().setText("SYSTEM.CNF")
+    fields[0].setFocus()
+    QApplication.sendEvent(fields[0], QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+    assert fields[0].text() == "SYSTEM.CNF"
+    fields[0].selectAll()
+    QApplication.sendEvent(fields[0], QKeyEvent(QEvent.Type.KeyPress, Qt.Key_C, Qt.ControlModifier))
+    assert _app().clipboard().text() == "SYSTEM.CNF"
+    QApplication.sendEvent(fields[0], QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    assert fields[0].text() == ""
     mappings = dialog.mappings()
 
+    assert fields[2].hasAcceptableInput() is True
+    assert fields[2].contextMenuPolicy() == Qt.CustomContextMenu
     assert selected == [24 * 2352]
     assert mappings[0].name == "WA_MRG.MRG"
     assert mappings[0].start_lba == 10010

@@ -5,7 +5,7 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     apply_instruction_overlays,
 )
-from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import (
+from src.presentation.ui.components.binary_workbench.editor.page_overlays import (
     overlay_bytes,
 )
 

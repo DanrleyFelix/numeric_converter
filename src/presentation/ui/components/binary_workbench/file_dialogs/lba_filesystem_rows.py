@@ -17,7 +17,7 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
-    set_python_identifier_validator,
+    set_internal_file_name_validator,
 )
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 
@@ -64,7 +64,7 @@ class LbaFilesystemRowsMixin:
         )
         configure_binary_workbench_line_edit(name_edit)
         configure_binary_workbench_line_edit(lba_edit)
-        set_python_identifier_validator(name_edit)
+        set_internal_file_name_validator(name_edit)
         set_decimal_integer_validator(lba_edit)
         go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "", row)
         configure_binary_workbench_dialog_action(go_to)

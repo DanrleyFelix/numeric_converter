@@ -25,7 +25,7 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
-    set_python_identifier_validator,
+    set_internal_file_name_validator,
 )
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 
@@ -110,7 +110,7 @@ class LbaFilesystemLayoutMixin:
         )
         configure_binary_workbench_line_edit(self.name)
         configure_binary_workbench_line_edit(self.lba)
-        set_python_identifier_validator(self.name)
+        set_internal_file_name_validator(self.name)
         set_decimal_integer_validator(self.lba)
         add = lba_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "binary-workbench-lba-action", self.shell)
         configure_binary_workbench_dialog_action(add)

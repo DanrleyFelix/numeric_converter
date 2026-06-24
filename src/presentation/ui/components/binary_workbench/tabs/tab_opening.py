@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.core.binary_workbench.psx_sector_layout import extract_internal_file_bytes
+from src.core.binary_workbench.internal_file_region import define_internal_file_region
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.modules.utils import read_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
@@ -67,8 +67,13 @@ class TabOpeningMixin:
         target = next((item for item in current.internal_files if item.name == internal_name), None)
         if target is None:
             return
-        data = extract_internal_file_bytes(source, target, current.internal_files, current.lba_sector_size)
-        self._append_tab(create_internal_tab(self._state, current, target, data))
+        region = define_internal_file_region(
+            source,
+            target,
+            current.internal_files,
+            current.lba_sector_size,
+        )
+        self._append_tab(create_internal_tab(self._state, current, target, region))
 
     def open_label_tab(self, label: str, offset: int) -> None:
         current = self.current_context()

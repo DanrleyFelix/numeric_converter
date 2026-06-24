@@ -7,7 +7,6 @@ class BINARY_WORKBENCH_FILE_DIALOG_TEXT:
     OFFSET_REGIONS_DEFAULT_FILENAME: str = "Offset Regions.json"
     SYMBOLS_JSON_FILTER: str = "JSON files (*.json);;All files (*.*)"
     INTERNAL_TITLE: str = "Open Internal File"
-    INTERNAL_SUBTITLE: str = "Select a configured internal file to open it as an independent tab."
     VERSION_TITLE: str = "Version"
     VERSION_CREATE_TITLE: str = "Create Version"
     VERSION_CHANGE_TITLE: str = "Change Version"

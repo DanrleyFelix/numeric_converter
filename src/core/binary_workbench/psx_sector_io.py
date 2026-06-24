@@ -1,36 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from shutil import copyfile
-
 from src.core.binary_workbench.psx_sector_layout import RAW_SECTOR_SIZE, SYNC_HEADER, sector_layout
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_BINARY_OFFSET_COLUMN
-from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
-
-
-def save_internal_versioned_binary(
-    source_path: Path,
-    output_path: Path,
-    version_rows: list[BinaryWorkbenchRowDTO],
-    sector_size: int,
-) -> None:
-    if not _same_file(source_path, output_path):
-        copyfile(source_path, output_path)
-    affected: set[int] = set()
-    with output_path.open("r+b") as target:
-        for row in version_rows:
-            raw_offset = row.offsets.get(BINARY_WORKBENCH_BINARY_OFFSET_COLUMN)
-            if raw_offset is None:
-                continue
-            offset = int(raw_offset, 16)
-            data = bytes.fromhex(row.bytes_text.replace(" ", ""))
-            target.seek(offset)
-            target.write(data)
-            if sector_size > 0 and data:
-                affected.update(range(offset // sector_size, (offset + len(data) - 1) // sector_size + 1))
-        if sector_size == RAW_SECTOR_SIZE:
-            for sector_index in sorted(affected):
-                _rebuild_sector_at(target, sector_index)
 
 
 def rebuild_psx_sector(sector: bytes, sector_index: int) -> bytes:
@@ -50,16 +20,6 @@ def rebuild_psx_sector(sector: bytes, sector_index: int) -> bytes:
     else:
         rebuilt[2348:2352] = _edc(rebuilt[16:2348]).to_bytes(4, "little")
     return bytes(rebuilt)
-
-
-def _rebuild_sector_at(target, sector_index: int) -> None:
-    offset = sector_index * RAW_SECTOR_SIZE
-    target.seek(offset)
-    sector = target.read(RAW_SECTOR_SIZE)
-    rebuilt = rebuild_psx_sector(sector, sector_index)
-    if rebuilt != sector:
-        target.seek(offset)
-        target.write(rebuilt)
 
 
 def _write_header(sector: bytearray, sector_index: int) -> None:
@@ -128,13 +88,6 @@ def _edc_lut() -> tuple[int, ...]:
             value = (value >> 1) ^ (0xD8018001 if value & 1 else 0)
         values.append(value)
     return tuple(values)
-
-
-def _same_file(source_path: Path, output_path: Path) -> bool:
-    try:
-        return source_path.samefile(output_path)
-    except OSError:
-        return source_path.resolve() == output_path.resolve()
 
 
 _ECC_F_LUT, _ECC_B_LUT = _ecc_luts()

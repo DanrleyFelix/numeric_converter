@@ -12,6 +12,9 @@ from PySide6.QtWidgets import (
 )
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
+    configure_dialog_text_context_menu,
+)
 
 BINARY_WORKBENCH_ACTION_OBJECT_NAME = "binary-workbench-action"
 BINARY_WORKBENCH_INPUT_OBJECT_NAME = "binary-workbench-input"
@@ -102,6 +105,7 @@ def configure_binary_workbench_line_edit(
     editor: QLineEdit,
     width: int | None = None,
 ) -> None:
+    configure_dialog_text_context_menu(editor)
     if width is not None:
         editor.setFixedWidth(width)
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
@@ -125,6 +129,7 @@ def configure_binary_workbench_combo(
 
 
 def configure_binary_workbench_input(editor: QLineEdit, width: int) -> None:
+    configure_dialog_text_context_menu(editor)
     editor.setObjectName(BINARY_WORKBENCH_INPUT_OBJECT_NAME)
     editor.setFixedSize(width, BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
 

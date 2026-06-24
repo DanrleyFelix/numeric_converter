@@ -21,6 +21,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
 )
+from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
+    configure_dialog_text_context_menu,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
 )
@@ -42,6 +45,7 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
     shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
     shell_layout.setSpacing(ENVIRONMENT_LAYOUT.SECTION_SPACING)
     editor = QPlainTextEdit(shell)
+    configure_dialog_text_context_menu(editor)
     editor.setObjectName("binary-workbench-command-instructions")
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
     editor.setViewportMargins(margin, margin, margin, margin)

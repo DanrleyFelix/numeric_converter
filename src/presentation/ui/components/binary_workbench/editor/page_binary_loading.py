@@ -1,21 +1,26 @@
-from pathlib import Path
-
-from src.core.binary_workbench.block_reader import CachedBinaryReader
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
-from src.core.binary_workbench.version_line_comments import apply_line_comments
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     apply_instruction_overlays,
-    file_offset,
     merged_instruction_labels,
     rows_from_overlays,
-    update_instruction_overlays,
+)
+from src.presentation.ui.components.binary_workbench.editor.page_reader import (
+    effective_reader_size,
+    with_internal_binary_offsets,
+)
+from src.presentation.ui.components.binary_workbench.editor.page_overlays import (
+    apply_overlay_bytes,
+    overlay_bytes,
+)
+from src.presentation.ui.components.binary_workbench.editor.page_version_rows import (
+    active_version_rows,
+    instruction_overlays_for_rows,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
@@ -34,6 +39,7 @@ class EditorPageBinaryLoadingMixin:
             visible_offset,
             dict(self._context.reference_offset_bases),
         )
+        rows = with_internal_binary_offsets(self._reader, rows)
         self._context = compact_binary_context_overlays(self._context)
         if self._context.byte_overlays:
             data = self._read_visible_data(
@@ -47,8 +53,9 @@ class EditorPageBinaryLoadingMixin:
                 visible_offset,
                 dict(self._context.reference_offset_bases),
             )
+            rows = with_internal_binary_offsets(self._reader, rows)
         rows = apply_instruction_overlays(rows, self._context.instruction_overlays)
-        rows = self._apply_active_version_lines(rows)
+        rows = active_version_rows(self._context, rows)
         rows = apply_symbol_offsets(
             rows,
             self._context.variables,
@@ -57,6 +64,12 @@ class EditorPageBinaryLoadingMixin:
             self.grid._codec,
         )
         self.grid.render_rows(rows, visible_offset)
+        self.grid.set_virtual_total_size(self._reader.file_size)
+        original_size = effective_reader_size(
+            self._reader,
+            self._context.original_file_size,
+        )
+        self.grid.set_original_file_size(original_size)
         self._select_pending_offset()
         self._loading_visible_rows = False
         labels = merged_instruction_labels(rows, self._context.instruction_overlays)
@@ -66,7 +79,8 @@ class EditorPageBinaryLoadingMixin:
             **{
                 **self._context.__dict__,
                 "rows": rows,
-                "file_size": max(self._reader.file_size, self._context.file_size),
+                "file_size": effective_reader_size(self._reader, self._context.file_size),
+                "original_file_size": original_size,
                 "last_open_offset": f"0x{visible_offset:08X}",
                 "labels": labels,
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
@@ -80,7 +94,7 @@ class EditorPageBinaryLoadingMixin:
         if self.grid.edit_origin_kind() not in {BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION}:
             return
         overlays = dict(self._context.byte_overlays)
-        instruction_overlays = self._instruction_overlays_for_rows(rows)
+        instruction_overlays = instruction_overlays_for_rows(self._context, self.grid, rows)
         file_size = self._context.original_file_size or self._reader.file_size
         for row in rows:
             try:
@@ -120,31 +134,6 @@ class EditorPageBinaryLoadingMixin:
         )
         self.contextChanged.emit(self._context)
 
-    def _instruction_overlays_for_rows(self, rows: list) -> dict[str, str]:
-        origin = self.grid.edit_origin_kind()
-        if origin == BINARY_WORKBENCH_TEXT.INSTRUCTION:
-            return update_instruction_overlays(self._context.instruction_overlays, rows, self._context.rows)
-        if origin == BINARY_WORKBENCH_TEXT.BYTES:
-            return instruction_overlays_with_changed_rows(
-                self._context.instruction_overlays,
-                rows,
-                self._context.rows,
-            )
-        if self.grid.focused_editor_kind() != BINARY_WORKBENCH_TEXT.INSTRUCTION:
-            return dict(self._context.instruction_overlays)
-        return update_instruction_overlays(self._context.instruction_overlays, rows, self._context.rows)
-
-    def _reader_for_context(
-        self,
-        context: BinaryWorkbenchTabContextDTO,
-    ) -> CachedBinaryReader | None:
-        if context.kind != BINARY_WORKBENCH_TAB_KIND.BINARY or not context.source_path:
-            return None
-        path = Path(context.source_path)
-        if not path.exists():
-            return None
-        return CachedBinaryReader(path, self._preferences.block_size, self._preferences.cache_max_blocks)
-
     def _read_visible_data(
         self,
         offset: int,
@@ -153,7 +142,7 @@ class EditorPageBinaryLoadingMixin:
     ) -> bytes:
         if self._reader is None:
             return b""
-        effective_size = max(self._reader.file_size, self._context.file_size)
+        effective_size = effective_reader_size(self._reader, self._context.file_size)
         if size <= 0 or offset >= effective_size:
             return b""
         target_size = min(size, effective_size - offset)
@@ -161,56 +150,4 @@ class EditorPageBinaryLoadingMixin:
         data = self._reader.read(offset, source_size, {})
         if len(data) < target_size:
             data += b"\x00" * (target_size - len(data))
-        return _apply_overlay_bytes(offset, data, overlays)
-
-    def _apply_active_version_lines(self, rows: list) -> list:
-        version = next(
-            (
-                item
-                for item in self._context.versions
-                if item.name == self._context.active_version_name
-            ),
-            None,
-        )
-        if version is None or not version.instructions_by_line:
-            return rows
-        return apply_line_comments(rows, version.instructions_by_line, self._context.reference_offsets)
-
-
-def overlay_bytes(values: dict[str, str]) -> dict[int, bytes]:
-    return {
-        int(offset, 16): bytes.fromhex(bytes_text.replace(" ", ""))
-        for offset, bytes_text in values.items()
-    }
-
-
-def _apply_overlay_bytes(start: int, data: bytes, overlays: dict[int, bytes]) -> bytes:
-    if not overlays:
-        return data
-    patched = bytearray(data)
-    end = start + len(data)
-    for patch_offset, patch_data in overlays.items():
-        patch_end = patch_offset + len(patch_data)
-        if patch_end <= start or patch_offset >= end:
-            continue
-        left = max(start, patch_offset)
-        right = min(end, patch_end)
-        source_left = left - patch_offset
-        patched[left - start : right - start] = patch_data[source_left : source_left + (right - left)]
-    return bytes(patched)
-
-
-def instruction_overlays_with_changed_rows(
-    overlays: dict[str, str],
-    rows: list,
-    previous_rows: list,
-) -> dict[str, str]:
-    updated = dict(overlays)
-    previous_bytes = {file_offset(row): row.bytes_text for row in previous_rows}
-    for row in rows:
-        offset = file_offset(row)
-        if offset == "-":
-            continue
-        if previous_bytes.get(offset) != row.bytes_text:
-            updated[offset] = row.instruction
-    return updated
+        return apply_overlay_bytes(offset, data, overlays)

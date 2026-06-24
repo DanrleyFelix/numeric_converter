@@ -2,6 +2,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QListWidget, QPushButton, QVBoxLayout
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchVersionDTO
+from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
+    configure_dialog_text_context_menu,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
     BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT,
@@ -15,6 +18,7 @@ class BinaryWorkbenchVersionNameDialog(QDialog):
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
         self.name_field = QLineEdit(initial_value, self)
+        configure_dialog_text_context_menu(self.name_field)
         self.name_field.setObjectName("binary-workbench-dialog-input")
         self.name_field.setPlaceholderText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_NAME_LABEL)
         ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.CONFIRM, self)
