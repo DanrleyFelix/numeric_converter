@@ -1,5 +1,13 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QListWidget, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QDialog,
+    QHBoxLayout,
+    QListWidget,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
@@ -10,6 +18,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
+    BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT,
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
 )
 
@@ -23,11 +32,11 @@ class BinaryWorkbenchInternalFileDialog(QDialog):
         layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.DIALOG_MARGINS)
         layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.SECTION_SPACING)
         self.items = QListWidget(self)
-        self.items.setObjectName("binary-workbench-search-results")
+        self.items.setObjectName("binary-workbench-internal-files")
+        self.items.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.items.setFocusPolicy(Qt.NoFocus)
         for item in internal_files:
             self.items.addItem(item.name)
-        if self.items.count():
-            self.items.setCurrentRow(0)
         self.items.itemDoubleClicked.connect(lambda _item: self.accept())
         footer = QWidget(self)
         footer_layout = QHBoxLayout(footer)
@@ -38,12 +47,21 @@ class BinaryWorkbenchInternalFileDialog(QDialog):
             configure_binary_workbench_dialog_action(button)
         cancel.clicked.connect(self.reject)
         ok.clicked.connect(self.accept)
-        ok.setEnabled(self.items.count() > 0)
+        ok.setEnabled(False)
+        self.items.currentItemChanged.connect(
+            lambda current, _previous: ok.setEnabled(current is not None)
+        )
         footer_layout.addWidget(cancel, 0, Qt.AlignLeft)
         footer_layout.addStretch(1)
         footer_layout.addWidget(ok, 0, Qt.AlignRight)
         layout.addWidget(self.items)
         layout.addWidget(footer)
+        preferred = self.sizeHint()
+        self.setFixedSize(
+            preferred.width()
+            + BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.WIDTH_INCREMENT,
+            preferred.height(),
+        )
 
     def selected_name(self) -> str | None:
         current = self.items.currentItem()

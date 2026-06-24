@@ -30,7 +30,7 @@ def lba_sector_size(value: int) -> int:
 def tab_text(value: str) -> str:
     if len(value) <= BINARY_WORKBENCH_LAYOUT.TAB_MAX_CHARACTERS:
         return value
-    return f"{value[: BINARY_WORKBENCH_LAYOUT.TAB_MAX_CHARACTERS - 3]}..."
+    return f"{value[:BINARY_WORKBENCH_LAYOUT.TAB_MAX_CHARACTERS]}..."
 
 
 def rows_to_bytes(rows: list[BinaryWorkbenchRowDTO]) -> bytes:

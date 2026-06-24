@@ -1,7 +1,11 @@
 from pathlib import Path
 
 from src.core.binary_workbench.internal_version_rows import build_internal_version_rows_from_overlay
-from src.core.binary_workbench.internal_file_patch import InternalFilePatch
+from src.core.binary_workbench.internal_file_patch import (
+    InternalFilePatch,
+    binary_overlays_from_internal_overlays,
+    internal_overlays_from_binary_overlays,
+)
 from src.core.binary_workbench.internal_file_reader import InternalFileView
 from src.core.binary_workbench.internal_file_region import define_internal_file_region
 from src.core.binary_workbench.internal_offset_mapper import InternalOffsetMapper
@@ -47,6 +51,30 @@ def test_mapper_splits_range_at_useful_sector_boundary(tmp_path: Path):
     ]
 
 
+def test_internal_and_binary_overlays_round_trip_across_sector_boundary(tmp_path: Path):
+    source = tmp_path / "disc.bin"
+    source.write_bytes(
+        _mode2_form1_sector(bytes(2048), 0)
+        + _mode2_form1_sector(bytes(2048), 1)
+    )
+    target = BinaryWorkbenchInternalFileDTO("FILE", 0)
+    region = define_internal_file_region(source, target, [target], RAW_SECTOR_SIZE)
+    mapper = InternalOffsetMapper(region)
+
+    binary = binary_overlays_from_internal_overlays(
+        mapper,
+        {"0x000007FE": "AA BB CC DD"},
+    )
+
+    assert binary == {
+        "0x00000816": "AA BB",
+        "0x00000948": "CC DD",
+    }
+    assert internal_overlays_from_binary_overlays(mapper, binary) == {
+        "0x000007FE": "AA BB CC DD",
+    }
+
+
 def test_mapper_adapts_when_sector_layout_changes(tmp_path: Path):
     source = tmp_path / "mixed.bin"
     source.write_bytes(
@@ -80,7 +108,7 @@ def test_internal_version_rows_keep_internal_patch_and_original_bytes(tmp_path: 
         current,
     )
 
-    assert rows[0].offsets == {"File": "0x00000000", "Binary": "0x00000018"}
+    assert rows[0].offsets == {"File": "0x00000000"}
     assert rows[0].original_bytes_text == "00 00 00 00"
     assert rows[0].bytes_text == "08 00 E0 03"
 

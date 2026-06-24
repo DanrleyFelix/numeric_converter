@@ -257,7 +257,8 @@ def test_binary_workbench_version_dialog_exposes_change_version():
     buttons = actions.findChildren(QPushButton)
 
     assert actions.findChild(QLabel, "preferences-title") is None
-    assert actions.layout().spacing() == 10
+    assert actions.layout().spacing() == 15
+    assert actions.layout().getContentsMargins() == (20, 20, 20, 20)
     assert "Load Versions File" in [button.text() for button in buttons]
     assert "Change Version" in [button.text() for button in buttons]
 
@@ -273,6 +274,7 @@ def test_binary_workbench_version_dialog_exposes_change_version():
 
     assert picker.findChild(QLabel, "preferences-title") is None
     assert picker.findChild(QLabel, "preferences-subtitle") is None
+    assert picker.layout().getContentsMargins() == (20, 20, 20, 20)
     assert version_list is not None
     assert version_list.layout().spacing() == 15
     assert version_list.layout().contentsMargins().left() == 15
@@ -884,8 +886,20 @@ def test_binary_workbench_tabs_use_truncated_labels_and_tooltips(tmp_path: Path)
     assert tool is not None
     tool.open_binary_path(path)
 
-    assert len(tool.tabs.tabText(0)) <= 24
+    assert tool.tabs.tabText(0) == f"{path.name[:20]}..."
     assert tool.tabs.tabBar().tabToolTip(0) == path.name
+    assert tool.tabs.tabBar().isMovable() is True
+    close_button = tool.tabs.tabBar().tabButton(0, QTabBar.RightSide)
+    assert isinstance(close_button, QPushButton)
+    assert close_button.text() == "X"
+    assert close_button.isHidden() is False
+
+    first_id = tool.tabs.context_at(0).tab_id
+    tool.tabs.new_scratch_tab()
+    second_id = tool.tabs.context_at(1).tab_id
+    tool.tabs.tabBar().moveTab(1, 0)
+
+    assert [tab.tab_id for tab in tool.export_state().tabs[:2]] == [second_id, first_id]
 
 
 def test_binary_workbench_symbols_dialog_tolerates_non_string_values(tmp_path: Path):
@@ -984,8 +998,11 @@ def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path
 
     assert tool is not None
     tool.open_binary_path(binary_path)
-    assert tool.toolbar.open_internal_action.isEnabled() is False
+    assert tool.toolbar.open_internal_action.isEnabled() is True
     assert tool.toolbar.open_internal_action.shortcut().toString() == "Alt+I"
+    tool._open_internal_file()
+    assert tool.footer_status.property("statusKind") == "warning"
+    assert tool.footer_status.text() == BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_REQUIREMENTS
     tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO(name="slus", start_lba=0)])
     assert tool.toolbar.open_internal_action.isEnabled() is True
     tool.tabs.open_internal_tab("slus")
@@ -995,11 +1012,13 @@ def test_binary_workbench_opens_internal_file_from_configured_lba(tmp_path: Path
     assert state.tabs[-1].kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
     assert state.tabs[-1].display_name == "slus"
     assert state.tabs[-1].internal_file_start_lba == 0
+    assert state.tabs[-1].internal_parent_tab_id == state.tabs[0].tab_id
+    assert "Binary" not in state.tabs[-1].reference_offsets
     assert state.tabs[-1].rows[0].offsets["File"] == "0x00000000"
     assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
 
 
-def test_binary_workbench_lba_filesystem_allows_non_binary_file_backed_tabs(tmp_path: Path):
+def test_binary_workbench_internal_file_requires_binary_tab(tmp_path: Path):
     assembly_path = tmp_path / "source.asm"
     assembly_path.write_bytes(bytes(2048) + bytes.fromhex("AA BB CC DD"))
     window = _window(tmp_path)
@@ -1012,9 +1031,9 @@ def test_binary_workbench_lba_filesystem_allows_non_binary_file_backed_tabs(tmp_
     tool.tabs.open_internal_tab("chunk")
     state = tool.export_state()
 
-    assert state.tabs[-1].kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
-    assert state.tabs[-1].display_name == "chunk"
-    assert state.tabs[-1].rows[0].bytes_text == "AA BB CC DD"
+    assert len(state.tabs) == 1
+    assert state.tabs[0].kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+    assert tool.footer_status.property("statusKind") == "warning"
 
 
 def test_binary_workbench_internal_file_versions_and_saves_back_to_bin_offsets(tmp_path: Path):
@@ -1039,10 +1058,27 @@ def test_binary_workbench_internal_file_versions_and_saves_back_to_bin_offsets(t
     page.grid.bytes.setPlainText("\n".join(lines))  # type: ignore[attr-defined]
     _app().processEvents()
 
+    state = tool.export_state()
+    assert state.tabs[0].byte_overlays["0x00000018"] == "11 22 33 44"
+    page._load_visible_rows(256, page.grid.visible_size(), 1)  # type: ignore[attr-defined]
+    page._load_visible_rows(0, page.grid.visible_size(), -1)  # type: ignore[attr-defined]
+    assert page.grid.bytes.toPlainText().splitlines()[0] == "11 22 33 44"  # type: ignore[attr-defined]
+
     assert tool.tabs.create_version("internal-v1") is True
     version = tool.tabs.current_context().versions[-1]
-    assert version.rows[0].offsets == {"File": "0x00000000", "Binary": "0x00000018"}
+    assert version.rows[0].offsets == {"File": "0x00000000"}
     assert version.rows[0].original_bytes_text == "AA BB CC DD"
+    assert tool.tabs.save_current_workspace() is True
+    parent = tool.export_state().tabs[0]
+    parent_version = next(
+        version for version in parent.versions if version.name == parent.active_version_name
+    )
+    assert parent_version.rows[0].offsets["File"] == "0x00000018"
+    tool.tabs.close_tab(tool.tabs.currentIndex())
+    tool.tabs.setCurrentIndex(0)
+    tool.tabs.open_internal_tab("SLUS")
+    reopened = tool.tabs.currentWidget()
+    assert reopened.grid.bytes.toPlainText().splitlines()[0] == "11 22 33 44"  # type: ignore[attr-defined]
     assert tool.tabs.save_current_binary_copy(output_path) is True
     assert binary_path.read_bytes()[24:28] == bytes.fromhex("AA BB CC DD")
     assert output_path.read_bytes()[24:28] == bytes.fromhex("11 22 33 44")
@@ -2023,13 +2059,18 @@ def test_binary_workbench_internal_file_dialog_uses_standard_minimal_layout():
     dialog.show()
     _app().processEvents()
     buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
-    items = dialog.findChild(QListWidget, "binary-workbench-search-results")
+    items = dialog.findChild(QListWidget, "binary-workbench-internal-files")
 
     assert dialog.windowTitle() == "Open Internal File"
     assert dialog.findChildren(QLabel) == []
     assert dialog.layout().getContentsMargins() == BINARY_WORKBENCH_DIALOG_LAYOUT.DIALOG_MARGINS
     assert items is not None
     assert items.item(0).text() == "WA_MRG.MRG"
+    assert items.currentItem() is None
+    assert items.selectionMode().name == "SingleSelection"
+    assert dialog.minimumSize() == dialog.maximumSize()
+    items.setCurrentRow(0)
+    assert dialog.selected_name() == "WA_MRG.MRG"
     assert set(buttons) == {"Cancel", "OK"}
     assert buttons["Cancel"].mapTo(dialog, QPoint()).x() < buttons["OK"].mapTo(dialog, QPoint()).x()
 

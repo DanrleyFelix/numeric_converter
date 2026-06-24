@@ -271,8 +271,24 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     is_virtual_binary = kind == "binary"
     uses_virtual_rows = kind in {"binary", "internal"}
     reference_offsets = _reference_offsets(raw)
+    reference_offset_bases = normalize_string_map(raw.get("reference_offset_bases"))
+    view_preferences = _view_preferences(raw.get("view_preferences"))
+    if kind == "internal":
+        reference_offsets = [
+            name for name in reference_offsets if name != "Binary"
+        ]
+        reference_offset_bases.pop("Binary", None)
+        view_preferences = BinaryWorkbenchViewPreferencesDTO(
+            visible_columns={
+                name: visible
+                for name, visible in view_preferences.visible_columns.items()
+                if name != "Binary"
+            },
+            decoded_text_tables=list(view_preferences.decoded_text_tables),
+        )
     internal_files = _internal_files(raw.get("internal_files"))
     internal_file_start_lba = _int_offset(raw.get("internal_file_start_lba"))
+    internal_parent_tab_id = raw.get("internal_parent_tab_id")
     if internal_file_start_lba is None and kind == "internal":
         selected = next((item for item in internal_files if item.name == display_name), None)
         internal_file_start_lba = selected.start_lba if selected is not None else None
@@ -295,7 +311,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         ),
         read_mode=str(raw.get("read_mode", "auto")),
         reference_offsets=reference_offsets,
-        reference_offset_bases=normalize_string_map(raw.get("reference_offset_bases")),
+        reference_offset_bases=reference_offset_bases,
         labels=normalize_string_map(raw.get("labels")),
         equates=normalize_string_map(raw.get("equates")),
         variables=normalize_string_map(raw.get("variables")),
@@ -303,6 +319,14 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         search_cache=_string_list_map(raw.get("search_cache")),
         internal_files=internal_files,
         internal_file_start_lba=internal_file_start_lba,
+        internal_parent_tab_id=(
+            internal_parent_tab_id
+            if isinstance(internal_parent_tab_id, str) and internal_parent_tab_id
+            else None
+        ),
+        internal_parent_byte_overlays=normalize_string_map(
+            raw.get("internal_parent_byte_overlays")
+        ),
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
         offset_regions=_offset_regions(raw.get("offset_regions")),
@@ -326,7 +350,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         and bool(active_version_name or byte_overlays or instruction_overlays),
         byte_overlays=byte_overlays,
         instruction_overlays=instruction_overlays,
-        view_preferences=_view_preferences(raw.get("view_preferences")),
+        view_preferences=view_preferences,
     )))
 
 
@@ -374,6 +398,10 @@ def binary_workbench_state_to_payload(
                     for item in tab.internal_files
                 ],
                 "internal_file_start_lba": tab.internal_file_start_lba,
+                "internal_parent_tab_id": tab.internal_parent_tab_id,
+                "internal_parent_byte_overlays": dict(
+                    tab.internal_parent_byte_overlays
+                ),
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
                 "offset_regions": [

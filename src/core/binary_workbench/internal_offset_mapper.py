@@ -87,6 +87,39 @@ class InternalOffsetMapper:
             span = self._span_for_internal_offset(cursor) if remaining else None
         return chunks
 
+    def chunks_for_binary_range(
+        self,
+        binary_offset: int,
+        size: int,
+    ) -> list[InternalToBinaryChunk]:
+        if binary_offset < 0 or size <= 0:
+            return []
+        binary_end = binary_offset + size
+        first_sector = max(
+            0,
+            (binary_offset // self.region.sector_size) - self.region.start_lba,
+        )
+        last_sector = min(
+            self.region.sector_count - 1,
+            ((binary_end - 1) // self.region.sector_size) - self.region.start_lba,
+        )
+        chunks: list[InternalToBinaryChunk] = []
+        for relative_sector in range(first_sector, last_sector + 1):
+            span = self._ensure_sector(relative_sector)
+            if span is None:
+                break
+            left = max(binary_offset, span.binary_start)
+            right = min(binary_end, span.binary_start + span.data_size)
+            if left >= right:
+                continue
+            chunks.append(InternalToBinaryChunk(
+                internal_offset=span.internal_start + (left - span.binary_start),
+                binary_offset=left,
+                size=right - left,
+                sector_index=span.sector_index,
+            ))
+        return chunks
+
     def _span_for_internal_offset(self, offset: int) -> _SectorSpan | None:
         for span in self._spans:
             if span.internal_start <= offset < span.internal_end:

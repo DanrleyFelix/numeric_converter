@@ -140,6 +140,8 @@ QPushButton#binary-workbench-tab-close {
     border: none;
     color: $text-main;
     font-size: 10px;
+    padding: 0px;
+    outline: none;
 }
 
 QPushButton#binary-workbench-tab-close:hover {
@@ -339,6 +341,43 @@ QListWidget#binary-workbench-search-results:focus {
 }
 
 QListWidget#binary-workbench-search-results QScrollBar:vertical {
+    width: $size-search-results-scrollbar-width;
+    margin: $margin-search-results-scrollbar-vertical;
+}
+
+QListWidget#binary-workbench-internal-files {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    padding: 0px;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files::item {
+    background-color: $bg-workspace-row;
+    border: none;
+    border-radius: $radius-0;
+    color: $text-main;
+    padding: $space-5 $space-12;
+    margin-bottom: $space-10;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files::item:hover {
+    background-color: $bg-workspace-row;
+    border: none;
+}
+
+QListWidget#binary-workbench-internal-files::item:selected,
+QListWidget#binary-workbench-internal-files::item:selected:hover {
+    background-color: $bg-search-result-hover;
+    border: none;
+    color: $text-main;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files QScrollBar:vertical {
     width: $size-search-results-scrollbar-width;
     margin: $margin-search-results-scrollbar-vertical;
 }

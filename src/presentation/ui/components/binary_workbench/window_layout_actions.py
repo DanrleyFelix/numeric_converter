@@ -50,10 +50,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self._sync_internal_file_action()
 
     def _sync_internal_file_action(self, *_args) -> None:
-        current = self.tabs.current_context()
-        self.toolbar.open_internal_action.setEnabled(
-            bool(current and current.source_path and current.internal_files)
-        )
+        self.toolbar.open_internal_action.setEnabled(True)
 
     def _build_ui(self) -> None:
         shell = QWidget()

@@ -115,6 +115,8 @@ class BinaryWorkbenchTabContextDTO:
     search_cache: dict[str, list[str]] = field(default_factory=dict)
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
     internal_file_start_lba: int | None = None
+    internal_parent_tab_id: str | None = None
+    internal_parent_byte_overlays: dict[str, str] = field(default_factory=dict)
     lba_sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
     named_regions: list[str] = field(default_factory=list)
     offset_regions: list[BinaryWorkbenchOffsetRegionDTO] = field(default_factory=list)

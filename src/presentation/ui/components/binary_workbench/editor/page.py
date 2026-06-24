@@ -226,12 +226,6 @@ def _edit_rules_for_context(
     context: BinaryWorkbenchTabContextDTO,
     preferences: BinaryWorkbenchPreferencesDTO,
 ) -> BinaryWorkbenchEditRulesDTO:
-    if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
-        return BinaryWorkbenchEditRulesDTO(
-            allow_byte_shift=False,
-            allow_editor_edit=preferences.binary_edit_rules.allow_editor_edit,
-            allow_free_edit_after_original_end=False,
-        )
     if context.kind in {
         BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
         BINARY_WORKBENCH_TAB_KIND.SCRATCH,

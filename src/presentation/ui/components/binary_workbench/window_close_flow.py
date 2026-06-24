@@ -25,6 +25,8 @@ class BinaryWorkbenchWindowCloseMixin:
         response = self._native_close_question()
         if response == QMessageBox.StandardButton.Cancel:
             return
+        if response == QMessageBox.StandardButton.Discard:
+            self.tabs.discard_internal_changes(index)
         if response == QMessageBox.StandardButton.Save and not self._save_current_tab_for_close():
             return
         self.tabs.close_tab(index)

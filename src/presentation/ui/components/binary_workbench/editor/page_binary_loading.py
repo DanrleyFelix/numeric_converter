@@ -12,7 +12,6 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
 )
 from src.presentation.ui.components.binary_workbench.editor.page_reader import (
     effective_reader_size,
-    with_internal_binary_offsets,
 )
 from src.presentation.ui.components.binary_workbench.editor.page_overlays import (
     apply_overlay_bytes,
@@ -39,7 +38,6 @@ class EditorPageBinaryLoadingMixin:
             visible_offset,
             dict(self._context.reference_offset_bases),
         )
-        rows = with_internal_binary_offsets(self._reader, rows)
         self._context = compact_binary_context_overlays(self._context)
         if self._context.byte_overlays:
             data = self._read_visible_data(
@@ -53,7 +51,6 @@ class EditorPageBinaryLoadingMixin:
                 visible_offset,
                 dict(self._context.reference_offset_bases),
             )
-            rows = with_internal_binary_offsets(self._reader, rows)
         rows = apply_instruction_overlays(rows, self._context.instruction_overlays)
         rows = active_version_rows(self._context, rows)
         rows = apply_symbol_offsets(

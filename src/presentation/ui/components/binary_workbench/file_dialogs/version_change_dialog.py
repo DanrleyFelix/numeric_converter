@@ -2,6 +2,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchVersionDTO
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
     BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT,
@@ -20,6 +23,8 @@ class BinaryWorkbenchVersionChangeDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_CHANGE_TITLE)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
+        layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
         layout.addWidget(self._versions_scroll(versions, active_name), 1)
 
     def selected_name(self) -> str | None:

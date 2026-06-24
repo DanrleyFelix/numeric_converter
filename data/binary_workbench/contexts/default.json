@@ -47,6 +47,8 @@
             "search_cache": {},
             "internal_files": [],
             "internal_file_start_lba": null,
+            "internal_parent_tab_id": null,
+            "internal_parent_byte_overlays": {},
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
@@ -1389,6 +1391,8 @@
             "search_cache": {},
             "internal_files": [],
             "internal_file_start_lba": null,
+            "internal_parent_tab_id": null,
+            "internal_parent_byte_overlays": {},
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
@@ -1477,6 +1481,8 @@
             "search_cache": {},
             "internal_files": [],
             "internal_file_start_lba": null,
+            "internal_parent_tab_id": null,
+            "internal_parent_byte_overlays": {},
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
@@ -1857,6 +1863,8 @@
                 }
             ],
             "internal_file_start_lba": null,
+            "internal_parent_tab_id": null,
+            "internal_parent_byte_overlays": {},
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
@@ -1864,7 +1872,18 @@
             "versions": [
                 {
                     "name": "v1 test",
-                    "rows": [],
+                    "rows": [
+                        {
+                            "offset": "0x0000E5C8",
+                            "offsets": {
+                                "File": "0x0000E5C8"
+                            },
+                            "instruction": "",
+                            "bytes_text": "12 01 2D 58",
+                            "original_instruction": "",
+                            "original_bytes_text": ""
+                        }
+                    ],
                     "instructions": {}
                 }
             ],
@@ -1890,7 +1909,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "cf66bf0d99c3516b80b0ca190f3ee4db812de3a5fac9dd33937f341d618aa006",
+                "versions": "98706e19d5d52540182f872ee9e669236d6ba549fcf2fb60888ef14ce4c5dc79",
                 "commands": "620b88f28b01972a275b5ea483058b54a8fc1763a01fcae0b25b85bc7318c60a",
                 "encoding_tables": "a00048af5a5563e2931b5f8cd60b1f722f068f079a42c68fe376b68ea6a4b27c",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
@@ -1901,7 +1920,7 @@
             "navigation_history": [],
             "file_size": 517875120,
             "original_file_size": 517875120,
-            "version_dirty": false,
+            "version_dirty": true,
             "byte_overlays": {},
             "instruction_overlays": {},
             "original_rows": [],
@@ -1920,19 +1939,16 @@
             }
         },
         {
-            "tab_id": "ff1138e6ee49418689ee5ffe2309d543",
+            "tab_id": "0762b5fc37464917bfaa42e5557d4614",
             "kind": "internal",
             "display_name": "SLUS_014.11",
             "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
             "cpu_arch": "PSX - Mips R3000A",
             "read_mode": "bytes",
             "reference_offsets": [
-                "File",
-                "Binary"
+                "File"
             ],
-            "reference_offset_bases": {
-                "Binary": "0x00000000"
-            },
+            "reference_offset_bases": {},
             "labels": {},
             "equates": {},
             "variables": {},
@@ -1981,6 +1997,10 @@
                 }
             ],
             "internal_file_start_lba": 25,
+            "internal_parent_tab_id": "06a5923c1e4b43688140bdbab6521d78",
+            "internal_parent_byte_overlays": {
+                "0x0000E5C8": "12 01 2D 58"
+            },
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
@@ -2015,9 +2035,34 @@
             "navigation_history": [],
             "file_size": 1902592,
             "original_file_size": 1902592,
-            "version_dirty": false,
+            "version_dirty": true,
             "byte_overlays": {},
-            "instruction_overlays": {},
+            "instruction_overlays": {
+                "0x00000000": "WORD 0x582D0000",
+                "0x00000004": "WORD 0x45584520",
+                "0x00000008": "NOP",
+                "0x0000000C": "NOP",
+                "0x00000010": "LB $at, 0x29D8($zero)",
+                "0x00000014": "NOP",
+                "0x00000018": "LB $at, 0x0($zero)",
+                "0x0000001C": "WORD 0x001D0000",
+                "0x00000020": "NOP",
+                "0x00000024": "NOP",
+                "0x00000028": "NOP",
+                "0x0000002C": "NOP",
+                "0x00000030": "LB $ra, -0x10($zero)",
+                "0x00000034": "NOP",
+                "0x00000038": "NOP",
+                "0x0000003C": "NOP",
+                "0x00000040": "NOP",
+                "0x00000044": "NOP",
+                "0x00000048": "NOP",
+                "0x0000004C": "WORD 0x796E6F53",
+                "0x00000050": "WORD 0x6D6F4320",
+                "0x00000054": "WORD 0x65747570",
+                "0x00000058": "WORD 0x6E452072",
+                "0x0000005C": "WORD 0x74726574"
+            },
             "original_rows": [],
             "rows": [],
             "view_preferences": {
@@ -2026,8 +2071,7 @@
                     "Editor (Assembly Code)": true,
                     "Raw Instructions": true,
                     "Decoded Text": false,
-                    "Bytes": true,
-                    "Binary": false
+                    "Bytes": true
                 },
                 "decoded_text_tables": [
                     "ASCII (ANSI windows)"
@@ -2035,10 +2079,10 @@
             }
         }
     ],
-    "active_tab_id": "93d1d629a2c048ed810983002fa203ab",
+    "active_tab_id": "0762b5fc37464917bfaa42e5557d4614",
     "share_view_preferences": false,
     "directories": {
-        "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados",
+        "open_file": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\ygo - tool droplist editor\\files\\1_original_game\\my_mod",
         "open_binary": "",
         "open_assembly": "",
         "save_file": "",

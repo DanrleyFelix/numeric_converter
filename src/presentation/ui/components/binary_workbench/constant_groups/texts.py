@@ -6,6 +6,9 @@ class BINARY_WORKBENCH_TEXT:
     STATUS_CLOSED_TEMPLATE: str = 'Closed "{name}".'
     STATUS_INTERNAL_SOURCE_REQUIRED: str = "Select a file-backed tab before opening an internal file."
     STATUS_INTERNAL_FILES_REQUIRED: str = "Configure the LBA File System before opening an internal file."
+    STATUS_INTERNAL_REQUIREMENTS: str = (
+        "Internal Files requires an open binary file with an LBA File System configured."
+    )
     STATUS_BINARY_REQUIRED: str = "Open a binary tab before using this action."
     STATUS_VERSION_REQUIRED: str = "Use or load a version before saving a new binary file."
     STATUS_NO_VERSIONS: str = "Create or load a version before using this action."

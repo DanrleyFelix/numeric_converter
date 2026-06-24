@@ -31,6 +31,8 @@ class BinaryWorkbenchTabBar(QTabBar):
             size = BINARY_WORKBENCH_LAYOUT.TAB_CLOSE_BUTTON_SIZE
             button.setFixedSize(size, size)
             button.move(rect.right() - size - 4, rect.top() + 2)
+            button.show()
+            button.raise_()
 
 
 class TabPageManagementMixin:
@@ -40,13 +42,19 @@ class TabPageManagementMixin:
             self._preferences,
             self._command_directory(),
         )
-        page.contextChanged.connect(lambda updated, tab_id=context.tab_id: self._replace_context(tab_id, updated))
+        page.contextChanged.connect(
+            lambda updated, tab_id=context.tab_id: self._handle_page_context_change(
+                tab_id,
+                updated,
+            )
+        )
         page.openLabelTabRequested.connect(self.open_label_tab)
         page.statusWarningRequested.connect(self.statusWarningChanged.emit)
         index = self.addTab(page, tab_text(context.display_name))
         self.setTabToolTip(index, context.display_name)
         self.tabBar().setTabButton(index, QTabBar.RightSide, self._close_button(page))
-        self._replace_context(context.tab_id, page.current_context())
+        self.tabBar()._position_close_buttons()
+        self._handle_page_context_change(context.tab_id, page.current_context())
 
     def _close_button(self, page: BinaryWorkbenchEditorPage) -> QPushButton:
         button = QPushButton("X", self.tabBar())

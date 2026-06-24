@@ -1,7 +1,10 @@
 from pathlib import Path
 
 from src.core.binary_workbench.internal_file_region import define_internal_file_region
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.utils import read_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     SCHEMA_VERSION,
@@ -60,8 +63,15 @@ class TabOpeningMixin:
 
     def open_internal_tab(self, internal_name: str) -> None:
         current = self.current_context()
-        if current is None or not current.source_path or not current.internal_files:
-            self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED)
+        if (
+            current is None
+            or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
+            or not current.source_path
+            or not current.internal_files
+        ):
+            self.statusWarningChanged.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_REQUIREMENTS
+            )
             return
         source = Path(current.source_path)
         target = next((item for item in current.internal_files if item.name == internal_name), None)

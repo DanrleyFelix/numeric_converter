@@ -1,6 +1,9 @@
 from pathlib import Path
 
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
@@ -187,11 +190,13 @@ class BinaryWorkbenchWindowEnvironmentMixin:
 
     def _open_internal_file(self) -> None:
         current = self.tabs.current_context()
-        if current is None or not current.source_path:
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
-            return
-        if not current.internal_files:
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_FILES_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        if (
+            current is None
+            or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
+            or not current.source_path
+            or not current.internal_files
+        ):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_REQUIREMENTS)
             return
         dialog = BinaryWorkbenchInternalFileDialog(current.internal_files, self)
         if dialog.exec() == dialog.DialogCode.Accepted and dialog.selected_name() is not None:

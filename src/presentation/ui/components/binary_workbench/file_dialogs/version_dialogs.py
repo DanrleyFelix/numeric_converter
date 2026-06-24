@@ -5,6 +5,9 @@ from src.modules.binary_workbench_dtos import BinaryWorkbenchVersionDTO
 from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
     configure_dialog_text_context_menu,
 )
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
     BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT,
@@ -17,6 +20,8 @@ class BinaryWorkbenchVersionNameDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
+        layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
         self.name_field = QLineEdit(initial_value, self)
         configure_dialog_text_context_menu(self.name_field)
         self.name_field.setObjectName("binary-workbench-dialog-input")
@@ -35,7 +40,6 @@ class BinaryWorkbenchVersionNameDialog(QDialog):
             BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.NAME_FIELD_HEIGHT,
         )
         layout.addWidget(self.name_field, 0, Qt.AlignHCenter)
-        layout.addSpacing(BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.CREATE_CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignHCenter)
 
     def version_name(self) -> str:
@@ -48,6 +52,8 @@ class BinaryWorkbenchVersionPickerDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_TITLE)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
+        layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
         title = QLabel(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_TITLE, self)
         title.setObjectName("preferences-title")
         subtitle = QLabel(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_SUBTITLE, self)
@@ -86,6 +92,7 @@ class BinaryWorkbenchVersionActionsDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_TITLE)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
         layout.setSpacing(BINARY_WORKBENCH_VERSION_DIALOG_LAYOUT.ACTION_BUTTON_SPACING)
         for text, action in (
             (BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_LOAD_TITLE, self.LOAD),
