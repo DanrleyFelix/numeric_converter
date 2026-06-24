@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.presentation.repository.binary_workbench_workspace.constants import OFFSET_REGIONS
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_STATE
 from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchEncodingTablesDialog,
     BinaryWorkbenchOffsetRegionsDialog,

@@ -4,6 +4,10 @@ from pathlib import Path
 
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.mips_r3000a import build_source_line_rows
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchViewPreferencesDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     COMMANDS,
@@ -11,10 +15,6 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     OFFSET_REGIONS,
     SYMBOLS,
     VERSIONS,
-)
-from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_STATE,
-    BINARY_WORKBENCH_TAB_KIND,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,

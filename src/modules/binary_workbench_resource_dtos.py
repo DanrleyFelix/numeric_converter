@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+
 
 @dataclass(frozen=True)
 class BinaryWorkbenchInternalFileDTO:
@@ -24,7 +26,7 @@ class BinaryWorkbenchOffsetRegionDTO:
 class BinaryWorkbenchLbaFilesystemDTO:
     name: str
     file_identifiers: list[str] = field(default_factory=list)
-    sector_size: int = 2352
+    sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
 
 

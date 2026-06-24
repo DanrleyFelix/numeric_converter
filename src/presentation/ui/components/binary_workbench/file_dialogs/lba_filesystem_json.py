@@ -2,6 +2,10 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QFileDialog
 
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
@@ -93,8 +97,12 @@ def internal_files_from_payload(raw: object) -> list[BinaryWorkbenchInternalFile
 
 
 def lba_sector_size(raw: object) -> int:
-    value = raw if isinstance(raw, int) else 2352
-    return value if value in {2048, 2334, 2352} else 2352
+    value = raw if isinstance(raw, int) else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    return (
+        value
+        if value in BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS
+        else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    )
 
 
 def filesystem_payload(

@@ -9,6 +9,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.preferences.view.constants import (
+    BINARY_WORKBENCH_VIEW_LAYOUT,
+)
 
 
 class BinaryWorkbenchViewDialog(QDialog):
@@ -16,24 +19,29 @@ class BinaryWorkbenchViewDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.VIEW)
-        self.setFixedSize(BINARY_WORKBENCH_LAYOUT.VIEW_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.VIEW_DIALOG_HEIGHT)
+        self.setFixedWidth(BINARY_WORKBENCH_VIEW_LAYOUT.DIALOG_WIDTH)
         self._offset_names = reference_offsets or [BINARY_WORKBENCH_TEXT.FILE]
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(*(BINARY_WORKBENCH_LAYOUT.VIEW_DIALOG_MARGIN,) * 4)
-        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.VIEW_DIALOG_GAP)
+        layout.setContentsMargins(*(BINARY_WORKBENCH_VIEW_LAYOUT.MARGIN,) * 4)
+        layout.setSpacing(BINARY_WORKBENCH_VIEW_LAYOUT.LAYOUT_SPACING)
         self._buttons = {
             BINARY_WORKBENCH_TEXT.BYTES: self._toggle(BINARY_WORKBENCH_TEXT.BYTES, visible_columns.get(BINARY_WORKBENCH_TEXT.BYTES, True)),
             BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: self._toggle(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, visible_columns.get(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, True)),
             BINARY_WORKBENCH_TEXT.DECODED_TEXT: self._toggle(BINARY_WORKBENCH_TEXT.DECODED_TEXT, visible_columns.get(BINARY_WORKBENCH_TEXT.DECODED_TEXT, False)),
             BINARY_WORKBENCH_TEXT.OFFSETS: self._toggle(BINARY_WORKBENCH_TEXT.OFFSETS, all(visible_columns.get(name, True) for name in self._offset_names)),
         }
-        for button in self._buttons.values():
+        for index, button in enumerate(self._buttons.values()):
+            if index:
+                layout.addSpacing(
+                    BINARY_WORKBENCH_VIEW_LAYOUT.IDENTICAL_ITEM_SPACING
+                )
             layout.addWidget(button, 0, Qt.AlignHCenter)
-        layout.addStretch(1)
+        layout.addSpacing(BINARY_WORKBENCH_VIEW_LAYOUT.CONFIRM_TOP_SPACING)
         confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
         configure_binary_workbench_dialog_action(confirm)
         confirm.clicked.connect(self.accept)
         layout.addWidget(confirm, 0, Qt.AlignHCenter)
+        self.setFixedHeight(self.sizeHint().height())
 
     def visible_columns(self) -> dict[str, bool]:
         values = {
@@ -51,7 +59,7 @@ class BinaryWorkbenchViewDialog(QDialog):
         button.setCheckable(True)
         button.setChecked(checked)
         button.setFixedSize(
-            BINARY_WORKBENCH_LAYOUT.VIEW_BUTTON_WIDTH,
+            BINARY_WORKBENCH_VIEW_LAYOUT.BUTTON_WIDTH,
             BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
         )
         configure_binary_workbench_dialog_button(button)

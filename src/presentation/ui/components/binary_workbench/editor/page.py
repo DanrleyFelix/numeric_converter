@@ -8,7 +8,10 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.core.binary_workbench.encoding_tables import enabled_encoding_values
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
@@ -16,7 +19,6 @@ from src.modules.binary_workbench_dtos import (
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
-    BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor.page_defaults import default_editor_kind, offset_from_hex

@@ -5,6 +5,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import symbol_label
 
 
@@ -17,8 +20,8 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS)
         self.setMinimumWidth(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MIN_WIDTH // 2)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 30, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.DIALOG_MARGINS)
+        layout.setSpacing(ENVIRONMENT_LAYOUT.PANEL_SPACING)
         title = symbol_label(name, "workspace-table-title", self)
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -27,10 +30,10 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
         self.offsets.setFocusPolicy(Qt.NoFocus)
         self.offsets.setMouseTracking(True)
         self.offsets.setViewportMargins(
-            0,
-            0,
+            ENVIRONMENT_LAYOUT.ZERO,
+            ENVIRONMENT_LAYOUT.ZERO,
             BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
-            0,
+            ENVIRONMENT_LAYOUT.ZERO,
         )
         if offsets:
             self.offsets.setCursor(Qt.PointingHandCursor)

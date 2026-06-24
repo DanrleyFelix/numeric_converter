@@ -4,10 +4,16 @@ QToolButton#copy-raw {
     border-radius: $radius-8;
     min-width: $size-copy-raw-button-min;
     min-height: $size-copy-raw-button-min;
-    padding: $padding-copy-raw-button;
 }
 
 QToolButton#copy-raw:hover {
     background-color: $bg-toolbar-button-hover;
     border: 1px solid $border-hover;
+}
+
+QPlainTextEdit {
+    padding-top: $space-6;
+    padding-bottom: $space-6;
+    padding-left: $space-4;
+    padding-right: $space-4;
 }

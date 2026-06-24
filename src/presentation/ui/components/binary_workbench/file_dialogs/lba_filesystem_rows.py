@@ -7,6 +7,9 @@ from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_line_edit,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_widgets import (
     LbaRemoveRowButton,
     lba_button,
@@ -43,7 +46,7 @@ class LbaFilesystemRowsMixin:
         row.setObjectName("workspace-row")
         row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_FIELD_SPACING)
         name_edit = lba_input(
             BINARY_WORKBENCH_TEXT.LBA_FILE_NAME,
@@ -68,7 +71,10 @@ class LbaFilesystemRowsMixin:
         go_to.clicked.connect(lambda: self._go_to_lba(lba_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = LbaRemoveRowButton(remove_slot)
-        remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
+        remove.setFixedSize(
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
+        )
         remove.clicked.connect(lambda: self._remove_row(row, remove_slot))
         layout.addWidget(name_edit, 1)
         layout.addWidget(lba_edit, 1)
@@ -92,7 +98,8 @@ class LbaFilesystemRowsMixin:
 
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
+    slot.setFixedWidth(WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH)
     slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
-    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
     return slot

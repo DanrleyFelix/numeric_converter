@@ -1,13 +1,13 @@
 from pathlib import Path
 
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
-)
-from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_TAB_KIND,
-    BINARY_WORKBENCH_TEXT,
 )
 
 
@@ -37,7 +37,7 @@ def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchT
     if tab.versions:
         active = tab.active_version_name or tab.versions[0].name
         return BinaryWorkbenchTabContextDTO(**{**tab.__dict__, "active_version_name": active})
-    version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME)
+    version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
     return BinaryWorkbenchTabContextDTO(
         **{
             **tab.__dict__,

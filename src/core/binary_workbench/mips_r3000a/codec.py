@@ -6,6 +6,7 @@ from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
 from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
 from src.core.binary_workbench.mips_r3000a.operands import word_bytes
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME
 from src.modules.contracts import CPUArchCodec
 
 JUMP_NAVIGATION_BASE = 0xF800
@@ -19,7 +20,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
 
     @property
     def display_name(self) -> str:
-        return "PSX - Mips R3000A"
+        return BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME
 
     @property
     def word_size(self) -> int:

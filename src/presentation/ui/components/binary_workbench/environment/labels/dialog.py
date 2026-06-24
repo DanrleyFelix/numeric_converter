@@ -25,6 +25,9 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
     symbol_button,
     symbol_input,
 )
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 
 
 class BinaryWorkbenchLabelsDialog(QDialog):
@@ -48,12 +51,12 @@ class BinaryWorkbenchLabelsDialog(QDialog):
 
     def _build_dialog(self, labels: dict[str, str]) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 30, 20, 20)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.DIALOG_MARGINS)
         shell = QFrame(self)
         shell.setObjectName("workspace-table-shell")
         shell_layout = QVBoxLayout(shell)
-        shell_layout.setContentsMargins(20, 20, 20, 16)
-        shell_layout.setSpacing(12)
+        shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
+        shell_layout.setSpacing(ENVIRONMENT_LAYOUT.PANEL_SPACING)
         self.filter_input = symbol_input(
             BINARY_WORKBENCH_TEXT.FILTER,
             shell,
@@ -81,12 +84,12 @@ class BinaryWorkbenchLabelsDialog(QDialog):
         self.body.setObjectName("workspace-table-body")
         self.body_layout = QVBoxLayout(self.body)
         self.body_layout.setContentsMargins(
-            0,
-            10,
+            ENVIRONMENT_LAYOUT.ZERO,
+            ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
             BINARY_WORKBENCH_LAYOUT.LABELS_SCROLLBAR_SAFETY_MARGIN,
-            10,
+            ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
         )
-        self.body_layout.setSpacing(10)
+        self.body_layout.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
         self.body_layout.setAlignment(Qt.AlignTop)
         self.scroll.setWidget(self.body)
         parent.addWidget(self.scroll, 1)
@@ -96,8 +99,8 @@ class BinaryWorkbenchLabelsDialog(QDialog):
         row.setObjectName("workspace-row")
         row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
+        layout.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
         name_edit = _readonly_input(BINARY_WORKBENCH_TEXT.LABEL_NAME, row, name)
         offset_edit = _readonly_input(BINARY_WORKBENCH_TEXT.OFFSET, row, offset)
         go_to = symbol_button(BINARY_WORKBENCH_TEXT.GO_TO, "", row)

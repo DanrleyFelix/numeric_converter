@@ -3,6 +3,9 @@ from PySide6.QtWidgets import QComboBox, QDialog, QFrame, QLineEdit, QVBoxLayout
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchSymbolsDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_json import (
     SymbolsDialogJsonMixin,
 )
@@ -68,12 +71,12 @@ class BinaryWorkbenchSymbolsDialog(
         default_library_name: str,
     ) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 30, 20, 20)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.DIALOG_MARGINS)
         self.shell = QFrame(self)
         self.shell.setObjectName("workspace-table-shell")
         shell_layout = QVBoxLayout(self.shell)
-        shell_layout.setContentsMargins(20, 20, 20, 16)
-        shell_layout.setSpacing(12)
+        shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
+        shell_layout.setSpacing(ENVIRONMENT_LAYOUT.PANEL_SPACING)
         self._build_library_controls(shell_layout, default_library_name)
         self._build_entry(shell_layout)
         self._build_scroll_body(shell_layout)

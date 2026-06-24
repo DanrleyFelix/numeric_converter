@@ -19,7 +19,7 @@ $bg-button-clear-pressed: #54ac57;
 $bg-menu-item-checked:    #4245606B;
 $bg-state-success-soft:   #6AE8991F;
 $bg-control-checked:      #171A26;
-$bg-control-checked-hover: #1D2230;
+$bg-control-checked-hover:#1D2230;
 $bg-tooltip:              #111624FA;
 $bg-workspace-shell:      #1A1A27;
 $bg-workspace-header:     #1D1D2C;
@@ -27,7 +27,7 @@ $bg-workspace-row:        #161624;
 $bg-workspace-row-hover:  #1B1B29;
 $bg-search-result-hover:  #252539;
 $bg-workspace-remove:     #281119;
-$bg-workspace-remove-hover: #351720;
+$bg-workspace-remove-hover:#351720;
 $bg-scrollbar-track:      #0A0B11F5;
 $bg-scrollbar-page:       #101218B3;
 $bg-scrollbar-handle:     #727782FA;
@@ -154,26 +154,11 @@ $space-30: 30px;
 /* ===============================
    COMPOSED INSETS / MARGINS
    =============================== */
-$padding-select-field: 6px 8px;
-$padding-input-field: 4px 8px;
-$padding-none: 0px;
-$padding-autocomplete-shell: 6px;
-$padding-autocomplete-item: 8px 12px;
-$padding-command-header-button: 0px 14px;
-$padding-copy-raw-button: 4px;
-$padding-dialog-button: 0px 16px;
-$padding-help-nav-shell: 10px;
-$padding-help-nav-item: 12px 14px;
-$padding-help-page-shell: 30px 4px 22px 28px;
-$padding-menu-shell: 0px;
-$padding-symbol-offsets-list: 11px;
-$padding-search-results-list: 6px 7px 12px 7px;
 $padding-toolbar-button: 0px 18px;
 $padding-toolbar-menu-item: 10px 18px;
-$padding-workspace-remove-button: 0px;
 
 $margin-none: 0px;
-$margin-command-feedback-item: 1px 0px;
+$margin-command-feedback-item: 0px;
 $margin-help-nav-item: 3px 0px;
 $margin-scrollbar-vertical: 10px 2px 10px 0px;
 $margin-search-results-scrollbar-vertical: 10px 0px 10px 0px;

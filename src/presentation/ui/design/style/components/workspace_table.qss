@@ -51,7 +51,7 @@ QPushButton#workspace-row-remove {
     border: none;
     border-radius: $radius-0;
     color: $text-main;
-    padding: $padding-workspace-remove-button;
+    padding: $space-0;
 }
 
 QPushButton#workspace-row-remove:hover {

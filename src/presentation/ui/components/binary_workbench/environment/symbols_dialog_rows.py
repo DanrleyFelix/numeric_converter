@@ -8,6 +8,9 @@ from src.presentation.ui.components.binary_workbench.action_controls import (
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.environment.symbol_offsets_dialog import (
     BinaryWorkbenchSymbolOffsetsDialog,
 )
@@ -50,7 +53,7 @@ class SymbolsDialogRowsMixin:
         row.setObjectName("workspace-row")
         row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
         kind_combo = symbol_kind_combo(row, kind, expanding=True)
         name_edit = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, row, name, expanding=True)
@@ -64,7 +67,10 @@ class SymbolsDialogRowsMixin:
         offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
         remove_slot = _remove_slot(self.remove_body)
         remove = SymbolRemoveRowButton(remove_slot)
-        remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
+        remove.setFixedSize(
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
+        )
         remove.clicked.connect(lambda: self._remove_row(row, remove_slot))
         layout.addWidget(kind_combo, 1)
         layout.addWidget(name_edit, 1)
@@ -99,7 +105,8 @@ class SymbolsDialogRowsMixin:
 
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
+    slot.setFixedWidth(WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH)
     slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
-    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
     return slot

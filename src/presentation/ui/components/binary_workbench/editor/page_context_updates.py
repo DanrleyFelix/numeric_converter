@@ -1,7 +1,7 @@
-from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
+from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (

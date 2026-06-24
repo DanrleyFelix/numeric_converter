@@ -55,16 +55,30 @@ class PreferencesDialog(QDialog):
 
         grid = QGridLayout()
         grid.setHorizontalSpacing(PREFERENCES_DIALOG_SPACING.GRID_HORIZONTAL)
-        grid.setVerticalSpacing(PREFERENCES_DIALOG_SPACING.GRID_VERTICAL)
+        grid.setVerticalSpacing(PREFERENCES_DIALOG_SPACING.GRID_LAYOUT)
         grid.setColumnStretch(0, 0)
         grid.setColumnStretch(1, 0)
         grid.setColumnStretch(2, 1)
 
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.FIELD_HEADER), 0, 0)
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.GROUP_SIZE_HEADER), 0, 1)
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.ZERO_PAD_HEADER), 0, 2)
+        header_row = PREFERENCES_DIALOG_SPACING.GRID_HEADER_ROW
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.FIELD_HEADER), header_row, 0)
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.GROUP_SIZE_HEADER), header_row, 1)
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.ZERO_PAD_HEADER), header_row, 2)
+        grid.setRowMinimumHeight(
+            PREFERENCES_DIALOG_SPACING.GRID_HEADER_SPACER_ROW,
+            PREFERENCES_DIALOG_SPACING.GRID_HEADER,
+        )
 
-        for row, (key, label_text) in enumerate(FIELD_LABELS.items(), start=1):
+        for index, (key, label_text) in enumerate(FIELD_LABELS.items()):
+            row = (
+                PREFERENCES_DIALOG_SPACING.GRID_FIRST_DATA_ROW
+                + index * PREFERENCES_DIALOG_SPACING.GRID_ROW_STEP
+            )
+            if index:
+                grid.setRowMinimumHeight(
+                    row - 1,
+                    PREFERENCES_DIALOG_SPACING.GRID_IDENTICAL_ROWS,
+                )
             group_size = QComboBox()
             group_size.setObjectName("preferences-group-size")
             group_size.setFixedWidth(PREFERENCES_DIALOG_SIZE.GROUP_SIZE_WIDTH)

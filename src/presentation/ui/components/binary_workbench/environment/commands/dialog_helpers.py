@@ -15,6 +15,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
 )
@@ -32,12 +35,12 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
         BINARY_WORKBENCH_LAYOUT.COMMANDS_SHOW_DIALOG_HEIGHT,
     )
     layout = QVBoxLayout(dialog)
-    layout.setContentsMargins(20, 30, 20, 20)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.DIALOG_MARGINS)
     shell = QFrame(dialog)
     shell.setObjectName("workspace-table-shell")
     shell_layout = QVBoxLayout(shell)
-    shell_layout.setContentsMargins(20, 20, 20, 16)
-    shell_layout.setSpacing(20)
+    shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
+    shell_layout.setSpacing(ENVIRONMENT_LAYOUT.SECTION_SPACING)
     editor = QPlainTextEdit(shell)
     editor.setObjectName("binary-workbench-command-instructions")
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
@@ -45,7 +48,7 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
     editor.setPlainText("\n".join(instructions))
     shell_layout.addWidget(editor, 1)
     footer = QHBoxLayout()
-    footer.setContentsMargins(0, 0, 0, 0)
+    footer.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
     footer.addStretch(1)
     ok = symbol_button(BINARY_WORKBENCH_TEXT.OK, "", shell)
     configure_binary_workbench_dialog_action(ok)
@@ -62,7 +65,7 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
 def header_cell(text: str, parent: QWidget, alignment: Qt.AlignmentFlag = Qt.AlignLeft) -> QFrame:
     frame = QFrame(parent)
     layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
     label = QLabel(text, frame)
     label.setObjectName("workspace-table-header-cell")
     layout.addWidget(label, 1, alignment)

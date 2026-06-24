@@ -3,6 +3,7 @@ from PySide6.QtGui import QKeyEvent, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit
 
 from src.presentation.ui.components.command_panel.prompt_area import PromptArea
+from src.presentation.ui.helpers.completer_popup import fit_completer_popup_height
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
@@ -31,7 +32,7 @@ class CommandEdit(QPlainTextEdit):
         popup.setFocusPolicy(Qt.NoFocus)
         popup.setFrameShape(QFrame.NoFrame)
         popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         popup.setUniformItemSizes(True)
         popup.setMouseTracking(True)
         popup.setSpacing(0)
@@ -188,10 +189,10 @@ class CommandEdit(QPlainTextEdit):
         rect.translate(0, self.fontMetrics().height() + 4)
         rect.setWidth(
             self._completer.popup().sizeHintForColumn(0)
-            + self._completer.popup().verticalScrollBar().sizeHint().width()
             + 24
         )
         self._completer.complete(rect)
+        fit_completer_popup_height(self._completer)
 
     def _show_history_popup(self) -> None:
         entries = [entry for entry in reversed(self._history_entries) if entry]
@@ -206,10 +207,10 @@ class CommandEdit(QPlainTextEdit):
         rect.translate(0, self.fontMetrics().height() + 4)
         rect.setWidth(
             popup.sizeHintForColumn(0)
-            + popup.verticalScrollBar().sizeHint().width()
             + 24
         )
         self._completer.complete(rect)
+        fit_completer_popup_height(self._completer)
 
     def _move_popup_selection(self, step: int) -> None:
         popup = self._completer.popup()

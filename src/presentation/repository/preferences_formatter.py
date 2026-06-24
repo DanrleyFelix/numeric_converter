@@ -6,6 +6,11 @@ from src.core.binary_workbench.selection_limits import (
     normalized_selection_limit,
 )
 from src.modules.application_dtos import NumericWorkbenchPreferencesDTO
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_BYTE_GROUP_OPTIONS,
+    BINARY_WORKBENCH_DEFAULT_BLOCK_SIZE,
+    BINARY_WORKBENCH_DEFAULT_CACHE_MAX_BLOCKS,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
@@ -134,8 +139,14 @@ class BinaryWorkbenchPreferencesRepository:
             group_bytes=self._group_bytes(raw.get("group_bytes") if raw else None),
             uppercase_bytes=self._bool(raw.get("uppercase_bytes") if raw else None, True),
             uppercase_instructions=self._bool(raw.get("uppercase_instructions") if raw else None, True),
-            block_size=self._positive_int(raw.get("block_size") if raw else None, 2048),
-            cache_max_blocks=self._positive_int(raw.get("cache_max_blocks") if raw else None, 8000),
+            block_size=self._positive_int(
+                raw.get("block_size") if raw else None,
+                BINARY_WORKBENCH_DEFAULT_BLOCK_SIZE,
+            ),
+            cache_max_blocks=self._positive_int(
+                raw.get("cache_max_blocks") if raw else None,
+                BINARY_WORKBENCH_DEFAULT_CACHE_MAX_BLOCKS,
+            ),
             selection_limit_bytes=normalized_selection_limit(
                 self._positive_int(
                     raw.get("selection_limit_bytes") if raw else None,
@@ -194,8 +205,9 @@ class BinaryWorkbenchPreferencesRepository:
         return raw if isinstance(raw, dict) else None
 
     def _group_bytes(self, raw: object) -> int:
-        value = raw if isinstance(raw, int) else 1
-        return value if value in {1, 2, 4} else 1
+        default = BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[0]
+        value = raw if isinstance(raw, int) else default
+        return value if value in BINARY_WORKBENCH_BYTE_GROUP_OPTIONS else default
 
     def _bool(self, raw: object, default: bool) -> bool:
         return raw if isinstance(raw, bool) else default

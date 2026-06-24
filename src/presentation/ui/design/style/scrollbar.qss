@@ -1,7 +1,5 @@
 QPlainTextEdit,
 QListWidget#help-nav,
-QListView#command-completer,
-QListView#binary-workbench-completer,
 QScrollArea#workspace-table-body-scroll {
     padding-right: $space-8;
     padding-bottom: $space-6;

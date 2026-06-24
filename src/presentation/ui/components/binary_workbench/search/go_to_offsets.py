@@ -1,4 +1,5 @@
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 
 
@@ -120,11 +121,12 @@ def symbol_offsets(values: dict[str, list[str]], key: str) -> list[str]:
 
 
 def lba_sectors() -> dict[str, int]:
-    return {
-        BINARY_WORKBENCH_TEXT.LBA_2048_TARGET: 2048,
-        BINARY_WORKBENCH_TEXT.LBA_2334_TARGET: 2334,
-        BINARY_WORKBENCH_TEXT.LBA_2352_TARGET: 2352,
-    }
+    targets = (
+        BINARY_WORKBENCH_TEXT.LBA_2048_TARGET,
+        BINARY_WORKBENCH_TEXT.LBA_2334_TARGET,
+        BINARY_WORKBENCH_TEXT.LBA_2352_TARGET,
+    )
+    return dict(zip(targets, BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS, strict=True))
 
 
 def offsets_from_strings(values: list[str]) -> list[int]:

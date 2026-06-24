@@ -1,3 +1,4 @@
+from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import (
     apply_version_rows,
@@ -10,17 +11,16 @@ from src.core.binary_workbench.version_overlays import (
 )
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.version_line_comments import apply_line_comments
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
-from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSION_PATH_PREFIX,
     VERSIONS,
 )
+from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     apply_instruction_overlays,
 )
-from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND
 
 
 class TabVersionsMixin:

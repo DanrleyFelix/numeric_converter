@@ -11,6 +11,11 @@ from src.core.binary_workbench.version_overlays import (
     instructions_by_line_from_rows,
     without_blank_instruction_overlays,
 )
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS,
+    BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchEncodingTableDTO,
@@ -224,8 +229,12 @@ def _is_offset_key(raw: object) -> bool:
 
 
 def _lba_sector_size(raw: object) -> int:
-    value = raw if isinstance(raw, int) else 2352
-    return value if value in {2048, 2334, 2352} else 2352
+    value = raw if isinstance(raw, int) else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    return (
+        value
+        if value in BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS
+        else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    )
 
 
 def _int_offset(raw: object) -> int | None:
@@ -270,7 +279,9 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         kind=kind,
         display_name=display_name,
         source_path=str(source_path) if isinstance(source_path, str) else None,
-        cpu_arch=str(raw.get("cpu_arch", "PSX - Mips R3000A")),
+        cpu_arch=str(
+            raw.get("cpu_arch", BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME)
+        ),
         read_mode=str(raw.get("read_mode", "auto")),
         reference_offsets=reference_offsets,
         reference_offset_bases=normalize_string_map(raw.get("reference_offset_bases")),

@@ -1,6 +1,10 @@
 from pathlib import Path
 
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchStateDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 
@@ -16,7 +20,11 @@ def state_payload(state: BinaryWorkbenchStateDTO) -> dict[str, object]:
 
 
 def lba_sector_size(value: int) -> int:
-    return value if value in {2048, 2334, 2352} else 2352
+    return (
+        value
+        if value in BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS
+        else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    )
 
 
 def tab_text(value: str) -> str:

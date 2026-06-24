@@ -14,7 +14,17 @@ from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
     configure_binary_workbench_dialog_button,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT, BINARY_WORKBENCH_TIMING
+from src.presentation.ui.components.binary_workbench.constant_groups.layout import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
+from src.presentation.ui.components.binary_workbench.environment.encoding_tables.constants import (
+    ENCODING_TABLES_SIZE,
+    ENCODING_TABLES_SPACING,
+    ENCODING_TABLES_TIMING,
+)
+from src.presentation.ui.components.binary_workbench.environment.encoding_tables.constants.layout import BODY_MARGINS
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import BINARY_WORKBENCH_FILE_DIALOG_TEXT
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
@@ -24,7 +34,10 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.ENCODING_TABLES)
-        self.setFixedSize(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_HEIGHT)
+        self.setFixedSize(
+            ENCODING_TABLES_SIZE.DIALOG_WIDTH,
+            ENCODING_TABLES_SIZE.DIALOG_HEIGHT,
+        )
         self._tables = {table.name: table for table in tables}
         self._enabled: list[str] = []
         for name in enabled:
@@ -36,8 +49,8 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         self._buttons: dict[str, QPushButton] = {}
         self._conflict_generation: dict[str, int] = {}
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(*(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_MARGIN,) * 4)
-        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_GAP)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
+        layout.setSpacing(ENCODING_TABLES_SPACING.CONTROL)
         load = QPushButton(BINARY_WORKBENCH_TEXT.LOAD_TABLE, self)
         configure_binary_workbench_dialog_action(load)
         load.clicked.connect(self._load_table)
@@ -48,9 +61,10 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         scroll.setFrameShape(QFrame.NoFrame)
         self._body = QWidget(scroll)
         self._body.setObjectName("binary-workbench-version-list")
+        self._body.setContentsMargins(BODY_MARGINS.LEFT, BODY_MARGINS.TOP, BODY_MARGINS.RIGHT, BODY_MARGINS.BOTTOM)
         self._body_layout = QVBoxLayout(self._body)
-        self._body_layout.setContentsMargins(0, 0, 0, 0)
-        self._body_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.ENCODING_DIALOG_GAP)
+        self._body_layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
+        self._body_layout.setSpacing(ENCODING_TABLES_SPACING.CONTROL)
         self._body_layout.setAlignment(Qt.AlignTop)
         scroll.setWidget(self._body)
         layout.addWidget(scroll, 1)
@@ -88,6 +102,7 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
             button = QPushButton(name, self._body)
             button.setCursor(Qt.PointingHandCursor)
             button.setFocusPolicy(Qt.NoFocus)
+            button.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
             configure_binary_workbench_dialog_button(button)
             button.clicked.connect(lambda _, table_name=name: self._toggle(table_name))
             self._buttons[name] = button
@@ -116,7 +131,10 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         generation = self._conflict_generation.get(name, 0) + 1
         self._conflict_generation[name] = generation
         button.setStyleSheet(f"border: 1px solid {THEME_TOKENS['border-danger']};")
-        QTimer.singleShot(BINARY_WORKBENCH_TIMING.ENCODING_TABLE_CONFLICT_MS, lambda: self._clear_conflict(name, generation))
+        QTimer.singleShot(
+            ENCODING_TABLES_TIMING.CONFLICT_MS,
+            lambda: self._clear_conflict(name, generation),
+        )
 
     def _clear_conflict(self, name: str, generation: int) -> None:
         if self._conflict_generation.get(name) != generation or name not in self._buttons:

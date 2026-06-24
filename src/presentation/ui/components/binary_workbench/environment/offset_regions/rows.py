@@ -5,10 +5,19 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QLineEdit, QPlainTextEdit, Q
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchOffsetRegionDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_action,
+    configure_binary_workbench_dialog_action,
     configure_binary_workbench_input,
+    configure_binary_workbench_line_edit,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT,
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
+from src.presentation.ui.components.binary_workbench.environment.offset_regions.constants import (
+    OFFSET_REGIONS_SIZE,
+    OFFSET_REGIONS_SPACING,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_widgets import (
     LbaRemoveRowButton,
     lba_button,
@@ -56,20 +65,25 @@ class OffsetRegionsRowsMixin:
         widget.setObjectName("workspace-row")
         widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.LBA_FILESYSTEM_FIELD_SPACING)
-        name_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_NAME, widget, name, BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH)
-        offset_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_VALUE, widget, offset, BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
+        layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
+        name_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_NAME, widget, name, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
+        offset_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_VALUE, widget, offset, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
         set_hex_value_validator(offset_edit)
-        configure_binary_workbench_input(name_edit, BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH)
-        configure_binary_workbench_input(offset_edit, BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH)
+        configure_binary_workbench_input(name_edit, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
+        configure_binary_workbench_input(offset_edit, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
+        configure_binary_workbench_line_edit(name_edit, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
+        configure_binary_workbench_line_edit(offset_edit, BINARY_WORKBENCH_LAYOUT.SHARED_INPUT_WIDTH)
         details_button = lba_button(BINARY_WORKBENCH_TEXT.DETAILS, "", widget)
         go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "", widget)
         for button in (details_button, go_to):
-            configure_binary_workbench_action(button)
+            configure_binary_workbench_dialog_action(button)
         remove_slot = _remove_slot(self.remove_body)
         remove = LbaRemoveRowButton(remove_slot)
-        remove.setFixedSize(WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH, WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT)
+        remove.setFixedSize(
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
+            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
+        )
         row = _OffsetRow(name_edit, offset_edit, details, widget, remove_slot)
         name_edit.textChanged.connect(self._apply_filter)
         offset_edit.textChanged.connect(self._apply_filter)
@@ -116,15 +130,18 @@ class OffsetRegionDetailsDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.DETAILS)
-        self.setFixedSize(BINARY_WORKBENCH_LAYOUT.OFFSET_DETAILS_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.OFFSET_DETAILS_DIALOG_HEIGHT)
+        self.setFixedSize(
+            OFFSET_REGIONS_SIZE.DETAILS_DIALOG_WIDTH,
+            OFFSET_REGIONS_SIZE.DETAILS_DIALOG_HEIGHT,
+        )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(*(BINARY_WORKBENCH_LAYOUT.OFFSET_DETAILS_DIALOG_MARGIN,) * 4)
-        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.OFFSET_DETAILS_DIALOG_GAP)
+        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
+        layout.setSpacing(OFFSET_REGIONS_SPACING.DETAILS_DIALOG)
         self.editor = QPlainTextEdit(self)
         self.editor.setPlainText(details)
         layout.addWidget(self.editor, 1)
         footer = QHBoxLayout()
-        footer.setSpacing(BINARY_WORKBENCH_LAYOUT.OFFSET_DETAILS_DIALOG_GAP)
+        footer.setSpacing(OFFSET_REGIONS_SPACING.DETAILS_DIALOG)
         cancel = _details_action(BINARY_WORKBENCH_TEXT.CANCEL, self)
         ok = _details_action(BINARY_WORKBENCH_TEXT.OK, self)
         cancel.clicked.connect(self.reject)
@@ -140,7 +157,7 @@ class OffsetRegionDetailsDialog(QDialog):
 
 def _details_action(text: str, parent: QWidget) -> QPushButton:
     button = QPushButton(text, parent)
-    configure_binary_workbench_action(button)
+    configure_binary_workbench_dialog_action(button)
     button.setCursor(Qt.PointingHandCursor)
     button.setFocusPolicy(Qt.NoFocus)
     return button
@@ -148,7 +165,8 @@ def _details_action(text: str, parent: QWidget) -> QPushButton:
 
 def _remove_slot(parent: QWidget) -> QWidget:
     slot = QWidget(parent)
+    slot.setFixedWidth(WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH)
     slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     layout = QVBoxLayout(slot)
-    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
     return slot

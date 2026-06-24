@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEncodingTableDTO,
     BinaryWorkbenchInternalFileDTO,
@@ -227,9 +231,14 @@ def symbols_from_payload(payload: dict[str, object] | None) -> tuple[dict[str, s
 
 def lba_from_payload(payload: dict[str, object] | None) -> tuple[int, list[BinaryWorkbenchInternalFileDTO]]:
     if not isinstance(payload, dict):
-        return 2352, []
+        return BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE, []
     sector_size = payload.get("sector_size")
-    size = sector_size if isinstance(sector_size, int) and sector_size in {2048, 2334, 2352} else 2352
+    size = (
+        sector_size
+        if isinstance(sector_size, int)
+        and sector_size in BINARY_WORKBENCH_LBA_SECTOR_SIZE_OPTIONS
+        else BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
+    )
     return size, _internal_files(payload.get("internal_files"))
 
 

@@ -2,13 +2,14 @@ from pathlib import Path
 
 from src.core.binary_workbench.file_ops import apply_version_rows
 from src.core.binary_workbench.mips_r3000a import rebuild_rows_with_offsets
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchViewPreferencesDTO,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TAB_KIND, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import reload_source_rows
 

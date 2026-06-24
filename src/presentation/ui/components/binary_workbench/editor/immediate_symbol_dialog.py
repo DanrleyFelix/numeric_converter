@@ -60,7 +60,10 @@ class ImmediateSymbolNameDialog(QDialog):
         ok = symbol_button("OK", "preferences-ok", shell)
         cancel = symbol_button("Cancel", "preferences-cancel", shell)
         for button in (ok, cancel):
-            button.setFixedSize(field_width, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+            button.setFixedSize(
+                field_width,
+                BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
+            )
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
         row.addLayout(_field_action_column(self.name_input, ok))

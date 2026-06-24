@@ -79,12 +79,12 @@ def configure_binary_workbench_dialog_button(
     button: QPushButton,
     width: int | None = None,
 ) -> None:
-    configure_binary_workbench_control_height(button)
     button.setStyle(_dialog_control_style())
     if width is not None:
         button.setFixedWidth(width)
     button.setCursor(Qt.PointingHandCursor)
     button.setFocusPolicy(Qt.NoFocus)
+    configure_binary_workbench_control_height(button)
 
 
 def configure_binary_workbench_filter(editor: QLineEdit) -> None:
@@ -92,27 +92,28 @@ def configure_binary_workbench_filter(editor: QLineEdit) -> None:
 
 
 def configure_binary_workbench_control_height(widget: QWidget) -> None:
-    widget.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
     widget.setContentsMargins(margin, margin, margin, margin)
+    widget.ensurePolished()
+    widget.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
 
 
 def configure_binary_workbench_line_edit(
     editor: QLineEdit,
     width: int | None = None,
 ) -> None:
-    editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     if width is not None:
         editor.setFixedWidth(width)
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
     editor.setTextMargins(margin, margin, margin, margin)
+    editor.ensurePolished()
+    editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
 
 
 def configure_binary_workbench_combo(
     combo: QComboBox,
     width: int | None = None,
 ) -> None:
-    configure_binary_workbench_control_height(combo)
     combo.setStyle(_dialog_control_style())
     combo.setItemDelegate(_DialogComboItemDelegate(combo))
     if width is not None:
@@ -120,6 +121,7 @@ def configure_binary_workbench_combo(
     else:
         combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     combo.setCursor(Qt.PointingHandCursor)
+    configure_binary_workbench_control_height(combo)
 
 
 def configure_binary_workbench_input(editor: QLineEdit, width: int) -> None:

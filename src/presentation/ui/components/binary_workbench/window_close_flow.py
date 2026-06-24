@@ -2,8 +2,8 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QMessageBox
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
 )

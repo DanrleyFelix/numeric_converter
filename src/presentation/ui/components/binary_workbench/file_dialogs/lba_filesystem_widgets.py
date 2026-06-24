@@ -2,6 +2,9 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 from src.presentation.ui.design.icons import Icons
 
@@ -20,9 +23,9 @@ def lba_input(
     if expanding:
         editor.setMinimumWidth(0)
         editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+        editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     else:
-        editor.setFixedSize(width, BINARY_WORKBENCH_LAYOUT.SYMBOL_INPUT_HEIGHT)
+        editor.setFixedSize(width, BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     return editor
 
 
@@ -36,8 +39,8 @@ def lba_field(text: str, widget: QWidget) -> QWidget:
     field = QWidget(widget.parentWidget())
     field.setFixedWidth(widget.width())
     layout = QVBoxLayout(field)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
+    layout.setSpacing(ENVIRONMENT_LAYOUT.FIELD_LABEL_SPACING)
     layout.addWidget(lba_label(text, "preferences-section-title", field))
     layout.addWidget(widget, 0, Qt.AlignLeft)
     return field
@@ -45,10 +48,14 @@ def lba_field(text: str, widget: QWidget) -> QWidget:
 
 def lba_inline_field(text: str, widget: QWidget) -> QWidget:
     field = QWidget(widget.parentWidget())
-    field.setFixedWidth(BINARY_WORKBENCH_LAYOUT.LBA_SECTOR_LABEL_WIDTH + 10 + widget.width())
+    field.setFixedWidth(
+        BINARY_WORKBENCH_LAYOUT.LBA_SECTOR_LABEL_WIDTH
+        + ENVIRONMENT_LAYOUT.ROW_SPACING
+        + widget.width()
+    )
     layout = QHBoxLayout(field)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(10)
+    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
+    layout.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
     label = lba_label(text, "preferences-section-title", field)
     label.setFixedWidth(BINARY_WORKBENCH_LAYOUT.LBA_SECTOR_LABEL_WIDTH)
     layout.addWidget(label, 0, Qt.AlignVCenter)

@@ -7,6 +7,7 @@ from src.core.binary_workbench.version_overlays import without_blank_instruction
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 from src.modules.application_dtos import ProgramContextDTO
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
@@ -66,7 +67,11 @@ class BinaryWorkbenchPreferencesUseCase:
         preferences: BinaryWorkbenchPreferencesDTO,
     ) -> BinaryWorkbenchPreferencesDTO:
         return BinaryWorkbenchPreferencesDTO(
-            group_bytes=preferences.group_bytes if preferences.group_bytes in {1, 2, 4} else 1,
+            group_bytes=(
+                preferences.group_bytes
+                if preferences.group_bytes in BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
+                else BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[0]
+            ),
             uppercase_bytes=preferences.uppercase_bytes,
             uppercase_instructions=preferences.uppercase_instructions,
             block_size=max(1, preferences.block_size),

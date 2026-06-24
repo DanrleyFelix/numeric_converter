@@ -9,6 +9,7 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     COMPLETION_TOKEN,
     tooltip_values,
 )
+from src.presentation.ui.helpers.completer_popup import fit_completer_popup_height
 
 
 class EditorCompletionMixin:
@@ -49,6 +50,7 @@ class EditorCompletionMixin:
         )
         rect.setWidth(self._completion_popup_width())
         self._completer.complete(rect)
+        fit_completer_popup_height(self._completer)
 
     def _current_completion_prefix(self) -> str:
         cursor = self.textCursor()
@@ -86,10 +88,8 @@ class EditorCompletionMixin:
     def _completion_popup_width(self) -> int:
         popup = self._completer.popup()
         content_width = popup.sizeHintForColumn(0)
-        scrollbar_width = popup.verticalScrollBar().sizeHint().width()
         padded_width = (
             content_width
-            + scrollbar_width
             + BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_WIDTH_PADDING
         )
         return max(BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MIN_WIDTH, padded_width)

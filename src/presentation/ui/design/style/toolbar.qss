@@ -39,7 +39,7 @@ QMenu {
     border: 1px solid $border;
     border-radius: $radius-0;
     color: $text-main;
-    padding: $padding-menu-shell;
+    padding: $space-0;
 }
 
 QMenu::item {

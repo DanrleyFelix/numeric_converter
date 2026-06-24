@@ -3,6 +3,7 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT
 from src.modules.constants import HEX_DIGITS_LOWER
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.input_validators import (
@@ -92,7 +93,7 @@ class BinaryWorkbenchFindDialog(QDialog):
                 self.query.text().strip(),
                 start_offset,
                 end_offset,
-                BINARY_WORKBENCH_LAYOUT.SEARCH_RESULT_LIMIT,
+                BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT,
             )
         self.results.clear()
         for offset in self._offsets:

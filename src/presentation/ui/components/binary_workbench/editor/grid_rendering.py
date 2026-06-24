@@ -1,6 +1,9 @@
 from PySide6.QtWidgets import QPlainTextEdit
 
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_BYTE_GROUP_OPTIONS,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
@@ -38,7 +41,11 @@ class GridRenderingMixin:
         self.instructions_shell.setVisible(True)
         if self._last_editor_kind not in visible:
             self._last_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
-        self._group_bytes = group_bytes if group_bytes in {1, 2, 4} else 1
+        self._group_bytes = (
+            group_bytes
+            if group_bytes in BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
+            else BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[0]
+        )
         self._uppercase_bytes = uppercase_bytes
         self._uppercase_instructions = uppercase_instructions
         self._virtual = virtual

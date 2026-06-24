@@ -5,9 +5,9 @@ from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QLabel, QPushButt
 from src.modules.command_window_dtos import CommandLogPreferencesDTO
 from src.presentation.ui.components.preferences_dialog.constants import (
     LOG_PREFERENCES_SIZE,
+    LOG_PREFERENCES_MARGIN,
     LOG_PREFERENCES_SPACING,
     LOG_PREFERENCES_TEXT,
-    PREFERENCES_DIALOG_MARGIN,
 )
 
 
@@ -39,10 +39,10 @@ class LogPreferencesDialog(QDialog):
     def _build_ui(self, preferences: CommandLogPreferencesDTO) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(
-            PREFERENCES_DIALOG_MARGIN.ROOT_LEFT,
-            PREFERENCES_DIALOG_MARGIN.ROOT_TOP,
-            PREFERENCES_DIALOG_MARGIN.ROOT_RIGHT,
-            PREFERENCES_DIALOG_MARGIN.ROOT_BOTTOM,
+            LOG_PREFERENCES_MARGIN.ROOT_LEFT,
+            LOG_PREFERENCES_MARGIN.ROOT_TOP,
+            LOG_PREFERENCES_MARGIN.ROOT_RIGHT,
+            LOG_PREFERENCES_MARGIN.ROOT_BOTTOM,
         )
         layout.setSpacing(LOG_PREFERENCES_SPACING.ROOT)
 
@@ -95,10 +95,10 @@ class LogPreferencesDialog(QDialog):
     def _add_buttons(self, layout: QVBoxLayout) -> None:
         buttons_row = QHBoxLayout()
         buttons_row.setContentsMargins(
-            PREFERENCES_DIALOG_MARGIN.BUTTONS_LEFT,
-            PREFERENCES_DIALOG_MARGIN.BUTTONS_TOP,
-            PREFERENCES_DIALOG_MARGIN.BUTTONS_RIGHT,
-            PREFERENCES_DIALOG_MARGIN.BUTTONS_BOTTOM,
+            LOG_PREFERENCES_MARGIN.BUTTONS_LEFT,
+            LOG_PREFERENCES_MARGIN.BUTTONS_TOP,
+            LOG_PREFERENCES_MARGIN.BUTTONS_RIGHT,
+            LOG_PREFERENCES_MARGIN.BUTTONS_BOTTOM,
         )
         buttons_row.setSpacing(LOG_PREFERENCES_SPACING.BUTTONS)
         cancel_button = QPushButton(LOG_PREFERENCES_TEXT.CANCEL)

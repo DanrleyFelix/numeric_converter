@@ -3,6 +3,12 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes, build_scratch_rows
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchInternalFileDTO,
@@ -11,7 +17,6 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
@@ -24,7 +29,6 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     rows_from_path,
 )
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 
 def create_binary_tab(
@@ -53,13 +57,13 @@ def create_binary_tab(
         variables=variables,
         symbol_offsets=symbol_offsets(rows, variables, equates, labels),
         internal_files=[],
-        lba_sector_size=2352,
+        lba_sector_size=BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
         original_rows=deepcopy(rows),
         rows=rows,
         file_size=file_size,
         original_file_size=file_size,
-        versions=[BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME)],
-        active_version_name=BINARY_WORKBENCH_TEXT.DEFAULT_VERSION_NAME,
+        versions=[BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)],
+        active_version_name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
         view_preferences=seed_view_preferences(state),
     )
 

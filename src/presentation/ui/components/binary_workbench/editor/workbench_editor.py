@@ -84,7 +84,7 @@ class WorkbenchEditor(
         popup.setFocusPolicy(Qt.NoFocus)
         popup.setFrameShape(QFrame.NoFrame)
         popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         popup.setUniformItemSizes(True)
         popup.setMouseTracking(True)
         popup.setSpacing(0)

@@ -2,13 +2,11 @@ QListWidget#help-nav {
     background-color: $bg-panel;
     border: 1px solid $border;
     color: $text-main;
-    padding: $padding-help-nav-shell;
     border-radius: $radius-12;
     outline: none;
 }
 
 QListWidget#help-nav::item {
-    padding: $padding-help-nav-item;
     margin: $margin-help-nav-item;
     border-radius: $radius-10;
     outline: none;
@@ -29,5 +27,4 @@ QTextBrowser#help-page {
     background-color: transparent;
     border: 1px solid $border;
     border-radius: $radius-18;
-    padding: $padding-help-page-shell;
 }

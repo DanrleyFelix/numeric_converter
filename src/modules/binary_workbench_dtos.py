@@ -1,6 +1,13 @@
 from dataclasses import dataclass, field
 
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ANSI_TABLE_NAME
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_ANSI_TABLE_NAME,
+    BINARY_WORKBENCH_BYTE_GROUP_OPTIONS,
+    BINARY_WORKBENCH_DEFAULT_BLOCK_SIZE,
+    BINARY_WORKBENCH_DEFAULT_CACHE_MAX_BLOCKS,
+    BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
+    BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME,
+)
 from src.modules.binary_workbench_resource_dtos import (
     BinaryWorkbenchEncodingTableDTO,
     BinaryWorkbenchInternalFileDTO,
@@ -64,11 +71,11 @@ def _default_assembly_edit_rules() -> BinaryWorkbenchEditRulesDTO:
 
 @dataclass(frozen=True)
 class BinaryWorkbenchPreferencesDTO:
-    group_bytes: int = 1
+    group_bytes: int = BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[0]
     uppercase_bytes: bool = True
     uppercase_instructions: bool = True
-    block_size: int = 2048
-    cache_max_blocks: int = 8000
+    block_size: int = BINARY_WORKBENCH_DEFAULT_BLOCK_SIZE
+    cache_max_blocks: int = BINARY_WORKBENCH_DEFAULT_CACHE_MAX_BLOCKS
     selection_limit_bytes: int = 2 * 1024 * 1024
     binary_edit_rules: BinaryWorkbenchEditRulesDTO = field(default_factory=BinaryWorkbenchEditRulesDTO)
     assembly_edit_rules: BinaryWorkbenchEditRulesDTO = field(default_factory=_default_assembly_edit_rules)
@@ -95,7 +102,7 @@ class BinaryWorkbenchTabContextDTO:
     kind: str
     display_name: str
     source_path: str | None = None
-    cpu_arch: str = "PSX - Mips R3000A"
+    cpu_arch: str = BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME
     read_mode: str = "auto"
     reference_offsets: list[str] = field(default_factory=list)
     reference_offset_bases: dict[str, str] = field(default_factory=dict)
@@ -105,7 +112,7 @@ class BinaryWorkbenchTabContextDTO:
     symbol_offsets: dict[str, list[str]] = field(default_factory=dict)
     search_cache: dict[str, list[str]] = field(default_factory=dict)
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
-    lba_sector_size: int = 2352
+    lba_sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
     named_regions: list[str] = field(default_factory=list)
     offset_regions: list[BinaryWorkbenchOffsetRegionDTO] = field(default_factory=list)
     encoding_tables: list[BinaryWorkbenchEncodingTableDTO] = field(default_factory=list)

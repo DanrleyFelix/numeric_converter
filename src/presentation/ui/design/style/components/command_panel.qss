@@ -2,13 +2,11 @@ QLabel#command-feedback {
     font-family: $font-base;
     font-size: $fs-c-lg;
     color: $text-muted;
-    padding-left: $space-2;
 }
 
 QPushButton#command-header-button {
     min-width: $size-command-header-min-width;
     min-height: $size-command-header-min-height;
-    padding: $padding-command-header-button;
     border-radius: $radius-10;
     background-color: $bg-button;
     border: 1px solid $border;
@@ -25,10 +23,6 @@ QPushButton#command-header-button:focus {
     border: 1px solid $border;
 }
 
-QPlainTextEdit#command-editor {
-    padding-top: $space-8;
-}
-
 QWidget#cmd-prompt-area {
     background: transparent;
 }
@@ -38,17 +32,21 @@ QListView#binary-workbench-completer {
     background-color: $bg-input;
     border: 1px solid $border;
     color: $text-main;
-    padding: $padding-autocomplete-shell;
-    border-radius: $radius-10;
+    border-radius: $radius-0;
     outline: none;
     show-decoration-selected: 1;
 }
 
+QListView#command-completer:enabled,
+QListView#binary-workbench-completer:enabled {
+    padding: $space-0;
+}
+
 QListView#command-completer::item,
 QListView#binary-workbench-completer::item {
-    padding: $padding-autocomplete-item;
+    padding: $space-8;
     margin: $margin-command-feedback-item;
-    border-radius: $radius-6;
+    border-radius: $radius-0;
     background: transparent;
 }
 

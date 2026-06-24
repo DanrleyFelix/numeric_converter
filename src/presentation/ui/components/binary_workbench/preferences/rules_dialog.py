@@ -28,7 +28,7 @@ class BinaryWorkbenchRulesDialog(QDialog):
             BINARY_WORKBENCH_RULES_LAYOUT.MARGIN,
             BINARY_WORKBENCH_RULES_LAYOUT.MARGIN,
         )
-        layout.setSpacing(BINARY_WORKBENCH_RULES_LAYOUT.VERTICAL_SPACING)
+        layout.setSpacing(BINARY_WORKBENCH_RULES_LAYOUT.LAYOUT_SPACING)
         self.byte_shift = self._check(
             BINARY_WORKBENCH_RULES_TEXT.BYTE_SHIFT,
             rules.allow_byte_shift,
@@ -41,11 +41,16 @@ class BinaryWorkbenchRulesDialog(QDialog):
             BINARY_WORKBENCH_RULES_TEXT.FREE_AFTER_END,
             rules.allow_free_edit_after_original_end,
         )
-        for control in (
+        controls = (
             self.byte_shift,
             self.editor_edit,
             self.free_after_end,
-        ):
+        )
+        for index, control in enumerate(controls):
+            if index:
+                layout.addSpacing(
+                    BINARY_WORKBENCH_RULES_LAYOUT.IDENTICAL_ITEM_SPACING
+                )
             layout.addWidget(control)
         ok = QPushButton(BINARY_WORKBENCH_RULES_TEXT.CONFIRM, self)
         configure_binary_workbench_dialog_action(ok)

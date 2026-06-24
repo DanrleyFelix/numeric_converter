@@ -1,8 +1,12 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
 )
@@ -29,7 +33,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
     def __init__(
         self,
         internal_files: list[BinaryWorkbenchInternalFileDTO],
-        lba_sector_size: int = 2352,
+        lba_sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
         libraries: list[BinaryWorkbenchLbaFilesystemDTO] | None = None,
         default_library_name: str = "",
         default_directory: str = "",
@@ -37,7 +41,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
     ) -> None:
         if parent is None and not isinstance(lba_sector_size, int):
             parent = lba_sector_size
-            lba_sector_size = 2352
+            lba_sector_size = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
         if parent is None and default_directory and not isinstance(default_directory, str):
             parent = default_directory
             default_directory = ""
@@ -67,12 +71,12 @@ class BinaryWorkbenchLbaFilesystemDialog(
         lba_sector_size: int,
     ) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 30, 20, 20)
+        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.DIALOG_MARGINS)
         self.shell = QFrame(self)
         self.shell.setObjectName("workspace-table-shell")
         shell_layout = QVBoxLayout(self.shell)
-        shell_layout.setContentsMargins(20, 20, 20, 16)
-        shell_layout.setSpacing(12)
+        shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
+        shell_layout.setSpacing(ENVIRONMENT_LAYOUT.PANEL_SPACING)
         self._build_library_controls(shell_layout, default_library_name, lba_sector_size)
         self._build_entry(shell_layout)
         self._build_rows(shell_layout, internal_files)

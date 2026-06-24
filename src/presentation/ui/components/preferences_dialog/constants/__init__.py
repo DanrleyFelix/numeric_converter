@@ -1,5 +1,6 @@
 from src.presentation.ui.components.preferences_dialog.constants.layout import (
     LOG_PREFERENCES_SIZE,
+    LOG_PREFERENCES_MARGIN,
     LOG_PREFERENCES_SPACING,
     PREFERENCES_GROUP_SIZE_VALUES,
     PREFERENCES_DIALOG_MARGIN,
@@ -14,6 +15,7 @@ from src.presentation.ui.components.preferences_dialog.constants.texts import (
 
 __all__ = [
     "LOG_PREFERENCES_SIZE",
+    "LOG_PREFERENCES_MARGIN",
     "LOG_PREFERENCES_SPACING",
     "LOG_PREFERENCES_TEXT",
     "PREFERENCES_GROUP_SIZE_VALUES",

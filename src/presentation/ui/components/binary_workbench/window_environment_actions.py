@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TEXT,
     BINARY_WORKBENCH_TIMING,
 )

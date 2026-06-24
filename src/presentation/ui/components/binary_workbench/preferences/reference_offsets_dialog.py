@@ -6,13 +6,10 @@ from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
     configure_binary_workbench_line_edit,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT,
 )
-
-_MAX_EXTRA_OFFSETS = 3
-
 
 class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
     def __init__(
@@ -25,17 +22,21 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.REFERENCE_OFFSETS)
-        self.setMaximumSize(
-            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MAX_WIDTH,
-            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MAX_HEIGHT,
+        self.setFixedWidth(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_WIDTH)
+        self.setMaximumHeight(
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MAX_HEIGHT
         )
-        self.setMinimumWidth(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.DIALOG_MIN_WIDTH)
         layout = QVBoxLayout(self)
-        layout.setSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.VERTICAL_SPACING)
+        layout.setContentsMargins(
+            *(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.MARGIN,) * 4
+        )
+        layout.setSpacing(BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.LAYOUT_SPACING)
         self._rows: list[tuple[QLineEdit, QLineEdit, QCheckBox]] = []
-        for name in [value for value in reference_offsets if value != "File"][:_MAX_EXTRA_OFFSETS]:
+        names = [value for value in reference_offsets if value != "File"]
+        for name in names[: BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.MAX_ROWS]:
             self._append_row(layout, name, reference_offset_bases.get(name, "0x00000000"), visible_columns.get(name, True))
-        for _ in range(_MAX_EXTRA_OFFSETS - len(self._rows)):
+        missing_rows = BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.MAX_ROWS - len(self._rows)
+        for _ in range(missing_rows):
             self._append_row(layout, "", "0x00000000", False)
         ok = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
         configure_binary_workbench_dialog_action(ok)
@@ -64,19 +65,22 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         visible: bool,
     ) -> None:
         row = QHBoxLayout()
+        row.setSpacing(
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.HORIZONTAL_SPACING
+        )
         name_field = QLineEdit(name, self)
         name_field.setObjectName("binary-workbench-dialog-input")
         name_field.setPlaceholderText(BINARY_WORKBENCH_TEXT.REFERENCE_NAME)
         configure_binary_workbench_line_edit(
             name_field,
-            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.CONTROL_WIDTH,
         )
         base_field = QLineEdit(base, self)
         base_field.setObjectName("binary-workbench-dialog-input")
         base_field.setPlaceholderText(BINARY_WORKBENCH_TEXT.REFERENCE_BASE)
         configure_binary_workbench_line_edit(
             base_field,
-            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+            BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.CONTROL_WIDTH,
         )
         visible_box = QCheckBox(BINARY_WORKBENCH_TEXT.REFERENCE_VISIBLE, self)
         visible_box.setChecked(visible)
@@ -85,5 +89,9 @@ class BinaryWorkbenchReferenceOffsetsDialog(QDialog):
         row.addWidget(name_field, 2)
         row.addWidget(base_field, 2)
         row.addWidget(visible_box, 1)
+        if self._rows:
+            parent_layout.addSpacing(
+                BINARY_WORKBENCH_REFERENCE_OFFSETS_LAYOUT.IDENTICAL_ITEM_SPACING
+            )
         self._rows.append((name_field, base_field, visible_box))
         parent_layout.addLayout(row)

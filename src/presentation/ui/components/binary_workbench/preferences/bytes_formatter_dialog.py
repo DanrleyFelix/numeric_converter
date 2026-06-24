@@ -1,12 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QLabel, QPushButton, QVBoxLayout
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_combo,
     configure_binary_workbench_control_height,
     configure_binary_workbench_dialog_action,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.preferences.constants import (
     BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT,
     BINARY_WORKBENCH_BYTES_FORMATTER_TEXT,
@@ -31,7 +31,10 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.TITLE)
         layout = QVBoxLayout(self)
-        layout.setSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.VERTICAL_SPACING)
+        layout.setContentsMargins(
+            *(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.MARGIN,) * 4
+        )
+        layout.setSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.LAYOUT_SPACING)
         group_bytes_label = QLabel(BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.GROUP_BYTES_LABEL, self)
         group_bytes_label.setObjectName("preferences-section-title")
         self.group_bytes = QComboBox(self)
@@ -39,11 +42,20 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         self.group_bytes.setCursor(Qt.PointingHandCursor)
         configure_binary_workbench_combo(
             self.group_bytes,
-            BINARY_WORKBENCH_LAYOUT.OFFSET_REGIONS_FIELD_WIDTH,
+            BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.CONTROL_WIDTH,
         )
-        self.group_bytes.addItems(["1 byte", "2 bytes", "4 bytes"])
-        current = current_group_bytes if current_group_bytes in {1, 2, 4} else 1
-        self.group_bytes.setCurrentIndex({1: 0, 2: 1, 4: 2}[current])
+        self.group_bytes.addItems(
+            [
+                f"{value} byte" if value == 1 else f"{value} bytes"
+                for value in BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
+            ]
+        )
+        current = (
+            current_group_bytes
+            if current_group_bytes in BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
+            else BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[0]
+        )
+        self.group_bytes.setCurrentIndex(BINARY_WORKBENCH_BYTE_GROUP_OPTIONS.index(current))
         self.uppercase_bytes = QCheckBox(
             BINARY_WORKBENCH_BYTES_FORMATTER_TEXT.UPPERCASE_BYTES_LABEL,
             self,
@@ -64,15 +76,20 @@ class BinaryWorkbenchBytesFormatterDialog(QDialog):
         configure_binary_workbench_dialog_action(ok)
         ok.clicked.connect(self.accept)
         layout.addWidget(group_bytes_label)
+        layout.addSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.FIELD_SPACING)
         layout.addWidget(self.group_bytes)
+        layout.addSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.FIELD_SPACING)
         layout.addWidget(self.uppercase_bytes)
+        layout.addSpacing(
+            BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.IDENTICAL_ITEM_SPACING
+        )
         layout.addWidget(self.uppercase_instructions)
         layout.addSpacing(BINARY_WORKBENCH_BYTES_FORMATTER_LAYOUT.CONFIRM_TOP_SPACING)
         layout.addWidget(ok, 0, Qt.AlignCenter)
         self.setFixedSize(self.sizeHint())
 
     def selected_group_bytes(self) -> int:
-        return (1, 2, 4)[self.group_bytes.currentIndex()]
+        return BINARY_WORKBENCH_BYTE_GROUP_OPTIONS[self.group_bytes.currentIndex()]
 
     def selected_uppercase_bytes(self) -> bool:
         return self.uppercase_bytes.isChecked()
