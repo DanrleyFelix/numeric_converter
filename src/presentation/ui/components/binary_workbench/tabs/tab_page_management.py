@@ -3,8 +3,8 @@ from pathlib import Path
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton, QTabBar
 
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
-from src.presentation.repository.binary_workbench_workspace.constants import COMMANDS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import tab_text
@@ -68,6 +68,8 @@ class BinaryWorkbenchTabBar(QTabBar):
 
 class TabPageManagementMixin:
     def _add_tab_page(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        context = self._workspace_context_for_page(context)
+        self._replace_context_without_emit(context.tab_id, context)
         page = BinaryWorkbenchEditorPage(
             context,
             self._preferences,
@@ -95,4 +97,7 @@ class TabPageManagementMixin:
         return button
 
     def _command_directory(self):
-        return Path(self._workspace_repository.default_module_directories()[COMMANDS])
+        directory = self._state.directories.get(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY)
+        if directory:
+            return Path(directory)
+        return self._workspace_repository.directory.parent / "commands"

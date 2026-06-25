@@ -44,6 +44,9 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_view_configuration
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import (
     TabWorkspaceMixin,
 )
+from src.presentation.ui.components.binary_workbench.tabs.tab_workspace_memory import (
+    TabWorkspaceMemoryMixin,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -51,6 +54,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 
 
 class BinaryWorkbenchTabs(
+    TabWorkspaceMemoryMixin,
     TabStateMixin,
     TabPageManagementMixin,
     TabOpeningMixin,
@@ -102,6 +106,7 @@ class BinaryWorkbenchTabs(
         self._controller = BinaryWorkbenchController()
         self._state = BinaryWorkbenchStateDTO()
         self._stale_context_pages: set[str] = set()
+        self._initialize_workspace_memory()
         self.currentChanged.connect(self._sync_active_tab)
         self.currentChanged.connect(lambda _: self._update_tab_navigation())
         self.tabBar().tabMoved.connect(self.tabBar().sync_close_button_order)

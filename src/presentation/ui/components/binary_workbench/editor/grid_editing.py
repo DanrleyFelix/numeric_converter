@@ -119,7 +119,7 @@ class GridEditingMixin:
         self._labels = labels
         self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
         self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
-        self.instructions.set_jump_navigation(self._codec, self._variables, self._equates)
+        self.instructions.set_jump_navigation(self._codec, labels, self._variables, self._equates)
         self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:

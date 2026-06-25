@@ -18,8 +18,6 @@ from src.core.binary_workbench.editor.commands.registry import (
     command_output,
     is_editor_command_line,
 )
-from src.core.binary_workbench.mips_r3000a import build_source_line_rows
-from src.core.binary_workbench.mips_r3000a.source_line_rows import instruction_code
 from src.core.binary_workbench.editor.commands.models import EditorCommand
 from src.modules.utils import write_json
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
@@ -79,7 +77,7 @@ class GridCommandsMixin:
             return False
         cursor = editor.textCursor()
         block = cursor.block()
-        output = command_output(block.text(), self._custom_commands)
+        output = command_output(block.text(), self._custom_commands, self._codec)
         if output is None:
             return False
         if not self._command_window_available(editor, block.blockNumber(), len(output)):
@@ -89,13 +87,12 @@ class GridCommandsMixin:
         return True
 
     def _valid_custom_command_lines(self, lines: list[str]) -> bool:
-        if not any(instruction_code(line) for line in lines):
+        if not any(self._codec.instruction_code(line) for line in lines):
             return False
-        rows = build_source_line_rows(
+        rows = self._codec.build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
             self._offset_base_text(),
-            self._codec,
             self._source_rows_start_offset(),
             self._labels,
             self._variables,
@@ -116,7 +113,7 @@ class GridCommandsMixin:
                 return False
             if index == row and is_editor_command_line(text):
                 continue
-            if instruction_code(text):
+            if self._codec.instruction_code(text):
                 return False
         return True
 
@@ -136,7 +133,7 @@ class GridCommandsMixin:
 
     def _refresh_command_completions(self) -> None:
         if hasattr(self, "instructions"):
-            self.instructions.set_command_completions(command_names(self._custom_commands))
+            self.instructions.set_command_completions(command_names(self._custom_commands, self._codec))
 
     def _write_custom_command(self, command: EditorCommand) -> None:
         if self._command_directory is None:

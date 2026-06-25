@@ -89,7 +89,7 @@ class GridRenderingMixin:
         self._instruction_highlighter.set_symbols(labels, variables, equates)
         self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)
-        self.instructions.set_jump_navigation(self._codec, variables, equates)
+        self.instructions.set_jump_navigation(self._codec, labels, variables, equates)
         if hasattr(self, "raw_instructions"):
             self._render_raw_instructions()
 

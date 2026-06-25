@@ -15,8 +15,6 @@ from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkb
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
-    COMMANDS,
-    ENCODING_TABLES,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
@@ -38,10 +36,6 @@ from src.presentation.repository.binary_workbench_workspace.manifest import (
     tab_checksums,
 )
 from src.presentation.repository.binary_workbench_workspace.payloads import (
-    commands_from_payload,
-    commands_payload,
-    encoding_tables_from_payload,
-    encoding_tables_payload,
     lba_from_payload,
     lba_payload,
     offset_regions_from_payload,
@@ -104,8 +98,6 @@ class BinaryWorkbenchWorkspaceRepository:
         module_paths = module_paths_from_manifest(modules, self._directory)
         variables, equates = symbols_from_payload(read_json(Path(module_paths.get(SYMBOLS, ""))))
         sector_size, files = lba_from_payload(read_json(Path(module_paths.get(LBA_FILESYSTEM, ""))))
-        custom_commands = commands_from_payload(read_json(Path(module_paths.get(COMMANDS, ""))))
-        encoding_tables = encoding_tables_from_payload(read_json(Path(module_paths.get(ENCODING_TABLES, ""))))
         offset_regions = offset_regions_from_payload(read_json(Path(module_paths.get(OFFSET_REGIONS, ""))))
         view_preferences = view_preferences_from_payload(
             manifest.get("view_preferences"),
@@ -142,10 +134,8 @@ class BinaryWorkbenchWorkspaceRepository:
                 **tab.__dict__,
                 "variables": variables,
                 "equates": equates,
-                "custom_commands": custom_commands,
                 "internal_files": files,
                 "lba_sector_size": sector_size,
-                "encoding_tables": encoding_tables,
                 "offset_regions": offset_regions,
                 "view_preferences": view_preferences,
                 "versions": versions,
@@ -171,8 +161,6 @@ class BinaryWorkbenchWorkspaceRepository:
                     sector_size,
                     files,
                     loaded.versions,
-                    loaded.custom_commands,
-                    loaded.encoding_tables,
                     loaded.offset_regions,
                     loaded.view_preferences,
                 ),
@@ -196,8 +184,6 @@ class BinaryWorkbenchWorkspaceRepository:
         stem = safe_stem(target.stem)
         module_paths[SYMBOLS] = str(self._write_module(directories, module_paths, SYMBOLS, stem, symbols_payload(stem, tab.variables, tab.equates)))
         module_paths[LBA_FILESYSTEM] = str(self._write_module(directories, module_paths, LBA_FILESYSTEM, stem, lba_payload(stem, tab.lba_sector_size, tab.internal_files)))
-        module_paths[COMMANDS] = str(self._write_module(directories, module_paths, COMMANDS, stem, commands_payload(stem, tab.custom_commands)))
-        module_paths[ENCODING_TABLES] = str(self._write_module(directories, module_paths, ENCODING_TABLES, stem, encoding_tables_payload(stem, tab.encoding_tables)))
         module_paths[OFFSET_REGIONS] = str(self._write_module(directories, module_paths, OFFSET_REGIONS, stem, offset_regions_payload(stem, tab.offset_regions)))
         version_paths = self._write_versions(tab, directories, module_paths, stem)
         manifest = manifest_payload(tab, self._directory, module_paths, version_paths, directories)

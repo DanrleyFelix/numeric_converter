@@ -146,4 +146,6 @@ class BinaryWorkbenchStateDTO:
     active_tab_id: str | None = None
     share_view_preferences: bool = False
     directories: dict[str, str] = field(default_factory=_default_binary_workbench_directories)
+    commands_by_arch: dict[str, dict[str, list[str]]] = field(default_factory=dict)
+    encoding_tables: list[BinaryWorkbenchEncodingTableDTO] = field(default_factory=list)
     window_size: WindowSizeDTO | None = None

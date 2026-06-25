@@ -32,13 +32,31 @@ class TabStateMixin:
         return self._state
 
     def load_state(self, state: BinaryWorkbenchStateDTO) -> None:
-        self.clear()
-        self._stale_context_pages.clear()
-        self._state = restorable_state(state)
-        for tab in self._state.tabs:
-            self._add_tab_page(tab)
+        self._loading_state = True
+        try:
+            self._delete_all_tab_pages()
+            self._stale_context_pages.clear()
+            self._workspace_tab_access.clear()
+            self._state = restorable_state(state)
+            self._state = BinaryWorkbenchStateDTO(
+                **{
+                    **state_payload(self._state),
+                    "tabs": [
+                        self._context_with_universal_encoding_tables(
+                            self._context_with_universal_commands(tab)
+                        )
+                        for tab in self._state.tabs
+                    ],
+                }
+            )
+            for tab in self._state.tabs:
+                self._add_tab_page(tab)
+            if self.count():
+                self.setCurrentIndex(self._active_index())
+        finally:
+            self._loading_state = False
         if self.count():
-            self.setCurrentIndex(self._active_index())
+            self._sync_active_tab(self.currentIndex())
         self.stateChanged.emit(self._state)
 
     def directory_for(self, action_key: str) -> str:
@@ -99,18 +117,26 @@ class TabStateMixin:
             return
         closed = self._state.tabs[index]
         remaining = [tab for idx, tab in enumerate(self._state.tabs) if idx != index]
+        page = self.widget(index)
         self.removeTab(index)
+        if page is not None:
+            page.deleteLater()
+        self._forget_workspace_tab_access(closed.tab_id)
         active = remaining[min(index, len(remaining) - 1)].tab_id if remaining else None
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": remaining, "active_tab_id": active})
         self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_CLOSED_TEMPLATE.format(name=closed.display_name))
         self.stateChanged.emit(self._state)
 
     def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        context = self._context_with_universal_commands(context)
+        context = self._context_with_universal_encoding_tables(context)
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "tabs": [*self._state.tabs, context], "active_tab_id": context.tab_id}
         )
         self._add_tab_page(context)
         self.setCurrentIndex(self.count() - 1)
+        self._ensure_workspace_heavy_loaded(self.currentIndex())
+        self._enforce_workspace_heavy_limit()
         self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_OPENED_TEMPLATE.format(name=context.display_name))
         self.stateChanged.emit(self._state)
 
@@ -126,6 +152,8 @@ class TabStateMixin:
         if not isinstance(context, BinaryWorkbenchTabContextDTO):
             return
         previous = next((tab for tab in self._state.tabs if tab.tab_id == tab_id), None)
+        if previous is not None and previous.custom_commands != context.custom_commands:
+            context = self._sync_universal_commands_from_context(context)
         if previous is not None and _is_transient_visible_context_update(previous, context):
             self._replace_context_without_emit(tab_id, context)
             return
@@ -267,6 +295,8 @@ class TabStateMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.set_preferences(self._preferences)
             page.load_context(context)
+        self._ensure_workspace_heavy_loaded(index)
+        self._enforce_workspace_heavy_limit()
 
     def _replace_context_without_emit(
         self,
@@ -284,8 +314,11 @@ class TabStateMixin:
         )
 
     def _sync_active_tab(self, index: int) -> None:
+        if getattr(self, "_loading_state", False):
+            return
         if not 0 <= index < len(self._state.tabs):
             return
+        self._ensure_workspace_heavy_loaded(index)
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "active_tab_id": self._state.tabs[index].tab_id})
         context = self._state.tabs[index]
         if context.tab_id in self._stale_context_pages:
@@ -293,6 +326,8 @@ class TabStateMixin:
             page = self.widget(index)
             if isinstance(page, BinaryWorkbenchEditorPage):
                 page.load_context(context)
+        self._remember_workspace_tab_access(context.tab_id)
+        self._enforce_workspace_heavy_limit()
         self.stateChanged.emit(self._state)
 
     def _sync_tab_order(self, source: int, target: int) -> None:
@@ -330,6 +365,13 @@ class TabStateMixin:
             return
         self.setTabText(index, tab_text(display_name))
         self.setTabToolTip(index, display_name)
+
+    def _delete_all_tab_pages(self) -> None:
+        while self.count():
+            page = self.widget(0)
+            self.removeTab(0)
+            if page is not None:
+                page.deleteLater()
 
 
 def _internal_mapper(

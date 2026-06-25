@@ -5,12 +5,19 @@ from importlib import import_module
 from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
 from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
+from src.core.binary_workbench.mips_r3000a.source_line_rows import (
+    build_source_line_rows as build_mips_source_line_rows,
+    instruction_code as mips_instruction_code,
+)
 from src.core.binary_workbench.mips_r3000a.operands import word_bytes
+from src.core.binary_workbench.editor.commands.stack_pointer import stack_pointer_command
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.modules.contracts import CPUArchCodec
 
 JUMP_NAVIGATION_BASE = 0xF800
 JUMP_NAVIGATION_MNEMONICS = {"j", "jump", "jal"}
+TWO_OPERAND_BRANCH_MNEMONICS = {"blez", "bgtz", *SPECIAL_BRANCH_RT}
 
 
 class PsxMipsR3000ACodec(CPUArchCodec):
@@ -94,16 +101,74 @@ class PsxMipsR3000ACodec(CPUArchCodec):
     ) -> int | None:
         code = _strip_label(_strip_comment(instruction)).strip()
         parts = code.replace(",", " ").split()
-        if len(parts) < 2 or parts[0].lower() not in JUMP_NAVIGATION_MNEMONICS:
+        if len(parts) < 2:
             return None
-        if parts[1].lower() != operand.lower():
+        mnemonic = parts[0].lower()
+        operand_index = _navigation_operand_index(mnemonic)
+        if operand_index is None or len(parts) <= operand_index:
+            return None
+        if parts[operand_index].lower() != operand.lower():
             return None
         try:
             value = _navigation_value(operand, symbols or {})
         except ValueError:
             return None
-        target = value - JUMP_NAVIGATION_BASE
-        return target if target >= 0 else None
+        if mnemonic in JUMP_NAVIGATION_MNEMONICS:
+            return _jump_navigation_offset(value)
+        return value if value >= 0 else None
+
+    def editor_command_names(self) -> tuple[str, ...]:
+        return ("/sp",)
+
+    def editor_command_output(
+        self,
+        name: str,
+        args: list[str],
+    ) -> list[str] | None:
+        if name == "sp":
+            return stack_pointer_command(args)
+        return None
+
+    def instruction_code(self, text: str) -> str:
+        return mips_instruction_code(text)
+
+    def build_source_line_rows(
+        self,
+        lines: list[str],
+        offset_names: list[str],
+        offset_bases: dict[str, str],
+        start_offset: int = 0,
+        labels: dict[str, str] | None = None,
+        variables: dict[str, str] | None = None,
+        equates: dict[str, str] | None = None,
+        reject_invalid: bool = False,
+    ) -> list[BinaryWorkbenchRowDTO] | None:
+        return build_mips_source_line_rows(
+            lines,
+            offset_names,
+            offset_bases,
+            self,
+            start_offset,
+            labels,
+            variables,
+            equates,
+            reject_invalid,
+        )
+
+
+def _navigation_operand_index(mnemonic: str) -> int | None:
+    if mnemonic in JUMP_NAVIGATION_MNEMONICS:
+        return 1
+    if mnemonic in TWO_OPERAND_BRANCH_MNEMONICS:
+        return 2
+    if mnemonic in BRANCH_OPCODES:
+        return 3
+    return None
+
+
+def _jump_navigation_offset(value: int) -> int | None:
+    target = value - JUMP_NAVIGATION_BASE if value >= JUMP_NAVIGATION_BASE else value
+    return target if target >= 0 else None
 
 
 def _module_exists(name: str) -> bool:

@@ -15,6 +15,11 @@ def state_payload(state: BinaryWorkbenchStateDTO) -> dict[str, object]:
         "active_tab_id": state.active_tab_id,
         "share_view_preferences": state.share_view_preferences,
         "directories": dict(state.directories),
+        "commands_by_arch": {
+            arch: {name: list(lines) for name, lines in commands.items()}
+            for arch, commands in state.commands_by_arch.items()
+        },
+        "encoding_tables": list(state.encoding_tables),
         "window_size": state.window_size,
     }
 

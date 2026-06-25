@@ -44,7 +44,6 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
             Path(dialog.directory()),
         )
         self.tabs.set_current_encoding_tables(dialog.tables(), dialog.enabled_names())
-        self.tabs.save_current_workspace()
 
     def _open_offset_regions(self) -> None:
         current = self.tabs.current_context()

@@ -9,6 +9,10 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
 )
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    VERSION_PATH_PREFIX,
+    VERSIONS,
+)
 
 
 def restorable_state(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchStateDTO:
@@ -23,6 +27,11 @@ def restorable_state(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchStateDTO:
         active_tab_id=active or (tabs[0].tab_id if tabs else None),
         share_view_preferences=state.share_view_preferences,
         directories=dict(state.directories),
+        commands_by_arch={
+            arch: {name: list(lines) for name, lines in commands.items()}
+            for arch, commands in state.commands_by_arch.items()
+        },
+        encoding_tables=list(state.encoding_tables),
         window_size=state.window_size,
     )
 
@@ -40,6 +49,8 @@ def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchT
     if tab.versions:
         active = tab.active_version_name or tab.versions[0].name
         return BinaryWorkbenchTabContextDTO(**{**tab.__dict__, "active_version_name": active})
+    if tab.active_version_name and _has_version_module(tab):
+        return tab
     version = BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
     return BinaryWorkbenchTabContextDTO(
         **{
@@ -47,4 +58,11 @@ def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchT
             "versions": [version],
             "active_version_name": version.name,
         }
+    )
+
+
+def _has_version_module(tab: BinaryWorkbenchTabContextDTO) -> bool:
+    return VERSIONS in tab.module_paths or any(
+        key.startswith(VERSION_PATH_PREFIX)
+        for key in tab.module_paths
     )

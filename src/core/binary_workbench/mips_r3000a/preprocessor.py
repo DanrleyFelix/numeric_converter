@@ -93,9 +93,15 @@ def _replace_prefixed_symbols(text: str, prefix: str, values: dict[str, str]) ->
 def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
     result = text
     for name, value in labels.items():
-        target = _safe_int(value, fallback)
+        target = _label_target(_safe_int(value, fallback), fallback)
         result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
     return result
+
+
+def _label_target(value: int, address: int) -> int:
+    if value < 0x10000 <= address:
+        return (address & ~0xFFFF) + value
+    return value
 
 
 def _replace_load_immediate_pseudo(text: str) -> str:

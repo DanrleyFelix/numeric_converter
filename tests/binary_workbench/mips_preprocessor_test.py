@@ -2,6 +2,7 @@ from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
     expand_pseudo_instruction,
+    PsxMipsR3000ACodec,
     preprocess_instruction,
     raw_mips_instruction,
     validate_mips_hazards,
@@ -26,6 +27,17 @@ def test_mips_preprocessor_resolves_symbols_and_removes_noise():
     assert raw_mips_instruction("j loop", 0x80010004, labels, variables, equates) == "j 0x80010010"
     assert raw_mips_instruction("nop", 0x80010008, labels, variables, equates) == "nop"
     assert raw_mips_instruction("li $v0, 1", 0x80010008, labels, variables, equates) == "addiu $v0, $zero, 1"
+
+
+def test_mips_navigation_targets_require_jump_or_branch_operand():
+    codec = PsxMipsR3000ACodec()
+    symbols = {"loop": "0x00000010"}
+
+    assert codec.jump_navigation_target("loop: nop", "loop", symbols) is None
+    assert codec.jump_navigation_target("j loop", "loop", symbols) == 0x10
+    assert codec.jump_navigation_target("beq $zero, $zero, loop", "loop", symbols) == 0x10
+    assert codec.jump_navigation_target("bgez $s1, 0x00000020", "0x00000020", symbols) == 0x20
+    assert codec.jump_navigation_target("beq $zero, loop, 0x00000020", "loop", symbols) is None
 
 
 def test_mips_source_rows_encode_variables_and_equates_from_raw_instructions():

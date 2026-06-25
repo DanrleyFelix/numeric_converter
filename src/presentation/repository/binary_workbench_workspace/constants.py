@@ -16,26 +16,20 @@ MODULE_KEYS = (
     SYMBOLS,
     LBA_FILESYSTEM,
     VERSIONS,
-    ENCODING_TABLES,
     OFFSET_REGIONS,
-    COMMANDS,
 )
 
 MODULE_FOLDERS = {
     SYMBOLS: "Symbols",
     LBA_FILESYSTEM: "LBA File System",
     VERSIONS: "Versions",
-    ENCODING_TABLES: "Encoding Tables",
     OFFSET_REGIONS: "Offset Regions",
-    COMMANDS: "commands",
 }
 
 MODULE_SUFFIXES = {
     SYMBOLS: "symbols",
     LBA_FILESYSTEM: "lba",
-    ENCODING_TABLES: "encoding_tables",
     OFFSET_REGIONS: "offset_regions",
-    COMMANDS: "commands",
 }
 
 VERSION_PATH_PREFIX = "version:"

@@ -100,6 +100,22 @@ class BinaryWorkbenchEditorPage(
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
 
+    def release_heavy_resources(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        self._reader = None
+        self._pending_selection = None
+        self._context = context
+        self.grid.set_decoded_text_values({})
+        self.grid.set_symbols({}, {}, {}, {})
+        self.grid.set_custom_commands({})
+        self.grid.load_rows(
+            [BINARY_WORKBENCH_TEXT.INSTRUCTION],
+            [],
+            self._preferences.group_bytes,
+            uppercase_bytes=self._preferences.uppercase_bytes,
+            uppercase_instructions=self._preferences.uppercase_instructions,
+        )
+        self._set_cpu_arch_summary(context.cpu_arch)
+
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = reader_for_context(context, self._preferences)
         context = self._context_with_original_file_size(context)

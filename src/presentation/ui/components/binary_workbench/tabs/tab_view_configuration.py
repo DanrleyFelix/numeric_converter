@@ -1,10 +1,17 @@
+from dataclasses import replace
+
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEncodingTableDTO,
     BinaryWorkbenchOffsetRegionDTO,
+    BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchViewPreferencesDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import (
+    state_payload,
+)
 
 
 class TabViewConfigurationMixin:
@@ -39,13 +46,22 @@ class TabViewConfigurationMixin:
             visible_columns=dict(current.view_preferences.visible_columns),
             decoded_text_tables=list(enabled_names),
         )
-        self._set_current_context(BinaryWorkbenchTabContextDTO(
+        self._state = BinaryWorkbenchStateDTO(
             **{
-                **current.__dict__,
+                **state_payload(self._state),
                 "encoding_tables": list(tables),
-                "view_preferences": preferences,
+                "tabs": [
+                    replace(tab, encoding_tables=list(tables))
+                    for tab in self._state.tabs
+                ],
             }
+        )
+        self._set_current_context(replace(
+            current,
+            encoding_tables=list(tables),
+            view_preferences=preferences,
         ))
+        self._refresh_encoding_table_pages(list(tables))
 
     def set_current_offset_regions(
         self,
@@ -57,3 +73,23 @@ class TabViewConfigurationMixin:
         self._set_current_context(BinaryWorkbenchTabContextDTO(
             **{**current.__dict__, "offset_regions": list(regions)}
         ))
+
+    def _context_with_universal_encoding_tables(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> BinaryWorkbenchTabContextDTO:
+        if not self._state.encoding_tables:
+            return context
+        return replace(context, encoding_tables=list(self._state.encoding_tables))
+
+    def _refresh_encoding_table_pages(
+        self,
+        tables: list[BinaryWorkbenchEncodingTableDTO],
+    ) -> None:
+        for index, context in enumerate(self._state.tabs):
+            updated = replace(context, encoding_tables=list(tables))
+            page = self.widget(index)
+            if isinstance(page, BinaryWorkbenchEditorPage):
+                page.replace_context(updated)
+                if index == self.currentIndex():
+                    page.load_context(updated)

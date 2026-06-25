@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.modules.dtos import (
     ApplicationContextDTO,
+    BinaryWorkbenchEncodingTableDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchStateDTO,
@@ -17,6 +18,11 @@ from src.modules.dtos import (
 )
 from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
+)
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    OFFSET_REGIONS,
+    SYMBOLS,
+    VERSIONS,
 )
 from src.presentation.repository.binary_workbench_payload import (
     binary_workbench_state_from_payload,
@@ -184,6 +190,52 @@ def test_binary_workbench_context_payload_excludes_binary_line_edits(tmp_path: P
     assert payload["tabs"][0]["byte_overlays"] == {}
     assert payload["tabs"][0]["instruction_overlays"] == {}
     assert payload["tabs"][0]["version_dirty"] is True
+
+
+def test_binary_workbench_context_payload_omits_module_backed_heavy_data():
+    payload = binary_workbench_state_to_payload(
+        BinaryWorkbenchStateDTO(
+            tabs=[
+                BinaryWorkbenchTabContextDTO(
+                    tab_id="binary-1",
+                    kind="binary",
+                    display_name="sample.bin",
+                    variables={"hp": "0x20"},
+                    equates={"max": "0x64"},
+                    labels={"loop": "0x00000010"},
+                    symbol_offsets={"loop": ["0x00000010"]},
+                    versions=[BinaryWorkbenchVersionDTO("v1")],
+                    active_version_name="v1",
+                    workspace_path="C:/workspaces/sample.json",
+                    module_paths={
+                        SYMBOLS: "Symbols/sample_symbols.json",
+                        VERSIONS: "Versions/sample_versions.json",
+                        OFFSET_REGIONS: "Offset Regions/sample_offset_regions.json",
+                    },
+                )
+            ],
+            commands_by_arch={
+                "PSX - Mips R3000A": {"save_regs": ["sw $a0, 0($sp)"]},
+            },
+            encoding_tables=[
+                BinaryWorkbenchEncodingTableDTO("ansi", {0x41: "A"}),
+            ],
+        )
+    )
+
+    tab = payload["tabs"][0]
+    assert tab["labels"] == {}
+    assert tab["variables"] == {}
+    assert tab["equates"] == {}
+    assert tab["symbol_offsets"] == {}
+    assert tab["custom_commands"] == {}
+    assert tab["versions"] == []
+    assert payload["commands_by_arch"] == {
+        "PSX - Mips R3000A": {"save_regs": ["sw $a0, 0($sp)"]},
+    }
+    assert payload["encoding_tables"] == [
+        {"name": "ansi", "values": {"0x41": "A"}},
+    ]
 
 
 def test_program_context_roundtrip_tracks_recent_and_last_binary_workspace(tmp_path: Path):

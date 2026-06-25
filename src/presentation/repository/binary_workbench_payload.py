@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from src.core.binary_workbench.context_overlays import (
@@ -28,12 +29,29 @@ from src.modules.binary_workbench_dtos import (
 )
 from src.modules.shared_dtos import WindowSizeDTO
 from src.modules.utils import normalize_string_list, normalize_string_map
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    OFFSET_REGIONS,
+    SYMBOLS,
+    VERSION_PATH_PREFIX,
+    VERSIONS,
+)
 
 
 def _string_list_map(raw: object) -> dict[str, list[str]]:
     if not isinstance(raw, dict):
         return {}
     return {str(key): normalize_string_list(value) for key, value in raw.items()}
+
+
+def _commands_by_arch(raw: object) -> dict[str, dict[str, list[str]]]:
+    if not isinstance(raw, dict):
+        return {}
+    commands: dict[str, dict[str, list[str]]] = {}
+    for arch, values in raw.items():
+        mapped = _string_list_map(values)
+        if mapped:
+            commands[str(arch)] = mapped
+    return commands
 
 
 def _visible_columns(raw: object) -> dict[str, bool]:
@@ -271,7 +289,10 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     is_virtual_binary = kind == "binary"
     uses_virtual_rows = kind in {"binary", "internal"}
     reference_offsets = _reference_offsets(raw)
-    reference_offset_bases = normalize_string_map(raw.get("reference_offset_bases"))
+    reference_offset_bases = {
+        "File": "0x00000000",
+        **normalize_string_map(raw.get("reference_offset_bases")),
+    }
     view_preferences = _view_preferences(raw.get("view_preferences"))
     if kind == "internal":
         reference_offsets = [
@@ -293,15 +314,11 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         selected = next((item for item in internal_files if item.name == display_name), None)
         internal_file_start_lba = selected.start_lba if selected is not None else None
     active_version_name = str(raw.get("active_version_name")) if isinstance(raw.get("active_version_name"), str) else None
-    byte_overlays, instruction_overlays = (
-        ({}, {})
-        if is_virtual_binary
-        else without_blank_instruction_overlays(
-            normalize_string_map(raw.get("byte_overlays")),
-            normalize_string_map(raw.get("instruction_overlays")),
-        )
+    byte_overlays, instruction_overlays = without_blank_instruction_overlays(
+        normalize_string_map(raw.get("byte_overlays")),
+        normalize_string_map(raw.get("instruction_overlays")),
     )
-    return discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
+    context = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
         kind=kind,
         display_name=display_name,
@@ -352,10 +369,35 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         instruction_overlays=instruction_overlays,
         view_preferences=view_preferences,
     )))
+    return (
+        replace(context, byte_overlays={}, instruction_overlays={})
+        if is_virtual_binary
+        else context
+    )
 
 
 def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchStateDTO:
     tabs = [tab for item in raw.get("tabs", []) if (tab := _tab_context(item)) is not None]
+    commands_by_arch = _commands_by_arch(raw.get("commands_by_arch"))
+    encoding_tables = _encoding_tables(raw.get("encoding_tables"))
+    if not encoding_tables:
+        encoding_tables = _merged_encoding_tables(tabs)
+    for tab in tabs:
+        if tab.custom_commands:
+            commands_by_arch[tab.cpu_arch] = {
+                **commands_by_arch.get(tab.cpu_arch, {}),
+                **tab.custom_commands,
+            }
+    tabs = [
+        BinaryWorkbenchTabContextDTO(
+            **{
+                **tab.__dict__,
+                "custom_commands": dict(commands_by_arch.get(tab.cpu_arch, {})),
+                "encoding_tables": list(encoding_tables),
+            }
+        )
+        for tab in tabs
+    ]
     active_tab_id = raw.get("active_tab_id")
     return BinaryWorkbenchStateDTO(
         tabs=tabs,
@@ -365,6 +407,8 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
             **BinaryWorkbenchStateDTO().directories,
             **normalize_string_map(raw.get("directories")),
         },
+        commands_by_arch=commands_by_arch,
+        encoding_tables=encoding_tables,
         window_size=_window_size(raw.get("window_size")),
     )
 
@@ -373,6 +417,8 @@ def binary_workbench_state_to_payload(
     state: BinaryWorkbenchStateDTO,
 ) -> dict[str, Any]:
     tabs = [compact_binary_context_overlays(tab) for tab in state.tabs]
+    commands_by_arch = _state_commands_by_arch(state, tabs)
+    encoding_tables = state.encoding_tables or _merged_encoding_tables(tabs)
     return {
         "tabs": [
             {
@@ -384,10 +430,10 @@ def binary_workbench_state_to_payload(
                 "read_mode": tab.read_mode,
                 "reference_offsets": list(tab.reference_offsets),
                 "reference_offset_bases": {k: v for k, v in dict(tab.reference_offset_bases).items() if not (k == "File" and v == "0x00000000")},
-                "labels": dict(tab.labels),
-                "equates": dict(tab.equates),
-                "variables": dict(tab.variables),
-                "symbol_offsets": {
+                "labels": {} if _module_backed(tab, VERSIONS) else dict(tab.labels),
+                "equates": {} if _module_backed(tab, SYMBOLS) else dict(tab.equates),
+                "variables": {} if _module_backed(tab, SYMBOLS) else dict(tab.variables),
+                "symbol_offsets": {} if _has_symbol_offset_modules(tab) else {
                     key: list(value) for key, value in tab.symbol_offsets.items()
                 },
                 "internal_files": [
@@ -401,18 +447,12 @@ def binary_workbench_state_to_payload(
                 ),
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
-                "offset_regions": [
+                "offset_regions": [] if _module_backed(tab, OFFSET_REGIONS) else [
                     {"name": item.name, "offset": item.offset, "details": item.details}
                     for item in tab.offset_regions
                 ],
-                "encoding_tables": [
-                    {
-                        "name": table.name,
-                        "values": {f"0x{byte:02X}": text for byte, text in table.values.items()},
-                    }
-                    for table in tab.encoding_tables
-                ],
-                "versions": [
+                "encoding_tables": [],
+                "versions": [] if _module_backed(tab, VERSIONS) else [
                     {
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
@@ -425,10 +465,7 @@ def binary_workbench_state_to_payload(
                 "module_paths": dict(tab.module_paths),
                 "module_directories": dict(tab.module_directories),
                 "module_checksums": dict(tab.module_checksums),
-                "custom_commands": {
-                    key: list(value)
-                    for key, value in tab.custom_commands.items()
-                },
+                "custom_commands": {},
                 "last_open_offset": tab.last_open_offset,
                 "navigation_history": list(tab.navigation_history),
                 "file_size": tab.file_size,
@@ -447,6 +484,8 @@ def binary_workbench_state_to_payload(
         ],
         "active_tab_id": state.active_tab_id,
         "share_view_preferences": state.share_view_preferences,
+        "commands_by_arch": commands_by_arch,
+        "encoding_tables": _encoding_tables_payload(encoding_tables),
         "directories": dict(state.directories),
         "window_size": {
             "width": state.window_size.width,
@@ -463,6 +502,62 @@ def _is_virtual_binary(tab: BinaryWorkbenchTabContextDTO) -> bool:
 
 def _uses_virtual_rows(tab: BinaryWorkbenchTabContextDTO) -> bool:
     return tab.kind in {"binary", "internal"}
+
+
+def _module_backed(tab: BinaryWorkbenchTabContextDTO, module_key: str) -> bool:
+    if not tab.workspace_path:
+        return False
+    if module_key == VERSIONS:
+        if tab.version_dirty:
+            return False
+        return module_key in tab.module_paths or any(
+            key.startswith(VERSION_PATH_PREFIX)
+            for key in tab.module_paths
+        )
+    return bool(tab.module_paths.get(module_key))
+
+
+def _has_symbol_offset_modules(tab: BinaryWorkbenchTabContextDTO) -> bool:
+    return _module_backed(tab, SYMBOLS) or _module_backed(tab, VERSIONS)
+
+
+def _state_commands_by_arch(
+    state: BinaryWorkbenchStateDTO,
+    tabs: list[BinaryWorkbenchTabContextDTO],
+) -> dict[str, dict[str, list[str]]]:
+    commands = {
+        arch: {name: list(lines) for name, lines in values.items()}
+        for arch, values in state.commands_by_arch.items()
+    }
+    for tab in tabs:
+        if tab.custom_commands:
+            commands[tab.cpu_arch] = {
+                **commands.get(tab.cpu_arch, {}),
+                **{name: list(lines) for name, lines in tab.custom_commands.items()},
+            }
+    return commands
+
+
+def _merged_encoding_tables(
+    tabs: list[BinaryWorkbenchTabContextDTO],
+) -> list[BinaryWorkbenchEncodingTableDTO]:
+    values: dict[str, BinaryWorkbenchEncodingTableDTO] = {}
+    for tab in tabs:
+        for table in tab.encoding_tables:
+            values[table.name] = table
+    return list(values.values())
+
+
+def _encoding_tables_payload(
+    tables: list[BinaryWorkbenchEncodingTableDTO],
+) -> list[dict[str, object]]:
+    return [
+        {
+            "name": table.name,
+            "values": {f"0x{byte:02X}": text for byte, text in table.values.items()},
+        }
+        for table in tables
+    ]
 
 
 def _reference_offsets(raw: dict[str, Any]) -> list[str]:

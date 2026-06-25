@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
 class CPUArchCodec(ABC):
@@ -45,4 +49,30 @@ class CPUArchCodec(ABC):
         operand: str,
         symbols: dict[str, str] | None = None,
     ) -> int | None:
+        return None
+
+    def editor_command_names(self) -> tuple[str, ...]:
+        return ()
+
+    def editor_command_output(
+        self,
+        name: str,
+        args: list[str],
+    ) -> list[str] | None:
+        return None
+
+    def instruction_code(self, text: str) -> str:
+        return text.strip()
+
+    def build_source_line_rows(
+        self,
+        lines: list[str],
+        offset_names: list[str],
+        offset_bases: dict[str, str],
+        start_offset: int = 0,
+        labels: dict[str, str] | None = None,
+        variables: dict[str, str] | None = None,
+        equates: dict[str, str] | None = None,
+        reject_invalid: bool = False,
+    ) -> list["BinaryWorkbenchRowDTO"] | None:
         return None

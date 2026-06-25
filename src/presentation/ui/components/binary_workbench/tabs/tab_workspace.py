@@ -19,7 +19,6 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchViewPreferencesDTO,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
-    COMMANDS,
     LBA_FILESYSTEM,
     OFFSET_REGIONS,
     SYMBOLS,
@@ -29,13 +28,15 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
     labels_from_rows,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
+from src.presentation.ui.components.binary_workbench.tabs.workspace_memory import (
+    workspace_heavy_context_unloaded,
+)
 
 DIRECTORY_KEYS = {
     BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY: SYMBOLS,
     BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY: LBA_FILESYSTEM,
     BINARY_WORKBENCH_STATE.OFFSET_REGIONS_DIRECTORY: OFFSET_REGIONS,
     BINARY_WORKBENCH_STATE.VERSIONS_DIRECTORY: VERSIONS,
-    BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY: COMMANDS,
 }
 
 
@@ -174,6 +175,8 @@ class TabWorkspaceMixin:
         self.programContextChanged.emit(self._program_context)
 
     def _has_workspace_module_changes(self, context: BinaryWorkbenchTabContextDTO) -> bool:
+        if workspace_heavy_context_unloaded(context):
+            return False
         current = self._workspace_repository.checksums_for_tab(context)
         if context.module_checksums:
             return any(current.get(key) != value for key, value in context.module_checksums.items())
@@ -183,8 +186,6 @@ class TabWorkspaceMixin:
                 context.equates,
                 context.internal_files,
                 context.versions,
-                context.custom_commands,
-                context.encoding_tables,
                 context.offset_regions,
                 context.view_preferences != BinaryWorkbenchViewPreferencesDTO(),
             )

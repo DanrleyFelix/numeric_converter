@@ -27,11 +27,13 @@ class EditorLabelNavigationMixin:
     def set_jump_navigation(
         self,
         codec: CPUArchCodec,
+        labels: dict[str, str],
         variables: dict[str, str],
         equates: dict[str, str],
     ) -> None:
         self._jump_codec = codec
         self._jump_symbols = {
+            **{name.lower(): value for name, value in labels.items()},
             **{f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()},
             **{f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()},
         }
@@ -50,8 +52,7 @@ class EditorLabelNavigationMixin:
         )
 
     def _navigation_target_at_position(self, position: QPoint) -> int | None:
-        label = self._label_at_position(position)
-        return label[1] if label is not None else self._jump_target_at_position(position)
+        return self._jump_target_at_position(position)
 
     def _strict_token_at_position(
         self,

@@ -24,7 +24,6 @@ from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchRulesDialog,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
-    COMMANDS,
     LBA_FILESYSTEM,
     SYMBOLS,
 )
@@ -109,7 +108,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         if current is None:
             return
         dialog = BinaryWorkbenchCommandsDialog(
-            current.custom_commands,
+            self.tabs.custom_commands_for_current_context(),
             self.tabs.directory_for(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY),
             self,
         )
@@ -130,7 +129,6 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             )
             return
         self.tabs.set_directory(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY, path.parent)
-        self.tabs.set_current_module_path(COMMANDS, path)
         dialog.set_default_directory(str(path.parent))
         dialog.set_commands(self.tabs.custom_commands_for_current_context())
 
