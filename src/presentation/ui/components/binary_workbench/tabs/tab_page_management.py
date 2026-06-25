@@ -11,6 +11,10 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload impo
 
 
 class BinaryWorkbenchTabBar(QTabBar):
+    def __init__(self) -> None:
+        super().__init__()
+        self._close_buttons: list[QPushButton] = []
+
     def tabSizeHint(self, index: int) -> QSize:
         return QSize(BINARY_WORKBENCH_LAYOUT.TAB_MAX_WIDTH, BINARY_WORKBENCH_LAYOUT.TAB_MIN_HEIGHT)
 
@@ -22,15 +26,42 @@ class BinaryWorkbenchTabBar(QTabBar):
         super().tabLayoutChange()
         self._position_close_buttons()
 
+    def tabRemoved(self, index: int) -> None:
+        self.remove_close_button(index)
+
+    def add_close_button(self, index: int, button: QPushButton) -> None:
+        button.setParent(self)
+        self._close_buttons.insert(index, button)
+        self._position_close_buttons()
+
+    def remove_close_button(self, index: int) -> None:
+        if not 0 <= index < len(self._close_buttons):
+            return
+        self._close_buttons.pop(index).deleteLater()
+        self._position_close_buttons()
+
+    def sync_close_button_order(self, source: int, target: int) -> None:
+        if not 0 <= source < len(self._close_buttons) or not 0 <= target < len(self._close_buttons):
+            return
+        button = self._close_buttons.pop(source)
+        self._close_buttons.insert(target, button)
+        self._position_close_buttons()
+
+    def close_button(self, index: int) -> QPushButton | None:
+        return self._close_buttons[index] if 0 <= index < len(self._close_buttons) else None
+
     def _position_close_buttons(self) -> None:
-        for index in range(self.count()):
-            button = self.tabButton(index, QTabBar.RightSide)
-            if button is None:
+        for index, button in enumerate(self._close_buttons):
+            if index >= self.count():
+                button.hide()
                 continue
             rect = self.tabRect(index)
             size = BINARY_WORKBENCH_LAYOUT.TAB_CLOSE_BUTTON_SIZE
             button.setFixedSize(size, size)
-            button.move(rect.right() - size - 4, rect.top() + 2)
+            button.move(
+                rect.right() - size - BINARY_WORKBENCH_LAYOUT.TAB_CLOSE_BUTTON_RIGHT_INSET + 1,
+                rect.top() + BINARY_WORKBENCH_LAYOUT.TAB_CLOSE_BUTTON_TOP_INSET,
+            )
             button.show()
             button.raise_()
 
@@ -52,8 +83,7 @@ class TabPageManagementMixin:
         page.statusWarningRequested.connect(self.statusWarningChanged.emit)
         index = self.addTab(page, tab_text(context.display_name))
         self.setTabToolTip(index, context.display_name)
-        self.tabBar().setTabButton(index, QTabBar.RightSide, self._close_button(page))
-        self.tabBar()._position_close_buttons()
+        self.tabBar().add_close_button(index, self._close_button(page))
         self._handle_page_context_change(context.tab_id, page.current_context())
 
     def _close_button(self, page: BinaryWorkbenchEditorPage) -> QPushButton:

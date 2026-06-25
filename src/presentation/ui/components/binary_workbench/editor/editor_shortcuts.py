@@ -200,9 +200,12 @@ class EditorShortcutMixin:
             replacement = self._multicursor_paste_replacement(text)
             if replacement is None:
                 return True
-            self._replace_occurrence_ranges(replacement, self._occurrence_cursor_ranges(), True)
+            self._replace_occurrence_ranges(replacement, self._occurrence_paste_ranges(), True)
             return True
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
+            if self._has_selected_occurrence_ranges():
+                self._replace_occurrence_ranges("", self._occurrence_paste_ranges(), True)
+                return True
             self._delete_multicursor_char(event.key() == Qt.Key_Backspace, self._occurrence_cursor_ranges())
             return True
         if event.key() in {Qt.Key_Return, Qt.Key_Enter}:
@@ -210,9 +213,10 @@ class EditorShortcutMixin:
         if event.text() and not event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier):
             if "\n" in event.text():
                 return True
-            if not self._multicursor_insert_allowed(event.text()):
+            ranges = self._occurrence_paste_ranges()
+            if not self._multicursor_insert_allowed(event.text(), ranges):
                 return True
-            self._replace_occurrence_ranges(event.text(), self._occurrence_cursor_ranges(), True)
+            self._replace_occurrence_ranges(event.text(), ranges, True)
             return True
         return False
 
@@ -274,25 +278,35 @@ class EditorShortcutMixin:
     def _occurrence_cursor_ranges(self) -> list[tuple[int, int]]:
         return [(end, end) for _, end in self._occurrence_ranges]
 
-    def _multicursor_insert_allowed(self, text: str) -> bool:
+    def _occurrence_paste_ranges(self) -> list[tuple[int, int]]:
+        return [
+            (end, end) if start == end else (start, end)
+            for start, end in self._occurrence_ranges
+        ]
+
+    def _has_selected_occurrence_ranges(self) -> bool:
+        return any(start != end for start, end in self._occurrence_ranges)
+
+    def _multicursor_insert_allowed(self, text: str, ranges: list[tuple[int, int]]) -> bool:
         if not is_bytes_editor(self):
             return True
-        return bytes_insert_allowed(text, self.toPlainText(), self._occurrence_cursor_ranges())
+        return bytes_insert_allowed(text, self.toPlainText(), ranges)
 
     def _multicursor_paste_replacement(self, text: str) -> str | None:
         if not is_bytes_editor(self):
             return None if "\n" in text else text
-        first, _ = self._occurrence_cursor_ranges()[0]
+        ranges = self._occurrence_paste_ranges()
+        first, first_end = ranges[0]
         replacement = bytes_paste_replacement(
             text,
             self.toPlainText(),
             first,
-            first,
+            first_end,
             False,
         )
         if replacement is None:
             return None
-        if not bytes_replacement_allowed(replacement, self.toPlainText(), self._occurrence_cursor_ranges()):
+        if not bytes_replacement_allowed(replacement, self.toPlainText(), ranges):
             return None
         return replacement
 
@@ -320,15 +334,20 @@ class EditorShortcutMixin:
     ) -> None:
         ranges = list(self._occurrence_ranges if ranges is None else ranges)
         keep_multicursor = self._all_occurrence_ranges_empty(ranges) if keep_multicursor is None else keep_multicursor
+        source = self.toPlainText()
+        replacements = [
+            (start, end, _range_replacement(source[start:end], value))
+            for start, end in ranges
+        ]
         cursor = QTextCursor(self.document())
         cursor.beginEditBlock()
-        for start, end in sorted(ranges, reverse=True):
+        for start, end, replacement in sorted(replacements, reverse=True):
             cursor.setPosition(start)
             cursor.setPosition(end, QTextCursor.KeepAnchor)
-            cursor.insertText(value)
+            cursor.insertText(replacement)
         cursor.endEditBlock()
         if keep_multicursor:
-            self._occurrence_ranges = self._shifted_multicursor_ranges(ranges, len(value))
+            self._occurrence_ranges = self._ranges_after_replacements(replacements)
             self._apply_occurrence_selection(self._occurrence_ranges[-1])
             return
         self.clear_editor_occurrence_selection()
@@ -337,11 +356,13 @@ class EditorShortcutMixin:
         ranges = self._occurrence_ranges if ranges is None else ranges
         return bool(ranges) and all(start == end for start, end in ranges)
 
-    def _shifted_multicursor_ranges(self, ranges: list[tuple[int, int]], inserted_length: int) -> list[tuple[int, int]]:
+    def _ranges_after_replacements(self, replacements: list[tuple[int, int, str]]) -> list[tuple[int, int]]:
         shifted = []
-        for index, (start, _) in enumerate(sorted(ranges)):
-            position = start + (inserted_length * (index + 1))
+        prior_delta = 0
+        for start, end, replacement in sorted(replacements):
+            position = start + prior_delta + len(replacement)
             shifted.append((position, position))
+            prior_delta += len(replacement) - (end - start)
         return shifted
 
     def _delete_multicursor_char(self, previous: bool, ranges: list[tuple[int, int]]) -> None:
@@ -436,3 +457,10 @@ def _alt_only(modifiers: Qt.KeyboardModifiers) -> bool:
 
 def _ctrl_shift_only(modifiers: Qt.KeyboardModifiers) -> bool:
     return bool(modifiers & Qt.ControlModifier) and bool(modifiers & Qt.ShiftModifier) and not bool(modifiers & (Qt.AltModifier | Qt.MetaModifier))
+
+
+def _range_replacement(selected_text: str, value: str) -> str:
+    if "\n" not in selected_text:
+        return value
+    line_breaks = "".join("\n" if character == "\n" else "" for character in selected_text)
+    return f"{value}{line_breaks}"

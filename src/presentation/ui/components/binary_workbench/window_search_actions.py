@@ -28,7 +28,11 @@ class BinaryWorkbenchWindowSearchMixin:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_MULTIPLE_TARGETS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
 
     def _open_find(self) -> None:
-        dialog = BinaryWorkbenchFindDialog(self.tabs.find_offsets, self)
+        dialog = BinaryWorkbenchFindDialog(
+            self.tabs.find_offsets,
+            self.tabs.last_search_end_offset,
+            self,
+        )
         dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return

@@ -6,6 +6,10 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QToolButton, QWidget
 
 from src.controllers.binary_workbench_controller import BinaryWorkbenchController
+from src.core.binary_workbench.search_cache import (
+    SearchCacheRepository,
+    SearchCacheService,
+)
 from src.modules.application_dtos import ProgramContextDTO
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
@@ -84,11 +88,15 @@ class BinaryWorkbenchTabs(
         self.tabBar().setUsesScrollButtons(False)
         self.tabBar().setMovable(True)
         self._build_tab_navigation()
-        self.setTabsClosable(True)
+        self.setTabsClosable(False)
         self.setDocumentMode(True)
         self._workspace_repository = BinaryWorkbenchWorkspaceRepository(
             workspace_directory or Path.cwd()
         )
+        self._search_cache_repository = SearchCacheRepository(
+            self._workspace_repository.directory.parent / "search_cache.json"
+        )
+        self._search_cache: SearchCacheService | None = None
         self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
         self._program_context = program_context or ProgramContextDTO()
         self._controller = BinaryWorkbenchController()
@@ -96,12 +104,21 @@ class BinaryWorkbenchTabs(
         self._stale_context_pages: set[str] = set()
         self.currentChanged.connect(self._sync_active_tab)
         self.currentChanged.connect(lambda _: self._update_tab_navigation())
+        self.tabBar().tabMoved.connect(self.tabBar().sync_close_button_order)
         self.tabBar().tabMoved.connect(self._sync_tab_order)
-        self.tabCloseRequested.connect(self.closeRequested.emit)
         self.load_state(state)
 
     def preferences(self) -> BinaryWorkbenchPreferencesDTO:
         return self._preferences
+
+    def flush_search_cache(self) -> None:
+        if self._search_cache is not None:
+            self._search_cache_repository.save(self._search_cache.entries_for_save())
+
+    def _search_cache_for_find(self) -> SearchCacheService:
+        if self._search_cache is None:
+            self._search_cache = SearchCacheService(self._search_cache_repository.load())
+        return self._search_cache
 
     def tabInserted(self, index: int) -> None:
         super().tabInserted(index)

@@ -1,3 +1,5 @@
+import json
+import re
 from pathlib import Path
 
 from src.modules.application_dtos import (
@@ -16,6 +18,11 @@ from src.presentation.repository.context_payload import (
 )
 
 from src.modules.utils import normalize_json_path, read_json, write_json
+
+SEARCH_CACHE_PAYLOAD_PATTERN = re.compile(
+    r'("search_cache"\s*:\s*)\{.*?\}',
+    re.DOTALL,
+)
 
 
 class ApplicationContextRepository:
@@ -74,7 +81,7 @@ class BinaryWorkbenchContextRepository:
     def load(self, path: Path | None = None) -> BinaryWorkbenchStateDTO:
         target = path or self.default_path()
         if path is None and not target.exists() and self._legacy_path.exists():
-            payload = read_json(self._legacy_path)
+            payload = _read_binary_workbench_json(self._legacy_path)
             if isinstance(payload, dict):
                 binary_payload = payload.get("binary_workbench", {})
                 binary_payload = dict(binary_payload) if isinstance(binary_payload, dict) else {}
@@ -85,7 +92,7 @@ class BinaryWorkbenchContextRepository:
             return BinaryWorkbenchStateDTO()
         if not target.exists():
             return BinaryWorkbenchStateDTO()
-        payload = read_json(target)
+        payload = _read_binary_workbench_json(target)
         if not isinstance(payload, dict):
             return BinaryWorkbenchStateDTO()
         return binary_workbench_state_from_payload(payload)
@@ -100,6 +107,19 @@ class BinaryWorkbenchContextRepository:
 
     def _normalize_path(self, path: Path) -> Path:
         return normalize_json_path(path, self._directory)
+
+
+def _read_binary_workbench_json(path: Path) -> object:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    if '"search_cache"' in text:
+        text = SEARCH_CACHE_PAYLOAD_PATTERN.sub(r"\1{}", text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return {}
 
 
 class ProgramContextRepository:

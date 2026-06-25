@@ -120,7 +120,7 @@ class BINARY_WORKBENCH_TEXT:
     VALUE: str = "Value"
     START_OFFSET: str = "Start Offset"
     END_OFFSET: str = "End Offset"
-    FIND_LENGTH: str = "Length"
+    FIND_LENGTH: str = "Length (KB)"
     LENGTH_BYTES: str = "Length Bytes"
     FILE_OFFSET_TARGET: str = "File Offset"
     LBA_2048_TARGET: str = "LBA (2048 bytes)"

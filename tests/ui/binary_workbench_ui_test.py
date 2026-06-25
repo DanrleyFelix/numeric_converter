@@ -8,9 +8,13 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTabBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QToolButton, QWidget
 
 from src.main import create_main_window
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB,
+    BINARY_WORKBENCH_FIND_MAX_LENGTH_KB,
+)
 from src.modules.dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
@@ -48,11 +52,17 @@ from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchVersionChangeDialog,
     BinaryWorkbenchVersionNameDialog,
 )
+from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
+    BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT,
+)
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchAdvancedConfigDialog,
 )
-from src.presentation.ui.components.binary_workbench.search import BinaryWorkbenchGoToDialog
+from src.presentation.ui.components.binary_workbench.search import (
+    BinaryWorkbenchFindDialog,
+    BinaryWorkbenchGoToDialog,
+)
 
 
 _APP = None
@@ -537,7 +547,7 @@ def test_binary_workbench_uses_separate_offset_columns_and_editable_panels(tmp_p
     offset_panels = tool.findChildren(QPlainTextEdit, "binary-workbench-offsets-panel")
     bytes_panel = tool.findChild(QPlainTextEdit, "binary-workbench-bytes-panel")
     instruction_panel = tool.findChild(QPlainTextEdit, "binary-workbench-instructions-panel")
-    close_button = tool.tabs.tabBar().tabButton(0, QTabBar.RightSide)
+    close_button = tool.tabs.tabBar().close_button(0)
     headers = [label.text() for label in tool.findChildren(QLabel, "binary-workbench-column-label")]
     body_scroll = tool.findChild(QScrollBar, "binary-workbench-editor-scrollbar")
 
@@ -886,17 +896,25 @@ def test_binary_workbench_tabs_use_truncated_labels_and_tooltips(tmp_path: Path)
     assert tool is not None
     tool.open_binary_path(path)
 
-    assert tool.tabs.tabText(0) == f"{path.name[:20]}..."
+    assert tool.tabs.tabText(0) == f"{path.name[:18]}..."
     assert tool.tabs.tabBar().tabToolTip(0) == path.name
     assert tool.tabs.tabBar().isMovable() is True
-    close_button = tool.tabs.tabBar().tabButton(0, QTabBar.RightSide)
+    close_button = tool.tabs.tabBar().close_button(0)
     assert isinstance(close_button, QPushButton)
     assert close_button.text() == "X"
     assert close_button.isHidden() is False
+    tab_rect = tool.tabs.tabBar().tabRect(0)
+    close_rect = close_button.geometry()
+    assert close_rect.right() <= tab_rect.right()
+    assert close_rect.top() >= tab_rect.top()
 
     first_id = tool.tabs.context_at(0).tab_id
     tool.tabs.new_scratch_tab()
     second_id = tool.tabs.context_at(1).tab_id
+    first_close_position = close_button.pos()
+    tool.tabs.setCurrentIndex(1)
+    _app().processEvents()
+    assert close_button.pos() == first_close_position
     tool.tabs.tabBar().moveTab(1, 0)
 
     assert [tab.tab_id for tab in tool.export_state().tabs[:2]] == [second_id, first_id]
@@ -1718,6 +1736,44 @@ def test_binary_workbench_find_offsets_are_cached_in_context(tmp_path: Path):
     assert results == [0, 8]
     assert current is not None
     assert current.search_cache["Assembly instruction:nop"] == ["0x00000000", "0x00000008"]
+    assert (tmp_path / "data" / "binary_workbench" / "search_cache.json").exists()
+
+
+def test_binary_workbench_find_dialog_limits_length_and_prefills_start():
+    _app()
+    captured: list[tuple[int | None, int | None, int | None]] = []
+
+    def search(_mode, _query, start, end, limit):
+        captured.append((start, end, limit))
+        return [0]
+
+    dialog = BinaryWorkbenchFindDialog(search, lambda: captured[-1][1])
+    dialog.length.setText(str(BINARY_WORKBENCH_FIND_MAX_LENGTH_KB + 1))
+
+    dialog.refresh_results()
+
+    max_length_bytes = BINARY_WORKBENCH_FIND_MAX_LENGTH_KB * 1024
+    assert captured == [(0, max_length_bytes - 1, None)]
+    assert dialog.length.text() == str(BINARY_WORKBENCH_FIND_MAX_LENGTH_KB)
+    assert dialog.start.text() == f"0x{max_length_bytes - 1:08X}"
+    assert dialog.width() == BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_WIDTH
+    assert dialog.height() == BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_HEIGHT
+
+
+def test_binary_workbench_find_dialog_empty_length_defaults_to_two_mb():
+    _app()
+    captured: list[tuple[int | None, int | None]] = []
+
+    def search(_mode, _query, start, end, _limit):
+        captured.append((start, end))
+        return []
+
+    dialog = BinaryWorkbenchFindDialog(search, lambda: captured[-1][1])
+
+    dialog.refresh_results()
+
+    default_bytes = BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB * 1024
+    assert captured == [(0, default_bytes - 1)]
 
 
 def test_binary_workbench_find_decoded_text_ansi_respects_offset_range(tmp_path: Path):
@@ -1734,6 +1790,19 @@ def test_binary_workbench_find_decoded_text_ansi_respects_offset_range(tmp_path:
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "ção") == [7]
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", end_offset=5) == [1]
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", start_offset=2) == []
+
+
+def test_binary_workbench_find_assembly_mnemonic_uses_partial_byte_search(tmp_path: Path):
+    binary_path = tmp_path / "partial_instruction.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00 F0 FF BD 27 00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_ASSEMBLY, "ADDIU") == [4]
 
 
 def test_binary_workbench_ctrl_s_persists_open_assembly_source(tmp_path: Path):
@@ -2061,7 +2130,7 @@ def test_binary_workbench_internal_file_dialog_uses_standard_minimal_layout():
     buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
     items = dialog.findChild(QListWidget, "binary-workbench-internal-files")
 
-    assert dialog.windowTitle() == "Open Internal File"
+    assert dialog.windowTitle() == "Internal Files"
     assert dialog.findChildren(QLabel) == []
     assert dialog.layout().getContentsMargins() == BINARY_WORKBENCH_DIALOG_LAYOUT.DIALOG_MARGINS
     assert items is not None
@@ -2069,6 +2138,10 @@ def test_binary_workbench_internal_file_dialog_uses_standard_minimal_layout():
     assert items.currentItem() is None
     assert items.selectionMode().name == "SingleSelection"
     assert dialog.minimumSize() == dialog.maximumSize()
+    assert items.height() == (
+        BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.ITEM_HEIGHT
+        + BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.LIST_FRAME_WIDTH
+    )
     items.setCurrentRow(0)
     assert dialog.selected_name() == "WA_MRG.MRG"
     assert set(buttons) == {"Cancel", "OK"}
@@ -2389,7 +2462,7 @@ def test_binary_workbench_editor_ctrl_q_keeps_previous_ctrl_d_selections():
     assert editor._occurrence_ranges[2] == (48, 53)
 
 
-def test_binary_workbench_ctrl_d_edits_at_occurrence_ends():
+def test_binary_workbench_ctrl_d_replaces_selected_occurrences():
     _app()
     editor = WorkbenchEditor()
     editor.setObjectName("binary-workbench-instructions-panel")
@@ -2402,9 +2475,62 @@ def test_binary_workbench_ctrl_d_edits_at_occurrence_ends():
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_D, Qt.ControlModifier))
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_X, Qt.NoModifier, "X"))
 
-    assert editor.toPlainText().splitlines() == ["NOPX", "ADD", "NOPX"]
+    assert editor.toPlainText().splitlines() == ["X", "ADD", "X"]
     assert len(editor.multicursor_positions()) == 2
     assert all(start == end for start, end in editor._occurrence_ranges)
+
+
+def test_binary_workbench_multiple_selected_occurrences_delete_without_removing_lines():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("WORD 0x582D0112\nWORD 0x33333333")
+    first_end = len("WORD 0x582D0112")
+    second_start = first_end + 1
+    second_end = second_start + len("WORD 0x33333333")
+    editor._occurrence_ranges = [(0, first_end), (second_start, second_end)]
+    editor._apply_occurrence_selection((second_start, second_end))
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+
+    assert editor.toPlainText().split("\n") == ["", ""]
+
+
+def test_binary_workbench_instruction_paste_replaces_selection_and_inserts_at_cursor():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("WORD 0x582D0112\nWORD 0x33333333")
+    first_end = len("WORD 0x582D0112")
+    second_start = first_end + 1
+    editor._occurrence_ranges = [(0, first_end), (second_start, second_start)]
+    editor._apply_occurrence_selection((second_start, second_start))
+    app.clipboard().setText("WORD 0xAAAAAAAA")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == [
+        "WORD 0xAAAAAAAA",
+        "WORD 0xAAAAAAAAWORD 0x33333333",
+    ]
+    assert editor.multicursor_positions() == [
+        len("WORD 0xAAAAAAAA"),
+        len("WORD 0xAAAAAAAA\nWORD 0xAAAAAAAA"),
+    ]
+
+
+def test_binary_workbench_bytes_paste_replaces_multiple_selected_ranges():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.setPlainText("AA BB\n11 22")
+    editor._occurrence_ranges = [(0, 2), (6, 8)]
+    editor._apply_occurrence_selection((6, 8))
+    app.clipboard().setText("FF")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == ["FF BB", "FF 22"]
 
 
 def test_binary_workbench_instruction_alt_click_edits_multiple_lines():

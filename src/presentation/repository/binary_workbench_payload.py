@@ -316,7 +316,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         equates=normalize_string_map(raw.get("equates")),
         variables=normalize_string_map(raw.get("variables")),
         symbol_offsets=_string_list_map(raw.get("symbol_offsets")),
-        search_cache=_string_list_map(raw.get("search_cache")),
+        search_cache={},
         internal_files=internal_files,
         internal_file_start_lba=internal_file_start_lba,
         internal_parent_tab_id=(
@@ -389,9 +389,6 @@ def binary_workbench_state_to_payload(
                 "variables": dict(tab.variables),
                 "symbol_offsets": {
                     key: list(value) for key, value in tab.symbol_offsets.items()
-                },
-                "search_cache": {
-                    key: list(value) for key, value in tab.search_cache.items()
                 },
                 "internal_files": [
                     {"name": item.name, "start_lba": item.start_lba}

@@ -115,6 +115,7 @@ class BinaryWorkbenchWindow(
         self.tabs.new_scratch_tab()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        self.tabs.flush_search_cache()
         self.sizePersistRequested.emit(self.width(), self.height())
         super().closeEvent(event)
 

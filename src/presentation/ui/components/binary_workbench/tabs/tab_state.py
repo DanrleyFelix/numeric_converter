@@ -17,6 +17,15 @@ from src.presentation.ui.components.binary_workbench.tabs.factory import restora
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload, tab_text
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import DIRECTORY_KEYS
 
+TRANSIENT_VISIBLE_CONTEXT_FIELDS = {
+    "rows",
+    "labels",
+    "symbol_offsets",
+    "last_open_offset",
+    "file_size",
+    "original_file_size",
+}
+
 
 class TabStateMixin:
     def export_state(self) -> BinaryWorkbenchStateDTO:
@@ -117,6 +126,9 @@ class TabStateMixin:
         if not isinstance(context, BinaryWorkbenchTabContextDTO):
             return
         previous = next((tab for tab in self._state.tabs if tab.tab_id == tab_id), None)
+        if previous is not None and _is_transient_visible_context_update(previous, context):
+            self._replace_context_without_emit(tab_id, context)
+            return
         if previous is None or context.kind != BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             self._replace_context(tab_id, context)
             return
@@ -256,6 +268,21 @@ class TabStateMixin:
             page.set_preferences(self._preferences)
             page.load_context(context)
 
+    def _replace_context_without_emit(
+        self,
+        tab_id: str,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        self._state = BinaryWorkbenchStateDTO(
+            **{
+                **state_payload(self._state),
+                "tabs": [
+                    context if tab.tab_id == tab_id else tab
+                    for tab in self._state.tabs
+                ],
+            }
+        )
+
     def _sync_active_tab(self, index: int) -> None:
         if not 0 <= index < len(self._state.tabs):
             return
@@ -329,3 +356,17 @@ def _internal_mapper(
             context.lba_sector_size,
         )
     )
+
+
+def _is_transient_visible_context_update(
+    previous: BinaryWorkbenchTabContextDTO,
+    current: BinaryWorkbenchTabContextDTO,
+) -> bool:
+    if current.kind not in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.INTERNAL}:
+        return False
+    previous_values = dict(previous.__dict__)
+    current_values = dict(current.__dict__)
+    for field in TRANSIENT_VISIBLE_CONTEXT_FIELDS:
+        previous_values.pop(field, None)
+        current_values.pop(field, None)
+    return previous_values == current_values

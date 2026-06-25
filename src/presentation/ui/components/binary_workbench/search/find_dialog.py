@@ -3,7 +3,11 @@ from collections.abc import Callable
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB,
+    BINARY_WORKBENCH_FIND_MAX_LENGTH_BYTES,
+    BINARY_WORKBENCH_FIND_MAX_LENGTH_KB,
+)
 from src.modules.constants import HEX_DIGITS_LOWER
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.input_validators import (
@@ -26,16 +30,18 @@ class BinaryWorkbenchFindDialog(QDialog):
     def __init__(
         self,
         search: Callable[[str, str, int | None, int | None, int | None], list[int]],
+        last_search_end: Callable[[], int | None] | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
         self._search = search
+        self._last_search_end = last_search_end
         self._offsets: list[int] = []
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.FIND)
-        self.setMaximumSize(
-            BINARY_WORKBENCH_LAYOUT.SEARCH_DIALOG_MAX_WIDTH,
-            BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_MAX_HEIGHT,
+        self.setFixedSize(
+            BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_DIALOG_HEIGHT,
         )
         layout = base_search_dialog_layout(
             self,
@@ -93,8 +99,9 @@ class BinaryWorkbenchFindDialog(QDialog):
                 self.query.text().strip(),
                 start_offset,
                 end_offset,
-                BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT,
+                None,
             )
+            self._fill_next_start_offset()
         self.results.clear()
         for offset in self._offsets:
             self.results.addItem(f"0x{offset:08X}")
@@ -113,16 +120,25 @@ class BinaryWorkbenchFindDialog(QDialog):
         length = self.length.text().strip()
         start_offset = int(start, 16) if start else None
         end_offset = int(end, 16) if end else None
-        length_value = int(length, 10) if length else None
+        raw_length_kb = int(length, 10) if length else BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB
+        length_kb = max(1, min(raw_length_kb, BINARY_WORKBENCH_FIND_MAX_LENGTH_KB))
+        if length and raw_length_kb != length_kb:
+            self.length.setText(str(length_kb))
+        length_value = min(length_kb * 1024, BINARY_WORKBENCH_FIND_MAX_LENGTH_BYTES)
         if start_offset is not None and end_offset is not None:
-            return start_offset, end_offset
-        if length_value is None or length_value <= 0:
-            return start_offset, end_offset
+            return start_offset, min(end_offset, start_offset + length_value - 1)
         if start_offset is not None:
             return start_offset, start_offset + length_value - 1
         if end_offset is not None:
             return max(0, end_offset - length_value + 1), end_offset
         return 0, length_value - 1
+
+    def _fill_next_start_offset(self) -> None:
+        if self._last_search_end is None:
+            return
+        end_offset = self._last_search_end()
+        if end_offset is not None:
+            self.start.setText(f"0x{end_offset:08X}")
 
     def _sync_query_validator(self, mode: str) -> None:
         if mode != BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES:

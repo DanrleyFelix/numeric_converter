@@ -87,6 +87,8 @@ QTabBar#binary-workbench-tab-bar::tab {
     max-height: 32px;
     margin-right: $space-4;
     font-size: 12px;
+    padding-left: $space-8;
+    padding-right: $space-4;
     outline: none;
 }
 
@@ -349,7 +351,7 @@ QListWidget#binary-workbench-internal-files {
     background-color: $bg-workspace-row;
     color: $text-main;
     border: 1px solid $border-workspace-row;
-    border-radius: $radius-10;
+    border-radius: $radius-0;
     padding: 0px;
     outline: none;
 }
@@ -359,8 +361,10 @@ QListWidget#binary-workbench-internal-files::item {
     border: none;
     border-radius: $radius-0;
     color: $text-main;
-    padding: $space-5 $space-12;
-    margin-bottom: $space-10;
+    padding-top: $space-10;
+    padding-bottom: $space-10;
+    padding-left: $space-12;
+    padding-right: $space-12;
     outline: none;
 }
 

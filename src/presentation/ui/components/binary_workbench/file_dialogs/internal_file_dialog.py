@@ -1,9 +1,10 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QHBoxLayout,
     QListWidget,
+    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -35,8 +36,14 @@ class BinaryWorkbenchInternalFileDialog(QDialog):
         self.items.setObjectName("binary-workbench-internal-files")
         self.items.setSelectionMode(QAbstractItemView.SingleSelection)
         self.items.setFocusPolicy(Qt.NoFocus)
+        self.items.setUniformItemSizes(True)
         for item in internal_files:
-            self.items.addItem(item.name)
+            widget_item = QListWidgetItem(item.name)
+            widget_item.setSizeHint(
+                QSize(0, BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.ITEM_HEIGHT)
+            )
+            self.items.addItem(widget_item)
+        self.items.setFixedHeight(self._list_height(len(internal_files)))
         self.items.itemDoubleClicked.connect(lambda _item: self.accept())
         footer = QWidget(self)
         footer_layout = QHBoxLayout(footer)
@@ -66,3 +73,13 @@ class BinaryWorkbenchInternalFileDialog(QDialog):
     def selected_name(self) -> str | None:
         current = self.items.currentItem()
         return current.text() if current is not None else None
+
+    def _list_height(self, item_count: int) -> int:
+        visible_items = min(
+            max(1, item_count),
+            BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.MAX_VISIBLE_ITEMS,
+        )
+        return (
+            visible_items * BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.ITEM_HEIGHT
+            + BINARY_WORKBENCH_INTERNAL_FILE_DIALOG_LAYOUT.LIST_FRAME_WIDTH
+        )
