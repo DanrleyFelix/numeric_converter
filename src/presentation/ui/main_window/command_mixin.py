@@ -124,7 +124,13 @@ class MainWindowCommandMixin:
         self.footer.set_status(MAIN_WINDOW_TEXT.COMMAND_RESULT_SENT, COLOR.SUCCESS)
 
     def _copy_focused_converter_raw(self: MainWindow) -> None:
-        if self.body.converter_panel.copy_focused_raw():
+        copied = self.body.converter_panel.copy_focused_raw()
+        if not copied:
+            preferences = self._preferences_service.get_preferences()
+            copied = self.body.converter_panel.copy_raw_by_key(
+                preferences.default_copy_field
+            )
+        if copied:
             self.footer.set_status(MAIN_WINDOW_TEXT.RAW_VALUE_COPIED, COLOR.SUCCESS)
 
     def _render_converter(self: MainWindow, display_values: dict[str, str]) -> None:

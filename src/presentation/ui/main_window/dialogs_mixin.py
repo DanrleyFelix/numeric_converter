@@ -127,8 +127,10 @@ class MainWindowDialogsMixin:
         self._autosave_state()
 
     def _open_preferences(self: MainWindow) -> None:
+        preferences = self._preferences_service.get_preferences()
         dialog = PreferencesDialog(
-            formatting=self._preferences_service.get_format(),
+            formatting=preferences.formatters,
+            default_copy_field=preferences.default_copy_field,
             parent=self,
         )
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -137,6 +139,9 @@ class MainWindowDialogsMixin:
         formatting = dialog.selected_formatting()
         for key, config in formatting.items():
             self._preferences_service.update(key, config)
+        self._preferences_service.update_default_copy_field(
+            dialog.selected_default_copy_field()
+        )
 
         output = self._converter_presenter.update_formatting(formatting)
         if output is not None:

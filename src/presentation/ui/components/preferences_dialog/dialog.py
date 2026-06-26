@@ -6,13 +6,18 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QPushButton,
     QVBoxLayout,
 )
 
 from src.modules.converter_dtos import FormattingOutputDTO
+from src.presentation.ui.components.preferences_dialog.combo_delegate import (
+    PreferencesComboItemDelegate,
+)
 from src.presentation.ui.components.preferences_dialog.constants import (
     PREFERENCES_DIALOG_MARGIN,
+    PREFERENCES_DEFAULT_COPY_FIELD,
     PREFERENCES_GROUP_SIZE_VALUES,
     PREFERENCES_DIALOG_SIZE,
     PREFERENCES_DIALOG_SPACING,
@@ -26,6 +31,7 @@ class PreferencesDialog(QDialog):
     def __init__(
         self,
         formatting: dict[str, FormattingOutputDTO],
+        default_copy_field: str = PREFERENCES_DEFAULT_COPY_FIELD,
         parent=None,
     ):
         super().__init__(parent)
@@ -39,6 +45,7 @@ class PreferencesDialog(QDialog):
 
         self._group_boxes: dict[str, QComboBox] = {}
         self._zero_pad_boxes: dict[str, QCheckBox] = {}
+        self._copy_field_by_label = {label: key for key, label in FIELD_LABELS.items()}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(
@@ -48,12 +55,32 @@ class PreferencesDialog(QDialog):
             PREFERENCES_DIALOG_MARGIN.ROOT_BOTTOM,
         )
         layout.setSpacing(PREFERENCES_DIALOG_SPACING.ROOT)
+        layout.setAlignment(Qt.AlignTop)
 
-        subtitle = QLabel(PREFERENCES_DIALOG_TEXT.SUBTITLE)
-        subtitle.setObjectName("preferences-subtitle")
-        layout.addWidget(subtitle)
+        self.default_copy = QComboBox()
+        self.default_copy.setObjectName("preferences-copy-placeholder")
+        self.default_copy.setFixedWidth(PREFERENCES_DIALOG_SIZE.DEFAULT_COPY_WIDTH)
+        self.default_copy.addItems(list(FIELD_LABELS.values()))
+        current_copy = FIELD_LABELS.get(
+            default_copy_field,
+            FIELD_LABELS[PREFERENCES_DEFAULT_COPY_FIELD],
+        )
+        self.default_copy.setCurrentText(current_copy)
+        self.default_copy.setItemDelegate(PreferencesComboItemDelegate(self.default_copy))
+        self.default_copy.setFocusPolicy(Qt.NoFocus)
+        self.default_copy.setCursor(Qt.PointingHandCursor)
+
+        default_copy_row = QHBoxLayout()
+        default_copy_row.setContentsMargins(0, 0, 0, 0)
+        default_copy_row.setSpacing(PREFERENCES_DIALOG_SPACING.GRID_HORIZONTAL)
+        default_copy_row.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.DEFAULT_COPY_LABEL))
+        default_copy_row.addWidget(self.default_copy)
+        default_copy_row.addStretch(1)
+        layout.addLayout(default_copy_row)
+        layout.addSpacing(PREFERENCES_DIALOG_SPACING.DEFAULT_COPY_TO_HEADERS)
 
         grid = QGridLayout()
+        grid.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         grid.setHorizontalSpacing(PREFERENCES_DIALOG_SPACING.GRID_HORIZONTAL)
         grid.setVerticalSpacing(PREFERENCES_DIALOG_SPACING.GRID_LAYOUT)
         grid.setColumnStretch(0, 0)
@@ -86,6 +113,9 @@ class PreferencesDialog(QDialog):
             group_size.setCurrentText(
                 str(_closest_group_size(formatting[key].group_size))
             )
+            group_size.setItemDelegate(PreferencesComboItemDelegate(group_size))
+            group_size.setFocusPolicy(Qt.NoFocus)
+            group_size.setCursor(Qt.PointingHandCursor)
 
             zero_pad = QCheckBox()
             zero_pad.setChecked(formatting[key].zero_pad)
@@ -98,6 +128,7 @@ class PreferencesDialog(QDialog):
             grid.addWidget(zero_pad, row, 2, Qt.AlignLeft)
 
         layout.addLayout(grid)
+        layout.addSpacing(PREFERENCES_DIALOG_SPACING.ITEMS_TO_BUTTONS)
 
         buttons_row = QHBoxLayout()
         buttons_row.setContentsMargins(
@@ -134,6 +165,12 @@ class PreferencesDialog(QDialog):
             )
             for key in self._group_boxes
         }
+
+    def selected_default_copy_field(self) -> str:
+        return self._copy_field_by_label.get(
+            self.default_copy.currentText(),
+            PREFERENCES_DEFAULT_COPY_FIELD,
+        )
 
 
 def _closest_group_size(value: int) -> int:

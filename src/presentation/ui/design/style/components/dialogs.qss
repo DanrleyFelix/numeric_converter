@@ -503,16 +503,24 @@ QComboBox#advanced-config-dropdown::drop-down {
 }
 
 QComboBox#advanced-config-dropdown::down-arrow,
-QComboBox#preferences-group-size::down-arrow {
+QComboBox#preferences-group-size::down-arrow,
+QComboBox#preferences-copy-placeholder::down-arrow {
     image: none;
     width: 0px;
     height: 0px;
 }
 
-QComboBox#preferences-group-size::drop-down {
+QComboBox#preferences-group-size::drop-down,
+QComboBox#preferences-copy-placeholder::drop-down {
     background-color: transparent;
     border: none;
     width: 0px;
+}
+
+QComboBox#preferences-group-size QAbstractItemView,
+QComboBox#preferences-copy-placeholder QAbstractItemView {
+    padding: 0px;
+    outline: none;
 }
 
 QLabel#donor-section-title {

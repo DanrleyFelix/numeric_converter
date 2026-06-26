@@ -31,6 +31,7 @@ class ApplicationContextDTO:
 class NumericWorkbenchPreferencesDTO:
     formatters: dict[str, FormattingOutputDTO] = field(default_factory=_default_formatter_preferences)
     log_preferences: CommandLogPreferencesDTO = field(default_factory=CommandLogPreferencesDTO)
+    default_copy_field: str = "hexLE"
     key_panel_visible: bool = True
     auto_convert_enabled: bool = False
 

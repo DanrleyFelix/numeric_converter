@@ -24,6 +24,7 @@ DEFAULT_FORMATTER: dict[str, FormattingOutputDTO] = {
     "hexBE": FormattingOutputDTO(2, True),
     "hexLE": FormattingOutputDTO(2, True)
 }
+DEFAULT_COPY_FIELD = "hexLE"
 
 
 class FormattingPreferencesRepository:
@@ -50,6 +51,7 @@ class FormattingPreferencesRepository:
                 for key in DEFAULT_FORMATTER
             },
             log_preferences=self._log_preferences(raw.get("logs", {})),
+            default_copy_field=self._copy_field(raw.get("default_copy_field")),
             key_panel_visible=raw.get("key_panel_visible", True),
             auto_convert_enabled=raw.get("auto_convert_enabled", False),
         )
@@ -85,6 +87,7 @@ class FormattingPreferencesRepository:
             NumericWorkbenchPreferencesDTO(
                 formatters=context,
                 log_preferences=preferences.log_preferences,
+                default_copy_field=preferences.default_copy_field,
                 key_panel_visible=preferences.key_panel_visible,
                 auto_convert_enabled=preferences.auto_convert_enabled,
             )
@@ -104,6 +107,7 @@ class FormattingPreferencesRepository:
                 "assignment_operator": preferences.log_preferences.assignment_operator,
                 "binary_operator_only": preferences.log_preferences.binary_operator_only,
             },
+            "default_copy_field": self._copy_field(preferences.default_copy_field),
             "key_panel_visible": preferences.key_panel_visible,
             "auto_convert_enabled": preferences.auto_convert_enabled,
         }
@@ -123,6 +127,9 @@ class FormattingPreferencesRepository:
 
     def _bool(self, raw: object, default: bool) -> bool:
         return raw if isinstance(raw, bool) else default
+
+    def _copy_field(self, raw: object) -> str:
+        return raw if isinstance(raw, str) and raw in DEFAULT_FORMATTER else DEFAULT_COPY_FIELD
 
 
 class BinaryWorkbenchPreferencesRepository:

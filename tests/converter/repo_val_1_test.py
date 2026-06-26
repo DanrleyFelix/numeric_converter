@@ -44,8 +44,9 @@ def test_load_returns_default_when_file_does_not_exist(tmp_path):
 def test_load_without_formatters_key_uses_default(tmp_path: Path):
     repo = FormattingPreferencesRepository(tmp_path)
     repo.file.write_text(json.dumps({"foo": "bar"}), encoding="utf-8")
-    result = repo.load()
-    assert result == DEFAULT_FORMATTER
+    result = repo.load_preferences()
+    assert result.formatters == DEFAULT_FORMATTER
+    assert result.default_copy_field == "hexLE"
 
 def test_partial_formatter_configuration(tmp_path: Path):
     repo = FormattingPreferencesRepository(tmp_path)
@@ -90,4 +91,26 @@ def test_save_creates_file_and_directories(tmp_path: Path):
     repo.save(DEFAULT_FORMATTER)
     assert repo.file.exists()
     assert repo.file.is_file()
+
+
+def test_default_copy_field_roundtrip_and_invalid_fallback(tmp_path: Path):
+    repo = FormattingPreferencesRepository(tmp_path)
+    preferences = repo.load_preferences()
+    repo.save_preferences(
+        preferences.__class__(
+            formatters=preferences.formatters,
+            log_preferences=preferences.log_preferences,
+            default_copy_field="binary",
+            key_panel_visible=preferences.key_panel_visible,
+            auto_convert_enabled=preferences.auto_convert_enabled,
+        )
+    )
+
+    assert repo.load_preferences().default_copy_field == "binary"
+
+    payload = json.loads(repo.file.read_text(encoding="utf-8"))
+    payload["default_copy_field"] = "invalid"
+    repo.file.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert repo.load_preferences().default_copy_field == "hexLE"
 

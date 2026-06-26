@@ -1,6 +1,7 @@
 class PREFERENCES_DIALOG_TEXT:
     TITLE: str = "Preferences"
     SUBTITLE: str = "Configure grouping and zero padding for each converter input."
+    DEFAULT_COPY_LABEL: str = "Alt+C Default"
     FIELD_HEADER: str = "Field"
     GROUP_SIZE_HEADER: str = "Group Size"
     ZERO_PAD_HEADER: str = "Zero Pad"

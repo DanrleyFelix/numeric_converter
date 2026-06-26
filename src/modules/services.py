@@ -36,8 +36,21 @@ class FormattingPreferencesService:
             NumericWorkbenchPreferencesDTO(
                 formatters=preferences.formatters,
                 log_preferences=preferences.log_preferences,
+                default_copy_field=preferences.default_copy_field,
                 key_panel_visible=key_panel_visible,
                 auto_convert_enabled=auto_convert_enabled,
+            )
+        )
+
+    def update_default_copy_field(self, default_copy_field: str) -> None:
+        preferences = self._repository.load_preferences()
+        self._repository.save_preferences(
+            NumericWorkbenchPreferencesDTO(
+                formatters=preferences.formatters,
+                log_preferences=preferences.log_preferences,
+                default_copy_field=default_copy_field,
+                key_panel_visible=preferences.key_panel_visible,
+                auto_convert_enabled=preferences.auto_convert_enabled,
             )
         )
 
@@ -47,6 +60,7 @@ class FormattingPreferencesService:
             NumericWorkbenchPreferencesDTO(
                 formatters=preferences.formatters,
                 log_preferences=log_preferences,
+                default_copy_field=preferences.default_copy_field,
                 key_panel_visible=preferences.key_panel_visible,
                 auto_convert_enabled=preferences.auto_convert_enabled,
             )

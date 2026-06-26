@@ -482,19 +482,21 @@ def test_preferences_dialog_only_shows_converter_formatting():
         "hexBE": FormattingOutputDTO(group_size=2, zero_pad=False),
         "hexLE": FormattingOutputDTO(group_size=2, zero_pad=True),
     }
-    dialog = PreferencesDialog(formatting=formatting)
+    dialog = PreferencesDialog(formatting=formatting, default_copy_field="binary")
 
     assert dialog.minimumSize() == dialog.maximumSize()
     assert dialog.height() == 460
     assert dialog.findChild(QLabel, "preferences-title") is None
-    assert dialog.findChild(QLabel, "preferences-subtitle") is not None
+    assert dialog.findChild(QLabel, "preferences-subtitle") is None
     assert dialog.findChild(QLabel, "preferences-section-title") is None
+    assert dialog.default_copy.currentText() == "Binary"
+    assert dialog.selected_default_copy_field() == "binary"
     combos = dialog.findChildren(QComboBox, "preferences-group-size")
-    assert [combo.currentText() for combo in combos] == ["3", "8", "2", "2"]
+    assert [combo.currentText() for combo in combos] == ["3", "4", "2", "2"]
     assert [combo.itemText(index) for index in range(combos[0].count())] == [
-        "0", "1", "2", "3", "4", "5", "6", "7", "8", "16"
+        "0", "1", "2", "3", "4"
     ]
-    assert dialog.selected_formatting()["binary"].group_size == 8
+    assert dialog.selected_formatting()["binary"].group_size == 4
     assert window.toolbar.auto_convert_action.text() == "Auto Convert"
     assert window.toolbar.toggle_key_panel_action.text() == "Show Key Panel"
 
@@ -581,6 +583,23 @@ def test_alt_c_copy_raw_uses_focused_converter_field():
 
     assert QApplication.clipboard().text() == "1234"
     assert window.footer.status.text() == "Raw value copied."
+
+
+def test_alt_c_copy_raw_uses_default_preferences_field_without_converter_focus():
+    window = _window()
+    window.body.converter_panel.inputs["hexLE"].set_content("BEEF", "BE EF")
+    window.body.command_panel.editor.setFocus()
+    preferences = window._preferences_service.get_preferences()
+    window._preferences_service.update_default_copy_field("hexLE")
+    QApplication.clipboard().clear()
+
+    try:
+        window._copy_focused_converter_raw()
+
+        assert QApplication.clipboard().text() == "BEEF"
+        assert window.footer.status.text() == "Raw value copied."
+    finally:
+        window._preferences_service.update_default_copy_field(preferences.default_copy_field)
 
 
 def test_logs_button_is_aligned_to_command_window_right_edge():

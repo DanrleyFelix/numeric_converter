@@ -1,12 +1,16 @@
 class PREFERENCES_DIALOG_SIZE:
     WIDTH: int = 520
-    HEIGHT: int = 460
+    HEIGHT: int = 375
     ACTION_BUTTON_WIDTH: int = 160
     ACTION_BUTTON_HEIGHT: int = 38
     GROUP_SIZE_WIDTH: int = 86
+    DEFAULT_COPY_WIDTH: int = 160
+    GROUP_SIZE_ITEM_HEIGHT: int = 40
+    LIST_TEXT_PADDING: int = 10
 
 
-PREFERENCES_GROUP_SIZE_VALUES: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6, 7, 8, 16,)
+PREFERENCES_GROUP_SIZE_VALUES: tuple[int, ...] = (0, 1, 2, 3, 4, 8)
+PREFERENCES_DEFAULT_COPY_FIELD = "hexLE"
 
 
 class LOG_PREFERENCES_SIZE:
@@ -22,7 +26,7 @@ class PREFERENCES_DIALOG_MARGIN:
     ROOT_RIGHT: int = 20
     ROOT_BOTTOM: int = 20
     BUTTONS_LEFT: int = 0
-    BUTTONS_TOP: int = 12
+    BUTTONS_TOP: int = 0
     BUTTONS_RIGHT: int = 0
     BUTTONS_BOTTOM: int = 0
 
@@ -39,11 +43,13 @@ class LOG_PREFERENCES_MARGIN:
 
 
 class PREFERENCES_DIALOG_SPACING:
-    ROOT: int = 18
+    ROOT: int = 0
     BUTTONS: int = 12
     GRID_HORIZONTAL: int = 28
     GRID_LAYOUT: int = 0
-    GRID_HEADER: int = 20
+    DEFAULT_COPY_TO_HEADERS: int = 20
+    ITEMS_TO_BUTTONS: int = 20
+    GRID_HEADER: int = 15
     GRID_IDENTICAL_ROWS: int = 15
     GRID_HEADER_ROW: int = 0
     GRID_HEADER_SPACER_ROW: int = 1

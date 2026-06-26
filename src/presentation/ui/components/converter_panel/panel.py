@@ -58,3 +58,10 @@ class ConverterPanel(QFrame):
                 editor.copy_raw_to_clipboard()
                 return True
         return False
+
+    def copy_raw_by_key(self, key: str) -> bool:
+        editor = self.inputs.get(key)
+        if editor is None:
+            return False
+        editor.copy_raw_to_clipboard()
+        return True
