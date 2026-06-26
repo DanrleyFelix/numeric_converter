@@ -100,7 +100,7 @@
                 "view_preferences": "822fb0fe6983af0ef59b0bd1182d52a0af926fded923cf848945782df6a00535"
             },
             "custom_commands": {},
-            "last_open_offset": "0x00000000",
+            "last_open_offset": "0x040FC188",
             "navigation_history": [],
             "file_size": 517875120,
             "original_file_size": 517875120,
@@ -1898,7 +1898,7 @@
             }
         }
     ],
-    "active_tab_id": "06a5923c1e4b43688140bdbab6521d78",
+    "active_tab_id": "fba786b5744741fbb2d19c517144a503",
     "share_view_preferences": false,
     "commands_by_arch": {
         "PSX - Mips R3000A": {

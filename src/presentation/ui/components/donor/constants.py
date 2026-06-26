@@ -1,17 +1,16 @@
 class DONOR_TEXT:
     TITLE: str = "Donor"
-    SUBTITLE: str = "Support the creator of Numeric WorkBench."
-    PIX_LABEL: str = "PIX"
+    SUBTITLE: str = "Support the creator of Numeric and Binary WorkBench."
+    PIX_LABEL: str = "PIX (Brazilian instant payment system)"
     BANK_LABEL: str = "Bank Account"
     PATREON_LABEL: str = "Patreon"
     LINKS_LABEL: str = "Links"
     OTHER_LABEL: str = "Other Options"
-    PIX_KEY: str = "example.pix.key@numericworkbench.dev"
-    BANK_ACCOUNT: str = "Bank 0001 · Branch 1234 · Account 56789-0"
-    PATREON_URL: str = "https://www.patreon.com/example_creator"
+    PIX_KEY: str = "danrleyfelix@gmail.com"
+    BANK_ACCOUNT: str = "Bank 104 · Branch 3880 · Account 932845322-0"
+    PATREON_URL: str = "https://www.patreon.com/c/DanrleyFelix"
     SUPPORT_LINKS: tuple[str, ...] = (
-        "https://github.com/sponsors/example_creator",
-        "https://ko-fi.com/example_creator",
+        "https://github.com/DanrleyFelix/numeric_converter",
     )
     OTHER_SUPPORT_OPTIONS: tuple[str, ...] = (
         "Buy me a coffee",
