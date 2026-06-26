@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
@@ -32,6 +35,17 @@ class EditorPageContextMixin:
     def _set_cpu_arch_summary(self, value: str) -> None:
         self.cpu_arch_summary.setText(BINARY_WORKBENCH_TEXT.CPU_ARCH_SUMMARY_TEMPLATE.format(cpu_arch=value))
 
+    def _set_internal_file_summary(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        if context.kind != BINARY_WORKBENCH_TAB_KIND.INTERNAL or not context.source_path:
+            self.internal_file_summary.clear()
+            self.internal_file_summary.setVisible(False)
+            return
+        name = Path(context.source_path).name[:BINARY_WORKBENCH_LAYOUT.INTERNAL_FILE_SUMMARY_MAX_CHARS]
+        self.internal_file_summary.setText(
+            BINARY_WORKBENCH_TEXT.INTERNAL_FILE_SUMMARY_TEMPLATE.format(name=name)
+        )
+        self.internal_file_summary.setVisible(True)
+
     def _visible_columns(self) -> list[str]:
         visible = self._context.view_preferences.visible_columns
         offsets = [
@@ -52,6 +66,7 @@ class EditorPageContextMixin:
     def _update_context(self, updates: dict[str, object]) -> None:
         self._context = BinaryWorkbenchTabContextDTO(**{**self._context.__dict__, **updates})
         self._set_cpu_arch_summary(self._context.cpu_arch)
+        self._set_internal_file_summary(self._context)
         self.contextChanged.emit(self._context)
 
 

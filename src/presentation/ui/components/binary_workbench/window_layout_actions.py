@@ -32,6 +32,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.find_action.triggered.connect(self._open_find)
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)
         self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
+        self.toolbar.help_action.triggered.connect(self.open_guide)
         self.addActions([
             self.toolbar.go_to_action,
             self.toolbar.find_action,

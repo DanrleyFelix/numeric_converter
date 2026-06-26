@@ -28,6 +28,11 @@ class TabOpeningMixin:
         self._append_tab(self._apply_matching_workspace(create_binary_tab(self._state, path, self._preferences), path))
 
     def open_file_path(self, path: Path) -> None:
+        if self._activate_open_file_tab(path):
+            self.statusWarningChanged.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_ALREADY_OPEN_TEMPLATE.format(name=path.name)
+            )
+            return
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_FILE_DIRECTORY, path)
         self._append_tab(self._apply_matching_workspace(create_file_tab(self._state, path, self._preferences), path))
 
@@ -91,3 +96,23 @@ class TabOpeningMixin:
             return
         self._append_tab(create_label_tab(current, label))
         self.go_to_instruction_offset(offset)
+
+    def _activate_open_file_tab(self, path: Path) -> bool:
+        target = _resolved_path(path)
+        for index, tab in enumerate(self._state.tabs):
+            if tab.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+                continue
+            if tab.display_name != path.name:
+                continue
+            if _resolved_path(Path(tab.source_path or "")) != target:
+                continue
+            self.setCurrentIndex(index)
+            return True
+        return False
+
+
+def _resolved_path(path: Path) -> str:
+    try:
+        return str(path.resolve()).casefold()
+    except OSError:
+        return str(path).casefold()

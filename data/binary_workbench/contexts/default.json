@@ -123,130 +123,6 @@
             }
         },
         {
-            "tab_id": "29d560ba6cec42d2a0126af8b8fb1307",
-            "kind": "internal",
-            "display_name": "SLUS_014.11",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
-            "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
-            "reference_offsets": [
-                "File"
-            ],
-            "reference_offset_bases": {},
-            "labels": {},
-            "equates": {},
-            "variables": {},
-            "symbol_offsets": {},
-            "internal_files": [
-                {
-                    "name": "DATA",
-                    "start_lba": 23
-                },
-                {
-                    "name": "SLUS_014.11",
-                    "start_lba": 25
-                },
-                {
-                    "name": "SYSTEM.CNF",
-                    "start_lba": 24
-                },
-                {
-                    "name": "MASTER.XA",
-                    "start_lba": 199931
-                },
-                {
-                    "name": "MODEL.MRG",
-                    "start_lba": 28535
-                },
-                {
-                    "name": "MOVIE.STR",
-                    "start_lba": 202735
-                },
-                {
-                    "name": "SD_BGM.DAT",
-                    "start_lba": 2936
-                },
-                {
-                    "name": "SD_SE.DAT",
-                    "start_lba": 2193
-                },
-                {
-                    "name": "SU.MRG",
-                    "start_lba": 954
-                },
-                {
-                    "name": "WA_MRG.MRG",
-                    "start_lba": 10102
-                }
-            ],
-            "internal_file_start_lba": 25,
-            "internal_parent_tab_id": "06a5923c1e4b43688140bdbab6521d78",
-            "internal_parent_byte_overlays": {
-                "0x0000E5C8": "14 01 2D 58 33 33 33 33",
-                "0x0000E5EC": "D8 29 01 80",
-                "0x0000E5F4": "00 00 01 80 00 00 1D 00",
-                "0x0000E60C": "F0 FF 1F 80",
-                "0x0000E614": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            },
-            "lba_sector_size": 2352,
-            "named_regions": [],
-            "offset_regions": [],
-            "encoding_tables": [],
-            "versions": [
-                {
-                    "name": "default",
-                    "rows": [],
-                    "instructions": {}
-                }
-            ],
-            "active_version_name": "default",
-            "workspace_path": null,
-            "module_paths": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_symbols.json",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\Yu-gi-oh FM original lba file system.json",
-                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_commands.json",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_encoding_tables.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_offset_regions.json"
-            },
-            "module_directories": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions",
-                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands"
-            },
-            "module_checksums": {},
-            "custom_commands": {},
-            "last_open_offset": "0x00000000",
-            "navigation_history": [],
-            "file_size": 1902592,
-            "original_file_size": 1902592,
-            "version_dirty": false,
-            "byte_overlays": {
-                "0x00000000": "14 01 2D 58 33 33 33 33",
-                "0x00000024": "D8 29 01 80",
-                "0x0000002C": "00 00 01 80 00 00 1D 00",
-                "0x00000044": "F0 FF 1F 80",
-                "0x0000004C": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            },
-            "instruction_overlays": {},
-            "original_rows": [],
-            "rows": [],
-            "view_preferences": {
-                "visible_columns": {
-                    "File": true,
-                    "Editor (Assembly Code)": true,
-                    "Raw Instructions": true,
-                    "Decoded Text": false,
-                    "Bytes": true
-                },
-                "decoded_text_tables": [
-                    "ASCII (ANSI windows)"
-                ]
-            }
-        },
-        {
             "tab_id": "fba786b5744741fbb2d19c517144a503",
             "kind": "scratch",
             "display_name": "scratch_1.asm",
@@ -567,86 +443,6 @@
                     "Instruction": true
                 },
                 "decoded_text_tables": []
-            }
-        },
-        {
-            "tab_id": "e0cd1b2087c343a6b447937e65c92fa5",
-            "kind": "binary",
-            "display_name": "SLUS_014.11.bak",
-            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\SLUS_014.11.bak",
-            "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "bytes",
-            "reference_offsets": [
-                "File",
-                "Ram offset"
-            ],
-            "reference_offset_bases": {
-                "Ram offset": "0x8000f800"
-            },
-            "labels": {},
-            "equates": {},
-            "variables": {},
-            "symbol_offsets": {},
-            "internal_files": [],
-            "internal_file_start_lba": null,
-            "internal_parent_tab_id": null,
-            "internal_parent_byte_overlays": {},
-            "lba_sector_size": 2352,
-            "named_regions": [],
-            "offset_regions": [],
-            "encoding_tables": [],
-            "versions": [],
-            "active_version_name": "default",
-            "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\SLUS_014_11_workspace_manifest.json",
-            "module_paths": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\SLUS_014_11_workspace_manifest_symbols.json",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\SLUS_014_11_workspace_manifest_lba.json",
-                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands\\SLUS_014_11_workspace_manifest_commands.json",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables\\SLUS_014_11_workspace_manifest_encoding_tables.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\SLUS_014_11_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json",
-                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\SLUS_014_11_workspace_manifest_versions.json"
-            },
-            "module_directories": {
-                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
-                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
-                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions",
-                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands"
-            },
-            "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
-                "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "843f0a93254011c6697c048451705cfcc38a0628be042ece7730cf7a0d190cc9",
-                "commands": "f28308110014399462d5c186cfd593b19af6059fd531801b4ece4d0a8cb59a92",
-                "encoding_tables": "a00048af5a5563e2931b5f8cd60b1f722f068f079a42c68fe376b68ea6a4b27c",
-                "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "view_preferences": "a627b1fcaef1493d43ce3a561f0cbd93fefea82d86d69c46fcb281b1aa0e61bc"
-            },
-            "custom_commands": {},
-            "last_open_offset": "0x00000000",
-            "navigation_history": [],
-            "file_size": 1902592,
-            "original_file_size": 1902592,
-            "version_dirty": false,
-            "byte_overlays": {},
-            "instruction_overlays": {},
-            "original_rows": [],
-            "rows": [],
-            "view_preferences": {
-                "visible_columns": {
-                    "File": true,
-                    "Editor (Assembly Code)": true,
-                    "Raw Instructions": true,
-                    "Decoded Text": false,
-                    "Bytes": true,
-                    "Instruction": true,
-                    "Ram offset": true
-                },
-                "decoded_text_tables": [
-                    "ASCII (ANSI windows)"
-                ]
             }
         },
         {
@@ -1988,19 +1784,131 @@
                     "ASCII (ANSI windows)"
                 ]
             }
+        },
+        {
+            "tab_id": "f3f79f50429f48c891563135d34f0da3",
+            "kind": "internal",
+            "display_name": "SLUS_014.11",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\arquivos_separados\\Yu-Gi-Oh! Forbidden Memories (USA).bin",
+            "cpu_arch": "PSX - Mips R3000A",
+            "read_mode": "bytes",
+            "reference_offsets": [
+                "File"
+            ],
+            "reference_offset_bases": {},
+            "labels": {},
+            "equates": {},
+            "variables": {},
+            "symbol_offsets": {},
+            "internal_files": [
+                {
+                    "name": "DATA",
+                    "start_lba": 23
+                },
+                {
+                    "name": "SLUS_014.11",
+                    "start_lba": 25
+                },
+                {
+                    "name": "SYSTEM.CNF",
+                    "start_lba": 24
+                },
+                {
+                    "name": "MASTER.XA",
+                    "start_lba": 199931
+                },
+                {
+                    "name": "MODEL.MRG",
+                    "start_lba": 28535
+                },
+                {
+                    "name": "MOVIE.STR",
+                    "start_lba": 202735
+                },
+                {
+                    "name": "SD_BGM.DAT",
+                    "start_lba": 2936
+                },
+                {
+                    "name": "SD_SE.DAT",
+                    "start_lba": 2193
+                },
+                {
+                    "name": "SU.MRG",
+                    "start_lba": 954
+                },
+                {
+                    "name": "WA_MRG.MRG",
+                    "start_lba": 10102
+                }
+            ],
+            "internal_file_start_lba": 25,
+            "internal_parent_tab_id": "06a5923c1e4b43688140bdbab6521d78",
+            "internal_parent_byte_overlays": {},
+            "lba_sector_size": 2352,
+            "named_regions": [],
+            "offset_regions": [],
+            "encoding_tables": [],
+            "versions": [
+                {
+                    "name": "default",
+                    "rows": [],
+                    "instructions": {}
+                }
+            ],
+            "active_version_name": "default",
+            "workspace_path": null,
+            "module_paths": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_symbols.json",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\Yu-gi-oh FM original lba file system.json",
+                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_commands.json",
+                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_encoding_tables.json",
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh__Forbidden_Memories__USA_workspace_manifest_offset_regions.json"
+            },
+            "module_directories": {
+                "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
+                "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions",
+                "encoding_tables": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Encoding Tables",
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions",
+                "commands": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\commands"
+            },
+            "module_checksums": {},
+            "custom_commands": {},
+            "last_open_offset": "0x00000000",
+            "navigation_history": [],
+            "file_size": 1902592,
+            "original_file_size": 1902592,
+            "version_dirty": false,
+            "byte_overlays": {},
+            "instruction_overlays": {},
+            "original_rows": [],
+            "rows": [],
+            "view_preferences": {
+                "visible_columns": {
+                    "File": true,
+                    "Editor (Assembly Code)": true,
+                    "Raw Instructions": true,
+                    "Decoded Text": false,
+                    "Bytes": true
+                },
+                "decoded_text_tables": [
+                    "ASCII (ANSI windows)"
+                ]
+            }
         }
     ],
-    "active_tab_id": "29d560ba6cec42d2a0126af8b8fb1307",
+    "active_tab_id": "06a5923c1e4b43688140bdbab6521d78",
     "share_view_preferences": false,
     "commands_by_arch": {
         "PSX - Mips R3000A": {
-            "teste": [
-                "SLTIU $t7, $v1, 0x7264"
-            ],
             "ads": [
                 "NOP",
                 "NOP",
                 "NOP"
+            ],
+            "teste": [
+                "SLTIU $t7, $v1, 0x7264"
             ]
         }
     },

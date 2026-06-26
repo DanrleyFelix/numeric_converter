@@ -37,6 +37,11 @@ from src.presentation.ui.components.binary_workbench.window_version_actions impo
 from src.presentation.ui.components.binary_workbench.window_workspace_configuration_actions import (
     BinaryWorkbenchWindowWorkspaceConfigurationMixin,
 )
+from src.presentation.ui.components.help_window import HelpWindow
+from src.presentation.ui.components.help_window.pages.binary_workbench import (
+    BINARY_WORKBENCH_HELP_PAGES,
+)
+from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
 class BinaryWorkbenchWindow(
@@ -68,6 +73,7 @@ class BinaryWorkbenchWindow(
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
         self.resize(BINARY_WORKBENCH_LAYOUT.WINDOW_WIDTH, BINARY_WORKBENCH_LAYOUT.WINDOW_HEIGHT)
         self.toolbar = BinaryWorkbenchToolbar()
+        self._help_window: HelpWindow | None = None
         self.tabs = BinaryWorkbenchTabs(
             state,
             workspace_directory,
@@ -114,6 +120,16 @@ class BinaryWorkbenchWindow(
     def new_scratch_tab(self) -> None:
         self.tabs.new_scratch_tab()
 
+    def open_guide(self) -> None:
+        if self._help_window is None:
+            self._help_window = HelpWindow(self, BINARY_WORKBENCH_HELP_PAGES)
+            self._help_window.setWindowIcon(self.windowIcon())
+            self._help_window.setStyleSheet(STYLESHEET)
+            self._help_window.destroyed.connect(lambda: setattr(self, "_help_window", None))
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
+
     def closeEvent(self, event: QCloseEvent) -> None:
         self.tabs.flush_search_cache()
         self.sizePersistRequested.emit(self.width(), self.height())
@@ -133,4 +149,4 @@ class BinaryWorkbenchWindow(
         self.statusBar().showMessage(message, timeout)
 
     def _placeholder_actions(self):
-        return (self.toolbar.help_action,)
+        return ()

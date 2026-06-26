@@ -3,7 +3,9 @@ class BINARY_WORKBENCH_TEXT:
     STATUS_IDLE: str = "Ready."
     STATUS_PLACEHOLDER_TEMPLATE: str = '"{name}" is not implemented yet.'
     STATUS_OPENED_TEMPLATE: str = 'Opened "{name}".'
+    STATUS_ALREADY_OPEN_TEMPLATE: str = 'File "{name}" is already open.'
     STATUS_CLOSED_TEMPLATE: str = 'Closed "{name}".'
+    STATUS_INTERNAL_CLOSED_TEMPLATE: str = 'Closed "{name}". Internal Files.'
     STATUS_INTERNAL_SOURCE_REQUIRED: str = "Select a file-backed tab before opening an internal file."
     STATUS_INTERNAL_FILES_REQUIRED: str = "Configure the LBA File System before opening an internal file."
     STATUS_INTERNAL_REQUIREMENTS: str = (
@@ -73,6 +75,7 @@ class BINARY_WORKBENCH_TEXT:
     LENGTH_SUMMARY_EMPTY: str = "Length (bytes): 0"
     LENGTH_SUMMARY_TEMPLATE: str = "Length (bytes): {length}"
     CPU_ARCH_SUMMARY_TEMPLATE: str = "CPU Arch: {cpu_arch}"
+    INTERNAL_FILE_SUMMARY_TEMPLATE: str = 'Internal File from "{name}"'
     FILE_FILTER_ASSEMBLY: str = "Assembly / code files (*.asm *.s *.txt *.c *.cpp *.*)"
     FILE_FILTER_ANY: str = "All supported files (*.asm *.s *.*)"
     FILE_FILTER_OUTPUT: str = "Binary files (*.bin);;All files (*.*)"

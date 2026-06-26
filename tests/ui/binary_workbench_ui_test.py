@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTextBrowser, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.binary_workbench_constants import (
@@ -100,6 +100,96 @@ def test_binary_workbench_opens_multiple_file_tabs_with_independent_contexts(tmp
     assert state.tabs[0].labels == {}
     assert state.tabs[1].labels == {}
     assert state.tabs[0].rows[0].offsets["File"] == "0x00000000"
+
+
+def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.toolbar.help_action.trigger()
+
+    assert tool._help_window is not None
+    nav_titles = [
+        tool._help_window.navigation.item(index).text()
+        for index in range(tool._help_window.navigation.count())
+    ]
+    assert nav_titles == [
+        "Main Window",
+        "File",
+        "Environment",
+        "Preferences",
+        "Search",
+        "Shortcuts",
+    ]
+    page = tool._help_window.pages.currentWidget()
+    browser = page.findChild(QTextBrowser, "help-page")
+    assert browser is not None
+    assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
+    tool._help_window.navigation.setCurrentRow(5)
+    shortcuts_browser = tool._help_window.pages.currentWidget().findChild(QTextBrowser, "help-page")
+    text = shortcuts_browser.toPlainText()
+    for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+K", "Ctrl+Y"):
+        assert value in text
+
+
+def test_binary_workbench_open_file_reuses_existing_external_tab(tmp_path: Path):
+    first = tmp_path / "first.bin"
+    second = tmp_path / "second.bin"
+    first.write_bytes(b"\x00\x01")
+    second.write_bytes(b"\x02\x03")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(first)
+    tool.open_file_path(second)
+    tool.open_file_path(first)
+
+    assert tool.tabs.count() == 2
+    assert tool.tabs.currentIndex() == 0
+    assert tool.footer_status.property("statusKind") == "warning"
+    assert tool.footer_status.text() == 'File "first.bin" is already open.'
+
+
+def test_binary_workbench_open_file_does_not_match_internal_tab_name(tmp_path: Path):
+    parent = tmp_path / "disc.bin"
+    external = tmp_path / "SLUS"
+    parent.write_bytes(bytes(range(64)))
+    external.write_bytes(b"\x00\x01\x02\x03")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(parent)
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("SLUS", 0)])
+    tool.tabs.open_internal_tab("SLUS")
+    tool.open_file_path(external)
+
+    assert tool.tabs.count() == 3
+    assert tool.tabs.current_context().source_path == str(external)
+
+
+def test_binary_workbench_internal_file_footer_and_close_feedback(tmp_path: Path):
+    parent = tmp_path / ("a" * 70 + ".bin")
+    parent.write_bytes(bytes(range(64)))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(parent)
+    tool.tabs.set_current_internal_files([BinaryWorkbenchInternalFileDTO("SLUS", 0)])
+    tool.tabs.open_internal_tab("SLUS")
+    page = tool.tabs.currentWidget()
+
+    assert page.internal_file_summary.isVisible()  # type: ignore[attr-defined]
+    assert page.internal_file_summary.text() == f'Internal File from "{parent.name[:60]}"'  # type: ignore[attr-defined]
+    tool.tabs.close_tab(tool.tabs.currentIndex())
+    assert "Internal Files" in tool.footer_status.text()
 
 
 def test_binary_workbench_loads_full_binary_instead_of_truncating(tmp_path: Path):

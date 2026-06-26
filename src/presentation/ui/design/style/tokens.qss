@@ -61,6 +61,7 @@ $text-muted:              #B5B5C5;
 $text-placeholder:        #A0A0A099;
 $text-workspace-header:   #D5DCEC;
 $text-command:            #4F6DFF;
+$text-internal-file:      #5BD8FF;
 $text-success:            #46A06A;
 $text-warning:            #F0C75E;
 $text-danger:             #FF8B96;
@@ -159,7 +160,6 @@ $padding-toolbar-menu-item: 10px 18px;
 
 $margin-none: 0px;
 $margin-command-feedback-item: 0px;
-$margin-help-nav-item: 3px 0px;
 $margin-scrollbar-vertical: 10px 2px 10px 0px;
 $margin-search-results-scrollbar-vertical: 10px 0px 10px 0px;
 $margin-scrollbar-horizontal: 0px 6px 6px 6px;

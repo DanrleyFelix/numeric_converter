@@ -4,18 +4,18 @@ class HELP_HTML_FONT:
 
 
 class HELP_HTML_SIZE:
-    BODY: int = 14
-    TITLE: int = 28
-    SUBTITLE: int = 15
-    HEADING: int = 22
-    SUBHEADING: int = 17
+    BODY: int = 16
+    TITLE: int = 30
+    SUBTITLE: int = 17
+    HEADING: int = 24
+    SUBHEADING: int = 19
 
 
 class HELP_HTML_MARGIN:
-    BODY_TOP: int = 18
-    BODY_RIGHT: int = 18
-    BODY_BOTTOM: int = 14
-    BODY_LEFT: int = 14
+    BODY_TOP: int = 0
+    BODY_RIGHT: int = 0
+    BODY_BOTTOM: int = 0
+    BODY_LEFT: int = 0
     SECTION_TOP: int = 16
     SECTION_BOTTOM: int = 8
     SUBSECTION_TOP: int = 12

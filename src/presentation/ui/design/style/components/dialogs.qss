@@ -13,7 +13,11 @@ QLineEdit, QPlainTextEdit {
     padding-right: $space-4;
 }
 
-QListWidget, QTableWidget, QTableView {
+QTableWidget,
+QTableView,
+QListWidget#binary-workbench-search-results,
+QListWidget#binary-workbench-internal-files,
+QListWidget#binary-workbench-symbol-offsets {
     padding-left: $space-6;
     padding-right: $space-4;
     padding-top: $space-6;
@@ -22,6 +26,7 @@ QListWidget, QTableWidget, QTableView {
 
 QDialog#preferences-dialog,
 QDialog#help-window,
+QWidget#help-window,
 QDialog#workspace-table-dialog {
     background-color: $bg-panel;
 }
@@ -187,6 +192,12 @@ QLabel#binary-workbench-value {
 QLabel#binary-workbench-selection,
 QLabel#binary-workbench-page-indicator {
     color: $text-workspace-header;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-internal-file-summary {
+    color: $text-internal-file;
     font-size: $fs-c-md;
     background-color: transparent;
 }

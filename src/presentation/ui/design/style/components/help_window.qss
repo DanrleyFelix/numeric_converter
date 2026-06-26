@@ -2,20 +2,36 @@ QListWidget#help-nav {
     background-color: $bg-panel;
     border: 1px solid $border;
     color: $text-main;
-    border-radius: $radius-12;
+    border-radius: $radius-0;
+    padding: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin: 0px;
     outline: none;
 }
 
 QListWidget#help-nav::item {
-    margin: $margin-help-nav-item;
-    border-radius: $radius-10;
+    height: 48px;
+    margin: 0px;
+    padding-left: 16px;
+    padding-right: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-radius: $radius-0;
     outline: none;
 }
 
 QListWidget#help-nav::item:selected {
     background-color: $bg-toolbar-button-hover;
     color: $text-main;
-    border-radius: $radius-8;
+    margin: 0px;
+    padding-left: 16px;
+    padding-right: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-radius: $radius-0;
     outline: none;
 }
 
@@ -26,5 +42,5 @@ QListWidget#help-nav::item:focus {
 QTextBrowser#help-page {
     background-color: transparent;
     border: 1px solid $border;
-    border-radius: $radius-18;
+    border-radius: $radius-0;
 }

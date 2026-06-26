@@ -22,15 +22,24 @@ def selection_summary_label(text: str, parent) -> QLabel:
     return label
 
 
-def selection_summary_footer(parent) -> tuple[QHBoxLayout, tuple[QLabel, QLabel, QLabel, QLabel]]:
+def internal_file_summary_label(parent) -> QLabel:
+    label = QLabel("", parent)
+    label.setObjectName("binary-workbench-internal-file-summary")
+    label.setVisible(False)
+    return label
+
+
+def selection_summary_footer(parent) -> tuple[QHBoxLayout, tuple[QLabel, QLabel, QLabel, QLabel, QLabel]]:
     labels = tuple(selection_summary_label("", parent) for _ in range(4))
+    internal = internal_file_summary_label(parent)
     footer = QHBoxLayout()
     footer.setContentsMargins(0, BINARY_WORKBENCH_LAYOUT.SUMMARY_TOP_MARGIN, 0, 0)
     footer.setSpacing(BINARY_WORKBENCH_LAYOUT.SUMMARY_LABEL_SPACING)
     for label in labels:
         footer.addWidget(label)
+    footer.addWidget(internal)
     footer.addStretch(1)
-    return footer, labels
+    return footer, (*labels, internal)
 
 
 def update_selection_summary(labels: tuple[QLabel, QLabel, QLabel], text: str) -> None:

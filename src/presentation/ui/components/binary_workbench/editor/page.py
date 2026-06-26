@@ -87,6 +87,7 @@ class BinaryWorkbenchEditorPage(
             self.summary,
             self.length_summary,
             self.cpu_arch_summary,
+            self.internal_file_summary,
         ) = selection_summary_footer(self)
         layout.addWidget(self.grid, 1)
         layout.addLayout(footer)
@@ -99,6 +100,7 @@ class BinaryWorkbenchEditorPage(
         self._context = context
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
+        self._set_internal_file_summary(context)
 
     def release_heavy_resources(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = None
@@ -115,6 +117,7 @@ class BinaryWorkbenchEditorPage(
             uppercase_instructions=self._preferences.uppercase_instructions,
         )
         self._set_cpu_arch_summary(context.cpu_arch)
+        self._set_internal_file_summary(context)
 
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = reader_for_context(context, self._preferences)
@@ -158,6 +161,7 @@ class BinaryWorkbenchEditorPage(
                 uppercase_instructions=self._preferences.uppercase_instructions,
             )
         self._set_cpu_arch_summary(context.cpu_arch)
+        self._set_internal_file_summary(context)
 
     def load_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self.set_preferences(preferences)

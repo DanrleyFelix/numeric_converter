@@ -124,7 +124,12 @@ class TabStateMixin:
         self._forget_workspace_tab_access(closed.tab_id)
         active = remaining[min(index, len(remaining) - 1)].tab_id if remaining else None
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": remaining, "active_tab_id": active})
-        self.statusChanged.emit(BINARY_WORKBENCH_TEXT.STATUS_CLOSED_TEMPLATE.format(name=closed.display_name))
+        template = (
+            BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_CLOSED_TEMPLATE
+            if closed.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
+            else BINARY_WORKBENCH_TEXT.STATUS_CLOSED_TEMPLATE
+        )
+        self.statusChanged.emit(template.format(name=closed.display_name))
         self.stateChanged.emit(self._state)
 
     def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
