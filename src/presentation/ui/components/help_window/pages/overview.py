@@ -12,9 +12,9 @@ PAGE = HelpPageDefinition(
             <li>Use the command window for expressions, assignments and variable reuse.</li>
             <li>Use workspace files to save or load the complete context in one action.</li>
             <li>Use <b>Variables</b> and <b>Logs</b> above the command editor to inspect stored assignments and submitted commands in separate windows.</li>
-            <li>Load a workspace file to restore variables, logs, the active command line, key panel visibility and converter state.</li>
+            <li>Load a workspace file to restore variables, logs, the active command line and converter state.</li>
         </ul>
         <h2>Data location</h2>
-        <p>Workspace JSON files are stored in <code>data/workspaces</code>. The automatic default context lives under <code>data/contexts</code>.</p>
+        <p>Numeric context lives under <code>data/numeric_workbench/contexts</code>, preferences under <code>data/numeric_workbench/preferences.json</code>, and Binary Workbench manifests under <code>data/binary_workbench/workspaces</code>.</p>
     """,
 )

@@ -1,4 +1,4 @@
-from src.core.converter import MAX_BYTE_LENGTH
+from src.core.converter.constants import MAX_BYTE_LENGTH
 
 from src.presentation.presenter.converter.constants import CONVERTER_TYPE
 

@@ -1,7 +1,7 @@
 import sys
 
-from src.core.converter.errors import MAX_BYTE_LENGTH
-from src.core.constants import DECIMAL_DIGITS, BINARY_DIGITS, HEX_DIGITS
+from src.core.converter.constants import MAX_BYTE_LENGTH
+from src.modules.constants import BINARY_DIGITS, DECIMAL_DIGITS, HEX_DIGITS
 
 if hasattr(sys, "set_int_max_str_digits"):
     sys.set_int_max_str_digits(0)

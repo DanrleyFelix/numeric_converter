@@ -1,4 +1,5 @@
 from src.presentation.ui.components.body import Body
+from src.presentation.ui.components.binary_workbench import BinaryWorkbenchWindow
 from src.presentation.ui.components.command_panel import CommandPanel
 from src.presentation.ui.components.converter_panel import ConverterPanel
 from src.presentation.ui.components.footer import Footer
@@ -9,6 +10,7 @@ from src.presentation.ui.components.workspace_table import WorkspaceRow, Workspa
 
 __all__ = [
     "Body",
+    "BinaryWorkbenchWindow",
     "CommandPanel",
     "ConverterPanel",
     "Footer",

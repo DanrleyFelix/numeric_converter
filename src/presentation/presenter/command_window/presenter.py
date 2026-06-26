@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from src.application.contracts.cmd_window_contract import ICommandWindowController
-from src.application.contracts.preferences_contract import IOutputFormatter
-from src.application.dto.application_state import CommandContextDTO
-from src.application.dto.command_entry import CommandEntryDTO
-from src.application.dto.command_render_result import CommandRenderResultDTO
+from src.controllers.cmd_window_controller import CommandWindowController
 from src.core.command_window.context import cmd_window_context
 from src.core.command_window.expression_inspector import (
     has_trailing_identifier_fragment,
     is_standalone_identifier_fragment,
 )
+from src.core.command_window.logs import should_store_command_log
 from src.core.command_window.validator.errors import UnknownVariableError, ValidationError
+from src.modules.command_window_dtos import (
+    CommandContextDTO,
+    CommandEntryDTO,
+    CommandLogPreferencesDTO,
+    CommandRenderResultDTO,
+)
+from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.command_window.editing import trim_invalid_suffix
 from src.presentation.presenter.command_window.rendering import (
     render_invalid_expression,
@@ -30,12 +34,13 @@ from src.presentation.presenter.command_window.workspace_rows import (
 class CommandWindowPresenter:
     def __init__(
         self,
-        controller: ICommandWindowController,
-        formatter: IOutputFormatter,
+        controller: CommandWindowController,
+        formatter: OutputFormatter,
     ):
         self._controller = controller
         self._formatter = formatter
         self._state = CommandWindowState()
+        self._log_preferences = CommandLogPreferencesDTO()
 
     @property
     def history(self) -> list[CommandEntryDTO]:
@@ -92,7 +97,11 @@ class CommandWindowPresenter:
 
             formatted = self._formatter.format_decimal(result)
             cmd_window_context.add_to_history(self._state.active_line)
-            self._state.store_submission(formatted, result)
+            store_log = should_store_command_log(
+                self._state.active_line,
+                self._log_preferences,
+            )
+            self._state.store_submission(formatted, result, store_log)
             self._state.reset_after_submission()
             return render_submission_success(formatted)
         except Exception as error:
@@ -111,7 +120,6 @@ class CommandWindowPresenter:
     def remove_log(self, index: int) -> None:
         if 0 <= index < len(self._state.history):
             self._state.history.pop(index)
-        cmd_window_context.remove_history_line(index)
 
     def remove_variable(self, name: str) -> None:
         cmd_window_context.remove_variable(name)
@@ -131,6 +139,9 @@ class CommandWindowPresenter:
     def load_context(self, context: CommandContextDTO) -> None:
         self._state.load_context(context)
         cmd_window_context.restore(context.variables, context.instructions)
+
+    def set_log_preferences(self, preferences: CommandLogPreferencesDTO) -> None:
+        self._log_preferences = preferences
 
     def _render_unknown_variable(
         self,

@@ -8,6 +8,19 @@ class PREFERENCES_DIALOG_TEXT:
     OK: str = "OK"
 
 
+class LOG_PREFERENCES_TEXT:
+    TITLE: str = "Logs"
+    SUBTITLE: str = "Configure which successful Command Window expressions are saved."
+    ENABLED: str = "Enable logs"
+    ASSIGNMENT_ONLY: str = "Log expressions that only use = assignment"
+    SINGLE_UNARY_ONLY: str = "Log expressions that only use one unary operator"
+    NO_OPERATOR: str = "Log expressions without operators"
+    ASSIGNMENT_OPERATOR: str = "Log expressions that include = assignment"
+    BINARY_OPERATOR_ONLY: str = "Log only expressions with one or more binary operators"
+    CANCEL: str = "Cancel"
+    OK: str = "OK"
+
+
 FIELD_LABELS: dict[str, str] = {
     "decimal": "Decimal",
     "binary": "Binary",

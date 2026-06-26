@@ -1,6 +1,6 @@
 class FOOTER_LAYOUT:
     SIDE_MARGIN: int = 10
-    SPACING: int = 4
+    SPACING: int = 8
 
 
 class FOOTER_TEXT:

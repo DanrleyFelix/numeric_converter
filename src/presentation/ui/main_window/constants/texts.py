@@ -12,7 +12,11 @@ class MAIN_WINDOW_TEXT:
     CONVERT_NON_NEGATIVE_ONLY: str = "Auto Convert accepts only non-negative integer results."
     UNABLE_TO_CONVERT_RESULT: str = "Unable to convert command result."
     COMMAND_RESULT_SENT: str = "Command result sent to converter."
+    RAW_VALUE_COPIED: str = "Raw value copied."
     PREFERENCES_UPDATED: str = "Preferences updated."
+    BINARY_WORKBENCH_READY: str = "Binary Workbench opened."
+    BINARY_WORKBENCH_AUTOSAVE_BLOCKED: str = "Binary Workbench context autosave skipped: file is locked."
+    DONOR_READY: str = "Donor options are not configured yet."
     LOG_REMOVED: str = "Log entry removed."
     VARIABLE_REMOVED_TEMPLATE: str = 'Variable "{name}" removed.'
     WORKSPACE_SAVED_TEMPLATE: str = "Workspace saved to {name}."

@@ -9,8 +9,8 @@ PAGE = HelpPageDefinition(
         <h2>Numbers and variables</h2>
         <ul>
             <li>Decimal numbers: <code>42</code>.</li>
-            <li>Binary numbers: <code>0b101010</code>.</li>
-            <li>Hexadecimal numbers: <code>0x2A</code>.</li>
+            <li>Binary numbers: <code>0b101010</code> or <code>b'101010</code>.</li>
+            <li>Hexadecimal numbers: <code>0x2A</code> or <code>002A</code>.</li>
             <li>Assignments: <code>mask=0xFF</code> or <code>mask = 0xFF</code>.</li>
             <li>Variable names follow Python identifier rules.</li>
         </ul>
@@ -30,7 +30,9 @@ PAGE = HelpPageDefinition(
         <h3>1. Basic arithmetic</h3>
         <pre>1 + 1
 0x10 + 5
+0010 + 5
 0b1010 * 3
+b'1010 * 3
 (12 + 4) / 2</pre>
         <h3>2. Assignments and reuse</h3>
         <p><code>ANS</code> is updated with the last successful command result. You can use it like any other variable.</p>
@@ -56,6 +58,7 @@ NOT 0x0F</pre>
         <h2>Workspace Windows</h2>
         <p><b>Variables</b> opens a table with the current assignments.</p>
         <p><b>Logs</b> opens a table with successful submitted commands in the form <code>expression =&gt; result</code>.</p>
+        <p><b>Preferences &gt; Logs</b> controls whether logs are saved for assignment-only, unary-only, no-operator, assignment and binary-operator expressions.</p>
         <p>Use the red minus button to remove a single variable or a single log line.</p>
     """,
 )

@@ -12,6 +12,7 @@ from src.presentation.ui.design.icon_specs import (
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 ICON_SIZES = (16, 20, 24, 32, 48, 64)
+MUTED_ICON_OPACITY = 0.48
 
 
 class Icons:
@@ -23,31 +24,32 @@ class Icons:
         *,
         active_token_name: str | None = None,
         selected_token_name: str | None = None,
+        opacity: float = 1.0,
     ) -> QIcon:
         icon = QIcon()
         icon.addPixmap(
-            _pixmap(glyph_name, token_name, 64),
+            _pixmap(glyph_name, token_name, 64, opacity),
             QIcon.Normal,
             QIcon.Off,
         )
         icon.addPixmap(
-            _pixmap(glyph_name, active_token_name or token_name, 64),
+            _pixmap(glyph_name, active_token_name or token_name, 64, opacity),
             QIcon.Active,
             QIcon.Off,
         )
         icon.addPixmap(
-            _pixmap(glyph_name, selected_token_name or token_name, 64),
+            _pixmap(glyph_name, selected_token_name or token_name, 64, opacity),
             QIcon.Selected,
             QIcon.Off,
         )
         for size in ICON_SIZES:
-            icon.addPixmap(_pixmap(glyph_name, token_name, size), QIcon.Normal)
+            icon.addPixmap(_pixmap(glyph_name, token_name, size, opacity), QIcon.Normal)
             icon.addPixmap(
-                _pixmap(glyph_name, active_token_name or token_name, size),
+                _pixmap(glyph_name, active_token_name or token_name, size, opacity),
                 QIcon.Active,
             )
             icon.addPixmap(
-                _pixmap(glyph_name, selected_token_name or token_name, size),
+                _pixmap(glyph_name, selected_token_name or token_name, size, opacity),
                 QIcon.Selected,
             )
         return icon
@@ -81,8 +83,20 @@ class Icons:
         return Icons._icon("file", "icon-toolbar")
 
     @staticmethod
+    def donor():
+        return Icons._icon("donor", "icon-toolbar")
+
+    @staticmethod
+    def environment():
+        return Icons._icon("environment", "icon-toolbar")
+
+    @staticmethod
     def preferences():
         return Icons._icon("preferences", "icon-toolbar")
+
+    @staticmethod
+    def tools():
+        return Icons._icon("tools", "icon-toolbar")
 
     @staticmethod
     def help():
@@ -105,14 +119,23 @@ class Icons:
     def remove_hover():
         return Icons._icon("remove", "icon-danger")
 
+    @staticmethod
+    def search():
+        return Icons._icon("search", "icon-toolbar")
 
-def _pixmap(glyph_name: str, token_name: str, size: int) -> QPixmap:
+    @staticmethod
+    def search_muted():
+        return Icons._icon("search", "icon-toolbar", opacity=MUTED_ICON_OPACITY)
+
+
+def _pixmap(glyph_name: str, token_name: str, size: int, opacity: float = 1.0) -> QPixmap:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.transparent)
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing, True)
     painter.setRenderHint(QPainter.TextAntialiasing, True)
+    painter.setOpacity(opacity)
     painter.setPen(QColor(THEME_TOKENS[token_name]))
 
     font = QFont(fontawesome_solid_family())

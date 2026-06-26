@@ -7,7 +7,7 @@ from src.core.command_window.validator.semantic_validator import SemanticValidat
 from src.core.command_window.validator.sequence_validator import SequenceValidator
 from src.core.command_window.validator.structure_validator import StructureValidator
 from src.core.command_window.validator.validation_state import ValidationState
-from src.core.constants import ERROR_INVALID_EXPRESSION
+from src.core.command_window.constants import ERROR_INVALID_EXPRESSION
 
 
 class TokenizerAdapter:

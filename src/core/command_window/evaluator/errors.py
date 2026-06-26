@@ -5,6 +5,3 @@ class EvaluationError(Exception):
 class DivisionByZeroError(EvaluationError):
     pass
 
-
-class InvalidUnaryOperationError(EvaluationError):
-    pass

@@ -11,12 +11,17 @@ QToolButton {
     color: $text-main;
     padding: $padding-toolbar-button;
     margin: $margin-none;
+    outline: none;
 }
 
 QToolButton:hover {
     background-color: $bg-toolbar-button-hover;
     color: $text-main;
     border: 1px solid transparent;
+}
+
+QToolButton:focus {
+    outline: none;
 }
 
 QToolButton:pressed {
@@ -34,7 +39,7 @@ QMenu {
     border: 1px solid $border;
     border-radius: $radius-0;
     color: $text-main;
-    padding: $padding-menu-shell;
+    padding: $space-0;
 }
 
 QMenu::item {
@@ -42,6 +47,32 @@ QMenu::item {
     padding: $padding-toolbar-menu-item;
     border: 1px solid transparent;
     border-radius: $radius-0;
+}
+
+QMenu#binary-workbench-editor-context-menu {
+    color: $text-main;
+    padding: $space-0;
+}
+
+QMenu#binary-workbench-editor-context-menu::item {
+    color: $text-main;
+    margin: $margin-none;
+    border: none;
+    padding: $space-10;
+}
+
+QMenu#binary-workbench-editor-context-menu::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+}
+
+QMenu#binary-workbench-editor-context-menu::icon {
+    padding-left: $space-10;
+    padding-right: $space-10;
+}
+
+QMenu#binary-workbench-editor-context-menu::item:disabled {
+    color: $text-main;
 }
 
 QMenu::item:selected {

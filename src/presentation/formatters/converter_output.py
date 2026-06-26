@@ -1,4 +1,4 @@
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.converter_dtos import FormattingOutputDTO
 
 
 class OutputFormatter:

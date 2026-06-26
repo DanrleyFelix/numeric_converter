@@ -1,18 +1,19 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QSpinBox,
     QVBoxLayout,
 )
 
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.converter_dtos import FormattingOutputDTO
 from src.presentation.ui.components.preferences_dialog.constants import (
     PREFERENCES_DIALOG_MARGIN,
+    PREFERENCES_GROUP_SIZE_VALUES,
     PREFERENCES_DIALOG_SIZE,
     PREFERENCES_DIALOG_SPACING,
     PREFERENCES_DIALOG_TEXT,
@@ -31,12 +32,12 @@ class PreferencesDialog(QDialog):
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(PREFERENCES_DIALOG_TEXT.TITLE)
         self.setModal(True)
-        self.setMinimumSize(
-            PREFERENCES_DIALOG_SIZE.MIN_WIDTH,
-            PREFERENCES_DIALOG_SIZE.MIN_HEIGHT,
+        self.setFixedSize(
+            PREFERENCES_DIALOG_SIZE.WIDTH,
+            PREFERENCES_DIALOG_SIZE.HEIGHT,
         )
 
-        self._group_boxes: dict[str, QSpinBox] = {}
+        self._group_boxes: dict[str, QComboBox] = {}
         self._zero_pad_boxes: dict[str, QCheckBox] = {}
 
         layout = QVBoxLayout(self)
@@ -48,29 +49,43 @@ class PreferencesDialog(QDialog):
         )
         layout.setSpacing(PREFERENCES_DIALOG_SPACING.ROOT)
 
-        title = QLabel(PREFERENCES_DIALOG_TEXT.TITLE)
-        title.setObjectName("preferences-title")
-        layout.addWidget(title)
-
         subtitle = QLabel(PREFERENCES_DIALOG_TEXT.SUBTITLE)
         subtitle.setObjectName("preferences-subtitle")
         layout.addWidget(subtitle)
 
         grid = QGridLayout()
         grid.setHorizontalSpacing(PREFERENCES_DIALOG_SPACING.GRID_HORIZONTAL)
-        grid.setVerticalSpacing(PREFERENCES_DIALOG_SPACING.GRID_VERTICAL)
-        grid.setColumnStretch(0, 2)
-        grid.setColumnStretch(1, 1)
+        grid.setVerticalSpacing(PREFERENCES_DIALOG_SPACING.GRID_LAYOUT)
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 0)
         grid.setColumnStretch(2, 1)
 
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.FIELD_HEADER), 0, 0)
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.GROUP_SIZE_HEADER), 0, 1)
-        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.ZERO_PAD_HEADER), 0, 2)
+        header_row = PREFERENCES_DIALOG_SPACING.GRID_HEADER_ROW
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.FIELD_HEADER), header_row, 0)
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.GROUP_SIZE_HEADER), header_row, 1)
+        grid.addWidget(QLabel(PREFERENCES_DIALOG_TEXT.ZERO_PAD_HEADER), header_row, 2)
+        grid.setRowMinimumHeight(
+            PREFERENCES_DIALOG_SPACING.GRID_HEADER_SPACER_ROW,
+            PREFERENCES_DIALOG_SPACING.GRID_HEADER,
+        )
 
-        for row, (key, label_text) in enumerate(FIELD_LABELS.items(), start=1):
-            group_size = QSpinBox()
-            group_size.setRange(0, 64)
-            group_size.setValue(formatting[key].group_size)
+        for index, (key, label_text) in enumerate(FIELD_LABELS.items()):
+            row = (
+                PREFERENCES_DIALOG_SPACING.GRID_FIRST_DATA_ROW
+                + index * PREFERENCES_DIALOG_SPACING.GRID_ROW_STEP
+            )
+            if index:
+                grid.setRowMinimumHeight(
+                    row - 1,
+                    PREFERENCES_DIALOG_SPACING.GRID_IDENTICAL_ROWS,
+                )
+            group_size = QComboBox()
+            group_size.setObjectName("preferences-group-size")
+            group_size.setFixedWidth(PREFERENCES_DIALOG_SIZE.GROUP_SIZE_WIDTH)
+            group_size.addItems(str(value) for value in PREFERENCES_GROUP_SIZE_VALUES)
+            group_size.setCurrentText(
+                str(_closest_group_size(formatting[key].group_size))
+            )
 
             zero_pad = QCheckBox()
             zero_pad.setChecked(formatting[key].zero_pad)
@@ -114,8 +129,14 @@ class PreferencesDialog(QDialog):
     def selected_formatting(self) -> dict[str, FormattingOutputDTO]:
         return {
             key: FormattingOutputDTO(
-                group_size=self._group_boxes[key].value(),
+                group_size=int(self._group_boxes[key].currentText()),
                 zero_pad=self._zero_pad_boxes[key].isChecked(),
             )
             for key in self._group_boxes
         }
+
+
+def _closest_group_size(value: int) -> int:
+    if value in PREFERENCES_GROUP_SIZE_VALUES:
+        return value
+    return min(PREFERENCES_GROUP_SIZE_VALUES, key=lambda item: abs(item - value))

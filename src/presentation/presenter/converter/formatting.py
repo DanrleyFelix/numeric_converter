@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.application.contracts.preferences_contract import IOutputFormatter
-from src.application.dto import FormattingOutputDTO
+from src.modules.converter_dtos import FormattingOutputDTO
+from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.presenter.converter.constants import CONVERTER_TYPE
 
 
@@ -11,7 +11,7 @@ def prepare_source_input(
     from_type: str,
     value: str,
     formatting: dict[str, FormattingOutputDTO],
-    formatter: IOutputFormatter,
+    formatter: OutputFormatter,
 ) -> str:
     source_format = formatting.get(from_type, FormattingOutputDTO())
     if from_type == CONVERTER_TYPE.DECIMAL:
@@ -25,7 +25,7 @@ def format_source_input(
     from_type: str,
     value: str,
     formatting: dict[str, FormattingOutputDTO],
-    formatter: IOutputFormatter,
+    formatter: OutputFormatter,
 ) -> str:
     source_format = formatting.get(from_type)
     if from_type == CONVERTER_TYPE.DECIMAL:
@@ -40,7 +40,7 @@ def build_output(
     values: dict[str, Any],
     raw_inputs: dict[str, str],
     formatting: dict[str, FormattingOutputDTO],
-    formatter: IOutputFormatter,
+    formatter: OutputFormatter,
 ) -> dict[str, str]:
     output: dict[str, str] = {}
     for kind, value in values.items():

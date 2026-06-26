@@ -1,0 +1,73 @@
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog, QPushButton, QVBoxLayout
+
+from src.presentation.ui.components.binary_workbench.action_controls import (
+    configure_binary_workbench_dialog_button,
+    configure_binary_workbench_dialog_action,
+)
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
+from src.presentation.ui.components.binary_workbench.preferences.view.constants import (
+    BINARY_WORKBENCH_VIEW_LAYOUT,
+)
+
+
+class BinaryWorkbenchViewDialog(QDialog):
+    def __init__(self, reference_offsets: list[str], visible_columns: dict[str, bool], parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName("preferences-dialog")
+        self.setWindowTitle(BINARY_WORKBENCH_TEXT.VIEW)
+        self.setFixedWidth(BINARY_WORKBENCH_VIEW_LAYOUT.DIALOG_WIDTH)
+        self._offset_names = reference_offsets or [BINARY_WORKBENCH_TEXT.FILE]
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(*(BINARY_WORKBENCH_VIEW_LAYOUT.MARGIN,) * 4)
+        layout.setSpacing(BINARY_WORKBENCH_VIEW_LAYOUT.LAYOUT_SPACING)
+        self._buttons = {
+            BINARY_WORKBENCH_TEXT.BYTES: self._toggle(BINARY_WORKBENCH_TEXT.BYTES, visible_columns.get(BINARY_WORKBENCH_TEXT.BYTES, True)),
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: self._toggle(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, visible_columns.get(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, True)),
+            BINARY_WORKBENCH_TEXT.DECODED_TEXT: self._toggle(BINARY_WORKBENCH_TEXT.DECODED_TEXT, visible_columns.get(BINARY_WORKBENCH_TEXT.DECODED_TEXT, False)),
+            BINARY_WORKBENCH_TEXT.OFFSETS: self._toggle(BINARY_WORKBENCH_TEXT.OFFSETS, all(visible_columns.get(name, True) for name in self._offset_names)),
+        }
+        for index, button in enumerate(self._buttons.values()):
+            if index:
+                layout.addSpacing(
+                    BINARY_WORKBENCH_VIEW_LAYOUT.IDENTICAL_ITEM_SPACING
+                )
+            layout.addWidget(button, 0, Qt.AlignHCenter)
+        layout.addSpacing(BINARY_WORKBENCH_VIEW_LAYOUT.CONFIRM_TOP_SPACING)
+        confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
+        configure_binary_workbench_dialog_action(confirm)
+        confirm.clicked.connect(self.accept)
+        layout.addWidget(confirm, 0, Qt.AlignHCenter)
+        self.setFixedHeight(self.sizeHint().height())
+
+    def visible_columns(self) -> dict[str, bool]:
+        values = {
+            BINARY_WORKBENCH_TEXT.INSTRUCTION: True,
+            BINARY_WORKBENCH_TEXT.BYTES: self._buttons[BINARY_WORKBENCH_TEXT.BYTES].isChecked(),
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: self._buttons[BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS].isChecked(),
+            BINARY_WORKBENCH_TEXT.DECODED_TEXT: self._buttons[BINARY_WORKBENCH_TEXT.DECODED_TEXT].isChecked(),
+        }
+        offsets_visible = self._buttons[BINARY_WORKBENCH_TEXT.OFFSETS].isChecked()
+        values.update({name: offsets_visible for name in self._offset_names})
+        return values
+
+    def _toggle(self, text: str, checked: bool) -> QPushButton:
+        button = QPushButton(text, self)
+        button.setCheckable(True)
+        button.setChecked(checked)
+        button.setFixedSize(
+            BINARY_WORKBENCH_VIEW_LAYOUT.BUTTON_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
+        )
+        configure_binary_workbench_dialog_button(button)
+        button.clicked.connect(lambda: self._sync_style(button))
+        self._sync_style(button)
+        return button
+
+    def _sync_style(self, button: QPushButton) -> None:
+        button.setObjectName("binary-workbench-version-active" if button.isChecked() else "binary-workbench-version-item")
+        button.style().unpolish(button)
+        button.style().polish(button)

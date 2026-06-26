@@ -1,12 +1,165 @@
+QPushButton {
+    padding-left: $space-10;
+    padding-right: $space-10;
+}
+
+QComboBox, QSpinBox {
+    padding-left: $space-12;
+    padding-right: $space-8;
+}
+
+QLineEdit, QPlainTextEdit {
+    padding-left: $space-6;
+    padding-right: $space-4;
+}
+
+QTableWidget,
+QTableView,
+QListWidget#binary-workbench-search-results,
+QListWidget#binary-workbench-internal-files,
+QListWidget#binary-workbench-symbol-offsets {
+    padding-left: $space-6;
+    padding-right: $space-4;
+    padding-top: $space-6;
+    padding-bottom: $space-6;
+}
+
 QDialog#preferences-dialog,
 QDialog#help-window,
+QWidget#help-window,
 QDialog#workspace-table-dialog {
     background-color: $bg-panel;
 }
 
+QMainWindow#binary-workbench-window {
+    background-color: $bg-panel;
+}
+
+QMainWindow#donor-window {
+    background-color: $bg-panel;
+}
+
+QWidget#binary-workbench-shell {
+    background-color: $bg-panel;
+}
+
+QWidget#donor-shell {
+    background-color: $bg-panel;
+}
+
+QTabWidget#binary-workbench-tabs {
+    background-color: transparent;
+    border: none;
+}
+
+QTabWidget#binary-workbench-tabs::tab-bar {
+    alignment: left;
+    left: 0px;
+    top: -5px;
+}
+
+QTabWidget#binary-workbench-tabs::pane {
+    background-color: transparent;
+    border: none;
+    border-radius: $radius-0;
+    margin-top: $space-0;
+}
+
+QTabBar#binary-workbench-tab-bar {
+    qproperty-drawBase: 0;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-size: 12px;
+}
+
+QTabBar#binary-workbench-tab-bar::base {
+    background-color: transparent;
+    border: none;
+    height: 0px;
+}
+
+QTabBar#binary-workbench-tab-bar::tab {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-bottom: none;
+    border-top-left-radius: $radius-0;
+    border-top-right-radius: $radius-0;
+    color: $text-muted;
+    min-width: 150px;
+    max-width: 150px;
+    min-height: 32px;
+    max-height: 32px;
+    margin-right: $space-4;
+    font-size: 12px;
+    padding-left: $space-8;
+    padding-right: $space-4;
+    outline: none;
+}
+
+QWidget#binary-workbench-tab-nav {
+    background-color: transparent;
+}
+
+QToolButton#binary-workbench-tab-nav-button {
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 24px;
+    max-height: 24px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    color: $text-muted;
+    font-size: 12px;
+    outline: none;
+}
+
+QToolButton#binary-workbench-tab-nav-button:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+    color: $text-main;
+}
+
+QToolButton#binary-workbench-tab-nav-button:disabled {
+    background-color: transparent;
+    border-color: transparent;
+    color: $text-muted;
+}
+
+QTabBar#binary-workbench-tab-bar::tab:selected {
+    background-color: $bg-workspace-header;
+    border-color: $border-workspace-shell;
+    color: $text-main;
+    outline: none;
+}
+
+QTabBar#binary-workbench-tab-bar::tab:hover:!selected {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+    color: $text-main;
+}
+
+QPushButton#binary-workbench-tab-close {
+    min-width: 10px;
+    max-width: 10px;
+    min-height: 10px;
+    max-height: 10px;
+    background-color: transparent;
+    border: none;
+    color: $text-main;
+    font-size: 10px;
+    padding: 0px;
+    outline: none;
+}
+
+QPushButton#binary-workbench-tab-close:hover {
+    background-color: $bg-button-enter;
+    color: $text-main;
+}
+
 QLabel#preferences-title,
 QLabel#help-title,
-QLabel#workspace-table-title {
+QLabel#workspace-table-title,
+QLabel#binary-workbench-title {
     font-size: $fs-ml-lg;
     font-weight: $fw-semibold;
     color: $text-main;
@@ -14,33 +167,421 @@ QLabel#workspace-table-title {
 
 QLabel#preferences-subtitle,
 QLabel#help-subtitle,
-QLabel#help-page-indicator {
+QLabel#help-page-indicator,
+QLabel#binary-workbench-subtitle {
     font-size: $fs-c-md;
     color: $text-muted;
+}
+
+QLabel#donor-subtitle {
+    font-size: $fs-c-md;
+    color: $text-muted;
+}
+
+QLabel#binary-workbench-section-title {
+    font-size: $fs-c-lg;
+    color: $text-main;
+}
+
+QLabel#binary-workbench-value {
+    font-size: $fs-c-md;
+    color: $text-muted;
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-selection,
+QLabel#binary-workbench-page-indicator {
+    color: $text-workspace-header;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-internal-file-summary {
+    color: $text-internal-file;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-footer-status {
+    color: $text-success;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-footer-status[statusKind="error"] {
+    color: $text-danger;
+}
+
+QLabel#binary-workbench-footer-status[statusKind="warning"] {
+    color: $text-warning;
+}
+
+QLabel#binary-workbench-command-name {
+    color: $text-command;
+    font-size: $fs-c-md;
+    background-color: transparent;
+}
+
+QWidget#binary-workbench-editor-shell {
+    background-color: transparent;
+}
+
+QWidget#binary-workbench-editor-canvas {
+    background-color: transparent;
+    border: none;
+}
+
+QWidget#binary-workbench-column-shell {
+    background-color: transparent;
+}
+
+QLabel#binary-workbench-column-label {
+    font-size: $fs-c-md;
+    color: $text-workspace-header;
+    background-color: transparent;
+}
+
+QPlainTextEdit#binary-workbench-offsets-panel,
+QPlainTextEdit#binary-workbench-raw-instructions-panel,
+QPlainTextEdit#binary-workbench-bytes-panel,
+QPlainTextEdit#binary-workbench-instructions-panel {
+    background-color: $bg-workspace-shell;
+    border: 1px solid $border-workspace-shell;
+    border-radius: $radius-12;
+    color: $text-main;
+    selection-background-color: $border-focus;
+    selection-color: $text-main;
+    font-size: $fs-c-workbench-editor;
+}
+
+QPlainTextEdit#binary-workbench-command-instructions {
+    background-color: transparent;
+    border: none;
+    color: $text-main;
+    selection-background-color: $border-focus;
+    selection-color: $text-main;
+    font-size: $fs-c-workbench-editor;
+}
+
+QPlainTextEdit#binary-workbench-offsets-panel {
+    color: $text-workspace-header;
+}
+
+QLineEdit#binary-workbench-symbols-edit,
+QLineEdit#binary-workbench-dialog-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    min-height: 32px;
+}
+
+QLineEdit#binary-workbench-dialog-input:focus {
+    border: 1px solid $border-focus;
+}
+
+QLineEdit#binary-workbench-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+}
+
+QLineEdit#binary-workbench-input:focus {
+    border: 1px solid $border-focus;
+}
+
+QComboBox#binary-workbench-dialog-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+    min-height: 32px;
+}
+
+QComboBox#binary-workbench-dialog-input::drop-down {
+    background-color: transparent;
+    border: none;
+    border-top-right-radius: $radius-10;
+    border-bottom-right-radius: $radius-10;
+}
+
+QListWidget#binary-workbench-search-results {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+}
+
+QListWidget#binary-workbench-search-results::item {
+    border: none;
+    border-radius: $radius-0;
+}
+
+QListWidget#binary-workbench-search-results::item:selected {
+    background-color: $bg-workspace-row;
+    border-color: transparent;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-search-results::item:hover {
+    background-color: $bg-search-result-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-search-results::item:focus {
+    outline: none;
+    border: 1px solid transparent;
+}
+
+QListWidget#binary-workbench-search-results::item:selected:focus {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    outline: none;
+    border: 1px solid transparent;
+}
+
+QListWidget#binary-workbench-search-results::item:selected:hover,
+QListWidget#binary-workbench-search-results::item:selected:focus:hover {
+    background-color: $bg-search-result-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-search-results:focus {
+    outline: none;
+}
+
+QListWidget#binary-workbench-search-results QScrollBar:vertical {
+    width: $size-search-results-scrollbar-width;
+    margin: $margin-search-results-scrollbar-vertical;
+}
+
+QListWidget#binary-workbench-internal-files {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    padding: 0px;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files::item {
+    background-color: $bg-workspace-row;
+    border: none;
+    border-radius: $radius-0;
+    color: $text-main;
+    padding-top: $space-10;
+    padding-bottom: $space-10;
+    padding-left: $space-12;
+    padding-right: $space-12;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files::item:hover {
+    background-color: $bg-workspace-row;
+    border: none;
+}
+
+QListWidget#binary-workbench-internal-files::item:selected,
+QListWidget#binary-workbench-internal-files::item:selected:hover {
+    background-color: $bg-search-result-hover;
+    border: none;
+    color: $text-main;
+    outline: none;
+}
+
+QListWidget#binary-workbench-internal-files QScrollBar:vertical {
+    width: $size-search-results-scrollbar-width;
+    margin: $margin-search-results-scrollbar-vertical;
+}
+
+QListWidget#binary-workbench-symbol-offsets {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item {
+    border: 1px solid transparent;
+    border-radius: $radius-8;
+    }
+
+QListWidget#binary-workbench-symbol-offsets::item:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:focus,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus,
+QListWidget#binary-workbench-symbol-offsets:focus {
+    outline: none;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:selected,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus {
+    background-color: transparent;
+    border-color: transparent;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:selected:hover,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-soft-success;
+    color: $text-main;
+}
+
+QScrollArea#binary-workbench-version-scroll {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-10;
+}
+
+QWidget#binary-workbench-version-list {
+    background-color: $bg-workspace-row;
+}
+
+
+QPushButton#binary-workbench-version-item,
+QPushButton#binary-workbench-version-active {
+    background-color: $bg-workspace-row;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-8;
+    color: $text-main;
+    min-height: $size-dialog-button-min-height;
+    text-align: left;
+    outline: none;
+}
+
+QPushButton#binary-workbench-version-active {
+    border: 1px solid $border-soft-success;
+}
+
+QPushButton#binary-workbench-version-item:hover,
+QPushButton#binary-workbench-version-active:hover {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+}
+
+QPushButton#binary-workbench-version-item:focus,
+QPushButton#binary-workbench-version-active:focus {
+    outline: none;
+}
+
+QStatusBar#binary-workbench-statusbar {
+    background-color: $bg-panel;
+    color: $text-workspace-header;
+    min-height: $size-control-min-height;
+}
+
+QSpinBox,
+QComboBox {
+    background-color: $bg-input;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $radius-10;
+    min-height: 32px;
+}
+
+QComboBox QAbstractItemView,
+QSpinBox QAbstractItemView {
+    background-color: $bg-panel;
+    color: $text-main;
+    border: 1px solid $border;
+    selection-background-color: $bg-toolbar-button-hover;
+    selection-color: $text-main;
+}
+
+QComboBox#advanced-config-dropdown::drop-down {
+    background-color: transparent;
+    border: none;
+    width: $space-24;
+}
+
+QComboBox#advanced-config-dropdown::down-arrow,
+QComboBox#preferences-group-size::down-arrow {
+    image: none;
+    width: 0px;
+    height: 0px;
+}
+
+QComboBox#preferences-group-size::drop-down {
+    background-color: transparent;
+    border: none;
+    width: 0px;
+}
+
+QLabel#donor-section-title {
+    font-size: $fs-c-lg;
+    color: $text-main;
+}
+
+QLabel#donor-value {
+    font-size: $fs-c-md;
+    color: $text-main;
+    background-color: transparent;
+}
+
+QLabel#donor-value a {
+    color: $text-workspace-header;
+    text-decoration: none;
+}
+
+QLabel#donor-value a:hover {
+    color: $text-main;
 }
 
 QLabel#preferences-section-title {
     font-size: $fs-c-lg;
     color: $text-main;
-    padding-top: $space-4;
 }
 
 QPushButton#preferences-ok,
 QPushButton#preferences-cancel,
+QPushButton#preferences-confirm,
 QPushButton#help-nav-button {
     min-height: $size-dialog-button-min-height;
     min-width: $size-dialog-button-min-width;
-    padding: $padding-dialog-button;
     border-radius: $radius-10;
 }
 
 QPushButton#preferences-ok,
-QPushButton#preferences-cancel {
+QPushButton#preferences-cancel,
+QPushButton#preferences-confirm {
     background-color: $bg-button;
+}
+
+QPushButton#binary-workbench-action {
+    background-color: $bg-button;
+    border-radius: $radius-10;
 }
 
 QPushButton#preferences-ok:hover,
 QPushButton#preferences-cancel:hover,
-QPushButton#help-nav-button:hover {
+QPushButton#preferences-confirm:hover,
+QPushButton#help-nav-button:hover,
+QPushButton#binary-workbench-action:hover {
     background-color: $bg-toolbar-button-hover;
+}
+
+QPushButton#preferences-confirm {
+    border: 1px solid $border;
+}
+
+QPushButton#preferences-confirm:hover {
+    border-color: $border-soft-success;
+}
+
+QPushButton#binary-workbench-tab-close:focus,
+QToolButton#binary-workbench-tab-nav-button:focus,
+QPushButton#preferences-ok:focus,
+QPushButton#preferences-cancel:focus,
+QPushButton#preferences-confirm:focus,
+QPushButton#help-nav-button:focus,
+QPushButton#binary-workbench-action:focus {
+    outline: none;
 }

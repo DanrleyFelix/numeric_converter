@@ -11,9 +11,7 @@ QPlainTextEdit {
     font-family: $font-base;
     font-size: $fs-c-md;
     color: $text-main;
-    padding-top: $space-4;
-    padding-left: $space-8;
-    padding-right: $space-8;
+    placeholder-text-color: $text-placeholder;
 }
 
 QPlainTextEdit:hover {
@@ -29,7 +27,6 @@ QToolTip {
     color: $text-main;
     border: 1px solid $border;
     border-radius: $radius-8;
-    padding: $padding-select-field;
 }
 
 QSpinBox {
@@ -38,7 +35,6 @@ QSpinBox {
     border-radius: $radius-8;
     color: $text-main;
     min-height: $size-control-min-height;
-    padding: $padding-input-field;
 }
 
 QSpinBox:focus {

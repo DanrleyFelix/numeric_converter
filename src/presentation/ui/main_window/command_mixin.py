@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSignalBlocker
 
+from src.modules.constants import DECIMAL_DIGITS
 from src.modules.utils import COLOR
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_TEXT
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_TEXT
@@ -107,7 +108,7 @@ class MainWindowCommandMixin:
 
     def _convert_command_result(self: MainWindow) -> None:
         raw_result = self._command_presenter.copy_raw()
-        if raw_result is None or not raw_result.isdigit():
+        if not raw_result or any(character not in DECIMAL_DIGITS for character in raw_result):
             self.footer.set_status(MAIN_WINDOW_TEXT.CONVERT_NON_NEGATIVE_ONLY, COLOR.INCOMPLETE)
             return
 
@@ -121,6 +122,10 @@ class MainWindowCommandMixin:
 
         self._render_converter(output)
         self.footer.set_status(MAIN_WINDOW_TEXT.COMMAND_RESULT_SENT, COLOR.SUCCESS)
+
+    def _copy_focused_converter_raw(self: MainWindow) -> None:
+        if self.body.converter_panel.copy_focused_raw():
+            self.footer.set_status(MAIN_WINDOW_TEXT.RAW_VALUE_COPIED, COLOR.SUCCESS)
 
     def _render_converter(self: MainWindow, display_values: dict[str, str]) -> None:
         self._syncing_converter = True

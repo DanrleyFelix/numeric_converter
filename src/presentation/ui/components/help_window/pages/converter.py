@@ -8,6 +8,7 @@ PAGE = HelpPageDefinition(
         <p>The converter keeps the typed content separate from the formatted display, so padding and grouping do not corrupt editing.</p>
         <h2>Inputs</h2>
         <ul>
+            <li>Each field name appears as the field placeholder: <b>Decimal</b>, <b>Binary</b>, <b>Hex (BE)</b> and <b>Hex (LE)</b>.</li>
             <li><b>Decimal</b>: digits <code>0-9</code>.</li>
             <li><b>Binary</b>: digits <code>0</code> and <code>1</code>.</li>
             <li><b>Hex (BE)</b> and <b>Hex (LE)</b>: digits <code>0-9</code> and letters <code>A-F</code>.</li>

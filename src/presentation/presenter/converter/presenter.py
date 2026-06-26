@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.application.contracts.converter_contract import IConverterController
-from src.application.contracts.preferences_contract import IOutputFormatter
-from src.application.dto import ConversionResultDTO, FormattingOutputDTO
+from src.controllers.converter_controller import ConverterController
 from src.core.converter import NumericValidator
+from src.modules.converter_dtos import ConversionResultDTO, FormattingOutputDTO
+from src.presentation.formatters.converter_output import OutputFormatter
 from src.presentation.formatters.clean_formatter import CleanFormatter
 from src.presentation.presenter.converter.formatting import (
     build_output,
@@ -22,8 +22,8 @@ class ConverterPresenter:
 
     def __init__(
         self,
-        controller: IConverterController,
-        formatter: IOutputFormatter,
+        controller: ConverterController,
+        formatter: OutputFormatter,
         initial_formatting: dict[str, FormattingOutputDTO],
     ):
         self._controller = controller

@@ -14,6 +14,14 @@ PAGE = HelpPageDefinition(
         <h2>Toolbar option</h2>
         <ul>
             <li><b>Show Key Panel</b> stays in the Preferences menu on the toolbar.</li>
+            <li><b>Auto Convert</b> sends successful non-negative integer command results to the Decimal converter input.</li>
+        </ul>
+        <h2>Logs</h2>
+        <ul>
+            <li><b>Logs</b> in the Preferences menu opens the fixed-size log configuration dialog.</li>
+            <li><b>Enable logs</b> controls whether successful Command Window expressions are saved in the Logs table.</li>
+            <li>The filters control assignment-only expressions, single unary expressions, expressions without operators and expressions containing assignment.</li>
+            <li><b>Log only expressions with one or more binary operators</b> keeps Enable logs active and disables the other expression filters.</li>
         </ul>
         <h2>Example configuration</h2>
         <pre>Decimal: group size 3, zero pad off

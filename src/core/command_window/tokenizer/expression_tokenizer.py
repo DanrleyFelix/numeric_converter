@@ -6,7 +6,7 @@ from src.core.command_window.tokenizer.errors import TokenizerError
 from src.core.command_window.tokenizer.number_token_reader import NumberTokenReader
 from src.core.command_window.tokenizer.textual_operator_normalizer import TextualOperatorNormalizer
 from src.core.command_window.tokenizer.token import Token, TokenType
-from src.core.constants import IDENTIFIER_RE, MULTI_CHAR_OPERATORS, WHITESPACE_RE
+from src.core.command_window.constants import IDENTIFIER_RE, MULTI_CHAR_OPERATORS, WHITESPACE_RE
 
 
 class Tokenizer:

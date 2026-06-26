@@ -6,12 +6,12 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel, QPlainTextEdit, QPushButton, QTextBrowser
+from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser
 
-from src.application.dto.formatting_context import FormattingOutputDTO
+from src.modules.dtos import CommandLogPreferencesDTO, FormattingOutputDTO
 from src.main import create_main_window
 from src.modules.utils import COLOR
-from src.presentation.ui.components.preferences_dialog import PreferencesDialog
+from src.presentation.ui.components.preferences_dialog import LogPreferencesDialog, PreferencesDialog
 
 
 _APP = None
@@ -100,22 +100,114 @@ def test_key_panel_textual_buttons_add_trailing_space():
     assert window.body.command_panel.current_input() == "A AND "
 
 
-def test_toolbar_action_has_no_icon_and_help_title_is_user_guide():
+def test_toolbar_action_has_no_icon_and_help_window_has_no_redundant_title():
     window = _window()
 
     assert window.toolbar.toggle_key_panel_action.icon().isNull()
     window.toolbar.toggle_key_panel_action.setChecked(False)
     assert window.toolbar.toggle_key_panel_action.icon().isNull()
 
+    help_menu = window.toolbar.help_button.menu()
+    help_texts = [action.text() for action in help_menu.actions()]
+    assert help_texts == ["Guide", "Donor"]
+
     window._open_help()
-    title = window._help_window.findChild(QLabel, "help-title")
-    assert title is not None
-    assert title.text() == "User Guide"
+    assert window._help_window.findChild(QLabel, "help-title") is None
+    nav_titles = [
+        window._help_window.navigation.item(index).text()
+        for index in range(window._help_window.navigation.count())
+    ]
+    assert nav_titles == [
+        "Overview",
+        "Shortcuts",
+        "Converter",
+        "Command Window",
+        "Context and Workspace",
+        "Key Panel",
+        "Preferences",
+    ]
     page = window._help_window.pages.currentWidget()
     browser = page.findChild(QTextBrowser, "help-page")
     assert browser is not None
     assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
     assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
+    window._help_window.navigation.setCurrentRow(1)
+    shortcuts_page = window._help_window.pages.currentWidget()
+    shortcuts_browser = shortcuts_page.findChild(QTextBrowser, "help-page")
+    shortcuts_text = shortcuts_browser.toPlainText()
+    for shortcut in (
+        "Ctrl+S",
+        "Ctrl+O",
+        "Alt+B",
+        "Alt+G",
+        "Alt+D",
+        "Alt+P",
+        "Alt+L",
+        "Alt+S",
+        "Alt+X",
+        "Tab",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "Alt+C",
+        "Alt+V",
+        "Alt+N",
+    ):
+        assert shortcut in shortcuts_text
+
+
+def test_tools_menu_exposes_binary_workbench_and_placeholders():
+    window = _window()
+    tools_menu = window.toolbar.tools_button.menu()
+    action_texts = [action.text() for action in tools_menu.actions() if action.text()]
+
+    assert window.toolbar.tools_button.text().strip() == "Tools"
+    assert "Binary Workbench" in action_texts
+    assert action_texts == ["Binary Workbench"]
+
+
+def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
+    window = _window()
+
+    window._open_binary_workbench()
+    tool_window = window._binary_workbench_window
+
+    assert tool_window is not None
+    assert tool_window.windowTitle() == "Binary Workbench"
+    assert tool_window.toolbar.open_binary_action.text() == "Open File"
+    assert tool_window.toolbar.version_action.text() == "Version"
+    assert tool_window.toolbar.save_binary_file_action.text() == "Save File"
+    assert tool_window.toolbar.symbols_action.text() == "Symbols"
+    assert tool_window.toolbar.bytes_formatter_action.text() == "Bytes Formatter"
+    assert tool_window.toolbar.view_action.text() == "View"
+    assert tool_window.toolbar.advanced_configuration_action.text() == "Advanced Configuration"
+    assert tool_window.toolbar.version_action.shortcut().toString() == "Alt+V"
+    assert tool_window.toolbar.go_to_action.shortcut().toString() == "Ctrl+G"
+    assert tool_window.toolbar.find_action.shortcut().toString() == "Ctrl+F"
+    assert tool_window.findChild(QLabel, "binary-workbench-title") is None
+    assert "border-top-left-radius: 0px;" in tool_window.styleSheet()
+    tool_window.toolbar.new_scratch_action.trigger()
+    assert tool_window.tabs.count() == 1
+    assert tool_window.export_state().tabs[0].display_name == "scratch_1.asm"
+    assert window._binary_workbench_window is tool_window
+
+
+def test_donor_opens_its_own_window_without_using_footer_output():
+    window = _window()
+    initial_footer_text = window.footer.status.text()
+
+    window._open_donor()
+    donor_window = window._donor_window
+
+    assert donor_window is not None
+    assert donor_window.windowTitle() == "Donor"
+    assert donor_window.findChild(QLabel, "workspace-table-title") is None
+    assert window.footer.status.text() == initial_footer_text
+
+    window._open_donor()
+    assert window._donor_window is donor_window
 
 
 def test_command_panel_shows_workspace_buttons_without_convert_toggle():
@@ -128,6 +220,49 @@ def test_command_panel_shows_workspace_buttons_without_convert_toggle():
     assert window.body.command_panel.show_variables_button.text() == "Variables"
     assert window.body.command_panel.show_logs_button.text() == "Logs"
     assert not hasattr(window.body.command_panel, "convert_toggle")
+
+
+def test_preferences_menu_exposes_logs_action_with_shortcut():
+    window = _window()
+    preferences_menu = window.toolbar.preferences_button.menu()
+    action_texts = [action.text() for action in preferences_menu.actions()]
+
+    assert action_texts == ["Converter", "Logs", "Show Key Panel", "Auto Convert"]
+    assert window.toolbar.save_workspace_action.shortcut().toString() == "Ctrl+S"
+    assert window.toolbar.load_workspace_action.shortcut().toString() == "Ctrl+O"
+    assert window.toolbar.converter_preferences_action.shortcut().toString() == "Alt+P"
+    assert window.toolbar.log_preferences_action.shortcut().toString() == "Alt+L"
+    assert window.toolbar.binary_workbench_action.shortcut().toString() == "Alt+B"
+    assert window.toolbar.toggle_key_panel_action.shortcut().toString() == "Alt+S"
+    assert window.toolbar.auto_convert_action.shortcut().toString() == "Alt+X"
+    assert window.toolbar.user_guide_action.shortcut().toString() == "Alt+G"
+    assert window.toolbar.donor_action.shortcut().toString() == "Alt+D"
+    assert window._copy_raw_shortcut.key().toString() == "Alt+C"
+    assert [shortcut.key().toString() for shortcut in window._workspace_window_shortcuts] == ["Alt+V", "Alt+N"]
+
+
+def test_numeric_workspace_dialogs_start_in_numeric_workbench_workspace_directory(monkeypatch):
+    root = Path(tempfile.mkdtemp())
+    window = create_main_window(root)
+    captured = {}
+
+    def fake_save(*args):
+        captured["save"] = args[2]
+        return "", ""
+
+    def fake_open(*args):
+        captured["open"] = args[2]
+        return "", ""
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", fake_save)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", fake_open)
+
+    window._save_workspace()
+    window._load_workspace()
+
+    workspace_directory = root / "data" / "numeric_workbench" / "workspaces"
+    assert captured["save"] == str(workspace_directory / "workspace.json")
+    assert captured["open"] == str(workspace_directory)
 
 
 def test_command_autocomplete_popup_uses_app_styling_and_scrollbar_policies():
@@ -143,13 +278,12 @@ def test_command_autocomplete_popup_uses_app_styling_and_scrollbar_policies():
 
 def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
     window = _window()
-    initial_min_width = window.minimumWidth()
     initial_min_height = window.minimumHeight()
 
     window.toolbar.toggle_key_panel_action.setChecked(False)
 
-    assert window.minimumWidth() < initial_min_width
-    assert window.minimumWidth() == 790
+    assert window.minimumWidth() == 657
+    assert initial_min_height == 670
     assert window.minimumHeight() < initial_min_height
 
 
@@ -163,6 +297,19 @@ def test_key_panel_visibility_is_restored_as_hidden_from_saved_context():
 
     assert restored.toolbar.toggle_key_panel_action.isChecked() is False
     assert restored.key_panel.isVisible() is False
+
+
+def test_key_panel_toggle_restores_size_before_it_was_enabled():
+    window = _window()
+    window.toolbar.toggle_key_panel_action.setChecked(False)
+    window.resize(720, 390)
+    hidden_size = window.size()
+
+    window.toolbar.toggle_key_panel_action.setChecked(True)
+    assert window.height() >= hidden_size.height()
+
+    window.toolbar.toggle_key_panel_action.setChecked(False)
+    assert window.size() == hidden_size
 
 
 def test_workspace_windows_show_rows_and_support_removal():
@@ -230,6 +377,16 @@ def test_arrow_up_down_browse_log_history_and_enter_accepts_without_submitting()
     assert popup.currentIndex().data() == "alpha=5"
     assert window.body.command_panel.current_input() == ""
 
+    QTest.keyClick(popup, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "beta=7"
+    assert window.body.command_panel.current_input() == ""
+
+    QTest.keyClick(popup, Qt.Key_Up)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha=5"
+    assert window.body.command_panel.current_input() == ""
+
     QTest.keyClick(editor, Qt.Key_Enter)
     _app().processEvents()
     assert window.body.command_panel.current_input() == "alpha=5"
@@ -247,6 +404,62 @@ def test_arrow_up_down_browse_log_history_and_enter_accepts_without_submitting()
     QTest.keyClick(editor, Qt.Key_Enter)
     _app().processEvents()
     assert window.body.command_panel.current_input() == "alpha=5"
+
+
+def test_enter_accepts_variable_autocomplete_and_hides_popup():
+    window = _window()
+    editor = window.body.command_panel.editor
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor.setFocus()
+    QTest.keyClicks(editor, "al")
+    _app().processEvents()
+    popup = editor._completer.popup()
+
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(editor, Qt.Key_Enter)
+    _app().processEvents()
+
+    assert window.body.command_panel.current_input() == "alpha"
+    assert popup.isVisible() is False
+
+
+def test_variable_autocomplete_up_down_wraps_without_blank_selection():
+    window = _window()
+    editor = window.body.command_panel.editor
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    window.body.command_panel.set_input_text("alpine=7")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor.setFocus()
+    QTest.keyClicks(editor, "al")
+    _app().processEvents()
+    popup = editor._completer.popup()
+
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(editor, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpine"
+
+    QTest.keyClick(popup, Qt.Key_Down)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpha"
+
+    QTest.keyClick(popup, Qt.Key_Up)
+    _app().processEvents()
+    assert popup.currentIndex().data() == "alpine"
 
 
 def test_auto_convert_sends_successful_command_result_to_converter():
@@ -271,11 +484,74 @@ def test_preferences_dialog_only_shows_converter_formatting():
     }
     dialog = PreferencesDialog(formatting=formatting)
 
-    assert dialog.findChild(QLabel, "preferences-title") is not None
+    assert dialog.minimumSize() == dialog.maximumSize()
+    assert dialog.height() == 460
+    assert dialog.findChild(QLabel, "preferences-title") is None
     assert dialog.findChild(QLabel, "preferences-subtitle") is not None
     assert dialog.findChild(QLabel, "preferences-section-title") is None
+    combos = dialog.findChildren(QComboBox, "preferences-group-size")
+    assert [combo.currentText() for combo in combos] == ["3", "8", "2", "2"]
+    assert [combo.itemText(index) for index in range(combos[0].count())] == [
+        "0", "1", "2", "3", "4", "5", "6", "7", "8", "16"
+    ]
+    assert dialog.selected_formatting()["binary"].group_size == 8
     assert window.toolbar.auto_convert_action.text() == "Auto Convert"
     assert window.toolbar.toggle_key_panel_action.text() == "Show Key Panel"
+
+
+def test_log_preferences_dialog_is_fixed_and_binary_only_disables_filters():
+    _app()
+    dialog = LogPreferencesDialog(CommandLogPreferencesDTO())
+
+    assert dialog.minimumSize() == dialog.maximumSize()
+    assert dialog.findChild(QLabel, "preferences-title") is None
+    assert dialog.enabled_box.shortcut().toString() == "Alt+L"
+    dialog.binary_operator_only_box.setChecked(True)
+
+    selected = dialog.selected_preferences()
+    assert selected.enabled is True
+    assert selected.binary_operator_only is True
+    assert selected.assignment_only is False
+    assert selected.single_unary_only is False
+    assert selected.no_operator is False
+    assert selected.assignment_operator is False
+    assert dialog.assignment_only_box.isEnabled() is False
+
+
+def test_command_logs_respect_disabled_log_preferences():
+    window = _window()
+    window._command_presenter.set_log_preferences(CommandLogPreferencesDTO(enabled=False))
+
+    window.body.command_panel.set_input_text("alpha=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    assert "alpha" in window._command_presenter.variable_names
+    assert window._command_presenter.history == []
+
+
+def test_tab_navigation_cycles_converter_fields_and_command_window():
+    window = _window()
+    window.show()
+    decimal = window.body.converter_panel.inputs["decimal"]
+    binary = window.body.converter_panel.inputs["binary"]
+    hex_be = window.body.converter_panel.inputs["hexBE"]
+    hex_le = window.body.converter_panel.inputs["hexLE"]
+    command = window.body.command_panel.editor
+
+    decimal.setFocus()
+    _app().processEvents()
+
+    QTest.keyClick(decimal, Qt.Key_Tab)
+    assert binary.hasFocus()
+    QTest.keyClick(binary, Qt.Key_Tab)
+    assert hex_be.hasFocus()
+    QTest.keyClick(hex_be, Qt.Key_Tab)
+    assert hex_le.hasFocus()
+    QTest.keyClick(hex_le, Qt.Key_Tab)
+    assert command.hasFocus()
+    QTest.keyClick(command, Qt.Key_Tab)
+    assert decimal.hasFocus()
 
 
 def test_converter_inputs_keep_copy_buttons_outside_editors_at_minimum_width():
@@ -287,8 +563,35 @@ def test_converter_inputs_keep_copy_buttons_outside_editors_at_minimum_width():
 
     for kind, editor in window.body.converter_panel.inputs.items():
         button = window.body.converter_panel.copy_raw_buttons[kind]
-        assert editor.minimumWidth() == 150
+        assert editor.minimumWidth() == 120
+        assert editor.height() == 50
+        assert editor.placeholderText() in {"Decimal", "Binary", "Hex (BE)", "Hex (LE)"}
+        assert button.toolTip() == "Copy raw (Alt+C)"
         assert editor.geometry().right() < button.geometry().left()
+
+
+def test_alt_c_copy_raw_uses_focused_converter_field():
+    window = _window()
+    editor = window.body.converter_panel.inputs["decimal"]
+    editor.set_content("1234", "1 234")
+    editor.setFocus()
+    QApplication.clipboard().clear()
+
+    window._copy_focused_converter_raw()
+
+    assert QApplication.clipboard().text() == "1234"
+    assert window.footer.status.text() == "Raw value copied."
+
+
+def test_logs_button_is_aligned_to_command_window_right_edge():
+    window = _window()
+    window.show()
+    _app().processEvents()
+
+    logs_button = window.body.command_panel.show_logs_button
+    editor = window.body.command_panel.editor
+
+    assert logs_button.geometry().right() == editor.geometry().right()
 
 
 def test_secondary_windows_are_single_instance_and_non_modal():

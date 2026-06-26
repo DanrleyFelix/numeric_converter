@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -20,24 +19,29 @@ from src.presentation.ui.components.help_window.constants import (
     HELP_WINDOW_SPACING,
     HELP_WINDOW_TEXT,
 )
+from src.presentation.ui.components.help_window.page import HelpPageDefinition
 from src.presentation.ui.components.help_window.pages import HELP_PAGES
 from src.presentation.ui.components.help_window.styles import render_help_html
 
 
-class HelpWindow(QDialog):
+class HelpWindow(QWidget):
     sizePersistRequested = Signal(int, int)
 
-    def __init__(self, parent=None):
+    def __init__(
+        self,
+        parent=None,
+        pages: list[HelpPageDefinition] | None = None,
+    ):
         super().__init__(parent)
         self.setObjectName("help-window")
         self.setWindowTitle(HELP_WINDOW_TEXT.TITLE)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setModal(False)
-        self.setWindowModality(Qt.NonModal)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setWindowFlag(Qt.Window, True)
         self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
         self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
         self.setMinimumSize(HELP_WINDOW_SIZE.MIN_WIDTH, HELP_WINDOW_SIZE.MIN_HEIGHT)
+        self.setFixedHeight(HELP_WINDOW_SIZE.FIXED_HEIGHT)
         self.resize(HELP_WINDOW_SIZE.DEFAULT_WIDTH, HELP_WINDOW_SIZE.DEFAULT_HEIGHT)
         root = QVBoxLayout(self)
         root.setContentsMargins(
@@ -47,18 +51,21 @@ class HelpWindow(QDialog):
             HELP_WINDOW_MARGIN.ROOT_BOTTOM,
         )
         root.setSpacing(HELP_WINDOW_SPACING.ROOT)
-        title = QLabel(HELP_WINDOW_TEXT.TITLE)
-        title.setObjectName("help-title")
-        root.addWidget(title)
         content = QHBoxLayout()
         content.setSpacing(HELP_WINDOW_SPACING.CONTENT)
         self.navigation = QListWidget()
         self.navigation.setObjectName("help-nav")
         self.navigation.setFixedWidth(HELP_WINDOW_SIZE.NAVIGATION_WIDTH)
+        self.navigation.setContentsMargins(0, 0, 0, 0)
         self.navigation.setFocusPolicy(Qt.NoFocus)
+        self.navigation.setSpacing(0)
+        self.navigation.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.navigation.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.navigation.setViewportMargins(0, 0, 0, 0)
+        self.navigation.viewport().setContentsMargins(0, 0, 0, 0)
         self.pages = QStackedWidget()
         self.pages.setObjectName("help-pages")
-        for page in HELP_PAGES:
+        for page in pages or HELP_PAGES:
             self.navigation.addItem(QListWidgetItem(page.title))
             self.pages.addWidget(self._build_page(page.title, page.subtitle, page.html))
         content.addWidget(self.navigation)
@@ -105,8 +112,13 @@ class HelpWindow(QDialog):
         browser.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         browser.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-        browser.setViewportMargins(0, 0, HELP_WINDOW_MARGIN.VIEWPORT_RIGHT_GUTTER, 0)
-        browser.document().setDocumentMargin(0)
+        browser.setViewportMargins(
+            0,
+            0,
+            HELP_WINDOW_MARGIN.VIEWPORT_RIGHT_GUTTER,
+            HELP_WINDOW_MARGIN.VIEWPORT_BOTTOM_GUTTER,
+        )
+        browser.document().setDocumentMargin(HELP_WINDOW_MARGIN.DOCUMENT)
         browser.verticalScrollBar().setObjectName(HELP_WINDOW_TEXT.PAGE_SCROLLBAR_OBJECT_NAME)
         browser.setHtml(render_help_html(title, subtitle, html))
         browser.verticalScrollBar().setValue(0)

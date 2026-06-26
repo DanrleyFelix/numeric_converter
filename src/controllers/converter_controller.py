@@ -1,14 +1,14 @@
-from src.application.dto import ConversionResultDTO, FormattingOutputDTO
-from src.application.contracts.converter_contract import IConverterUseCase
+from src.modules.converter_dtos import ConversionResultDTO, FormattingOutputDTO
+from src.modules.use_cases import ConverterUseCase
 
 
 class ConverterController:
 
     def __init__(
         self,
-        use_case: IConverterUseCase,
-        formatting: dict[str, FormattingOutputDTO]):
-        
+        use_case: ConverterUseCase,
+        formatting: dict[str, FormattingOutputDTO],
+    ):
         self._use_case = use_case
         self._formatting = formatting
 

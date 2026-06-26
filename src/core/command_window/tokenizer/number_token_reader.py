@@ -4,7 +4,8 @@ from numbers import Number
 
 from src.core.command_window.tokenizer.errors import TokenizerError
 from src.core.command_window.tokenizer.token import Token, TokenType
-from src.core.constants import BASE_PREFIXES, BINARY_DIGITS, DECIMAL_DIGITS, HEX_DIGITS
+from src.core.command_window.constants import BASE_PREFIXES
+from src.modules.constants import BINARY_DIGITS, DECIMAL_DIGITS, HEX_DIGITS
 
 
 class NumberTokenReader:

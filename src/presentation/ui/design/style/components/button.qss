@@ -5,10 +5,15 @@ QPushButton {
     color: $text-main;
     border: 1px solid $border;
     border-radius: $radius-8;
+    outline: none;
 }
 
 QPushButton:hover {
     background-color: $bg-button-hover;
+}
+
+QPushButton:focus {
+    outline: none;
 }
 
 QPushButton:pressed {

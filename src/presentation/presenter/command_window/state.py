@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from numbers import Number
 
-from src.application.dto.application_state import CommandContextDTO
-from src.application.dto.command_entry import CommandEntryDTO
+from src.modules.command_window_dtos import CommandContextDTO, CommandEntryDTO
 from src.presentation.presenter.command_window.constants import COMMAND_WINDOW_LIMITS
 from src.presentation.presenter.command_window.editing import append_limited
 
@@ -41,9 +40,16 @@ class CommandWindowState:
         self.active_line = sanitized
         self.last_validation_state = validation_state
 
-    def store_submission(self, formatted: str, raw_result: Number) -> None:
+    def store_submission(
+        self,
+        formatted: str,
+        raw_result: Number,
+        store_log: bool = True,
+    ) -> None:
         self.last_result_formatted = formatted
         self.last_result_raw = raw_result
+        if not store_log:
+            return
         append_limited(
             self.history,
             CommandEntryDTO(input=self.active_line, output=formatted),

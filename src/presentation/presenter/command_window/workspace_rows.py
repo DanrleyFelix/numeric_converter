@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from numbers import Number
 
-from src.application.dto.command_entry import CommandEntryDTO
+from src.modules.command_window_dtos import CommandEntryDTO
 from src.core.command_window.expression_inspector import ordered_assignment_names
 
 

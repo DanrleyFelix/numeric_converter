@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.core.command_window.tokenizer import Token, TokenType
 from src.core.command_window.validator.errors import InvalidStartError, ParenthesisMismatchError
 from src.core.command_window.validator.validation_state import ValidationState
-from src.core.constants import ERROR_INVALID_EXPRESSION, UNARY_OPERATORS
+from src.core.command_window.constants import ERROR_INVALID_EXPRESSION, UNARY_OPERATORS
 
 
 class StructureValidator:
