@@ -7,37 +7,40 @@
 
 # Numeric WorkBench
 
-Numeric WorkBench is a portable desktop calculator for numeric conversion, command expressions, variables, context persistence and reusable command history.
+Numeric WorkBench is a portable PySide6 desktop application for numeric
+conversion, command expressions, workspace persistence and binary editing.
 
-It combines two main tools:
+The project now contains two main workbenches:
 
-- a live converter for Decimal, Binary, Hex (BE) and Hex (LE);
-- a command window for expressions, assignments, operators and reusable variables.
+- `Numeric WorkBench`: a live Decimal, Binary, Hex (BE) and Hex (LE) converter
+  with an expression command window.
+- `Binary Workbench`: a tabbed binary and assembly editing environment focused
+  on PSX MIPS R3000A workflows, symbols, versions, mapped internal files and
+  repeatable patch work.
 
-## Features
+The in-app Guide remains the user-facing manual. This README focuses on project
+capabilities, technical structure and release/build notes.
+
+## Highlights
 
 - Converts between Decimal, Binary, Hex Big-Endian and Hex Little-Endian.
-- Restricts each converter input to the characters accepted by its numeric base.
 - Keeps typed converter content separate from formatted display output.
-- Applies `group size` and `zero padding` independently for each converter field.
-- Completes odd hexadecimal input with a leading zero before conversion.
-- Keeps Hex (LE) editing stable even when zero padding is visible.
-- Copies converter text exactly as displayed, or copies raw text without spaces from the small copy icon beside each field.
+- Supports independent grouping and zero padding for each converter field.
 - Evaluates arithmetic, comparison, bitwise and textual-operator expressions.
-- Supports decimal, `0b` binary and `0x` hexadecimal literals.
-- Supports assignments with Python-compatible variable names.
-- Provides autocomplete for variables stored in the active context.
-- Lets `Arrow Up` and `Arrow Down` browse command history entries from the log popup before inserting them with `Enter`.
-- Saves and loads workspace files containing the full context.
-- Keeps an automatic default context file.
-- Restores the sizes of the main window, Help, Variables and Logs automatically from the saved workspace context.
-- Sends command results into the converter automatically when `Auto Convert` is enabled.
-- Provides a key panel for fast command input.
-- Includes an in-app Help window with focused usage documentation.
-- Opens `Variables`, `Logs` and `Help` as independent reusable windows without duplicating the same window instance.
-- Ships as a portable desktop bundle for Windows, Linux and macOS.
+- Supports decimal, `0b` binary, `b'...'` binary, `0x` hexadecimal and plain
+  hexadecimal command literals.
+- Stores variables, command history, converter state and preferences in context.
+- Provides separate Variables and Logs windows for inspecting workspace state.
+- Lets Logs preferences decide which command categories are persisted.
+- Includes Binary Workbench for files, scratch assembly, tabs, versions, symbols,
+  labels, internal files, offset regions, decoded text and search/navigation.
+- Builds portable bundles for Windows, Linux and macOS through PyInstaller.
 
-## Converter
+## Numeric WorkBench
+
+The numeric side combines a converter and a command window.
+
+### Converter
 
 The converter has four fields:
 
@@ -46,205 +49,233 @@ The converter has four fields:
 - `Hex (BE)`: accepts digits `0-9` and letters `A-F`.
 - `Hex (LE)`: accepts digits `0-9` and letters `A-F`.
 
-### Editing and copying
+Formatting is presentation-oriented. Grouping and zero padding change the
+effective display/conversion value without overwriting the raw text being
+edited. Odd hexadecimal input receives one leading zero before conversion so
+byte alignment stays stable.
 
-Converter fields behave like normal text fields for selection, cursor movement and standard copy:
+Normal copy keeps the displayed text, including spaces. The small copy icon
+beside each converter field copies the same value without spaces.
 
-- `Ctrl+C` copies the selected value exactly as it appears on screen, including spaces.
-- `Ctrl+A` selects the visible field content.
-- `Backspace` and `Delete` remove the selected raw content or the raw character near the cursor.
-- The small copy icon beside each field performs `copy raw`, which copies the visible value without spaces.
+### Command Window
 
-### Padding and grouping
+The command window evaluates expressions and stores variables in the active
+context.
 
-Each field can be configured in `Preferences > Converter`:
-
-- `group size` defines how characters are grouped visually.
-- `zero pad` pads the effective value before display and conversion.
-
-The raw typed content is not overwritten by padding. For example, with Hex (LE), `group size = 4` and `zero pad = true`:
-
-```text
-typed: 45
-effective/displayed: 0045
-
-typed: 454
-effective/displayed: 0454
-```
-
-Odd hexadecimal input is completed with one leading zero before conversion:
-
-```text
-typed: FFF0123
-effective: 0FFF0123
-```
-
-## Command Window
-
-The command window evaluates expressions and stores variables in the active context.
-
-### Numbers
+Supported numeric literals:
 
 ```text
 42
 0b101010
+b'101010
 0x2A
+002A
 ```
-
-### Assignments
 
 Assignments work with or without spaces:
 
 ```text
 gp=0x89823A
 mask = 0xFF
-bits=0b10101010
+bits=b'10101010
 ```
 
-Variable names follow Python identifier rules.
-
-### Operators
-
-Arithmetic:
+Operators:
 
 ```text
-+  -  *  /  %  **
+Arithmetic:  +  -  *  /  %  **
+Bitwise:     &  |  ^  ~  <<  >>
+Comparison:  ==  !=  <  >  <=  >=
+Aliases:     NOT  AND  OR  XOR
 ```
 
-Bitwise:
+Textual aliases are parsed only when they are explicit operators. Identifiers
+such as `AND_value`, `ORBIT`, `XOFFSET` and `NOT1` remain identifiers.
+
+`ANS` stores the last successful command result. When `Convert` is enabled,
+successful non-negative integer results are sent to the Decimal converter.
+
+### Variables, Logs and Preferences
+
+Variables and Logs open as separate reusable windows. Each row can be removed
+individually. Logs are stored as submitted command/result pairs, and
+`Preferences > Logs` controls whether assignment-only, unary-only, no-operator,
+assignment and binary-operator expressions are persisted.
+
+## Binary Workbench
+
+Binary Workbench is a separate window opened from the main toolbar. It is built
+around tabs, where each tab owns its file/source identity, rows, symbols,
+versions, navigation state and dirty state.
+
+### User-Facing Systems
+
+- `Open File` opens binary or assembly/code files. Opening an already-open file
+  switches to its existing tab.
+- `New Scratch Code` creates a temporary assembly tab for experiments.
+- `Internal Files` opens mapped ranges from a larger binary or disc image as
+  focused tabs.
+- `Version` stores named edit sets and can restore or replace visible edited
+  rows without immediately rewriting the original file.
+- `Go to`, `Find` and `Select Block` provide focused navigation and selection.
+- `Environment` tools manage symbols, labels, offset regions, LBA file maps,
+  custom commands and encoding tables.
+- `Preferences` controls byte formatting, visible columns, edit rules,
+  reference offsets, CPU architecture, block size, cache size and selection
+  limits.
+
+### Editor Model
+
+The main editor view is made of synchronized row surfaces:
+
+- `Editor Assembly`: the primary assembly editing surface.
+- `Bytes`: encoded bytes for the same rows.
+- `Raw Instructions`: preprocessed instruction text sent to assembly logic.
+- `File Offset` and optional reference offsets.
+- `Decoded Text`, when enabled through view preferences and encoding tables.
+
+Rows are represented by `BinaryWorkbenchRowDTO`, which carries offsets,
+instruction text, byte text and original values. The editor tracks meaningful
+edits through overlays rather than blindly rewriting full source data.
+
+The PSX MIPS R3000A codec lives under `src/core/binary_workbench/mips_r3000a`.
+It uses project fallback assemblers/disassemblers and can use `capstone` and
+`keystone` when available. This keeps the editor usable while still allowing
+better assembly/disassembly support in packaged builds.
+
+### Tabs and Context
+
+Binary Workbench state is represented by `BinaryWorkbenchStateDTO` and
+`BinaryWorkbenchTabContextDTO`.
+
+The global state stores:
+
+- open tabs;
+- active tab id;
+- shared view preference flag;
+- last used directories;
+- custom commands grouped by architecture;
+- encoding tables;
+- window size.
+
+Each tab context stores:
+
+- tab id, kind, display name and source path;
+- CPU architecture and read mode;
+- reference offsets and reference offset bases;
+- labels, variables, equates and symbol offsets;
+- internal file mappings and parent/child tab metadata;
+- LBA sector size and offset regions;
+- versions and active version name;
+- workspace/module paths, checksums and directories;
+- custom commands, navigation history and last open offset;
+- original rows, current rows, file sizes, overlays and dirty state;
+- view preferences for visible columns and decoded text tables.
+
+### Workspace Modules
+
+Binary Workbench workspaces use a manifest plus module files instead of storing
+everything in one large JSON payload.
+
+The manifest is stored under:
 
 ```text
-&  |  ^  ~  <<  >>
+data/binary_workbench/workspaces
 ```
 
-Comparisons:
+Module folders include:
 
 ```text
-==  !=  <  >  <=  >=
+Symbols
+LBA File System
+Versions
+Offset Regions
 ```
 
-Textual aliases:
+The manifest records source identity, module paths, module directories, active
+version and view preferences. Module checksums are used to detect whether the
+tab data has changed. Symbols, LBA maps, versions and offset regions can be
+saved independently while still loading through the same tab workspace.
+
+### Caching and Large Files
+
+Binary Workbench uses two main caching systems.
+
+`CachedBinaryReader` reads source files by block and keeps a limited LRU block
+cache. `block_size` and `cache_max_blocks` are controlled by Advanced
+Configuration. The reader can also apply byte overlays at read time, so edited
+bytes are visible without forcing a full file rewrite.
+
+`SearchCacheService` caches Find results by query and searched ranges. Entries
+have a TTL, a maximum entry count and hit-count/last-use eviction. It can return
+partial cached offsets, report missing ranges and validate offsets before reuse.
+The cache is intentionally separated from heavy context persistence so search
+speed does not bloat normal workspace load/save flows.
+
+### Symbols, Labels and Navigation
+
+Symbols keep assembly readable:
+
+- Variables use the `_name` form and are suited for addresses or offsets.
+- Equates use the `@name` form and are suited for immediate constants.
+- Raw Instructions shows resolved values after symbolic replacement.
+
+Labels are detected from assembly rows. Jump and branch operands that target
+labels can be clicked for navigation. Go To can resolve file offsets, reference
+offsets, LBA values, labels, equates, variables and named internal files.
+
+### Versions, Overlays and Internal Files
+
+Versions are named edit sets. They can store instruction overlays, line-based
+instructions and row payloads. A version can be loaded into a tab, updated from
+the current editor state and saved as a module.
+
+Internal file tabs are mapped through the configured LBA File System. They keep
+their parent source visible and map changes back to parent binary offsets, which
+avoids manual offset math when editing named files inside a larger image.
+
+### Commands and Encoding Tables
+
+Editor commands are typed in Editor Assembly with a leading slash. `/sp` creates
+a stack save/restore block, and custom commands can store repeated instruction
+blocks with optional register substitution.
+
+Encoding tables map byte values to text for decoded text workflows. Find can
+search decoded text after the relevant table is available to the active context.
+
+## Project Structure
 
 ```text
-NOT  AND  OR  XOR
+main.py             official desktop launcher
+build               release build automation and PyInstaller config
+src/core            domain rules, converter, validators and binary logic
+src/modules         DTOs, constants, service contracts and use cases
+src/controllers     bridges between UI/presentation and use cases
+src/presentation    repositories, formatters and PySide6 UI components
+src/main            application composition and runtime defaults
+tests               automated tests
+data                local contexts, workspaces and runtime data
 ```
 
-### Examples
-
-Basic:
+Important Binary Workbench areas:
 
 ```text
-1 + 1
-0x10 + 5
-0b1010 * 3
+src/core/binary_workbench
+src/core/binary_workbench/mips_r3000a
+src/core/binary_workbench/search_cache
+src/core/binary_workbench/editor/commands
+src/modules/binary_workbench_*.py
+src/presentation/repository/binary_workbench_workspace
+src/presentation/ui/components/binary_workbench
 ```
-
-Variables:
-
-```text
-value=0x20
-value + 10
-value << 2
-ANS + 4
-```
-
-`ANS` always contains the last successful command result and can be reused like a normal variable.
-
-Bitwise:
-
-```text
-mask=0xFF
-mask AND 0b10101010
-NOT 0x0F
-(0x20 + 5) << 2
-```
-
-Command results appear in the result label above the input. When `Auto Convert` is enabled, successful non-negative integer results are also sent to the Decimal converter field.
-
-History entries are rendered on one line:
-
-```text
-x=5665+58*(40-23) => 6651
-```
-
-### History navigation
-
-Use the keyboard to browse previous successful command inputs from the log:
-
-- `Arrow Up`: shows the previous log entry.
-- `Arrow Down`: shows the next log entry.
-- `Enter`: inserts the currently selected history entry into the command window without executing it immediately.
-
-## Workspace and Context
-
-Context stores the working state:
-
-- variables;
-- command history;
-- active command line;
-- converter state;
-- key panel visibility;
-- auto convert state;
-- window sizes for the main window, Help, Variables and Logs.
-
-Workspace files save the full context:
-
-```text
-data/workspaces
-```
-
-Use:
-
-- `File > Save Workspace`
-- `File > Load Workspace`
-
-The automatic default context is stored internally in:
-
-```text
-data/contexts
-```
-
-The default context is saved automatically as the workspace changes.
-
-Window sizes are restored automatically when the app opens again. If no saved size exists yet, the current default window size is used.
-
-## Key Panel
-
-The key panel writes directly into the command window.
-
-Special keys:
-
-- `CLEAR`: deletes the last command character, or removes one line from History when the command input is empty.
-- `ENTER`: submits the current expression.
-
-## Preferences
-
-`Preferences > Converter` controls formatting for each converter field:
-
-- group size;
-- zero padding.
-
-The `Preferences` menu also includes:
-
-- `Show Key Panel`
-- `Auto Convert`
-
-Checked preference items are highlighted with the project theme instead of a default check icon.
-
-## Help
-
-The `Help` toolbar button opens an in-app manual with pages for:
-
-- overview;
-- converter;
-- command window;
-- context and history;
-- key panel;
-- preferences.
 
 ## Dependencies
 
+Runtime dependencies:
+
 ```text
+capstone==5.0.7
+keystone-engine==0.9.2
 packaging==25.0
 PySide6==6.10.1
 PySide6_Addons==6.10.1
@@ -252,7 +283,12 @@ PySide6_Essentials==6.10.1
 QtAwesome==1.4.0
 QtPy==2.4.3
 shiboken6==6.10.1
-pytest
+```
+
+Build dependency:
+
+```text
+pyinstaller==6.16.0
 ```
 
 ## Run
@@ -273,7 +309,8 @@ make build OS=linux
 make build OS=macos
 ```
 
-If your shell does not expose the desired Python interpreter on `PATH`, override it explicitly:
+If your shell does not expose the desired Python interpreter on `PATH`, override
+it explicitly:
 
 ```bash
 make build OS=windows PYTHON=/path/to/python
@@ -290,10 +327,16 @@ dist/macos
 Artifact names follow this format:
 
 ```text
-numeric-workbench-v1.0-<os>-<architecture>
+numeric-workbench-v2.0-<os>-<architecture>
 ```
 
-v1.0 ships portable bundles only. Native installers are intentionally out of scope for this release.
+v2.0 ships portable bundles only. Native installers are intentionally out of
+scope for this release.
+
+The PyInstaller config keeps the bundle smaller by excluding unused Qt stacks
+such as QtQuick, QML, WebEngine, Multimedia, OpenGL, SVG, PDF and several unused
+Qt Addons. Binary Workbench assembly support keeps the dynamic `capstone` and
+`keystone` imports available in packaged builds.
 
 ## CI Release Builds
 
@@ -303,24 +346,32 @@ GitHub Actions builds portable artifacts natively on:
 - Linux
 - macOS
 
-Each release build job installs dependencies, runs `pytest`, builds the portable artifact and uploads it as a workflow artifact.
-
-## Project Structure
-
-```text
-main.py           official desktop launcher
-build             release build automation and PyInstaller config
-src/core          domain rules, converter, tokenizer, validator and context
-src/application   contracts, DTOs, services and use cases
-src/controllers   bridges between presenters and use cases
-src/presentation  presenters, repositories, formatters and UI components
-src/main          application composition
-tests             automated tests
-data              local contexts and workspaces
-```
+Each release build job installs dependencies, runs tests, builds the portable
+artifact and uploads it as a workflow artifact.
 
 ## Test
 
 ```bash
 pytest
 ```
+
+For focused validation after build changes:
+
+```bash
+pytest tests/release
+```
+
+## Feedback and Roadmap
+
+User feedback is necessary for the next development cycles. Please report bugs,
+unexpected editor behavior, confusing workflows and feature requests with enough
+context to reproduce the issue. This is especially important for Binary
+Workbench because real binary editing workflows expose edge cases that are hard
+to predict from isolated tests.
+
+The project will need refactoring and better organization after the v2.0
+feature cycle. The UI layer grew quickly and now contains responsibilities that
+should move toward controllers, presenters or core services. QSS files also need
+cleanup, several UI files are spread without their own focused subfolders, and
+some shared constants are duplicated across nearby systems. Future maintenance
+should reduce this coupling before adding large new features.

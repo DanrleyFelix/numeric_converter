@@ -8,7 +8,7 @@ def test_artifact_directory_name_contains_version_and_os(monkeypatch):
 
     assert (
         release_config.artifact_directory_name("windows")
-        == "numeric-workbench-v1.0-windows-x86_64"
+        == "numeric-workbench-v2.0-windows-x86_64"
     )
 
 

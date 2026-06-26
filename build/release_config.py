@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Numeric WorkBench"
-APP_VERSION = "1.0"
+APP_VERSION = "2.0"
 EXECUTABLE_NAME = "NumericWorkBench"
 SUPPORTED_OSES = ("windows", "linux", "macos")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

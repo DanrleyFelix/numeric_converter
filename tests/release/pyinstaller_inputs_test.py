@@ -1,6 +1,7 @@
 from build.pyinstaller_inputs import (
     EXCLUDED_BINARY_NAMES,
     EXCLUDED_MODULES,
+    HIDDEN_IMPORTS,
     collect_packaged_data,
     filter_packaged_entries,
 )
@@ -56,3 +57,27 @@ def test_excluded_modules_cover_qt_quick_pdf_opengl_stacks():
     assert expected_modules.issubset(set(EXCLUDED_MODULES))
     assert "Qt6Quick.dll" in EXCLUDED_BINARY_NAMES
     assert "opengl32sw.dll" in EXCLUDED_BINARY_NAMES
+
+
+def test_hidden_imports_include_binary_workbench_assembly_runtime():
+    assert set(HIDDEN_IMPORTS) == {"capstone", "keystone"}
+
+
+def test_excluded_modules_cover_unused_qt_addons_stacks():
+    expected_modules = {
+        "PySide6.Qt3DCore",
+        "PySide6.QtBluetooth",
+        "PySide6.QtCharts",
+        "PySide6.QtDesigner",
+        "PySide6.QtGraphs",
+        "PySide6.QtLocation",
+        "PySide6.QtSerialPort",
+        "PySide6.QtSql",
+        "PySide6.QtUiTools",
+        "PySide6.QtWebSockets",
+    }
+
+    assert expected_modules.issubset(set(EXCLUDED_MODULES))
+    assert "Qt63DCore.dll" in EXCLUDED_BINARY_NAMES
+    assert "Qt6Charts.dll" in EXCLUDED_BINARY_NAMES
+    assert "Qt6Sql.dll" in EXCLUDED_BINARY_NAMES
