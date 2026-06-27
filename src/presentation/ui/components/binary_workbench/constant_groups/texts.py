@@ -4,6 +4,7 @@ class BINARY_WORKBENCH_TEXT:
     STATUS_PLACEHOLDER_TEMPLATE: str = '"{name}" is not implemented yet.'
     STATUS_OPENED_TEMPLATE: str = 'Opened "{name}".'
     STATUS_ALREADY_OPEN_TEMPLATE: str = 'File "{name}" is already open.'
+    STATUS_INTERNAL_ALREADY_OPEN_TEMPLATE: str = 'Internal file "{name}" is already open.'
     STATUS_CLOSED_TEMPLATE: str = 'Closed "{name}".'
     STATUS_INTERNAL_CLOSED_TEMPLATE: str = 'Closed "{name}". Internal Files.'
     STATUS_INTERNAL_SOURCE_REQUIRED: str = "Select a file-backed tab before opening an internal file."
@@ -134,6 +135,8 @@ class BINARY_WORKBENCH_TEXT:
     VARIABLE_TARGET: str = "Variable"
     INTERNAL_FILE_TARGET: str = "Named File / Internal File"
     FIND_ASSEMBLY: str = "Assembly instruction"
-    FIND_HEX_BYTES: str = "Hex bytes"
+    FIND_HEX_BYTES: str = "Hex Bytes (LE)"
+    FIND_HEX_BYTES_BE: str = "Hex Bytes (BE)"
     FIND_DECODED_TEXT: str = "Decoded Text"
+    FIND_AUTO_FILL_START_OFFSET: str = "Auto-fill Start Offset"
     SAVE_BEFORE_CLOSE: str = "Save changes before closing this tab?"

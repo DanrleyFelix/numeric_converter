@@ -37,7 +37,7 @@ PSX_MIPS_HIGHLIGHTER = {
         [PSX_MIPS_SPECIAL_REGISTERS, "#8FA6FF"],
     ],
     "hex": "#62C6A1",
-    "label": "#FFD166",
+    "label": "#FF4FD8",
     "equate": "#FF4FD8",
     "variable": "#FF4FD8",
     "command": "#4F6DFF",

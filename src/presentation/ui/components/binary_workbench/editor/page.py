@@ -81,6 +81,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
         self._reader: CachedBinaryReader | InternalFileView | None = None
         self._loading_visible_rows = False
+        self._suppress_context_changed = False
         self._pending_selection: tuple[int, int] | None = None
         footer, (
             self.offset_summary,
@@ -101,6 +102,17 @@ class BinaryWorkbenchEditorPage(
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)
+
+    def refresh_shared_context(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> BinaryWorkbenchTabContextDTO:
+        self._suppress_context_changed = True
+        try:
+            self.load_context(context)
+        finally:
+            self._suppress_context_changed = False
+        return self._context
 
     def release_heavy_resources(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = None

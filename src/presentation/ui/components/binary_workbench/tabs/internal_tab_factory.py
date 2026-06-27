@@ -19,10 +19,7 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchVersionDTO,
     BinaryWorkbenchViewPreferencesDTO,
 )
-from src.presentation.repository.binary_workbench_workspace.constants import (
-    VERSION_PATH_PREFIX,
-    VERSIONS,
-)
+
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import (
     seed_view_preferences,
 )
@@ -67,11 +64,7 @@ def create_internal_tab(
             "versions": [version],
             "active_version_name": version.name,
             "workspace_path": None,
-            "module_paths": {
-                key: value
-                for key, value in parent.module_paths.items()
-                if key != VERSIONS and not key.startswith(VERSION_PATH_PREFIX)
-            },
+            "module_paths": {},
             "module_checksums": {},
             "version_dirty": False,
             "byte_overlays": byte_overlays,

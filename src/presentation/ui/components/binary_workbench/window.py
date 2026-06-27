@@ -131,6 +131,7 @@ class BinaryWorkbenchWindow(
         self._help_window.activateWindow()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        self.tabs.flush_open_workspaces()
         self.tabs.flush_search_cache()
         self.sizePersistRequested.emit(self.width(), self.height())
         super().closeEvent(event)

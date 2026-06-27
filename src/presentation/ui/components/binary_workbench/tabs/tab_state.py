@@ -1,6 +1,8 @@
 from dataclasses import replace
 from pathlib import Path
 
+from PySide6.QtCore import QSignalBlocker
+
 from src.core.binary_workbench.internal_file_patch import (
     binary_overlays_from_internal_overlays,
 )
@@ -16,6 +18,10 @@ from src.presentation.ui.components.binary_workbench.editor import BinaryWorkben
 from src.presentation.ui.components.binary_workbench.tabs.factory import restorable_state
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import state_payload, tab_text
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import DIRECTORY_KEYS
+from src.presentation.ui.components.binary_workbench.tabs.workspace_memory import (
+    workspace_heavy_context_unloaded,
+)
+
 
 TRANSIENT_VISIBLE_CONTEXT_FIELDS = {
     "rows",
@@ -24,6 +30,39 @@ TRANSIENT_VISIBLE_CONTEXT_FIELDS = {
     "last_open_offset",
     "file_size",
     "original_file_size",
+}
+
+SHARED_WORKSPACE_FIELDS = {
+    "cpu_arch",
+    "read_mode",
+    "reference_offsets",
+    "reference_offset_bases",
+    "labels",
+    "equates",
+    "variables",
+    "symbol_offsets",
+    "internal_files",
+    "internal_file_start_lba",
+    "internal_parent_tab_id",
+    "internal_parent_byte_overlays",
+    "lba_sector_size",
+    "named_regions",
+    "offset_regions",
+    "offset_regions_loaded",
+    "encoding_tables",
+    "versions",
+    "active_version_name",
+    "workspace_path",
+    "module_paths",
+    "module_directories",
+    "module_checksums",
+    "custom_commands",
+    "file_size",
+    "original_file_size",
+    "version_dirty",
+    "byte_overlays",
+    "instruction_overlays",
+    "view_preferences",
 }
 
 
@@ -96,10 +135,18 @@ class TabStateMixin:
             return False
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             mapper = _internal_mapper(context)
+            version_changed = self.has_unsaved_version_edits(context)
+            workspace_changed = (
+                self._has_workspace_module_changes(context)
+                if context.module_checksums
+                else _internal_workspace_changed(context)
+            )
             if mapper is None:
-                return self.has_unsaved_version_edits(context)
+                return version_changed or workspace_changed
             return (
-                binary_overlays_from_internal_overlays(
+                version_changed
+                or workspace_changed
+                or binary_overlays_from_internal_overlays(
                     mapper,
                     context.byte_overlays,
                 )
@@ -117,20 +164,37 @@ class TabStateMixin:
             return
         closed = self._state.tabs[index]
         remaining = [tab for idx, tab in enumerate(self._state.tabs) if idx != index]
+        active_index = min(index, len(remaining) - 1) if remaining else -1
+        active = remaining[active_index].tab_id if active_index >= 0 else None
         page = self.widget(index)
-        self.removeTab(index)
+        blocker = QSignalBlocker(self)
+        try:
+            self.removeTab(index)
+        finally:
+            del blocker
         if page is not None:
             page.deleteLater()
         self._forget_workspace_tab_access(closed.tab_id)
-        active = remaining[min(index, len(remaining) - 1)].tab_id if remaining else None
-        self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": remaining, "active_tab_id": active})
+        self._state = BinaryWorkbenchStateDTO(
+            **{
+                **state_payload(self._state),
+                "tabs": remaining,
+                "active_tab_id": active,
+            }
+        )
+        self._active_tab_index = -1
+        if active_index >= 0:
+            self.setCurrentIndex(active_index)
+            self._sync_active_tab(active_index)
+        self._update_tab_navigation()
         template = (
             BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_CLOSED_TEMPLATE
             if closed.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
             else BINARY_WORKBENCH_TEXT.STATUS_CLOSED_TEMPLATE
         )
         self.statusChanged.emit(template.format(name=closed.display_name))
-        self.stateChanged.emit(self._state)
+        if active_index < 0:
+            self.stateChanged.emit(self._state)
 
     def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
         context = self._context_with_universal_commands(context)
@@ -148,9 +212,17 @@ class TabStateMixin:
     def _replace_context(self, tab_id: str, context: object) -> None:
         if not isinstance(context, BinaryWorkbenchTabContextDTO):
             return
-        tabs = [context if tab.tab_id == tab_id else tab for tab in self._state.tabs]
+        tabs = [
+            context
+            if tab.tab_id == tab_id
+            else _shared_workspace_context(tab, context)
+            for tab in self._state.tabs
+        ]
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": tabs})
         self._refresh_tab_label(tab_id, context.display_name)
+        for tab in tabs:
+            if tab.tab_id != tab_id and _same_shared_workspace(tab, context):
+                self._mark_page_context_stale(tab)
         self.stateChanged.emit(self._state)
 
     def _handle_page_context_change(self, tab_id: str, context: object) -> None:
@@ -209,15 +281,27 @@ class TabStateMixin:
             version_dirty=parent.version_dirty or parent_overlays_changed,
         )
         context = replace(context, internal_parent_tab_id=parent.tab_id)
-        tabs = [
-            context if tab.tab_id == tab_id else parent if tab.tab_id == parent.tab_id else tab
-            for tab in self._state.tabs
-        ]
+        tabs = []
+        for tab in self._state.tabs:
+            if tab.tab_id == tab_id:
+                tabs.append(context)
+                continue
+            if tab.tab_id == parent.tab_id:
+                tabs.append(parent)
+                continue
+            shared = _shared_workspace_context(tab, context)
+            shared = _shared_workspace_context(shared, parent)
+            tabs.append(shared)
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "tabs": tabs}
         )
         self._refresh_tab_label(tab_id, context.display_name)
         self._mark_page_context_stale(parent)
+        for tab in tabs:
+            if tab.tab_id in {tab_id, parent.tab_id}:
+                continue
+            if _same_shared_workspace(tab, context) or _same_shared_workspace(tab, parent):
+                self._mark_page_context_stale(tab)
         self.stateChanged.emit(self._state)
 
     def discard_internal_changes(self, index: int) -> bool:
@@ -287,9 +371,16 @@ class TabStateMixin:
             -1,
         )
         page = self.widget(index) if index >= 0 else None
-        if isinstance(page, BinaryWorkbenchEditorPage):
+        if not isinstance(page, BinaryWorkbenchEditorPage):
+            self._stale_context_pages.add(context.tab_id)
+            return
+        if workspace_heavy_context_unloaded(context):
             page.replace_context(context)
             self._stale_context_pages.add(context.tab_id)
+            return
+        updated = page.refresh_shared_context(context)
+        self._replace_context_without_emit(updated.tab_id, updated)
+        self._stale_context_pages.discard(context.tab_id)
 
     def _set_current_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         index = self.currentIndex()
@@ -323,6 +414,16 @@ class TabStateMixin:
             return
         if not 0 <= index < len(self._state.tabs):
             return
+        previous = getattr(self, "_active_tab_index", -1)
+        if previous != index and 0 <= previous < len(self._state.tabs):
+            previous_context = self.context_at(previous)
+            if previous_context is not None and self._workspace_context_unloadable(previous, previous_context):
+                self._unload_workspace_heavy_tab(previous)
+            elif previous_context is not None and _persist_on_tab_switch(previous_context):
+                persisted = self._persist_workspace_context_for_unload(previous, previous_context)
+                if persisted is not None:
+                    self._replace_context_without_emit(persisted.tab_id, persisted)
+        self._active_tab_index = index
         self._ensure_workspace_heavy_loaded(index)
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "active_tab_id": self._state.tabs[index].tab_id})
         context = self._state.tabs[index]
@@ -417,3 +518,48 @@ def _is_transient_visible_context_update(
         previous_values.pop(field, None)
         current_values.pop(field, None)
     return previous_values == current_values
+
+def _internal_workspace_changed(context: BinaryWorkbenchTabContextDTO) -> bool:
+    if context.module_checksums:
+        return False
+    return bool(
+        context.variables
+        or context.equates
+        or context.offset_regions
+        or context.offset_regions_loaded
+        or context.custom_commands
+    )
+
+
+def _persist_on_tab_switch(context: BinaryWorkbenchTabContextDTO) -> bool:
+    return context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL or context.keep_workspace_resources
+
+
+def _same_shared_workspace(
+    tab: BinaryWorkbenchTabContextDTO,
+    context: BinaryWorkbenchTabContextDTO,
+) -> bool:
+    if tab.tab_id == context.tab_id:
+        return False
+    if tab.kind != context.kind:
+        return False
+    if tab.source_path != context.source_path:
+        return False
+    if tab.internal_file_start_lba != context.internal_file_start_lba:
+        return False
+    if tab.workspace_path and context.workspace_path:
+        return tab.workspace_path == context.workspace_path
+    return tab.keep_workspace_resources or context.keep_workspace_resources
+
+
+def _shared_workspace_context(
+    tab: BinaryWorkbenchTabContextDTO,
+    context: BinaryWorkbenchTabContextDTO,
+) -> BinaryWorkbenchTabContextDTO:
+    if not _same_shared_workspace(tab, context):
+        return tab
+    values = dict(tab.__dict__)
+    source = dict(context.__dict__)
+    for field in SHARED_WORKSPACE_FIELDS:
+        values[field] = source[field]
+    return BinaryWorkbenchTabContextDTO(**values)

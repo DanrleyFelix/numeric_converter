@@ -48,10 +48,17 @@ def source_payload(path: Path) -> dict[str, str]:
     }
 
 
-def source_matches(payload: object, path: Path) -> bool:
+def source_matches(
+    payload: object,
+    path: Path,
+    internal_file_start_lba: int | None = None,
+) -> bool:
     if not isinstance(payload, dict):
         return False
-    if payload.get("internal_file_start_lba") is not None:
+    payload_internal_lba = payload.get("internal_file_start_lba")
+    if internal_file_start_lba is None and payload_internal_lba is not None:
+        return False
+    if internal_file_start_lba is not None and payload_internal_lba != internal_file_start_lba:
         return False
     current = source_payload(path)
     return (
@@ -154,8 +161,31 @@ def offset_regions_payload(
     }
 
 
+def offset_regions_payload_preserving_details(
+    name: str,
+    regions: list[BinaryWorkbenchOffsetRegionDTO],
+    existing_payload: dict[str, object] | None,
+) -> dict[str, object]:
+    details_by_region = _offset_region_details(existing_payload)
+    return {
+        "name": name,
+        "regions": [
+            {
+                "name": region.name,
+                "offset": region.offset,
+                "details": region.details
+                if region.details_loaded
+                else details_by_region.get(_offset_region_source(region), ""),
+            }
+            for region in regions
+        ],
+    }
+
+
 def offset_regions_from_payload(
     payload: dict[str, object] | None,
+    *,
+    include_details: bool = True,
 ) -> list[BinaryWorkbenchOffsetRegionDTO]:
     if not isinstance(payload, dict) or not isinstance(payload.get("regions"), list):
         return []
@@ -170,9 +200,38 @@ def offset_regions_from_payload(
         regions.append(BinaryWorkbenchOffsetRegionDTO(
             name=item["name"],
             offset=offset,
-            details=details if isinstance(details, str) else "",
+            details=details if include_details and isinstance(details, str) else "",
+            details_loaded=include_details,
+            details_source_name=item["name"],
+            details_source_offset=offset,
         ))
     return regions
+
+
+def _offset_region_source(region: BinaryWorkbenchOffsetRegionDTO) -> tuple[str, int]:
+    return (
+        region.details_source_name or region.name,
+        region.details_source_offset
+        if region.details_source_offset is not None
+        else region.offset,
+    )
+
+
+def _offset_region_details(
+    payload: dict[str, object] | None,
+) -> dict[tuple[str, int], str]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("regions"), list):
+        return {}
+    details: dict[tuple[str, int], str] = {}
+    for item in payload["regions"]:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        offset = item.get("offset")
+        value = item.get("details")
+        if isinstance(name, str) and isinstance(offset, int) and isinstance(value, str):
+            details[(name, offset)] = value
+    return details
 
 
 def view_preferences_payload(value: BinaryWorkbenchViewPreferencesDTO) -> dict[str, object]:
@@ -315,3 +374,20 @@ def _instructions_by_line(raw: object) -> dict[int, str]:
         if line >= 0:
             values[line] = str(value)
     return values
+
+
+def offset_region_details_from_payload(
+    payload: dict[str, object] | None,
+    name: str,
+    offset: int,
+) -> str:
+    if not isinstance(payload, dict) or not isinstance(payload.get("regions"), list):
+        return ""
+    for item in payload["regions"]:
+        if not isinstance(item, dict):
+            continue
+        if item.get("name") != name or item.get("offset") != offset:
+            continue
+        details = item.get("details")
+        return details if isinstance(details, str) else ""
+    return ""

@@ -128,6 +128,7 @@ def create_label_tab(parent: BinaryWorkbenchTabContextDTO, label: str) -> Binary
         **{
             **deepcopy(parent.__dict__),
             "tab_id": uuid4().hex,
+            "keep_workspace_resources": True,
             "display_name": BINARY_WORKBENCH_TEXT.LABEL_TAB_NAME_TEMPLATE.format(
                 label=label,
                 source=parent.display_name,

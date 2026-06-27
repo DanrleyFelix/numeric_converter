@@ -58,8 +58,8 @@ class TabNavigationSearchMixin:
         query_key = self._search_cache_query(mode, query, start_offset, end_offset, max_results)
         cached: list[int] = []
         missing_ranges = [(start_offset, end_offset)]
-        if query_key is not None:
-            search_cache = self._search_cache_for_find()
+        search_cache = self._search_cache_for_find() if query_key is not None else None
+        if search_cache is not None:
             cached = search_cache.cached_offsets(query_key)
             missing_ranges = search_cache.missing_ranges(query_key)
             if not missing_ranges:
@@ -76,11 +76,9 @@ class TabNavigationSearchMixin:
         if max_results is not None:
             results = results[:max_results]
         page.remember_search_end_offset(start_offset, end_offset)
-        if query_key is not None:
-            search_cache = self._search_cache_for_find()
+        if search_cache is not None:
             search_cache.put(query_key, results)
             results = search_cache.cached_offsets(query_key)
-            self._search_cache_repository.save(search_cache.entries_for_save())
         self._cache_search_results(mode, query, results, start_offset, end_offset)
         return results
 

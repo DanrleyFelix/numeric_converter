@@ -181,6 +181,8 @@ class GridRenderingMixin:
         return self._editor_text_signature(editor) != self._editor_text_signatures.get(id(editor), "")
 
     def _editor_text_signature(self, editor: QPlainTextEdit) -> str:
+        if editor is self.instructions:
+            return editor.toPlainText()
         return "\n".join(
             "".join(line.split())
             for line in editor.toPlainText().split("\n")

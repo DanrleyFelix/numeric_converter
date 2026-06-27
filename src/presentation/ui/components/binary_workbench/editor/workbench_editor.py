@@ -193,6 +193,13 @@ class WorkbenchEditor(
             self._refresh_completions()
             return
         key = event.key()
+        if key in {Qt.Key_PageUp, Qt.Key_PageDown}:
+            page = max(ROW_BYTES, self._shared_scrollbar.pageStep())
+            delta = page if key == Qt.Key_PageUp else -page
+            self._shared_scrollbar.setValue(self._shared_scrollbar.value() + delta)
+            QTimer.singleShot(0, lambda: self._move_cursor_to_edge(True))
+            event.accept()
+            return
         block = self.textCursor().blockNumber()
         last_block = max(0, self.document().blockCount() - 1)
         if key == Qt.Key_Down and block >= last_block:

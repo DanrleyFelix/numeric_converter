@@ -13,6 +13,7 @@ from src.presentation.ui.components.binary_workbench.editor.constants.highlighte
 
 BYTE_TOKEN = re.compile(rf"{HEX_DIGIT_PATTERN}{{2}}")
 HEX_TOKEN = re.compile(rf"0x{HEX_DIGIT_PATTERN}+")
+DECIMAL_TOKEN = re.compile(r"(?<![\w$])\d+(?![\w])")
 REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
 COMPLETION_TOKEN = re.compile(r"/[A-Za-z0-9_]*|[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")

@@ -20,6 +20,9 @@ class BinaryWorkbenchOffsetRegionDTO:
     name: str
     offset: int
     details: str = ""
+    details_loaded: bool = True
+    details_source_name: str | None = None
+    details_source_offset: int | None = None
 
 
 @dataclass(frozen=True)

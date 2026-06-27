@@ -24,12 +24,14 @@ def version_instruction_maps(
     offsets: dict[str, str] = {}
     lines: dict[int, str] = {}
     line_base = _line_base(rows)
+    visible_offsets: set[str] = set()
     for index, row in enumerate(rows):
         offset_text = row.offsets.get(FILE_OFFSET, EMPTY_OFFSET)
         if offset_text == EMPTY_OFFSET:
-            if row.instruction.strip():
+            if row.instruction:
                 lines[line_base + index] = row.instruction
             continue
+        visible_offsets.add(offset_text)
         instruction = _version_offset_instruction(
             row,
             instruction_overlays,
@@ -39,6 +41,9 @@ def version_instruction_maps(
             equates,
         )
         if instruction:
+            offsets[offset_text] = instruction
+    for offset_text, instruction in instruction_overlays.items():
+        if offset_text not in visible_offsets and instruction.strip():
             offsets[offset_text] = instruction
     return offsets, lines
 
@@ -63,7 +68,10 @@ def _version_offset_instruction(
     if offset_text in instruction_overlays or separator:
         return row.instruction
     expected = row.bytes_text.replace(" ", "").upper()
-    return row.instruction if data.hex().upper() != expected else ""
+    if data.hex().upper() != expected:
+        return row.instruction
+    restored = _restored_instruction(row, codec)
+    return row.instruction if _only_spacing_changed(row.instruction, restored) else ""
 
 
 def _invalid_instruction_feedback(
@@ -92,6 +100,10 @@ def _comment_feedback(
 
 def _comment_only(separator: str, code: str) -> bool:
     return bool(separator) and not code.strip()
+
+
+def _only_spacing_changed(value: str, reference: str) -> bool:
+    return value != reference and "".join(value.split()) == "".join(reference.split())
 
 
 def _restored_instruction(row: BinaryWorkbenchRowDTO, codec: CPUArchCodec) -> str:

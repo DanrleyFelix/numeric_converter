@@ -61,8 +61,17 @@ class TabVersionsMixin:
         current = self.current_context()
         if not self._is_versioned_context(current):
             return False
+        if current.active_version_name and current.active_version_name != name:
+            self.update_current_version(current.active_version_name)
+            current = self.current_context()
+            if current is None:
+                return False
+            saved = self._workspace_repository.save_tab_workspace(current)
+            self._remember_workspace_for_source(saved)
+            current = self._with_symbol_offsets(saved)
+            self._replace_context(current.tab_id, current)
         current = compact_binary_context_overlays(current)
-        version = next((item for item in current.versions if item.name == name), None)
+        version = self._version_for_load(current, name)
         if version is None:
             return False
         rows = self._rows_from_version(current, version)
@@ -103,6 +112,7 @@ class TabVersionsMixin:
         if not loaded:
             return None
         active = loaded[0].name
+        loaded = _versions_with_only_active_loaded(loaded, active)
         module_paths = {
             key: value
             for key, value in current.module_paths.items()
@@ -125,6 +135,19 @@ class TabVersionsMixin:
             )
         )
         return active if self.load_version(active) else None
+
+    def _version_for_load(
+        self,
+        current: BinaryWorkbenchTabContextDTO,
+        name: str,
+    ) -> BinaryWorkbenchVersionDTO | None:
+        version = next((item for item in current.versions if item.name == name), None)
+        if version is None:
+            return None
+        if _version_placeholder(version):
+            loaded = self._workspace_repository.load_version_from_context(current, name)
+            return loaded or version
+        return version
 
     def _version_from_current(
         self,
@@ -202,3 +225,17 @@ class TabVersionsMixin:
                 },
             }
         return dict(version.instruction_overlays)
+
+
+def _version_placeholder(version: BinaryWorkbenchVersionDTO) -> bool:
+    return not version.rows and not version.instruction_overlays and not version.instructions_by_line
+
+
+def _versions_with_only_active_loaded(
+    versions: list[BinaryWorkbenchVersionDTO],
+    active: str,
+) -> list[BinaryWorkbenchVersionDTO]:
+    return [
+        version if version.name == active else BinaryWorkbenchVersionDTO(name=version.name)
+        for version in versions
+    ]

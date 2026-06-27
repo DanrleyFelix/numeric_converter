@@ -82,20 +82,47 @@ class TabOpeningMixin:
         target = next((item for item in current.internal_files if item.name == internal_name), None)
         if target is None:
             return
+        if self._activate_internal_tab(current, target.start_lba, target.name):
+            self.statusWarningChanged.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_ALREADY_OPEN_TEMPLATE.format(name=target.name)
+            )
+            return
         region = define_internal_file_region(
             source,
             target,
             current.internal_files,
             current.lba_sector_size,
         )
-        self._append_tab(create_internal_tab(self._state, current, target, region))
+        context = create_internal_tab(self._state, current, target, region)
+        self._append_tab(self._apply_matching_internal_workspace(context, source, target.start_lba))
 
     def open_label_tab(self, label: str, offset: int) -> None:
+        self.commit_current_editor_text()
         current = self.current_context()
         if current is None:
             return
         self._append_tab(create_label_tab(current, label))
         self.go_to_instruction_offset(offset)
+
+    def _activate_internal_tab(
+        self,
+        parent: object,
+        start_lba: int,
+        name: str,
+    ) -> bool:
+        parent_source = getattr(parent, "source_path", None)
+        for index, tab in enumerate(self._state.tabs):
+            if tab.kind != BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+                continue
+            if tab.display_name != name:
+                continue
+            if tab.source_path != parent_source:
+                continue
+            if tab.internal_file_start_lba != start_lba:
+                continue
+            self.setCurrentIndex(index)
+            return True
+        return False
 
     def _activate_open_file_tab(self, path: Path) -> bool:
         target = _resolved_path(path)

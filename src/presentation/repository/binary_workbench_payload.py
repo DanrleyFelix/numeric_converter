@@ -344,9 +344,11 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         internal_parent_byte_overlays=normalize_string_map(
             raw.get("internal_parent_byte_overlays")
         ),
+        keep_workspace_resources=_bool(raw.get("keep_workspace_resources"), False),
         lba_sector_size=_lba_sector_size(raw.get("lba_sector_size")),
         named_regions=normalize_string_list(raw.get("named_regions")),
         offset_regions=_offset_regions(raw.get("offset_regions")),
+        offset_regions_loaded=_bool(raw.get("offset_regions_loaded"), bool(raw.get("offset_regions"))),
         encoding_tables=_encoding_tables(raw.get("encoding_tables")),
         versions=_versions(raw.get("versions")),
         active_version_name=active_version_name,
@@ -445,12 +447,14 @@ def binary_workbench_state_to_payload(
                 "internal_parent_byte_overlays": dict(
                     tab.internal_parent_byte_overlays
                 ),
+                "keep_workspace_resources": tab.keep_workspace_resources,
                 "lba_sector_size": tab.lba_sector_size,
                 "named_regions": list(tab.named_regions),
                 "offset_regions": [] if _module_backed(tab, OFFSET_REGIONS) else [
                     {"name": item.name, "offset": item.offset, "details": item.details}
                     for item in tab.offset_regions
                 ],
+                "offset_regions_loaded": tab.offset_regions_loaded,
                 "encoding_tables": [],
                 "versions": [] if _module_backed(tab, VERSIONS) else [
                     {

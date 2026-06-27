@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Signal, Qt
@@ -5,7 +6,11 @@ from PySide6.QtWidgets import QDialog, QFileDialog, QFrame, QHBoxLayout, QScroll
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchOffsetRegionDTO
 from src.modules.utils import read_json, write_json
-from src.presentation.repository.binary_workbench_workspace.payloads import offset_regions_from_payload, offset_regions_payload
+from src.presentation.repository.binary_workbench_workspace.payloads import (
+    offset_region_details_from_payload,
+    offset_regions_from_payload,
+    offset_regions_payload_preserving_details,
+)
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
     configure_binary_workbench_filter,
@@ -33,7 +38,14 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, QDialog):
     directoryChanged = Signal(str)
     goToRequested = Signal(int)
 
-    def __init__(self, regions: list[BinaryWorkbenchOffsetRegionDTO], directory: str, parent=None) -> None:
+    def __init__(
+        self,
+        regions: list[BinaryWorkbenchOffsetRegionDTO],
+        directory: str,
+        parent=None,
+        details_loader: Callable[[str, int], str] | None = None,
+        details_source_path: Path | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.OFFSET_REGIONS)
@@ -44,6 +56,8 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, QDialog):
         self._directory = directory
         self._saved_path = ""
         self._loaded_path = ""
+        self._details_loader = details_loader
+        self._details_source_path = details_source_path
         self._rows = []
         root = QVBoxLayout(self)
         root.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.DIALOG_MARGINS)
@@ -137,7 +151,14 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, QDialog):
         scroll_layout.addWidget(self.remove_body, 0)
         scroll.setWidget(scroll_body)
         for region in regions:
-            self._append_row(region.name, f"{region.offset:X}", region.details)
+            self._append_row(
+                region.name,
+                f"{region.offset:X}",
+                region.details,
+                details_loaded=region.details_loaded,
+                source_name=region.details_source_name,
+                source_offset=region.details_source_offset,
+            )
         parent.addWidget(scroll, 1)
     def _build_footer(self, parent: QVBoxLayout) -> None:
         footer = QWidget(self)
@@ -164,12 +185,25 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, QDialog):
         payload = read_json(Path(path))
         if not isinstance(payload, dict) or not isinstance(payload.get("regions"), list):
             return
-        regions = offset_regions_from_payload(payload)
+        regions = offset_regions_from_payload(payload, include_details=False)
         self._clear_rows()
         for region in regions:
-            self._append_row(region.name, f"{region.offset:X}", region.details)
+            self._append_row(
+                region.name,
+                f"{region.offset:X}",
+                region.details,
+                details_loaded=False,
+                source_name=region.details_source_name,
+                source_offset=region.details_source_offset,
+            )
         self._apply_filter()
         self._loaded_path = path
+        self._details_source_path = Path(path)
+        self._details_loader = lambda name, offset, source=Path(path): offset_region_details_from_payload(
+            read_json(source),
+            name,
+            offset,
+        )
         self._remember_directory(Path(path))
 
     def _save(self) -> None:
@@ -178,7 +212,8 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, QDialog):
         if not path:
             return
         target = Path(path) if Path(path).suffix.lower() == ".json" else Path(path).with_suffix(".json")
-        write_json(target, offset_regions_payload(target.stem, self.mappings()))
+        source = self._details_source_path if self._details_source_path is not None else target
+        write_json(target, offset_regions_payload_preserving_details(target.stem, self.mappings(), read_json(source)))
         self._saved_path = str(target)
         self._remember_directory(target)
 

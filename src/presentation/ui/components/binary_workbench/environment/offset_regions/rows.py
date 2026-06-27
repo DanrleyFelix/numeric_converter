@@ -35,6 +35,9 @@ class _OffsetRow:
     name: QLineEdit
     offset: QLineEdit
     details: str
+    details_loaded: bool
+    source_name: str | None
+    source_offset: int | None
     widget: QWidget
     remove_slot: QWidget
 
@@ -48,7 +51,15 @@ class OffsetRegionsRowsMixin:
             except ValueError:
                 continue
             if row.name.text().strip() and offset >= 0:
-                regions.append(BinaryWorkbenchOffsetRegionDTO(row.name.text().strip(), offset, row.details))
+                details = row.details if row.details_loaded else ""
+                regions.append(BinaryWorkbenchOffsetRegionDTO(
+                    row.name.text().strip(),
+                    offset,
+                    details,
+                    row.details_loaded,
+                    row.source_name,
+                    row.source_offset,
+                ))
         return regions
 
     def _append_from_entry(self) -> None:
@@ -63,7 +74,15 @@ class OffsetRegionsRowsMixin:
             row.remove_slot.deleteLater()
         self._rows.clear()
 
-    def _append_row(self, name: str, offset: str, details: str) -> None:
+    def _append_row(
+        self,
+        name: str,
+        offset: str,
+        details: str,
+        details_loaded: bool = True,
+        source_name: str | None = None,
+        source_offset: int | None = None,
+    ) -> None:
         widget = QWidget(self.body)
         widget.setObjectName("workspace-row")
         widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -87,7 +106,7 @@ class OffsetRegionsRowsMixin:
             WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
             WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
         )
-        row = _OffsetRow(name_edit, offset_edit, details, widget, remove_slot)
+        row = _OffsetRow(name_edit, offset_edit, details, details_loaded, source_name, source_offset, widget, remove_slot)
         name_edit.textChanged.connect(self._apply_filter)
         offset_edit.textChanged.connect(self._apply_filter)
         details_button.clicked.connect(lambda: self._edit_details(row))
@@ -103,10 +122,26 @@ class OffsetRegionsRowsMixin:
         self.remove_layout.addWidget(remove_slot)
 
     def _edit_details(self, row: _OffsetRow) -> None:
-        dialog = OffsetRegionDetailsDialog(row.details, self)
+        details = self._row_details(row)
+        dialog = OffsetRegionDetailsDialog(details, self)
         if dialog.exec() == dialog.DialogCode.Accepted:
             row.details = dialog.details()
+            row.details_loaded = True
             self._apply_filter()
+
+    def _row_details(self, row: _OffsetRow) -> str:
+        if row.details_loaded:
+            return row.details
+        try:
+            offset = int(row.offset.text().strip(), 16)
+        except ValueError:
+            return ""
+        source_name = row.source_name or row.name.text().strip()
+        source_offset = row.source_offset if row.source_offset is not None else offset
+        loader = getattr(self, "_details_loader", None)
+        row.details = loader(source_name, source_offset) if loader is not None else row.details
+        row.details_loaded = True
+        return row.details
 
     def _go_to_offset(self, value: str) -> None:
         try:
@@ -122,7 +157,8 @@ class OffsetRegionsRowsMixin:
     def _apply_filter(self) -> None:
         query = self.filter_input.text().strip().casefold()
         for row in self._rows:
-            haystack = f"{row.name.text()} {row.offset.text()} {row.details}".casefold()
+            details = row.details if row.details_loaded else ""
+            haystack = f"{row.name.text()} {row.offset.text()} {details}".casefold()
             visible = not query or query in haystack
             row.widget.setVisible(visible)
             row.remove_slot.setVisible(visible)

@@ -25,7 +25,8 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSIONS,
 )
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
-    labels_from_rows,
+    merged_instruction_labels,
+    rows_from_overlays,
 )
 from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.workspace_memory import (
@@ -75,6 +76,47 @@ class TabWorkspaceMixin:
         mapper = _internal_workspace_mapper(current)
         if parent is None or mapper is None:
             return False
+
+        parent_mapped = binary_overlays_from_internal_overlays(
+            mapper,
+            current.byte_overlays,
+        )
+        controlled_offsets = {*parent_mapped, *current.internal_parent_byte_overlays}
+        parent_overlays = dict(parent.byte_overlays)
+        for offset in controlled_offsets:
+            parent_overlays.pop(offset, None)
+        parent_overlays.update(parent_mapped)
+        parent = BinaryWorkbenchTabContextDTO(
+            **{
+                **parent.__dict__,
+                "byte_overlays": parent_overlays,
+                "version_dirty": parent.version_dirty or parent_overlays != parent.byte_overlays,
+            }
+        )
+
+        internal_version_name = (
+            current.active_version_name or BINARY_WORKBENCH_DEFAULT_VERSION_NAME
+        )
+        internal_version = self._version_from_current(internal_version_name, current)
+        internal_versions = [
+            version
+            for version in current.versions
+            if version.name != internal_version_name
+        ]
+        updated_internal = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": [*internal_versions, internal_version],
+                "active_version_name": internal_version_name,
+                "internal_parent_byte_overlays": parent_mapped,
+                "module_paths": dict(current.module_paths) if current.workspace_path else {},
+                "version_dirty": True,
+            }
+        )
+        saved_internal = self._workspace_repository.save_tab_workspace(updated_internal, path)
+        saved_internal = self._with_symbol_offsets(saved_internal)
+        self._replace_context(saved_internal.tab_id, saved_internal)
+
         parent_version_name = (
             parent.active_version_name or BINARY_WORKBENCH_DEFAULT_VERSION_NAME
         )
@@ -92,36 +134,11 @@ class TabWorkspaceMixin:
                 "version_dirty": True,
             }
         )
-        updated_parent = self._workspace_repository.save_tab_workspace(parent, path)
+        updated_parent = self._workspace_repository.save_tab_workspace(parent, None)
         self._remember_workspace_for_source(updated_parent)
         updated_parent = self._with_symbol_offsets(updated_parent)
         self._replace_context(updated_parent.tab_id, updated_parent)
         self._mark_page_context_stale(updated_parent)
-
-        internal_version_name = (
-            current.active_version_name or BINARY_WORKBENCH_DEFAULT_VERSION_NAME
-        )
-        internal_version = self._version_from_current(internal_version_name, current)
-        internal_versions = [
-            version
-            for version in current.versions
-            if version.name != internal_version_name
-        ]
-        updated_internal = BinaryWorkbenchTabContextDTO(
-            **{
-                **current.__dict__,
-                "versions": [*internal_versions, internal_version],
-                "active_version_name": internal_version_name,
-                "internal_parent_byte_overlays": (
-                    binary_overlays_from_internal_overlays(
-                        mapper,
-                        current.byte_overlays,
-                    )
-                ),
-                "version_dirty": False,
-            }
-        )
-        self._replace_context(updated_internal.tab_id, updated_internal)
         return True
 
     def set_current_module_path(self, module_key: str, path: Path) -> None:
@@ -161,6 +178,22 @@ class TabWorkspaceMixin:
         self._remember_workspace_for_source(updated)
         return updated
 
+    def _apply_matching_internal_workspace(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+        path: Path,
+        start_lba: int,
+    ) -> BinaryWorkbenchTabContextDTO:
+        manifest = self._workspace_repository.find_for_source(
+            path,
+            internal_file_start_lba=start_lba,
+        )
+        if manifest is None:
+            return context
+        return self._with_symbol_offsets(
+            self._workspace_repository.load_tab_workspace(context, manifest)
+        )
+
     def _remember_workspace_for_source(
         self,
         context: BinaryWorkbenchTabContextDTO,
@@ -199,14 +232,16 @@ class TabWorkspaceMixin:
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
         rows = _rows_with_loaded_symbols(context)
-        labels = labels_from_rows(rows) if rows is not context.rows else context.labels
+        labels = merged_instruction_labels(rows, context.instruction_overlays)
+        labels = labels or context.labels
+        symbol_rows = [*rows, *rows_from_overlays(context.instruction_overlays)]
         return BinaryWorkbenchTabContextDTO(
             **{
                 **context.__dict__,
                 "rows": rows,
                 "labels": labels,
                 "symbol_offsets": symbol_offsets(
-                    rows,
+                    symbol_rows,
                     context.variables,
                     context.equates,
                     labels,

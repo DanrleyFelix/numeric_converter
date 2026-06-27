@@ -55,8 +55,12 @@ class TabLibrariesMixin:
             "rows": rows,
             "symbol_offsets": symbol_offsets(rows, variables, equates, labels),
         }
-        if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if current.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }:
             updates["byte_overlays"] = _byte_overlays_with_symbols(current, variables, equates)
+            updates["version_dirty"] = True
         updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates})
         self._set_current_context(updated)
 

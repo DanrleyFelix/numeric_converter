@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtGui import QSyntaxHighlighter
+from PySide6.QtGui import QFont, QSyntaxHighlighter
 
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     BYTE_TOKEN,
+    DECIMAL_TOKEN,
     EQUATE_TOKEN,
     HEX_TOKEN,
     REGISTER_TOKEN,
@@ -86,6 +87,12 @@ class InstructionHighlighter(QSyntaxHighlighter):
                 match.end() - match.start(),
                 text_format(psx_mips_required_highlight_color("hex")),
             )
+        for match in DECIMAL_TOKEN.finditer(code):
+            self.setFormat(
+                code_start + match.start(),
+                match.end() - match.start(),
+                text_format(psx_mips_required_highlight_color("hex")),
+            )
         self._highlight_symbols(text, code, code_start)
         if comment_start >= 0:
             self.setFormat(comment_start, len(text) - comment_start, text_format(psx_mips_required_highlight_color("comment")))
@@ -107,4 +114,6 @@ class InstructionHighlighter(QSyntaxHighlighter):
                 )
         for name in self._labels:
             for match in re.finditer(rf"\b{re.escape(name)}\b", original, flags=re.IGNORECASE):
-                self.setFormat(match.start(), match.end() - match.start(), text_format(psx_mips_required_highlight_color("label")))
+                style = text_format(psx_mips_required_highlight_color("label"))
+                style.setFontWeight(QFont.Bold)
+                self.setFormat(match.start(), match.end() - match.start(), style)

@@ -11,6 +11,7 @@ from src.core.binary_workbench.searching import (
 )
 from src.core.binary_workbench.text_search import (
     ansi_text_bytes,
+    big_endian_hex_to_little_endian_nibbles,
     find_bytes_in_rows,
     find_hex_nibbles_in_rows,
     hex_nibbles,
@@ -50,8 +51,11 @@ class EditorPageSearchMixin:
         if start_offset is not None and end_offset is not None and start_offset > end_offset:
             return []
         self.remember_search_end_offset(start_offset, end_offset)
-        if mode == BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES:
-            return self._find_hex_bytes(query, start_offset, end_offset, max_results)
+        if mode in {
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES,
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE,
+        }:
+            return self._find_hex_bytes(mode, query, start_offset, end_offset, max_results)
         if mode == BINARY_WORKBENCH_TEXT.FIND_ASSEMBLY:
             return self._find_instruction(query, start_offset, end_offset, max_results)
         if mode == BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT:
@@ -62,11 +66,16 @@ class EditorPageSearchMixin:
         return getattr(self, "_last_search_end_offset", None)
 
     def remember_search_end_offset(self, start_offset: int | None, end_offset: int | None) -> None:
-        self._last_search_end_offset = effective_search_end(self._reader, self._context.rows, end_offset)
+        search_end = effective_search_end(self._reader, self._context.rows, end_offset)
+        file_end = effective_search_end(self._reader, self._context.rows, None)
+        self._last_search_end_offset = None if search_end is not None and search_end == file_end else search_end
 
     def search_offset_matches(self, mode: str, query: str, offset: int) -> bool:
-        if mode == BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES:
-            return offset_matches_hex(self._read_match_bytes, query, offset)
+        if mode in {
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES,
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE,
+        }:
+            return offset_matches_hex(self._read_match_bytes, self._hex_query_for_mode(mode, query), offset)
         if mode == BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT:
             return offset_matches_decoded_text(self._read_match_bytes, query, offset)
         if mode == BINARY_WORKBENCH_TEXT.FIND_ASSEMBLY:
@@ -106,13 +115,18 @@ class EditorPageSearchMixin:
                     break
         return results
 
-    def _find_hex_bytes(self, query: str, start_offset=None, end_offset=None, max_results=None) -> list[int]:
-        needle = hex_nibbles(query)
+    def _find_hex_bytes(self, mode: str, query: str, start_offset=None, end_offset=None, max_results=None) -> list[int]:
+        needle = self._hex_query_for_mode(mode, query)
         if not needle:
             return []
         if self._reader is None:
             return find_hex_nibbles_in_rows(self._context.rows, needle, start_offset, end_offset, max_results)
         return find_reader_hex(self._reader, overlay_bytes(self._context.byte_overlays), needle, start_offset, end_offset, max_results, self._yield_search_events)
+
+    def _hex_query_for_mode(self, mode: str, query: str) -> str:
+        if mode == BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE:
+            return big_endian_hex_to_little_endian_nibbles(query)
+        return hex_nibbles(query)
 
     def _find_decoded_text(self, query: str, start_offset=None, end_offset=None, max_results=None) -> list[int]:
         needle = ansi_text_bytes(query.strip())

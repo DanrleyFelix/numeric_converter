@@ -24,5 +24,6 @@ CONTEXT_MENU_SHORTCUTS = {
     "Select All": "Ctrl+A",
     "Add Variable": "Alt+W",
     "Add Equate": "Alt+E",
+    "Open Label in New Tab": "Alt+J",
     "Add Command": "Alt+K",
 }

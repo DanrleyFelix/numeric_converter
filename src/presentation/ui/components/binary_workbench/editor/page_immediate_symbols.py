@@ -40,7 +40,10 @@ class EditorPageImmediateSymbolsMixin:
             "rows": rows,
             "symbol_offsets": offsets,
         }
-        if self._context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
+        if self._context.kind in {
+            BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        }:
             instruction_overlays = update_instruction_overlays(
                 self._context.instruction_overlays,
                 rows,

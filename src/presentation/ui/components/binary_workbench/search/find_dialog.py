@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QPushButton
 
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB,
@@ -56,8 +56,11 @@ class BinaryWorkbenchFindDialog(QDialog):
         self.mode.addItems([
             BINARY_WORKBENCH_TEXT.FIND_ASSEMBLY,
             BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES,
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE,
             BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT,
         ])
+        self.auto_fill_start = QCheckBox(BINARY_WORKBENCH_TEXT.FIND_AUTO_FILL_START_OFFSET, self)
+        self.auto_fill_start.setCursor(Qt.PointingHandCursor)
         self.query = search_line_edit(self, BINARY_WORKBENCH_TEXT.VALUE)
         self.mode.currentTextChanged.connect(self._sync_query_validator)
         self.start = search_line_edit(self, BINARY_WORKBENCH_TEXT.START_OFFSET)
@@ -67,6 +70,8 @@ class BinaryWorkbenchFindDialog(QDialog):
         set_hex_value_validator(self.end)
         set_decimal_integer_validator(self.length)
         self.results = SearchResultsList(self)
+        layout.addWidget(self.auto_fill_start)
+        layout.addSpacing(BINARY_WORKBENCH_LAYOUT.SEARCH_FIND_AUTOFILL_TOP_SPACING)
         layout.addWidget(self.mode)
         layout.addWidget(self.query)
         layout.addWidget(self.start)
@@ -134,6 +139,8 @@ class BinaryWorkbenchFindDialog(QDialog):
         return 0, length_value - 1
 
     def _fill_next_start_offset(self) -> None:
+        if not self.auto_fill_start.isChecked():
+            return
         if self._last_search_end is None:
             return
         end_offset = self._last_search_end()
@@ -141,7 +148,10 @@ class BinaryWorkbenchFindDialog(QDialog):
             self.start.setText(f"0x{end_offset:08X}")
 
     def _sync_query_validator(self, mode: str) -> None:
-        if mode != BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES:
+        if mode not in {
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES,
+            BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE,
+        }:
             self.query.setValidator(None)
             return
         clean = "".join(character for character in self.query.text().lower() if character in HEX_DIGITS_LOWER)

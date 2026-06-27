@@ -101,6 +101,7 @@ class BinaryWorkbenchTabs(
             self._workspace_repository.directory.parent / "search_cache.json"
         )
         self._search_cache: SearchCacheService | None = None
+        self._find_cache_session_active = False
         self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
         self._program_context = program_context or ProgramContextDTO()
         self._controller = BinaryWorkbenchController()
@@ -116,11 +117,23 @@ class BinaryWorkbenchTabs(
     def preferences(self) -> BinaryWorkbenchPreferencesDTO:
         return self._preferences
 
+    def begin_find_cache_session(self) -> None:
+        self._find_cache_session_active = True
+        if self._search_cache is None:
+            self._search_cache = SearchCacheService(self._search_cache_repository.load())
+
+    def end_find_cache_session(self) -> None:
+        self.flush_search_cache()
+        self._search_cache = None
+        self._find_cache_session_active = False
+
     def flush_search_cache(self) -> None:
         if self._search_cache is not None:
             self._search_cache_repository.save(self._search_cache.entries_for_save())
 
-    def _search_cache_for_find(self) -> SearchCacheService:
+    def _search_cache_for_find(self) -> SearchCacheService | None:
+        if not self._find_cache_session_active:
+            return None
         if self._search_cache is None:
             self._search_cache = SearchCacheService(self._search_cache_repository.load())
         return self._search_cache

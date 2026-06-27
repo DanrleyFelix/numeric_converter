@@ -241,7 +241,7 @@ class GridEditingMixin:
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
         if self._locked_virtual_instruction_edit():
-            return reconcile_locked_virtual_instructions(
+            rows = reconcile_locked_virtual_instructions(
                 lines,
                 self._rows,
                 self._columns or [BINARY_WORKBENCH_TEXT.FILE],
@@ -251,6 +251,7 @@ class GridEditingMixin:
                 self._variables if variables is None else variables,
                 self._equates if equates is None else equates,
             )
+            return self._rows_with_instruction_spacing(rows, lines)
         rows = build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
@@ -262,7 +263,23 @@ class GridEditingMixin:
             self._equates if equates is None else equates,
             False,
         )
-        return self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
+        rows = self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
+        return self._rows_with_instruction_spacing(rows, lines)
+
+    def _rows_with_instruction_spacing(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None,
+        lines: list[str],
+    ) -> list[BinaryWorkbenchRowDTO] | None:
+        if rows is None or len(rows) != len(lines):
+            return rows
+        updated: list[BinaryWorkbenchRowDTO] = []
+        for row, line in zip(rows, lines):
+            if line != row.instruction and _without_spacing(line) == _without_spacing(row.instruction):
+                updated.append(BinaryWorkbenchRowDTO(row.offsets, line, row.bytes_text))
+                continue
+            updated.append(row)
+        return updated
 
     def _locked_virtual_instruction_edit(self) -> bool:
         return self._virtual and not self._edit_rules.allow_byte_shift and not self._free_offset_window()
@@ -353,3 +370,7 @@ class GridEditingMixin:
             set_cursor_position(cursor, position)
             self.instructions.setTextCursor(cursor)
         return normalized.split("\n")
+
+
+def _without_spacing(text: str) -> str:
+    return "".join(text.split())

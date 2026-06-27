@@ -7,6 +7,10 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchViewPreferencesDTO,
 )
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
+from pathlib import Path
+
+from src.presentation.repository.binary_workbench_workspace.constants import OFFSET_REGIONS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import (
@@ -30,9 +34,7 @@ class TabViewConfigurationMixin:
             },
             decoded_text_tables=list(current.view_preferences.decoded_text_tables),
         )
-        self._set_current_context(BinaryWorkbenchTabContextDTO(
-            **{**current.__dict__, "view_preferences": preferences}
-        ))
+        self._set_view_preferences_for_related_tabs(current, preferences)
 
     def set_current_encoding_tables(
         self,
@@ -61,8 +63,34 @@ class TabViewConfigurationMixin:
             encoding_tables=list(tables),
             view_preferences=preferences,
         ))
+        self._set_view_preferences_for_related_tabs(current, preferences)
         self._refresh_encoding_table_pages(list(tables))
 
+
+    def _set_view_preferences_for_related_tabs(
+        self,
+        current: BinaryWorkbenchTabContextDTO,
+        preferences: BinaryWorkbenchViewPreferencesDTO,
+    ) -> None:
+        parent_id = current.tab_id
+        if current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+            parent = self._internal_parent_context(current)
+            parent_id = parent.tab_id if parent is not None else current.internal_parent_tab_id or current.tab_id
+        tabs = []
+        for tab in self._state.tabs:
+            if tab.tab_id == parent_id:
+                tabs.append(replace(tab, view_preferences=preferences))
+                continue
+            if _is_related_internal_tab(tab, parent_id, current.source_path):
+                tabs.append(replace(tab, view_preferences=_internal_view_preferences(preferences)))
+                continue
+            tabs.append(tab)
+        self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "tabs": tabs})
+        index = self.currentIndex()
+        if 0 <= index < len(tabs):
+            self._set_current_context(tabs[index])
+        else:
+            self.stateChanged.emit(self._state)
     def set_current_offset_regions(
         self,
         regions: list[BinaryWorkbenchOffsetRegionDTO],
@@ -71,8 +99,28 @@ class TabViewConfigurationMixin:
         if current is None:
             return
         self._set_current_context(BinaryWorkbenchTabContextDTO(
-            **{**current.__dict__, "offset_regions": list(regions)}
+            **{**current.__dict__, "offset_regions": list(regions), "offset_regions_loaded": True}
         ))
+
+    def offset_regions_for_current_context(self) -> list[BinaryWorkbenchOffsetRegionDTO]:
+        current = self.current_context()
+        if current is None:
+            return []
+        if current.offset_regions_loaded:
+            return list(current.offset_regions)
+        path = current.module_paths.get(OFFSET_REGIONS)
+        if not path:
+            return []
+        return self._workspace_repository.load_offset_regions_file(Path(path))
+
+    def offset_region_details_for_current_context(self, name: str, offset: int) -> str:
+        current = self.current_context()
+        if current is None:
+            return ""
+        path = current.module_paths.get(OFFSET_REGIONS)
+        if not path:
+            return ""
+        return self._workspace_repository.load_offset_region_details(Path(path), name, offset)
 
     def _context_with_universal_encoding_tables(
         self,
@@ -93,3 +141,30 @@ class TabViewConfigurationMixin:
                 page.replace_context(updated)
                 if index == self.currentIndex():
                     page.load_context(updated)
+
+
+def _is_related_internal_tab(
+    tab: BinaryWorkbenchTabContextDTO,
+    parent_id: str,
+    source_path: str | None,
+) -> bool:
+    return (
+        tab.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
+        and (
+            tab.internal_parent_tab_id == parent_id
+            or bool(source_path and tab.source_path == source_path)
+        )
+    )
+
+
+def _internal_view_preferences(
+    preferences: BinaryWorkbenchViewPreferencesDTO,
+) -> BinaryWorkbenchViewPreferencesDTO:
+    return BinaryWorkbenchViewPreferencesDTO(
+        visible_columns={
+            name: visible
+            for name, visible in preferences.visible_columns.items()
+            if name != "Binary"
+        },
+        decoded_text_tables=list(preferences.decoded_text_tables),
+    )

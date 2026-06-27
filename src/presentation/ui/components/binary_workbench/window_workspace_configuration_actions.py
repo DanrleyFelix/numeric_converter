@@ -50,9 +50,13 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
         if current is None:
             return
         dialog = BinaryWorkbenchOffsetRegionsDialog(
-            current.offset_regions,
+            self.tabs.offset_regions_for_current_context(),
             self.tabs.directory_for(BINARY_WORKBENCH_STATE.OFFSET_REGIONS_DIRECTORY),
             self,
+            details_loader=self.tabs.offset_region_details_for_current_context,
+            details_source_path=Path(current.module_paths[OFFSET_REGIONS])
+            if current.module_paths.get(OFFSET_REGIONS)
+            else None,
         )
         dialog.directoryChanged.connect(
             lambda value: self.tabs.set_directory(

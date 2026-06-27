@@ -83,7 +83,7 @@ class EditorPageBinaryLoadingMixin:
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
             }
         )
-        self.contextChanged.emit(self._context)
+        self._emit_context_changed()
 
     def _update_overlay(self, rows: list) -> None:
         if self._reader is None:
@@ -129,7 +129,7 @@ class EditorPageBinaryLoadingMixin:
                 "symbol_offsets": symbol_offsets(symbol_rows, self._context.variables, self._context.equates, labels),
             }
         )
-        self.contextChanged.emit(self._context)
+        self._emit_context_changed()
 
     def _read_visible_data(
         self,

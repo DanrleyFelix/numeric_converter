@@ -5,10 +5,12 @@ from dataclasses import replace
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 
-WORKSPACE_HEAVY_TAB_LIMIT = 5
+WORKSPACE_HEAVY_TAB_LIMIT = 1
 
 
 def unloadable_workspace_context(context: BinaryWorkbenchTabContextDTO) -> bool:
+    if context.keep_workspace_resources:
+        return False
     if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
         return False
     return context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY or bool(context.workspace_path)
@@ -52,6 +54,7 @@ def unload_workspace_heavy_context(
         "search_cache": {},
         "versions": [],
         "offset_regions": [],
+        "offset_regions_loaded": False,
     }
     if context.kind in {
         BINARY_WORKBENCH_TAB_KIND.BINARY,

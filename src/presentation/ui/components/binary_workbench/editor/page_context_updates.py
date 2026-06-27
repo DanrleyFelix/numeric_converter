@@ -67,6 +67,11 @@ class EditorPageContextMixin:
         self._context = BinaryWorkbenchTabContextDTO(**{**self._context.__dict__, **updates})
         self._set_cpu_arch_summary(self._context.cpu_arch)
         self._set_internal_file_summary(self._context)
+        self._emit_context_changed()
+
+    def _emit_context_changed(self) -> None:
+        if getattr(self, "_suppress_context_changed", False):
+            return
         self.contextChanged.emit(self._context)
 
 

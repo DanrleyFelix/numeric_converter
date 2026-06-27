@@ -117,9 +117,11 @@ class BinaryWorkbenchTabContextDTO:
     internal_file_start_lba: int | None = None
     internal_parent_tab_id: str | None = None
     internal_parent_byte_overlays: dict[str, str] = field(default_factory=dict)
+    keep_workspace_resources: bool = False
     lba_sector_size: int = BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
     named_regions: list[str] = field(default_factory=list)
     offset_regions: list[BinaryWorkbenchOffsetRegionDTO] = field(default_factory=list)
+    offset_regions_loaded: bool = False
     encoding_tables: list[BinaryWorkbenchEncodingTableDTO] = field(default_factory=list)
     versions: list[BinaryWorkbenchVersionDTO] = field(default_factory=list)
     active_version_name: str | None = None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QTextCursor
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
@@ -38,6 +39,12 @@ class EditorImmediateMenuMixin:
             if not selected_code:
                 return False
             self._request_add_command(selected_code)
+            return True
+        elif key == Qt.Key_J:
+            label = _label_at_cursor(self)
+            if label is None:
+                return False
+            self.labelOpenTabRequested.emit(*label)
             return True
         else:
             return False
@@ -106,6 +113,13 @@ def _equate_token_at_cursor(editor):
     variable_token = variable_token_at_cursor(editor)
     immediate_token = immediate_token_at_cursor(editor)
     return immediate_token if variable_token == immediate_token else None
+
+
+def _label_at_cursor(editor) -> tuple[str, int] | None:
+    cursor = editor.textCursor()
+    cursor.select(QTextCursor.WordUnderCursor)
+    token = cursor.selectedText().strip().lower()
+    return editor._label_offsets.get(token) if token else None
 
 
 def _selected_code(editor) -> str:
