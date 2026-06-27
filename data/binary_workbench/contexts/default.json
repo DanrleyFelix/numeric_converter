@@ -235,6 +235,7 @@
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_offset_regions.json",
                 "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
+                "version:v1": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json"
             },
             "module_directories": {
@@ -244,9 +245,9 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
+                "symbols": "60b9da0e8116c81cbf0e68c070bd97358b50bf1faf4c4a0542d1ef831d11b30a",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "9ebde1a4bb23bcaaa1e3ed5606eda8799a9de104998ec838ebda2d35b88622b8",
+                "versions": "0872f3e1190812a53a4c1801c94289bb81b7ee7cea1c9820e72c8bc8f114fcb7",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "822fb0fe6983af0ef59b0bd1182d52a0af926fded923cf848945782df6a00535"
             },
@@ -309,7 +310,7 @@
             "instruction_overlays": {
                 "0x00000000": "l1: WORD 0x582D5350",
                 "0x00000004": "l2: WORD 0x45584520",
-                "0x00000008": "l3: ADDIU $a1, $a1, @equate_20",
+                "0x00000008": "ADDIU $a1, $a1, @equate_20;",
                 "0x0000000C": "l3: LB $at, 0x29D8($zero)",
                 "0x00000010": "NOP",
                 "0x00000014": "LB $at, 0x0($zero)",
@@ -1714,7 +1715,9 @@
                 "File"
             ],
             "reference_offset_bases": {},
-            "labels": {},
+            "labels": {
+                "l1": "0x00000018"
+            },
             "equates": {},
             "variables": {},
             "symbol_offsets": {},
@@ -1743,7 +1746,7 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "8efd15f1acc84e60b4faef623163d65b62904be45fc031ccb5f7669d5c2007b2",
+                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
                 "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",

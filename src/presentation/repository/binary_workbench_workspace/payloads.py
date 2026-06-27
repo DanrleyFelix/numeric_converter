@@ -61,9 +61,15 @@ def source_matches(
     if internal_file_start_lba is not None and payload_internal_lba != internal_file_start_lba:
         return False
     current = source_payload(path)
+    identifier = payload.get("identifier")
+    if isinstance(identifier, str) and identifier:
+        return identifier.casefold() in {
+            value.casefold()
+            for value in file_resource_identifiers(path)
+        }
     return (
-        str(payload.get("directory", "")).lower() == current["directory"].lower()
-        and str(payload.get("filename", "")).lower() == current["filename"].lower()
+        str(payload.get("directory", "")).casefold() == current["directory"].casefold()
+        and str(payload.get("filename", "")).casefold() == current["filename"].casefold()
     )
 
 

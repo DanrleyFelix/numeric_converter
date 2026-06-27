@@ -12,6 +12,10 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchVersionDTO,
     BinaryWorkbenchViewPreferencesDTO,
 )
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    VERSION_PATH_PREFIX,
+    VERSIONS,
+)
 from src.presentation.ui.components.binary_workbench.editor import (
     BinaryWorkbenchEditorPage,
 )
@@ -109,7 +113,10 @@ class TabWorkspaceMemoryMixin:
         self,
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
-        if not workspace_heavy_context_unloaded(context):
+        if not (
+            workspace_heavy_context_unloaded(context)
+            or _restored_pinned_workspace_context(context)
+        ):
             return context
         path = Path(context.workspace_path or "")
         if not path.exists():
@@ -229,6 +236,21 @@ class TabWorkspaceMemoryMixin:
             active_version_name=name,
             version_dirty=True,
         )
+
+
+def _restored_pinned_workspace_context(
+    context: BinaryWorkbenchTabContextDTO,
+) -> bool:
+    has_version_module = VERSIONS in context.module_paths or any(
+        key.startswith(VERSION_PATH_PREFIX)
+        for key in context.module_paths
+    )
+    return bool(
+        context.workspace_path
+        and (context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL or context.keep_workspace_resources)
+        and has_version_module
+        and not context.versions
+    )
 
 
 def _workspace_identity(
