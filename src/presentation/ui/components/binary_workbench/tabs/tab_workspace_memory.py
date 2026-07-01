@@ -13,6 +13,7 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchViewPreferencesDTO,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
+    SYMBOLS,
     VERSION_PATH_PREFIX,
     VERSIONS,
 )
@@ -32,6 +33,7 @@ class TabWorkspaceMemoryMixin:
     def _initialize_workspace_memory(self) -> None:
         self._workspace_access_counter = 0
         self._workspace_tab_access: dict[str, int] = {}
+        self._workspace_modules_loaded: set[str] = set()
         self._active_tab_index = -1
 
     def _remember_workspace_tab_access(self, tab_id: str) -> None:
@@ -40,6 +42,7 @@ class TabWorkspaceMemoryMixin:
 
     def _forget_workspace_tab_access(self, tab_id: str) -> None:
         self._workspace_tab_access.pop(tab_id, None)
+        self._workspace_modules_loaded.discard(tab_id)
 
     def flush_open_workspaces(self) -> None:
         self._commit_open_tab_pages()
@@ -71,7 +74,13 @@ class TabWorkspaceMemoryMixin:
     ) -> bool:
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             return self._persist_internal_workspace_context(context) is not None
-        if context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY and self.has_unsaved_version_edits(context):
+        if (
+            context.kind in {
+                BINARY_WORKBENCH_TAB_KIND.BINARY,
+                BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+            }
+            and self.has_unsaved_version_edits(context)
+        ):
             context = self._context_with_current_version(context)
         saved = self._workspace_repository.save_tab_workspace(context)
         self._remember_workspace_for_source(saved)
@@ -98,8 +107,13 @@ class TabWorkspaceMemoryMixin:
         context = self.context_at(index)
         if context is None:
             return
-        if workspace_heavy_context_unloaded(context):
+        restore_modules = (
+            context.tab_id not in self._workspace_modules_loaded
+            and _restored_module_backed_workspace_context(context)
+        )
+        if workspace_heavy_context_unloaded(context) or restore_modules:
             loaded = self._workspace_context_for_page(context)
+            self._workspace_modules_loaded.add(context.tab_id)
             if loaded is not context:
                 self._replace_context_without_emit(context.tab_id, loaded)
                 page = self.widget(index)
@@ -115,7 +129,7 @@ class TabWorkspaceMemoryMixin:
     ) -> BinaryWorkbenchTabContextDTO:
         if not (
             workspace_heavy_context_unloaded(context)
-            or _restored_pinned_workspace_context(context)
+            or _restored_module_backed_workspace_context(context)
         ):
             return context
         path = Path(context.workspace_path or "")
@@ -238,18 +252,26 @@ class TabWorkspaceMemoryMixin:
         )
 
 
-def _restored_pinned_workspace_context(
+def _restored_module_backed_workspace_context(
     context: BinaryWorkbenchTabContextDTO,
 ) -> bool:
     has_version_module = VERSIONS in context.module_paths or any(
         key.startswith(VERSION_PATH_PREFIX)
         for key in context.module_paths
     )
+    has_missing_symbols = (
+        SYMBOLS in context.module_paths
+        and not context.variables
+        and not context.equates
+    )
+    eligible = context.kind in {
+        BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+    } or context.keep_workspace_resources
     return bool(
         context.workspace_path
-        and (context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL or context.keep_workspace_resources)
-        and has_version_module
-        and not context.versions
+        and eligible
+        and (has_missing_symbols or has_version_module and not context.versions)
     )
 
 
@@ -295,4 +317,7 @@ def _version_has_payload(version: BinaryWorkbenchVersionDTO) -> bool:
         version.rows
         or version.instruction_overlays
         or version.instructions_by_line
+        or version.symbols_loaded
+        or version.variables
+        or version.equates
     )

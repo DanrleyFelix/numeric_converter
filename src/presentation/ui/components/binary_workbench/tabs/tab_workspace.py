@@ -218,7 +218,15 @@ class TabWorkspaceMixin:
                 context.variables,
                 context.equates,
                 context.internal_files,
-                context.versions,
+                any(
+                    version.rows
+                    or version.instruction_overlays
+                    or version.instructions_by_line
+                    or version.symbols_loaded
+                    or version.variables
+                    or version.equates
+                    for version in context.versions
+                ),
                 context.offset_regions,
                 context.view_preferences != BinaryWorkbenchViewPreferencesDTO(),
             )

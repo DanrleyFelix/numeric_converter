@@ -199,7 +199,7 @@ def _details_action(text: str, parent: QWidget) -> QPushButton:
     button = QPushButton(text, parent)
     configure_binary_workbench_dialog_action(button)
     button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.NoFocus)
+    button.setFocusPolicy(Qt.StrongFocus)
     return button
 
 

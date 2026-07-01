@@ -41,18 +41,26 @@ REGISTER_NAMES: dict[int, str] = {
     if name != "s8"
 }
 I_OPCODES: dict[str, int] = {
+    "addi": 0x08,
     "addiu": 0x09,
-    "ori": 0x0D,
-    "lui": 0x0F,
-    "lw": 0x23,
-    "sw": 0x2B,
-    "lh": 0x21,
-    "lhu": 0x25,
-    "sh": 0x29,
-    "lb": 0x20,
-    "lbu": 0x24,
-    "sb": 0x28,
+    "slti": 0x0A,
     "sltiu": 0x0B,
+    "andi": 0x0C,
+    "ori": 0x0D,
+    "xori": 0x0E,
+    "lui": 0x0F,
+    "lb": 0x20,
+    "lh": 0x21,
+    "lwl": 0x22,
+    "lw": 0x23,
+    "lbu": 0x24,
+    "lhu": 0x25,
+    "lwr": 0x26,
+    "sb": 0x28,
+    "sh": 0x29,
+    "swl": 0x2A,
+    "sw": 0x2B,
+    "swr": 0x2E,
 }
 BRANCH_OPCODES: dict[str, int] = {
     "beq": 0x04,
@@ -69,9 +77,38 @@ J_OPCODES: dict[str, int] = {
     "jal": 0x03,
 }
 R_FUNCTS: dict[str, int] = {
+    "sll": 0x00,
+    "srl": 0x02,
+    "sra": 0x03,
+    "sllv": 0x04,
+    "srlv": 0x06,
+    "srav": 0x07,
+    "mfhi": 0x10,
+    "mthi": 0x11,
+    "mflo": 0x12,
+    "mtlo": 0x13,
+    "mult": 0x18,
+    "multu": 0x19,
+    "div": 0x1A,
+    "divu": 0x1B,
     "add": 0x20,
     "addu": 0x21,
-    "subu": 0x23}
+    "sub": 0x22,
+    "subu": 0x23,
+    "and": 0x24,
+    "or": 0x25,
+    "xor": 0x26,
+    "nor": 0x27,
+    "slt": 0x2A,
+    "sltu": 0x2B,
+}
+
+R_SHIFT_IMMEDIATE = {"sll", "srl", "sra"}
+R_SHIFT_VARIABLE = {"sllv", "srlv", "srav"}
+R_MOVE_FROM_HILO = {"mfhi", "mflo"}
+R_MOVE_TO_HILO = {"mthi", "mtlo"}
+R_MULT_DIV = {"mult", "multu", "div", "divu"}
+R_CODE_FUNCTS = {"syscall": 0x0C, "break": 0x0D}
 
 R_JUMP_FUNCTS: dict[str, int] = {
     "jr": 0x08,

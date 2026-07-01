@@ -42,6 +42,7 @@ from src.presentation.ui.components.help_window.pages.binary_workbench import (
     BINARY_WORKBENCH_HELP_PAGES,
 )
 from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 
 
 class BinaryWorkbenchWindow(
@@ -126,7 +127,9 @@ class BinaryWorkbenchWindow(
             self._help_window.setWindowIcon(self.windowIcon())
             self._help_window.setStyleSheet(STYLESHEET)
             self._help_window.destroyed.connect(lambda: setattr(self, "_help_window", None))
+        ensure_window_on_available_screen(self._help_window, self)
         self._help_window.show()
+        ensure_window_on_available_screen(self._help_window, self)
         self._help_window.raise_()
         self._help_window.activateWindow()
 

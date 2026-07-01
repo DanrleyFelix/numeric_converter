@@ -163,11 +163,15 @@ class GridRenderingMixin:
             self._syncing_editor_scrollbars = False
 
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
+        text = "\n".join(lines)
+        if editor.toPlainText() == text:
+            self._remember_editor_text_signature(editor)
+            return
         was_updating = self._updating
         self._updating = True
         scroll_value = editor.verticalScrollBar().value()
         try:
-            editor.setPlainText("\n".join(lines))
+            editor.setPlainText(text)
             if not self._virtual:
                 editor.verticalScrollBar().setValue(min(scroll_value, editor.verticalScrollBar().maximum()))
             self._remember_editor_text_signature(editor)

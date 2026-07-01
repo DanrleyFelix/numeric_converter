@@ -152,6 +152,6 @@ def split_label(text: str) -> tuple[str, str]:
         return "", text
     left, right = text.split(":", 1)
     candidate = left.strip()
-    if candidate and " " not in candidate and "\t" not in candidate:
+    if candidate and left == left.rstrip() and " " not in candidate and "\t" not in candidate:
         return candidate, right.strip()
     return "", text

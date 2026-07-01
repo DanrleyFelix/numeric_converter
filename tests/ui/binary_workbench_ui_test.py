@@ -441,7 +441,7 @@ def test_binary_workbench_load_versions_file_replaces_available_versions(tmp_pat
     current = tool.tabs.current_context()
 
     assert current is not None
-    assert [version.name for version in current.versions] == ["new_b", "new_a"]
+    assert [version.name for version in current.versions] == ["new_a", "new_b"]
     assert current.active_version_name == "new_b"
     assert current.module_paths["versions"] == str(versions_path)
     assert "version:old_a" not in current.module_paths
@@ -1253,9 +1253,9 @@ def test_binary_workbench_workspace_restores_instruction_version_by_exact_source
     assert tool.tabs.create_version("v1") is True
     assert tool.tabs.save_current_workspace() is True
 
-    version_path = tmp_path / "data" / "binary_workbench" / "workspaces" / "Versions" / "source_bin_workspace_manifest_versions.json"
+    version_path = tmp_path / "data" / "binary_workbench" / "workspaces" / "Versions" / "source_workspace_manifest_versions.json"
     payload = version_path.read_text(encoding="utf-8")
-    assert '"0"' in payload
+    assert '"0x00000000"' in payload
     assert "Label_1:" in payload
 
     restored = _window(tmp_path)
@@ -1335,7 +1335,7 @@ def test_binary_workbench_close_save_persists_scratch_file_before_closing(tmp_pa
 
     assert tool.tabs.count() == 0
     assert "ADDIU $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
-    assert (tmp_path / "data" / "binary_workbench" / "workspaces" / "closed_asm_workspace_manifest.json").exists()
+    assert (tmp_path / "data" / "binary_workbench" / "workspaces" / "closed_workspace_manifest.json").exists()
 
 
 def test_binary_workbench_reference_offsets_adds_visible_offset_column(tmp_path: Path):
@@ -1728,6 +1728,7 @@ def test_binary_workbench_large_binary_instruction_line_replace_keeps_rows_and_u
     tool.open_file_path(binary_path)
     page = tool.tabs.currentWidget()
     editor = page.grid.instructions  # type: ignore[attr-defined]
+
     editor.setFocus()
     original_lines = editor.toPlainText().splitlines()
     cursor = QTextCursor(editor.document())
@@ -1912,8 +1913,12 @@ def test_binary_workbench_ctrl_s_persists_open_assembly_source(tmp_path: Path):
     assert assembly_path.read_text(encoding="utf-8") == "ADDIU $sp,$sp,-0x10"
 
 
-def test_binary_workbench_save_current_assembly_source_uses_assembly_status(tmp_path: Path):
+def test_binary_workbench_ctrl_s_exports_versioned_assembly_without_mutating_versions(
+    tmp_path: Path,
+    monkeypatch,
+):
     assembly_path = tmp_path / "call_umi.asm"
+    output_path = tmp_path / "call_umi_default.asm"
     assembly_path.write_text("nop\n", encoding="utf-8")
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -1924,10 +1929,26 @@ def test_binary_workbench_save_current_assembly_source_uses_assembly_status(tmp_
     page = tool.tabs.currentWidget()
     page.grid.instructions.setPlainText("jal 0x80010000")  # type: ignore[attr-defined]
     _app().processEvents()
+    before = list(tool.tabs.current_context().versions)
+    captured = {}
+
+    def save_dialog(*args):
+        captured["initial"] = args[2]
+        return str(output_path), ""
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", save_dialog)
+    monkeypatch.setattr(
+        tool.tabs._workspace_repository,  # type: ignore[attr-defined]
+        "save_tab_workspace",
+        lambda *args, **kwargs: pytest.fail("Ctrl+S must not persist Versions"),
+    )
+
     tool._save_current_tab()
 
-    assert assembly_path.read_text(encoding="utf-8") == "JAL 0x80010000"
-    assert tool.footer_status.text() == 'Saved assembly/code file "call_umi.asm".'
+    assert Path(captured["initial"]).name == "call_umi_default.asm"
+    assert assembly_path.read_text(encoding="utf-8") == "nop\n"
+    assert output_path.read_text(encoding="utf-8") == "JAL 0x80010000"
+    assert tool.tabs.current_context().versions == before
 
 
 def test_binary_workbench_save_uses_last_focused_editor_after_focus_moves(tmp_path: Path):
@@ -3184,3 +3205,195 @@ def test_binary_workbench_native_close_dialog_maps_windows_buttons():
     assert _map_windows_response(6).name == "Save"
     assert _map_windows_response(7).name == "Discard"
     assert _map_windows_response(2).name == "Cancel"
+
+def test_binary_workbench_version_switch_keeps_each_version_isolated_in_memory(
+    tmp_path: Path,
+    monkeypatch,
+):
+    binary_path = tmp_path / "versions.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    base_name = tool.tabs.current_context().active_version_name
+    assert base_name
+    tool.tabs.set_current_symbols({"base_var": "0x10"}, {"base_eq": "0x20"}, {})
+    assert tool.tabs.create_version("v1") is True
+    tool.tabs.set_current_symbols({"v1_var": "0x30"}, {"v1_eq": "0x40"}, {})
+    monkeypatch.setattr(
+        tool.tabs._workspace_repository,  # type: ignore[attr-defined]
+        "save_tab_workspace",
+        lambda *args, **kwargs: pytest.fail("version switch must not write JSON"),
+    )
+
+    editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("addiu $v0,$zero,0x1")
+    _app().processEvents()
+    assert tool.tabs.load_version(base_name) is True
+    assert editor.toPlainText().lower() == "nop"
+    current = tool.tabs.current_context()
+    assert current.variables == {"base_var": "0x10"}
+    assert current.equates == {"base_eq": "0x20"}
+    tool.tabs.set_current_symbols({"base_var": "0x11"}, {"base_eq": "0x21"}, {})
+
+    editor.setPlainText("ori $v0,$zero,0x2")
+    _app().processEvents()
+    assert tool.tabs.load_version("v1") is True
+    assert editor.toPlainText().lower() == "addiu $v0,$zero,0x1"
+    current = tool.tabs.current_context()
+    assert current.variables == {"v1_var": "0x30"}
+    assert current.equates == {"v1_eq": "0x40"}
+    assert tool.tabs.load_version(base_name) is True
+    assert editor.toPlainText().lower() == "ori $v0,$zero,0x2"
+    current = tool.tabs.current_context()
+    assert current.variables == {"base_var": "0x11"}
+    assert current.equates == {"base_eq": "0x21"}
+
+
+def test_binary_workbench_assembly_version_switch_keeps_each_version_isolated_in_memory(
+    tmp_path: Path,
+    monkeypatch,
+):
+    assembly_path = tmp_path / "versions.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    base_name = tool.tabs.current_context().active_version_name
+    assert base_name
+    assert tool.tabs.create_version("v1") is True
+    monkeypatch.setattr(
+        tool.tabs._workspace_repository,  # type: ignore[attr-defined]
+        "save_tab_workspace",
+        lambda *args, **kwargs: pytest.fail("version switch must not write JSON"),
+    )
+
+    editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("addiu $v0,$zero,0x1")
+    _app().processEvents()
+    assert tool.tabs.load_version(base_name) is True
+    assert editor.toPlainText().lower() == "nop"
+
+    editor.setPlainText("ori $v0,$zero,0x2")
+    _app().processEvents()
+    assert tool.tabs.load_version("v1") is True
+    assert editor.toPlainText().lower() == "addiu $v0,$zero,0x1"
+
+    assert tool.tabs.load_version(base_name) is True
+    assert editor.toPlainText().lower() == "ori $v0,$zero,0x2"
+    assert assembly_path.read_text(encoding="utf-8") == "nop\n"
+
+
+def test_binary_workbench_uppercase_waits_for_next_line_without_moving_cursor(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    editor.setPlainText("addiu $v0,$zero,0x1f")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+    before = cursor.position()
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier),
+    )
+    _app().processEvents()
+
+    assert editor.toPlainText().split("\n")[0] == "ADDIU $v0,$zero,0x1F"
+    assert editor.textCursor().position() == before + 1
+
+
+def test_binary_workbench_label_with_space_before_colon_remains_invalid(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    editor.setPlainText("loop : addiu $v0,$zero,0x1f")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier),
+    )
+    _app().processEvents()
+
+    assert editor.toPlainText().split("\n")[0] == "loop : addiu $v0,$zero,0x1F"
+    assert "loop" not in tool.tabs.currentWidget().grid._labels  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_shift_enter_adds_assembly_comment_line(tmp_path: Path):
+    assembly_path = tmp_path / "comments.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.ShiftModifier),
+    )
+    _app().processEvents()
+
+    assert editor.toPlainText().endswith("\n; ")
+
+
+def test_binary_workbench_command_expansion_can_be_undone(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.set_custom_commands({"pair": ["nop", "nop"]})  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    editor.setPlainText("/pair")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier),
+    )
+    _app().processEvents()
+    assert editor.toPlainText() == "nop\nnop"
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier),
+    )
+    _app().processEvents()
+    assert editor.toPlainText() == "/pair"
+
+
+def test_binary_workbench_sltu_uses_arithmetic_mnemonic_color():
+    assert psx_mips_highlight_color("mnemonic", "sltu") == psx_mips_highlight_color(
+        "mnemonic",
+        "addiu",
+    )

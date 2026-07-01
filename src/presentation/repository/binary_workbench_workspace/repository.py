@@ -11,6 +11,7 @@ from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
 from src.core.binary_workbench.version_line_comments import apply_line_comments
+from src.core.binary_workbench.version_names import sorted_versions
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
@@ -36,6 +37,7 @@ from src.presentation.repository.binary_workbench_workspace.manifest import (
     tab_checksums,
 )
 from src.presentation.repository.binary_workbench_workspace.payloads import (
+    active_version_from_payload,
     lba_from_payload,
     lba_payload,
     offset_region_details_from_payload,
@@ -123,6 +125,11 @@ class BinaryWorkbenchWorkspaceRepository:
             versions = list(tab.versions)
             active = tab.active_version_name
             active_version = next((item for item in versions if item.name == active), None)
+        active_variables, active_equates = _symbols_for_version(
+            active_version,
+            variables,
+            equates,
+        )
         tab_byte_overlays, tab_instruction_overlays = without_blank_instruction_overlays(
             dict(tab.byte_overlays),
             dict(tab.instruction_overlays),
@@ -138,14 +145,14 @@ class BinaryWorkbenchWorkspaceRepository:
             else tab_instruction_overlays
         )
         byte_overlays = overlay_from_version_rows(active_version.rows) if active_version else {}
-        byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, variables, equates))
+        byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, active_variables, active_equates))
         byte_overlays, overlays = without_blank_instruction_overlays(byte_overlays, overlays)
         labels = labels_from_instruction_overlays(overlays) or dict(tab.labels)
         loaded = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
             **{
                 **tab.__dict__,
-                "variables": variables,
-                "equates": equates,
+                "variables": active_variables,
+                "equates": active_equates,
                 "internal_files": files,
                 "lba_sector_size": sector_size,
                 "offset_regions": offset_regions,
@@ -169,8 +176,8 @@ class BinaryWorkbenchWorkspaceRepository:
             **{
                 **loaded.__dict__,
                 "module_checksums": checksums_for(
-                    variables,
-                    equates,
+                    active_variables,
+                    active_equates,
                     sector_size,
                     files,
                     loaded.versions,
@@ -235,6 +242,14 @@ class BinaryWorkbenchWorkspaceRepository:
     def load_versions_file(self, path: Path) -> list[BinaryWorkbenchVersionDTO]:
         return versions_from_payload(read_json(path))
 
+    def load_versions_file_with_active(
+        self,
+        path: Path,
+    ) -> tuple[list[BinaryWorkbenchVersionDTO], str | None]:
+        payload = read_json(path)
+        versions = versions_from_payload(payload)
+        return versions, active_version_from_payload(payload, versions)
+
     def load_version_from_context(
         self,
         tab: BinaryWorkbenchTabContextDTO,
@@ -268,18 +283,18 @@ class BinaryWorkbenchWorkspaceRepository:
         existing = read_json(target)
         existing_versions = existing.get("versions") if isinstance(existing, dict) else {}
         existing_versions = dict(existing_versions) if isinstance(existing_versions, dict) else {}
-        loaded_versions = [version for version in tab.versions if not _version_placeholder(version, tab.active_version_name)]
+        loaded_versions = sorted_versions([version for version in tab.versions if not _version_placeholder(version, tab.active_version_name)], name_of=lambda item: item.name)
         payload = versions_payload(loaded_versions, tab.active_version_name)
         merged_versions = {**existing_versions, **payload.get("versions", {})}
-        for version in tab.versions:
+        for version in sorted_versions(tab.versions, name_of=lambda item: item.name):
             merged_versions.setdefault(version.name, {})
         write_json(target, {"active_version": tab.active_version_name, "versions": merged_versions})
         paths[VERSIONS] = str(target)
-        for version in tab.versions:
+        for version in sorted_versions(tab.versions, name_of=lambda item: item.name):
             paths[f"{VERSION_PATH_PREFIX}{version.name}"] = str(target)
         return {
             version.name: relative_module_path(target, self._directory)
-            for version in tab.versions
+            for version in sorted_versions(tab.versions, name_of=lambda item: item.name)
         }
 
     def _versions_from_manifest(
@@ -307,7 +322,7 @@ class BinaryWorkbenchWorkspaceRepository:
             version = version_from_payload(payload, str(name))
             if version is not None:
                 versions.append(version if version.name == active else BinaryWorkbenchVersionDTO(name=version.name))
-        return versions
+        return sorted_versions(versions, name_of=lambda version: version.name)
 
     def _version_file_path(
         self,
@@ -345,6 +360,19 @@ class BinaryWorkbenchWorkspaceRepository:
         return dict(version.instruction_overlays)
 
 
+
+def _symbols_for_version(
+    version: BinaryWorkbenchVersionDTO | None,
+    fallback_variables: dict[str, str],
+    fallback_equates: dict[str, str],
+) -> tuple[dict[str, str], dict[str, str]]:
+    if version is None or not (
+        version.symbols_loaded or version.variables or version.equates
+    ):
+        return dict(fallback_variables), dict(fallback_equates)
+    return dict(version.variables), dict(version.equates)
+
+
 def _apply_instruction_overlays(
     rows: list[BinaryWorkbenchRowDTO],
     overlays: dict[str, str],
@@ -367,6 +395,7 @@ def _version_placeholder(version: BinaryWorkbenchVersionDTO, active: str | None)
         and not version.rows
         and not version.instruction_overlays
         and not version.instructions_by_line
+        and not version.symbols_loaded
     )
 
 
@@ -385,7 +414,7 @@ def _versions_with_only_active(
             versions.append(version if version is not None else BinaryWorkbenchVersionDTO(name=name))
             continue
         versions.append(BinaryWorkbenchVersionDTO(name=name))
-    return sorted(versions, key=lambda version: version.name != active)
+    return sorted_versions(versions, name_of=lambda version: version.name)
 
 
 def _version_named(
@@ -401,10 +430,12 @@ def _version_named(
             return None
         instructions = raw.get("instructions")
         instructions = instructions if isinstance(instructions, dict) else raw
-        return version_from_payload(
-            {"name": name, "instructions": instructions, "rows": raw.get("rows")},
-            name,
-        )
+        version_payload = {"name": name, "instructions": instructions, "rows": raw.get("rows")}
+        if "variables" in raw:
+            version_payload["variables"] = raw.get("variables")
+        if "equates" in raw:
+            version_payload["equates"] = raw.get("equates")
+        return version_from_payload(version_payload, name)
     version = version_from_payload(payload, name)
     return version if version is not None and version.name == name else None
 

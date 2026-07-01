@@ -14,6 +14,7 @@ from src.modules.converter_dtos import ConverterStateDTO
 from src.modules.shared_dtos import WindowSizeDTO
 from src.modules.utils import COLOR
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_TEXT
+from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
 if TYPE_CHECKING:
@@ -141,11 +142,11 @@ class MainWindowStateMixin:
 
     def _restore_window_size(self: MainWindow, key: str, window: object) -> None:
         size = self._window_sizes.get(key)
-        if size is None:
-            return
         resize = getattr(window, "resize", None)
-        if callable(resize):
+        if size is not None and callable(resize):
             resize(QSize(size.width, size.height))
+        if hasattr(window, "frameGeometry"):
+            ensure_window_on_available_screen(window, self)
 
     def _collect_binary_workbench_state(self: MainWindow) -> BinaryWorkbenchStateDTO:
         if self._binary_workbench_window is not None:

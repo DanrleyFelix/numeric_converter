@@ -101,7 +101,7 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         for name in [BINARY_WORKBENCH_ANSI_TABLE_NAME, *self._tables]:
             button = QPushButton(name, self._body)
             button.setCursor(Qt.PointingHandCursor)
-            button.setFocusPolicy(Qt.NoFocus)
+            button.setFocusPolicy(Qt.StrongFocus)
             button.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
             configure_binary_workbench_dialog_button(button)
             button.clicked.connect(lambda _, table_name=name: self._toggle(table_name))

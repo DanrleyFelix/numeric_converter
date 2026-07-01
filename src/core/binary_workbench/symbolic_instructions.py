@@ -139,7 +139,7 @@ def _split_label(instruction: str) -> tuple[str, str]:
         return "", instruction
     left, right = instruction.split(LABEL_SEPARATOR, 1)
     label = left.strip()
-    if not label or " " in label or "\t" in label:
+    if not label or left != left.rstrip() or " " in label or "\t" in label:
         return "", instruction
     return label, right.lstrip()
 

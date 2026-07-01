@@ -11,9 +11,12 @@ WORKSPACE_HEAVY_TAB_LIMIT = 1
 def unloadable_workspace_context(context: BinaryWorkbenchTabContextDTO) -> bool:
     if context.keep_workspace_resources:
         return False
-    if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
+    if context.kind in {
+        BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+    }:
         return False
-    return context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY or bool(context.workspace_path)
+    return context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY
 
 
 def workspace_heavy_context_loaded(context: BinaryWorkbenchTabContextDTO) -> bool:

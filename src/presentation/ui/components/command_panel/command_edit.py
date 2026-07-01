@@ -81,11 +81,11 @@ class CommandEdit(QPlainTextEdit):
                 self._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
                 event.accept()
                 return
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
                 self._accept_popup_completion()
                 event.accept()
                 return
-            if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
+            if event.key() in (Qt.Key_Escape, Qt.Key_Backtab):
                 if event.key() == Qt.Key_Escape:
                     self._hide_history_popup()
                 event.accept()
@@ -118,7 +118,7 @@ class CommandEdit(QPlainTextEdit):
                 self._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
                 event.accept()
                 return True
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
                 self._accept_popup_completion()
                 event.accept()
                 return True

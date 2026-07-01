@@ -665,11 +665,18 @@ def test_window_size_and_auto_convert_are_restored_from_saved_context():
     restored._open_logs_window()
 
     assert restored._auto_convert_enabled is True
-    assert restored.size().width() == 910
-    assert restored.size().height() == 680
+    available = restored.screen().availableGeometry()
+    assert restored.size().width() == min(910, available.width())
+    assert restored.size().height() == min(680, available.height())
     assert restored._help_window is not None
-    assert restored._help_window.size().width() == 980
-    assert restored._help_window.size().height() == 700
+    help_frame = restored._help_window.frameGeometry()
+    help_size = restored._help_window.size()
+    help_available = restored._help_window.screen().availableGeometry()
+    assert help_size.width() == min(
+        980,
+        help_available.width() - (help_frame.width() - help_size.width()),
+    )
+    assert help_size.height() == 700
     assert restored._variables_window is not None
     assert restored._variables_window.size().width() == 760
     assert restored._variables_window.size().height() == 530

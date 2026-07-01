@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QShowEvent
 from PySide6.QtWidgets import QMainWindow
 
 from src.modules.application_dtos import ProgramContextDTO
@@ -21,6 +21,7 @@ from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.design.icons import Icons
 from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_SIZE, MAIN_WINDOW_TEXT
 from src.presentation.ui.main_window.command_mixin import MainWindowCommandMixin
 from src.presentation.ui.main_window.dialogs_mixin import MainWindowDialogsMixin
@@ -78,6 +79,10 @@ class MainWindow(
         self._load_default_state()
         self.body.focus_decimal()
         self._loaded = True
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        ensure_window_on_available_screen(self)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         for window in (

@@ -8,6 +8,7 @@ from src.core.binary_workbench.context_overlays import (
 )
 from src.core.binary_workbench.encoding_tables import encoding_table_from_payload
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
+from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.version_overlays import (
     instructions_by_line_from_rows,
     without_blank_instruction_overlays,
@@ -207,9 +208,12 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
                 rows=_rows(item.get("rows")),
                 instruction_overlays=_instruction_overlays(item.get("instructions")),
                 instructions_by_line=_instructions_by_line(item.get("instructions")),
+                variables=normalize_string_map(item.get("variables")),
+                equates=normalize_string_map(item.get("equates")),
+                symbols_loaded="variables" in item or "equates" in item,
             )
         )
-    return versions
+    return sorted_versions(versions, name_of=lambda version: version.name)
 
 
 def _instructions_by_line(raw: object) -> dict[int, str]:
@@ -461,8 +465,12 @@ def binary_workbench_state_to_payload(
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
                         "instructions": _version_instructions_payload(version),
+                        **({
+                            "variables": dict(version.variables),
+                            "equates": dict(version.equates),
+                        } if version.symbols_loaded or version.variables or version.equates else {}),
                     }
-                    for version in tab.versions
+                    for version in sorted_versions(tab.versions, name_of=lambda item: item.name)
                 ],
                 "active_version_name": tab.active_version_name,
                 "workspace_path": tab.workspace_path,

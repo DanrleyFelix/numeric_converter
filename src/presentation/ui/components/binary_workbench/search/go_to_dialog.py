@@ -20,6 +20,8 @@ from src.presentation.ui.components.binary_workbench.search.go_to_offsets import
 )
 from src.presentation.ui.components.binary_workbench.search.results_list import SearchResultsList
 
+_LAST_GO_TO_TARGET = BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET
+
 
 class BinaryWorkbenchGoToDialog(QDialog):
     goToRequested = Signal(int)
@@ -59,6 +61,8 @@ class BinaryWorkbenchGoToDialog(QDialog):
             BINARY_WORKBENCH_TEXT.VARIABLE_TARGET,
             BINARY_WORKBENCH_TEXT.INTERNAL_FILE_TARGET,
         ])
+        saved_index = self.target.findText(_LAST_GO_TO_TARGET)
+        self.target.setCurrentIndex(saved_index if saved_index >= 0 else 0)
         self.value = search_line_edit(self, BINARY_WORKBENCH_TEXT.VALUE)
         self.results = SearchResultsList(self)
         resolve = QPushButton(BINARY_WORKBENCH_TEXT.GO_TO, self)
@@ -66,7 +70,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
         layout.addWidget(self.target)
         layout.addWidget(self.value)
         layout.addWidget(self.results)
-        self.target.currentTextChanged.connect(self._sync_value_validator)
+        self.target.currentTextChanged.connect(self._target_changed)
         self.value.returnPressed.connect(self.refresh_results)
         self.results.offsetActivated.connect(self.goToRequested)
         finish_search_dialog(
@@ -75,7 +79,7 @@ class BinaryWorkbenchGoToDialog(QDialog):
             self.accept,
             spread_actions=True,
         )
-        self._sync_value_validator(self.target.currentText())
+        self._target_changed(self.target.currentText())
 
     def selected_offsets(self) -> list[int]:
         if self.results.currentRow() >= 0:
@@ -95,6 +99,11 @@ class BinaryWorkbenchGoToDialog(QDialog):
             self.target.currentText(),
             self.value.text().strip(),
         )
+
+    def _target_changed(self, target: str) -> None:
+        global _LAST_GO_TO_TARGET
+        _LAST_GO_TO_TARGET = target
+        self._sync_value_validator(target)
 
     def _sync_value_validator(self, target: str) -> None:
         if target == BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET or target in self._context.reference_offset_bases:

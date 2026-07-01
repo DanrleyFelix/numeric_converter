@@ -76,7 +76,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         if len(data) != 4:
             return "word 0x00000000"
         word = int.from_bytes(data, "little")
-        if _is_branch_word(word):
+        if _is_branch_word(word) or _is_jalr_word(word):
             return disassemble_fallback(word, address)
         if self._capstone is not None:
             engine = self._capstone.Cs(
@@ -207,3 +207,7 @@ def _is_branch_instruction(text: str) -> bool:
 def _is_branch_word(word: int) -> bool:
     opcode = (word >> 26) & 0x3F
     return opcode in BRANCH_OPCODES.values() or opcode == 0x01
+
+
+def _is_jalr_word(word: int) -> bool:
+    return ((word >> 26) & 0x3F) == 0x00 and (word & 0x3F) == 0x09

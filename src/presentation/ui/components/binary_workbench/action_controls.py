@@ -67,7 +67,7 @@ def configure_binary_workbench_action(button: QPushButton) -> None:
         BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
     )
     button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.NoFocus)
+    button.setFocusPolicy(Qt.StrongFocus)
 
 
 def configure_binary_workbench_dialog_action(button: QPushButton) -> None:
@@ -86,7 +86,8 @@ def configure_binary_workbench_dialog_button(
     if width is not None:
         button.setFixedWidth(width)
     button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.NoFocus)
+    button.setFocusPolicy(Qt.StrongFocus)
+    button.setAutoDefault(True)
     configure_binary_workbench_control_height(button)
 
 

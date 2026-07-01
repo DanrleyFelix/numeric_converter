@@ -12,6 +12,7 @@ from src.presentation.ui.components.workspace_table.constants import (
     WORKSPACE_TABLE_TEXT,
 )
 from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
 if TYPE_CHECKING:
@@ -106,7 +107,9 @@ class MainWindowWorkspaceMixin:
             return
         if window.windowState() & Qt.WindowMinimized:
             window.setWindowState(window.windowState() & ~Qt.WindowMinimized)
+        ensure_window_on_available_screen(window, self)
         window.show()
+        ensure_window_on_available_screen(window, self)
         window.raise_()
         window.activateWindow()
 

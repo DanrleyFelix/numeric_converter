@@ -28,7 +28,7 @@ class BinaryWorkbenchVersionNameDialog(QDialog):
         self.name_field.setPlaceholderText(BINARY_WORKBENCH_FILE_DIALOG_TEXT.VERSION_NAME_LABEL)
         ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.CONFIRM, self)
         ok.setObjectName("preferences-confirm")
-        ok.setFocusPolicy(Qt.NoFocus)
+        ok.setFocusPolicy(Qt.StrongFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
         self.name_field.setFixedSize(
@@ -67,7 +67,7 @@ class BinaryWorkbenchVersionPickerDialog(QDialog):
             self.items.setCurrentRow(0)
         ok = QPushButton(BINARY_WORKBENCH_FILE_DIALOG_TEXT.OK, self)
         ok.setObjectName("preferences-ok")
-        ok.setFocusPolicy(Qt.NoFocus)
+        ok.setFocusPolicy(Qt.StrongFocus)
         ok.setCursor(Qt.PointingHandCursor)
         ok.clicked.connect(self.accept)
         layout.addWidget(title)
@@ -102,7 +102,7 @@ class BinaryWorkbenchVersionActionsDialog(QDialog):
         ):
             button = QPushButton(text, self)
             button.setObjectName("preferences-ok")
-            button.setFocusPolicy(Qt.NoFocus)
+            button.setFocusPolicy(Qt.StrongFocus)
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(lambda _, value=action: self._choose(value))
             layout.addWidget(button)

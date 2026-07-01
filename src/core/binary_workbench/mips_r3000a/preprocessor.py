@@ -6,6 +6,7 @@ from src.core.binary_workbench.mips_r3000a.constants import (
     BRANCH_OPCODES,
     I_OPCODES,
     J_OPCODES,
+    R_CODE_FUNCTS,
     R_FUNCTS,
     R_JUMP_FUNCTS,
     SPECIAL_BRANCH_RT,
@@ -181,7 +182,7 @@ def _split_label(text: str) -> tuple[str, str]:
         return "", text
     left, right = text.split(":", 1)
     candidate = left.strip()
-    if candidate and " " not in candidate and "\t" not in candidate:
+    if candidate and left == left.rstrip() and " " not in candidate and "\t" not in candidate:
         return candidate, right.lstrip()
     return "", text
 
@@ -191,6 +192,7 @@ def _core_mnemonics() -> set[str]:
         *BRANCH_OPCODES,
         *I_OPCODES,
         *J_OPCODES,
+        *R_CODE_FUNCTS,
         *R_FUNCTS,
         *R_JUMP_FUNCTS,
         *SPECIAL_BRANCH_RT,

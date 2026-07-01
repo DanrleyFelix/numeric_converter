@@ -44,6 +44,7 @@ def _with_default_version(tab: BinaryWorkbenchTabContextDTO) -> BinaryWorkbenchT
     if tab.kind not in {
         BINARY_WORKBENCH_TAB_KIND.BINARY,
         BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+        BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
     }:
         return tab
     if tab.versions:

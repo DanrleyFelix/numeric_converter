@@ -12,11 +12,15 @@ from src.core.binary_workbench.file_ops import (
     save_versioned_binary,
 )
 from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
 )
-from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
+from src.modules.binary_workbench_dtos import (
+    BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
+)
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.factory import is_assembly_path
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import rows_to_bytes
@@ -134,6 +138,9 @@ class TabFileSavingMixin:
             rows = page.grid.export_rows()
         else:
             rows = current.rows
+        versions = current.versions or [
+            BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
+        ]
         updated = BinaryWorkbenchTabContextDTO(
             **{
                 **current.__dict__,
@@ -145,6 +152,8 @@ class TabFileSavingMixin:
                 "original_rows": rows,
                 "file_size": len(rows) * ROW_BYTES,
                 "original_file_size": len(rows) * ROW_BYTES,
+                "versions": versions,
+                "active_version_name": current.active_version_name or versions[0].name,
             }
         )
         self._replace_context(updated.tab_id, updated)

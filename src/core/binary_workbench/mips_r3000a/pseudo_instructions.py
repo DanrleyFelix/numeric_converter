@@ -45,7 +45,7 @@ def _split_label(text: str) -> tuple[str | None, str]:
         return None, text
     left, right = text.split(LABEL_SEPARATOR, 1)
     candidate = left.strip()
-    if not candidate or " " in candidate or "\t" in candidate:
+    if not candidate or left != left.rstrip() or " " in candidate or "\t" in candidate:
         return None, text
     return candidate, right.strip()
 

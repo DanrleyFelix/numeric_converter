@@ -12,7 +12,7 @@ from src.presentation.ui.components.binary_workbench.editor.constants.highlighte
 )
 
 BYTE_TOKEN = re.compile(rf"{HEX_DIGIT_PATTERN}{{2}}")
-HEX_TOKEN = re.compile(rf"0x{HEX_DIGIT_PATTERN}+")
+HEX_TOKEN = re.compile(rf"0x{HEX_DIGIT_PATTERN}+", re.IGNORECASE)
 DECIMAL_TOKEN = re.compile(r"(?<![\w$])\d+(?![\w])")
 REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
 COMPLETION_TOKEN = re.compile(r"/[A-Za-z0-9_]*|[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
@@ -56,7 +56,8 @@ def code_without_label(text: str) -> tuple[int, str]:
     if ":" not in text:
         return 0, text
     left, right = text.split(":", 1)
-    if left.strip() and " " not in left.strip():
+    candidate = left.strip()
+    if candidate and left == left.rstrip() and " " not in candidate and "\t" not in candidate:
         stripped = right.lstrip()
         return len(left) + 1 + (len(right) - len(stripped)), stripped
     return 0, text
@@ -84,31 +85,34 @@ def _normalized_byte_line(line: str, uppercase: bool) -> str:
 
 
 def normalize_instruction_text(text: str, uppercase: bool) -> str:
-    if not uppercase:
-        return text
-    return "\n".join(_normalize_instruction_line(line) for line in text.split("\n"))
+    return "\n".join(
+        _normalize_instruction_line(line, uppercase)
+        for line in text.split("\n")
+    )
 
 
-def _normalize_instruction_line(line: str) -> str:
+def _normalize_instruction_line(line: str, uppercase: bool) -> str:
     code, separator, comment = line.partition(";")
     label, label_separator, body = _partition_label(code)
-    body = _uppercase_hex_values(_uppercase_mnemonic(body))
+    if uppercase:
+        body = _uppercase_hex_values(body)
+        if label_separator or ":" not in code:
+            body = _uppercase_mnemonic(body)
     return f"{label}{label_separator}{body}{separator}{comment}"
-
 
 def _partition_label(text: str) -> tuple[str, str, str]:
     left, separator, right = text.partition(":")
     if not separator:
         return "", "", text
     candidate = left.strip()
-    if candidate and " " not in candidate and "\t" not in candidate:
+    if candidate and left == left.rstrip() and " " not in candidate and "\t" not in candidate:
         return left, separator, right
     return "", "", text
 
 
 def _uppercase_mnemonic(text: str) -> str:
-    match = re.search(r"[A-Za-z.][A-Za-z0-9_.]*", text)
-    if match is None:
+    match = re.search(r"[A-Za-z.][A-Za-z0-9_.]*(?=\s)", text)
+    if match is None or match.group(0).lower() not in PSX_MIPS_KNOWN_MNEMONICS:
         return text
     return f"{text[: match.start()]}{match.group(0).upper()}{text[match.end() :]}"
 

@@ -40,12 +40,12 @@ class CommandPanel(QFrame):
         self.show_variables_button = QPushButton(COMMAND_PANEL_TEXT.VARIABLES)
         self.show_variables_button.setObjectName("command-header-button")
         self.show_variables_button.setCursor(Qt.PointingHandCursor)
-        self.show_variables_button.setFocusPolicy(Qt.NoFocus)
+        self.show_variables_button.setFocusPolicy(Qt.StrongFocus)
 
         self.show_logs_button = QPushButton(COMMAND_PANEL_TEXT.LOGS)
         self.show_logs_button.setObjectName("command-header-button")
         self.show_logs_button.setCursor(Qt.PointingHandCursor)
-        self.show_logs_button.setFocusPolicy(Qt.NoFocus)
+        self.show_logs_button.setFocusPolicy(Qt.StrongFocus)
 
         header_row.addWidget(self.show_variables_button)
         header_row.addStretch(1)

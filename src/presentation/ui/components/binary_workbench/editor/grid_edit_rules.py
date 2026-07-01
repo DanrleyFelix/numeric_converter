@@ -4,6 +4,9 @@ from PySide6.QtGui import QTextCursor
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import set_cursor_position
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
+    normalize_instruction_text,
+)
 from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
     remove_editor_block,
     replace_selection_preserving_line_breaks,
@@ -84,6 +87,10 @@ class GridEditRulesMixin:
             return
         if self._shift_return_should_insert_comment(editor, event):
             self._insert_comment_line(editor)
+            editor.mark_return_key_handled()
+            return
+        if self._return_key_should_insert_instruction_line(editor):
+            self._insert_instruction_line(editor)
             editor.mark_return_key_handled()
             return
         if not self._return_key_should_navigate_virtual_offset(editor):
@@ -176,18 +183,57 @@ class GridEditRulesMixin:
 
     def _shift_return_should_insert_comment(self, editor, event) -> bool:
         return (
-            self._virtual
+            editor is self.instructions
+            and self._edit_rules.allow_editor_edit
+            and bool(event.modifiers() & Qt.ShiftModifier)
+            and (not self._virtual or not self._edit_rules.allow_byte_shift)
+        )
+
+    def _return_key_should_insert_instruction_line(self, editor) -> bool:
+        return (
+            not self._virtual
             and editor is self.instructions
             and self._edit_rules.allow_editor_edit
-            and not self._edit_rules.allow_byte_shift
-            and bool(event.modifiers() & Qt.ShiftModifier)
         )
+
+    def _insert_instruction_line(self, editor) -> None:
+        cursor = editor.textCursor()
+        cursor.beginEditBlock()
+        try:
+            cursor.insertText("\n")
+            self._normalize_previous_instruction_line(cursor)
+        finally:
+            cursor.endEditBlock()
+        editor.setTextCursor(cursor)
 
     def _insert_comment_line(self, editor) -> None:
         cursor = editor.textCursor()
         cursor.movePosition(QTextCursor.EndOfBlock)
-        cursor.insertText(f"\n{COMMENT_LINE_PREFIX}")
+        cursor.beginEditBlock()
+        try:
+            cursor.insertText(f"\n{COMMENT_LINE_PREFIX}")
+            self._normalize_previous_instruction_line(cursor)
+        finally:
+            cursor.endEditBlock()
         editor.setTextCursor(cursor)
+
+    def _normalize_previous_instruction_line(self, cursor: QTextCursor) -> None:
+        if not self._uppercase_instructions:
+            return
+        position = cursor.position()
+        previous = cursor.block().previous()
+        if not previous.isValid():
+            return
+        normalized = normalize_instruction_text(previous.text(), True)
+        if normalized == previous.text():
+            return
+        cursor.setPosition(previous.position())
+        cursor.setPosition(
+            previous.position() + len(previous.text()),
+            QTextCursor.KeepAnchor,
+        )
+        cursor.insertText(normalized)
+        cursor.setPosition(position)
 
     def _default_binary_append_rules_enabled(self) -> bool:
         return (

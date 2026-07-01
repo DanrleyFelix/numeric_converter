@@ -38,7 +38,7 @@ class WorkspaceRowWidget(QWidget):
         )
         self.remove_button.setText("")
         self.remove_button.setCursor(Qt.PointingHandCursor)
-        self.remove_button.setFocusPolicy(Qt.NoFocus)
+        self.remove_button.setFocusPolicy(Qt.StrongFocus)
         self.remove_button.installEventFilter(self)
         self.remove_button.setFixedSize(
             WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,

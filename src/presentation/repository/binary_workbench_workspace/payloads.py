@@ -31,6 +31,7 @@ from src.presentation.repository.binary_workbench_payload import (
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
 from src.core.binary_workbench.version_overlays import instructions_by_line_from_rows
+from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 
 
@@ -112,12 +113,15 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
             for line, instruction in sorted(line_instructions.items())
         },
     }
-    return {
+    payload: dict[str, object] = {
         "name": version.name,
         "instructions": instructions,
         "rows": [_row_payload(row) for row in version.rows],
     }
-
+    if version.symbols_loaded or version.variables or version.equates:
+        payload["variables"] = dict(version.variables)
+        payload["equates"] = dict(version.equates)
+    return payload
 
 def encoding_tables_payload(
     name: str,
@@ -284,13 +288,16 @@ def versions_payload(
     active_version: str | None = None,
 ) -> dict[str, object]:
     payloads: dict[str, dict[str, object]] = {}
-    for version in versions:
+    for version in sorted_versions(versions, name_of=lambda item: item.name):
         item = version_payload(version)
         instructions = item.get("instructions")
         entry = dict(instructions) if isinstance(instructions, dict) else {}
         rows = item.get("rows")
         if isinstance(rows, list) and rows:
             entry["rows"] = rows
+        for key in ("variables", "equates"):
+            if key in item:
+                entry[key] = item[key]
         payloads[version.name] = entry
     return {
         "active_version": active_version,
@@ -333,13 +340,16 @@ def version_from_payload(
     else:
         rows = _rows(payload.get("rows"))
     version_name = name if isinstance(name, str) and name else fallback_name
+    symbols_loaded = "variables" in payload or "equates" in payload
     return BinaryWorkbenchVersionDTO(
         name=version_name,
         rows=rows,
         instruction_overlays=overlays,
         instructions_by_line=instructions_by_line,
+        variables=normalize_string_map(payload.get("variables")),
+        equates=normalize_string_map(payload.get("equates")),
+        symbols_loaded=symbols_loaded,
     )
-
 
 def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkbenchVersionDTO]:
     if not isinstance(payload, dict):
@@ -360,14 +370,25 @@ def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkb
                 rows=_rows(raw_version.get("rows")),
                 instructions_by_line=_instructions_by_line(instructions),
                 instruction_overlays=_instruction_overlays(instructions),
+                variables=normalize_string_map(raw_version.get("variables")),
+                equates=normalize_string_map(raw_version.get("equates")),
+                symbols_loaded="variables" in raw_version or "equates" in raw_version,
             )
         )
+    return sorted_versions(versions, name_of=lambda version: version.name)
+
+
+def active_version_from_payload(
+    payload: dict[str, object] | None,
+    versions: list[BinaryWorkbenchVersionDTO],
+) -> str | None:
+    if not isinstance(payload, dict):
+        return versions[0].name if versions else None
     active = payload.get("active_version")
-    if not isinstance(active, str):
-        return versions
-    return sorted(versions, key=lambda version: version.name != active)
-
-
+    names = {version.name for version in versions}
+    if isinstance(active, str) and active in names:
+        return active
+    return versions[0].name if versions else None
 def _instructions_by_line(raw: object) -> dict[int, str]:
     if not isinstance(raw, dict):
         return {}

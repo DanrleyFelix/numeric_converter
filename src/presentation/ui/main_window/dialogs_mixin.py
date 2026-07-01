@@ -13,6 +13,7 @@ from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import LogPreferencesDialog, PreferencesDialog
 from src.presentation.ui.helpers.load_qss import STYLESHEET
+from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
 
 if TYPE_CHECKING:
@@ -61,7 +62,9 @@ class MainWindowDialogsMixin:
             self._binary_workbench_window.setWindowState(
                 self._binary_workbench_window.windowState() & ~Qt.WindowMinimized
             )
+        ensure_window_on_available_screen(self._binary_workbench_window, self)
         self._binary_workbench_window.show()
+        ensure_window_on_available_screen(self._binary_workbench_window, self)
         self._binary_workbench_window.raise_()
         self._binary_workbench_window.activateWindow()
         self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_READY)
@@ -75,7 +78,9 @@ class MainWindowDialogsMixin:
 
         if self._donor_window.windowState() & Qt.WindowMinimized:
             self._donor_window.setWindowState(self._donor_window.windowState() & ~Qt.WindowMinimized)
+        ensure_window_on_available_screen(self._donor_window, self)
         self._donor_window.show()
+        ensure_window_on_available_screen(self._donor_window, self)
         self._donor_window.raise_()
         self._donor_window.activateWindow()
 
@@ -183,7 +188,9 @@ class MainWindowDialogsMixin:
             self._help_window.setWindowState(
                 self._help_window.windowState() & ~Qt.WindowMinimized
             )
+        ensure_window_on_available_screen(self._help_window, self)
         self._help_window.show()
+        ensure_window_on_available_screen(self._help_window, self)
         self._help_window.raise_()
         self._help_window.activateWindow()
 

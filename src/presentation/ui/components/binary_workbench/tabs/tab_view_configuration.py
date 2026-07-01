@@ -106,12 +106,10 @@ class TabViewConfigurationMixin:
         current = self.current_context()
         if current is None:
             return []
-        if current.offset_regions_loaded:
-            return list(current.offset_regions)
         path = current.module_paths.get(OFFSET_REGIONS)
-        if not path:
-            return []
-        return self._workspace_repository.load_offset_regions_file(Path(path))
+        if path:
+            return self._workspace_repository.load_offset_regions_file(Path(path))
+        return list(current.offset_regions)
 
     def offset_region_details_for_current_context(self, name: str, offset: int) -> str:
         current = self.current_context()

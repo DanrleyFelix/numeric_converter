@@ -92,7 +92,7 @@ class TabPageManagementMixin:
         button = QPushButton("X", self.tabBar())
         button.setObjectName("binary-workbench-tab-close")
         button.setCursor(Qt.PointingHandCursor)
-        button.setFocusPolicy(Qt.NoFocus)
+        button.setFocusPolicy(Qt.StrongFocus)
         button.clicked.connect(lambda: self.closeRequested.emit(self.indexOf(page)))
         return button
 

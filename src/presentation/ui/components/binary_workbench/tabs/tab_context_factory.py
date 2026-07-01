@@ -102,6 +102,10 @@ def create_assembly_tab(
         rows=rows,
         file_size=len(rows) * ROW_BYTES,
         original_file_size=len(rows) * ROW_BYTES,
+        versions=[
+            BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
+        ] if path.is_file() else [],
+        active_version_name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME if path.is_file() else None,
         view_preferences=seed_view_preferences(state),
     )
 

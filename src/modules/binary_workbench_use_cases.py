@@ -109,10 +109,17 @@ def binary_version_has_unsaved_edits(
         context.variables,
         context.equates,
     )
+    symbols_changed = (
+        version.symbols_loaded or version.variables or version.equates
+    ) and (
+        context.variables != version.variables
+        or context.equates != version.equates
+    )
     return (
         current_instructions != saved_instructions
         or current_lines != version.instructions_by_line
         or byte_overlays != saved_bytes
+        or symbols_changed
     )
 
 

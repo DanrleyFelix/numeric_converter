@@ -37,13 +37,21 @@ class BinaryWorkbenchWindowFileActionsMixin:
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
         return False
 
-    def _save_assembly_code(self) -> bool:
+    def _save_assembly_code(
+        self,
+        *,
+        adopt_source: bool | None = None,
+        suggested_name: str = "",
+    ) -> bool:
         default_directory = self._default_save_directory(BINARY_WORKBENCH_STATE.SAVE_ASSEMBLY_DIRECTORY)
+        if suggested_name:
+            default_directory = str(Path(default_directory) / suggested_name)
         path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_ASSEMBLY_CODE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_ASSEMBLY)
         if not path:
             return False
         current = self.tabs.current_context()
-        adopt_source = current is not None and current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
+        if adopt_source is None:
+            adopt_source = current is not None and current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
         if self.tabs.save_current_assembly_copy(Path(path), adopt_source):
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_SAVED_TEMPLATE.format(name=Path(path).name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return True
@@ -56,8 +64,11 @@ class BinaryWorkbenchWindowFileActionsMixin:
         if current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             self._save_file()
             return
-        if current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY and current.source_path and self.tabs.save_current_source_file():
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_SAVED_TEMPLATE.format(name=Path(current.source_path).name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        if current.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY:
+            self._save_assembly_code(
+                adopt_source=False,
+                suggested_name=self._assembly_export_name(current),
+            )
             return
         focused = self.tabs.focused_editor_kind()
         if focused == BINARY_WORKBENCH_TEXT.BYTES:
@@ -67,6 +78,13 @@ class BinaryWorkbenchWindowFileActionsMixin:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_FOCUSED_EDITOR, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self._save_assembly_code()
+
+    @staticmethod
+    def _assembly_export_name(current) -> str:
+        source = Path(current.source_path or current.display_name)
+        version = current.active_version_name.strip() if current.active_version_name else ""
+        suffix = f"_{version}" if version else ""
+        return f"{source.stem}{suffix}.asm"
 
     def _default_save_directory(self, action_key: str) -> str:
         default_directory = self.tabs.directory_for(action_key)

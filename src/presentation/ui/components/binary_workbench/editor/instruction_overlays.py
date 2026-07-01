@@ -89,5 +89,13 @@ def label_from_instruction(instruction: str) -> str:
     before_comment = instruction.split(";", 1)[0].split("#", 1)[0].strip()
     if LABEL_SEPARATOR not in before_comment:
         return ""
-    candidate = before_comment.split(LABEL_SEPARATOR, 1)[0].strip()
-    return candidate if candidate and " " not in candidate and "\t" not in candidate else ""
+    definition = before_comment.split(LABEL_SEPARATOR, 1)[0]
+    candidate = definition.strip()
+    return (
+        candidate
+        if candidate
+        and definition == definition.rstrip()
+        and " " not in candidate
+        and "\t" not in candidate
+        else ""
+    )

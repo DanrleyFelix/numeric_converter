@@ -380,3 +380,139 @@ def test_binary_workbench_workspace_uses_preferred_manifest_when_multiple_match(
     assert repository.find_for_source(source) is None
     assert repository.find_for_source(source, Path(first.workspace_path or "")) == Path(first.workspace_path or "")
     assert repository.find_for_source(source, Path(second.workspace_path or "")) == Path(second.workspace_path or "")
+
+
+def test_binary_workbench_context_versions_roundtrip_symbols_and_natural_order():
+    state = BinaryWorkbenchStateDTO(
+        tabs=[
+            BinaryWorkbenchTabContextDTO(
+                tab_id="tab",
+                kind="binary",
+                display_name="versions.bin",
+                versions=[
+                    BinaryWorkbenchVersionDTO(
+                        "v10",
+                        variables={"var10": "0x10"},
+                        equates={"eq10": "0x20"},
+                        symbols_loaded=True,
+                    ),
+                    BinaryWorkbenchVersionDTO(
+                        "v2",
+                        variables={"var2": "0x2"},
+                        equates={},
+                        symbols_loaded=True,
+                    ),
+                    BinaryWorkbenchVersionDTO("v1"),
+                ],
+                active_version_name="v2",
+            )
+        ]
+    )
+
+    payload = binary_workbench_state_to_payload(state)
+    loaded = binary_workbench_state_from_payload(payload)
+
+    assert [version["name"] for version in payload["tabs"][0]["versions"]] == ["v1", "v2", "v10"]
+    assert loaded.tabs[0].active_version_name == "v2"
+    assert [version.name for version in loaded.tabs[0].versions] == ["v1", "v2", "v10"]
+    assert loaded.tabs[0].versions[1].variables == {"var2": "0x2"}
+    assert loaded.tabs[0].versions[1].symbols_loaded is True
+    assert loaded.tabs[0].versions[0].symbols_loaded is False
+
+
+def test_binary_workbench_workspace_versions_persist_symbols_and_keep_natural_order(tmp_path: Path):
+    source = tmp_path / "versions.bin"
+    source.write_bytes(bytes.fromhex("00 00 00 00"))
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    tab = BinaryWorkbenchTabContextDTO(
+        tab_id="tab",
+        kind="binary",
+        display_name=source.name,
+        source_path=str(source),
+        variables={"var2": "0x2"},
+        equates={"eq2": "0x22"},
+        versions=[
+            BinaryWorkbenchVersionDTO(
+                "v10",
+                variables={"var10": "0x10"},
+                equates={},
+                symbols_loaded=True,
+            ),
+            BinaryWorkbenchVersionDTO(
+                "v2",
+                variables={"var2": "0x2"},
+                equates={"eq2": "0x22"},
+                symbols_loaded=True,
+            ),
+            BinaryWorkbenchVersionDTO(
+                "v1",
+                variables={},
+                equates={},
+                symbols_loaded=True,
+            ),
+        ],
+        active_version_name="v2",
+    )
+
+    repository.save_tab_workspace(tab, repository.directory / "versions_manifest.json")
+    version_path = repository.directory / "Versions" / "versions_manifest_versions.json"
+    payload = json.loads(version_path.read_text(encoding="utf-8"))
+    loaded = repository.load_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="fresh",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+        ),
+        repository.directory / "versions_manifest.json",
+    )
+    lazy_v10 = repository.load_version_from_context(loaded, "v10")
+
+    assert payload["active_version"] == "v2"
+    assert list(payload["versions"]) == ["v1", "v2", "v10"]
+    assert payload["versions"]["v1"]["variables"] == {}
+    assert loaded.active_version_name == "v2"
+    assert loaded.variables == {"var2": "0x2"}
+    assert loaded.equates == {"eq2": "0x22"}
+    assert [version.name for version in loaded.versions] == ["v1", "v2", "v10"]
+    assert lazy_v10 is not None
+    assert lazy_v10.variables == {"var10": "0x10"}
+
+
+def test_binary_workbench_workspace_legacy_versions_fall_back_to_global_symbols(tmp_path: Path):
+    source = tmp_path / "legacy.bin"
+    source.write_bytes(bytes.fromhex("00 00 00 00"))
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    manifest = repository.directory / "legacy_manifest.json"
+    saved = repository.save_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="tab",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+            variables={"legacy_var": "0x44"},
+            equates={"legacy_eq": "0x55"},
+            versions=[BinaryWorkbenchVersionDTO("v1")],
+            active_version_name="v1",
+        ),
+        manifest,
+    )
+    version_path = Path(saved.module_paths[VERSIONS])
+    payload = json.loads(version_path.read_text(encoding="utf-8"))
+    payload["versions"]["v1"].pop("variables", None)
+    payload["versions"]["v1"].pop("equates", None)
+    version_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    loaded = repository.load_tab_workspace(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="fresh",
+            kind="binary",
+            display_name=source.name,
+            source_path=str(source),
+        ),
+        manifest,
+    )
+
+    assert loaded.variables == {"legacy_var": "0x44"}
+    assert loaded.equates == {"legacy_eq": "0x55"}
+    assert loaded.versions[0].symbols_loaded is False

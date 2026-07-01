@@ -360,15 +360,11 @@ class GridEditingMixin:
 
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()
-        normalized = normalize_instruction_text(text, self._uppercase_instructions)
-        normalized = "\n".join(expand_pseudo_instructions(normalized.split("\n")))
+        formatted = normalize_instruction_text(text, self._uppercase_instructions)
+        normalized = "\n".join(expand_pseudo_instructions(formatted.split("\n")))
         normalized = normalize_instruction_text(normalized, self._uppercase_instructions)
         if normalized != text and not self._instructions_user_edit_in_progress():
-            position = self.instructions.textCursor().position()
             self._set_editor_text(self.instructions, normalized.split("\n"))
-            cursor = self.instructions.textCursor()
-            set_cursor_position(cursor, position)
-            self.instructions.setTextCursor(cursor)
         return normalized.split("\n")
 
 

@@ -166,7 +166,7 @@ class BinaryWorkbenchTabs(
         button.setText(text)
         button.setToolTip(tooltip)
         button.setCursor(Qt.PointingHandCursor)
-        button.setFocusPolicy(Qt.NoFocus)
+        button.setFocusPolicy(Qt.StrongFocus)
         button.setFixedSize(
             BINARY_WORKBENCH_LAYOUT.TAB_NAV_BUTTON_WIDTH,
             BINARY_WORKBENCH_LAYOUT.TAB_NAV_BUTTON_HEIGHT,

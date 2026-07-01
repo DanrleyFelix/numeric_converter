@@ -66,7 +66,7 @@ def lba_inline_field(text: str, widget: QWidget) -> QWidget:
 def lba_button(text: str, object_name: str, parent: QWidget) -> QPushButton:
     button = QPushButton(text, parent)
     button.setObjectName(object_name)
-    button.setFocusPolicy(Qt.NoFocus)
+    button.setFocusPolicy(Qt.StrongFocus)
     button.setCursor(Qt.PointingHandCursor)
     return button
 
@@ -75,7 +75,7 @@ class LbaRemoveRowButton(QPushButton):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self.setObjectName("workspace-row-remove")
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setIcon(Icons.remove())
         self.setIconSize(QSize(WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE, WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE))

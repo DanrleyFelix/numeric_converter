@@ -71,7 +71,6 @@ class BinaryWorkbenchWindowVersionMixin:
             return
         name = dialog.selected_name()
         if name is not None and self.tabs.load_version(name):
-            self.tabs.save_current_workspace()
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_LOADED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
@@ -98,7 +97,12 @@ class BinaryWorkbenchWindowVersionMixin:
 
     @staticmethod
     def _supports_versions(current) -> bool:
-        return current is not None and current.kind in {
-            BINARY_WORKBENCH_TAB_KIND.BINARY,
-            BINARY_WORKBENCH_TAB_KIND.INTERNAL,
-        }
+        return current is not None and (
+            current.kind in {
+                BINARY_WORKBENCH_TAB_KIND.BINARY,
+                BINARY_WORKBENCH_TAB_KIND.INTERNAL,
+            }
+            or current.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            and bool(current.source_path)
+            and Path(current.source_path).is_file()
+        )
