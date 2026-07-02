@@ -322,6 +322,9 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         normalize_string_map(raw.get("byte_overlays")),
         normalize_string_map(raw.get("instruction_overlays")),
     )
+    if kind not in {"binary", "internal"}:
+        byte_overlays = {}
+        instruction_overlays = {}
     context = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
         kind=kind,
@@ -483,8 +486,8 @@ def binary_workbench_state_to_payload(
                 "file_size": tab.file_size,
                 "original_file_size": tab.original_file_size,
                 "version_dirty": tab.version_dirty,
-                "byte_overlays": {} if _is_virtual_binary(tab) else dict(tab.byte_overlays),
-                "instruction_overlays": {} if _is_virtual_binary(tab) else dict(tab.instruction_overlays),
+                "byte_overlays": dict(tab.byte_overlays) if _stores_overlay_payload(tab) else {},
+                "instruction_overlays": dict(tab.instruction_overlays) if _stores_overlay_payload(tab) else {},
                 "original_rows": [] if _uses_virtual_rows(tab) else [_row_payload(row) for row in tab.original_rows],
                 "rows": [] if _uses_virtual_rows(tab) else [_row_payload(row) for row in tab.rows],
                 "view_preferences": {
@@ -508,8 +511,8 @@ def binary_workbench_state_to_payload(
     }
 
 
-def _is_virtual_binary(tab: BinaryWorkbenchTabContextDTO) -> bool:
-    return tab.kind == "binary"
+def _stores_overlay_payload(tab: BinaryWorkbenchTabContextDTO) -> bool:
+    return tab.kind == "internal"
 
 
 def _uses_virtual_rows(tab: BinaryWorkbenchTabContextDTO) -> bool:

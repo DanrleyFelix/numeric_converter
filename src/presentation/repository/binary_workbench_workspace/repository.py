@@ -12,6 +12,7 @@ from src.core.binary_workbench.version_overlays import (
 )
 from src.core.binary_workbench.version_line_comments import apply_line_comments
 from src.core.binary_workbench.version_names import sorted_versions
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
@@ -134,17 +135,32 @@ class BinaryWorkbenchWorkspaceRepository:
             dict(tab.byte_overlays),
             dict(tab.instruction_overlays),
         )
+        assembly_version_rows = (
+            tab.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            and active_version is not None
+            and bool(active_version.rows)
+        )
         rows = (
-            self._version_rows(tab, active_version)
+            list(active_version.rows)
+            if assembly_version_rows
+            else self._version_rows(tab, active_version)
             if active_version and active_version.instructions_by_line
             else tab.rows
         )
         overlays = (
-            self._instruction_overlays_for_version(tab, active_version)
+            {}
+            if assembly_version_rows
+            else self._instruction_overlays_for_version(tab, active_version)
             if active_version
             else tab_instruction_overlays
         )
-        byte_overlays = overlay_from_version_rows(active_version.rows) if active_version else {}
+        byte_overlays = (
+            {}
+            if assembly_version_rows
+            else overlay_from_version_rows(active_version.rows)
+            if active_version
+            else {}
+        )
         byte_overlays.update(byte_overlays_from_instruction_overlays(overlays, active_variables, active_equates))
         byte_overlays, overlays = without_blank_instruction_overlays(byte_overlays, overlays)
         labels = labels_from_instruction_overlays(overlays) or dict(tab.labels)

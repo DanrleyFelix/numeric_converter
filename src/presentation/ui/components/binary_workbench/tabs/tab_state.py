@@ -30,6 +30,8 @@ TRANSIENT_VISIBLE_CONTEXT_FIELDS = {
     "last_open_offset",
     "file_size",
     "original_file_size",
+    "original_rows",
+    "rows",
 }
 
 SHARED_WORKSPACE_FIELDS = {
@@ -59,6 +61,8 @@ SHARED_WORKSPACE_FIELDS = {
     "custom_commands",
     "file_size",
     "original_file_size",
+    "original_rows",
+    "rows",
     "version_dirty",
     "byte_overlays",
     "instruction_overlays",
@@ -403,11 +407,26 @@ class TabStateMixin:
             **{
                 **state_payload(self._state),
                 "tabs": [
-                    context if tab.tab_id == tab_id else tab
+                    context
+                    if tab.tab_id == tab_id
+                    else _shared_workspace_context(tab, context)
                     for tab in self._state.tabs
                 ],
             }
         )
+
+    def _commit_page_context_without_emit(
+        self,
+        index: int,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> BinaryWorkbenchTabContextDTO:
+        page = self.widget(index)
+        if not isinstance(page, BinaryWorkbenchEditorPage):
+            return context
+        page.commit_current_editor_text()
+        committed = page.current_context()
+        self._replace_context_without_emit(committed.tab_id, committed)
+        return committed
 
     def _sync_active_tab(self, index: int) -> None:
         if getattr(self, "_loading_state", False):
@@ -417,6 +436,8 @@ class TabStateMixin:
         previous = getattr(self, "_active_tab_index", -1)
         if previous != index and 0 <= previous < len(self._state.tabs):
             previous_context = self.context_at(previous)
+            if previous_context is not None and previous_context.keep_workspace_resources:
+                previous_context = self._commit_page_context_without_emit(previous, previous_context)
             if previous_context is not None and self._workspace_context_unloadable(previous, previous_context):
                 self._unload_workspace_heavy_tab(previous)
             elif previous_context is not None and _persist_on_tab_switch(previous_context):
@@ -532,7 +553,7 @@ def _internal_workspace_changed(context: BinaryWorkbenchTabContextDTO) -> bool:
 
 
 def _persist_on_tab_switch(context: BinaryWorkbenchTabContextDTO) -> bool:
-    return context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL or context.keep_workspace_resources
+    return context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL
 
 
 def _same_shared_workspace(
