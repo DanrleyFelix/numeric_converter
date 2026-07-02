@@ -36,6 +36,10 @@ class BinaryWorkbenchWindowVersionMixin:
             self._create_version()
 
     def _create_version(self) -> None:
+        current = self.tabs.current_context()
+        if _scratch_workspace_source_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return
         dialog = BinaryWorkbenchVersionNameDialog(BINARY_WORKBENCH_TEXT.CREATE_VERSION, parent=self)
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.version_name():
             return
@@ -43,10 +47,13 @@ class BinaryWorkbenchWindowVersionMixin:
             self.tabs.save_current_workspace()
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_CREATED_TEMPLATE.format(name=dialog.version_name()), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
-        self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        self._show_unsupported_version_status(current)
 
     def _update_version(self) -> None:
         current = self.tabs.current_context()
+        if _scratch_workspace_source_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return
         name = current.active_version_name if current is not None else ""
         if name and self.tabs.update_current_version(name):
             self.tabs.save_current_workspace()
@@ -57,7 +64,7 @@ class BinaryWorkbenchWindowVersionMixin:
     def _change_version(self) -> None:
         current = self.tabs.current_context()
         if not self._supports_versions(current):
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            self._show_unsupported_version_status(current)
             return
         if not current.versions:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
@@ -78,7 +85,7 @@ class BinaryWorkbenchWindowVersionMixin:
     def _load_version(self) -> None:
         current = self.tabs.current_context()
         if not self._supports_versions(current):
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            self._show_unsupported_version_status(current)
             return
         path, _ = QFileDialog.getOpenFileName(
             self,
@@ -106,3 +113,17 @@ class BinaryWorkbenchWindowVersionMixin:
             and bool(current.source_path)
             and Path(current.source_path).is_file()
         )
+
+    def _show_unsupported_version_status(self, current) -> None:
+        if _scratch_workspace_source_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return
+        self._show_status(BINARY_WORKBENCH_TEXT.STATUS_BINARY_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+
+
+def _scratch_workspace_source_required(current) -> bool:
+    return (
+        current is not None
+        and current.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH
+        and not current.source_path
+    )

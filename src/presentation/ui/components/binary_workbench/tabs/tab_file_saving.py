@@ -31,11 +31,16 @@ class TabFileSavingMixin:
         current = self.current_context()
         if current is None:
             return False
+        if _matches_source(current, output_path):
+            return False
         if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
             if not current.source_path or not current.active_version_name:
                 return False
             rows = build_version_rows_from_overlay(current.byte_overlays, list(current.reference_offsets), dict(current.reference_offset_bases))
-            save_versioned_binary(Path(current.source_path), output_path, rows)
+            try:
+                save_versioned_binary(Path(current.source_path), output_path, rows)
+            except ValueError:
+                return False
         elif current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             if not current.source_path or current.internal_file_start_lba is None:
                 return False
@@ -61,7 +66,10 @@ class TabFileSavingMixin:
                 self._preferences.cache_max_blocks,
             )
             patches = patches_from_overlays(view, current.byte_overlays)
-            save_internal_versioned_binary(region, output_path, patches)
+            try:
+                save_internal_versioned_binary(region, output_path, patches)
+            except ValueError:
+                return False
         else:
             output_path.write_bytes(rows_to_bytes(current.rows))
         self._remember_file_path(BINARY_WORKBENCH_STATE.SAVE_FILE_DIRECTORY, output_path)
@@ -72,6 +80,8 @@ class TabFileSavingMixin:
         if current is None:
             return False
         target = output_path if output_path.suffix.lower() == ".asm" else output_path.with_suffix(".asm")
+        if _matches_source(current, target):
+            return False
         if current.kind == BINARY_WORKBENCH_TAB_KIND.BINARY and current.source_path:
             save_binary_as_assembly(
                 Path(current.source_path),
@@ -159,3 +169,13 @@ class TabFileSavingMixin:
         self._replace_context(updated.tab_id, updated)
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.replace_context(updated)
+
+
+def _matches_source(current: BinaryWorkbenchTabContextDTO, target: Path) -> bool:
+    if not current.source_path:
+        return False
+    source = Path(current.source_path)
+    try:
+        return source.samefile(target)
+    except OSError:
+        return source.resolve() == target.resolve()

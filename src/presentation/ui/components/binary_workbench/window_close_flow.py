@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QMessageBox
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
-    BINARY_WORKBENCH_TIMING,
 )
 from src.presentation.ui.components.binary_workbench.native_dialogs import (
     ask_close_tab_with_native_system_dialog,
@@ -65,24 +64,22 @@ class BinaryWorkbenchWindowCloseMixin:
             return False
         if current.kind in {
             BINARY_WORKBENCH_TAB_KIND.BINARY,
+            BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
             BINARY_WORKBENCH_TAB_KIND.INTERNAL,
         }:
             return self._save_binary_workspace_for_close(current)
-        if current.source_path and self.tabs.save_current_source_file():
-            self._show_status(
-                BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_SAVED_TEMPLATE.format(
-                    name=Path(current.source_path).name
-                ),
-                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
-            )
-            self.tabs.save_current_workspace()
-            return True
         if self._save_assembly_code():
             self.tabs.save_current_workspace()
             return True
         return False
 
     def _save_binary_workspace_for_close(self, current) -> bool:
+        if (
+            current.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            and (not current.source_path or not Path(current.source_path).is_file())
+        ):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return False
         if self.tabs.has_unsaved_version_edits(current) and not current.active_version_name:
             dialog = BinaryWorkbenchVersionNameDialog(
                 BINARY_WORKBENCH_TEXT.CREATE_VERSION,

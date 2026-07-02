@@ -14,8 +14,9 @@ def save_internal_versioned_binary(
     output_path: Path,
     patches: list[InternalFilePatch],
 ) -> None:
-    if not _same_file(region.source_path, output_path):
-        copyfile(region.source_path, output_path)
+    if _same_file(region.source_path, output_path):
+        raise ValueError("Internal binary output must be different from the source file.")
+    copyfile(region.source_path, output_path)
     mapper = InternalOffsetMapper(region)
     affected: set[int] = set()
     with output_path.open("r+b") as target:

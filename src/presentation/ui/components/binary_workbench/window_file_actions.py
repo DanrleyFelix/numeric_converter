@@ -31,6 +31,9 @@ class BinaryWorkbenchWindowFileActionsMixin:
         path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_OUTPUT)
         if not path:
             return False
+        if self._matches_current_source(Path(path)):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_ORIGINAL_SAVE_FORBIDDEN)
+            return False
         if self.tabs.save_current_binary_copy(Path(path)):
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_FILE_SAVED_TEMPLATE.format(name=Path(path).name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return True
@@ -48,6 +51,11 @@ class BinaryWorkbenchWindowFileActionsMixin:
             default_directory = str(Path(default_directory) / suggested_name)
         path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_ASSEMBLY_CODE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_ASSEMBLY)
         if not path:
+            return False
+        target = Path(path)
+        target = target if target.suffix.lower() == ".asm" else target.with_suffix(".asm")
+        if self._matches_current_source(target):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_ORIGINAL_SAVE_FORBIDDEN)
             return False
         current = self.tabs.current_context()
         if adopt_source is None:
@@ -92,3 +100,16 @@ class BinaryWorkbenchWindowFileActionsMixin:
         if not default_directory and current is not None and current.source_path:
             return str(Path(current.source_path).parent)
         return default_directory
+
+    def _matches_current_source(self, path: Path) -> bool:
+        current = self.tabs.current_context()
+        if current is None or not current.source_path:
+            return False
+        return _same_path(Path(current.source_path), path)
+
+
+def _same_path(source: Path, target: Path) -> bool:
+    try:
+        return source.samefile(target)
+    except OSError:
+        return source.resolve() == target.resolve()

@@ -71,6 +71,9 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         current = self.tabs.current_context()
         if current is None:
             return
+        if _scratch_workspace_source_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return
         dialog = BinaryWorkbenchSymbolsDialog(
             current.variables,
             current.equates,
@@ -199,3 +202,11 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog = BinaryWorkbenchInternalFileDialog(current.internal_files, self)
         if dialog.exec() == dialog.DialogCode.Accepted and dialog.selected_name() is not None:
             self.tabs.open_internal_tab(dialog.selected_name())
+
+
+def _scratch_workspace_source_required(current) -> bool:
+    return (
+        current is not None
+        and current.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH
+        and not current.source_path
+    )

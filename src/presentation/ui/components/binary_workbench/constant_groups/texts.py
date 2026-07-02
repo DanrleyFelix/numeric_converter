@@ -14,6 +14,8 @@ class BINARY_WORKBENCH_TEXT:
     )
     STATUS_BINARY_REQUIRED: str = "Open a binary tab before using this action."
     STATUS_VERSION_REQUIRED: str = "Use or load a version before saving a new binary file."
+    STATUS_WORKSPACE_SOURCE_REQUIRED: str = "Save this scratch code before using Versions or Environment data."
+    STATUS_ORIGINAL_SAVE_FORBIDDEN: str = "Save File must create a new file. Choose a path different from the original."
     STATUS_NO_VERSIONS: str = "Create or load a version before using this action."
     STATUS_VERSION_CREATED_TEMPLATE: str = 'Created version "{name}".'
     STATUS_VERSION_UPDATED_TEMPLATE: str = 'Updated version "{name}".'

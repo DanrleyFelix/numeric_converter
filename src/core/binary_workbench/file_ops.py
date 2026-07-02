@@ -48,8 +48,9 @@ def overlay_from_version_rows(
 def save_versioned_binary(
     source_path: Path, output_path: Path, version_rows: list[BinaryWorkbenchRowDTO]
 ) -> None:
-    if not _same_file(source_path, output_path):
-        copyfile(source_path, output_path)
+    if _same_file(source_path, output_path):
+        raise ValueError("Versioned binary output must be different from the source file.")
+    copyfile(source_path, output_path)
     with output_path.open("r+b") as target:
         for row in version_rows:
             offset = int(row.offsets.get("File", "0x0"), 16)

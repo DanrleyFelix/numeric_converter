@@ -1,7 +1,11 @@
 from pathlib import Path
 
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_STATE,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.presentation.repository.binary_workbench_workspace.constants import OFFSET_REGIONS
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchEncodingTablesDialog,
     BinaryWorkbenchOffsetRegionsDialog,
@@ -49,6 +53,9 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
         current = self.tabs.current_context()
         if current is None:
             return
+        if _scratch_workspace_source_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+            return
         dialog = BinaryWorkbenchOffsetRegionsDialog(
             self.tabs.offset_regions_for_current_context(),
             self.tabs.directory_for(BINARY_WORKBENCH_STATE.OFFSET_REGIONS_DIRECTORY),
@@ -72,3 +79,11 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
         if module_path:
             self.tabs.set_current_module_path(OFFSET_REGIONS, Path(module_path))
         self.tabs.save_current_workspace()
+
+
+def _scratch_workspace_source_required(current) -> bool:
+    return (
+        current is not None
+        and current.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH
+        and not current.source_path
+    )
