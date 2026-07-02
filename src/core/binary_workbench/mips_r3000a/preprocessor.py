@@ -11,6 +11,7 @@ from src.core.binary_workbench.mips_r3000a.constants import (
     R_JUMP_FUNCTS,
     SPECIAL_BRANCH_RT,
 )
+from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.binary_workbench.mips_r3000a.operands import number, signed16
 
 WORD_DIRECTIVES = {"word", ".word"}
@@ -68,8 +69,6 @@ def raw_mips_instruction(
     return code.lower() if is_core_mips_instruction(code) else ""
 
 
-def strip_comment(text: str) -> str:
-    return text.split(";", 1)[0]
 
 
 def strip_label(text: str) -> str:

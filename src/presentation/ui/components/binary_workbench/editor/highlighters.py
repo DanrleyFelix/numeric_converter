@@ -4,6 +4,7 @@ import re
 
 from PySide6.QtGui import QFont, QSyntaxHighlighter
 
+from src.core.binary_workbench.mips_r3000a.comments import comment_start
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     BYTE_TOKEN,
     DECIMAL_TOKEN,
@@ -56,8 +57,8 @@ class InstructionHighlighter(QSyntaxHighlighter):
         if is_editor_command_line(text):
             self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("command")))
             return
-        comment_start = text.find(";")
-        raw_code = text if comment_start < 0 else text[:comment_start]
+        comment_start_index = comment_start(text)
+        raw_code = text if comment_start_index < 0 else text[:comment_start_index]
         code_start, code = code_without_label(raw_code)
         mnemonic = re.search(r"\S+", code)
         if invalid_instruction(code):
@@ -88,14 +89,16 @@ class InstructionHighlighter(QSyntaxHighlighter):
                 text_format(psx_mips_required_highlight_color("hex")),
             )
         for match in DECIMAL_TOKEN.finditer(code):
+            if psx_mips_highlight_color("registers", match.group()) is not None:
+                continue
             self.setFormat(
                 code_start + match.start(),
                 match.end() - match.start(),
                 text_format(psx_mips_required_highlight_color("hex")),
             )
         self._highlight_symbols(text, code, code_start)
-        if comment_start >= 0:
-            self.setFormat(comment_start, len(text) - comment_start, text_format(psx_mips_required_highlight_color("comment")))
+        if comment_start_index >= 0:
+            self.setFormat(comment_start_index, len(text) - comment_start_index, text_format(psx_mips_required_highlight_color("comment")))
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
         for match in VARIABLE_TOKEN.finditer(code):

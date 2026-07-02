@@ -53,3 +53,8 @@ def test_mips_codec_routes_jalr_words_to_fallback_even_with_capstone():
     codec._capstone = object()  # type: ignore[attr-defined]
 
     assert codec.disassemble(bytes.fromhex("09 F8 20 01"), 0) == "jalr $t1"
+
+def test_mips_fallback_assembles_register_aliases_to_same_bytes():
+    assert assemble_fallback("addiu $s1, $zero, 1", 0) == assemble_fallback("addiu r17, 0, 1", 0)
+    assert assemble_fallback("lw $t0, 4($sp)", 0) == assemble_fallback("lw $r8, 4(r29)", 0)
+    assert assemble_fallback("jr $ra", 0) == assemble_fallback("jr 31", 0)

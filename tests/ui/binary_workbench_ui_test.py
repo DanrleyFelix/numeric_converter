@@ -2949,6 +2949,13 @@ def test_binary_workbench_grid_completion_enter_keeps_instruction_line(tmp_path:
     assert "ADDIU $S1, $S1, _variable1" in editor.toPlainText()
 
 
+
+
+def test_binary_workbench_highlighter_register_aliases_share_colors():
+    assert psx_mips_highlight_color("registers", "$s1") == psx_mips_highlight_color("registers", "r17")
+    assert psx_mips_highlight_color("registers", "$zero") == psx_mips_highlight_color("registers", "0")
+    assert psx_mips_highlight_color("registers", "$fp") == psx_mips_highlight_color("registers", "$s8")
+
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
     shared_symbol_color = PSX_MIPS_HIGHLIGHTER["equate"]
     distinct_colors = [

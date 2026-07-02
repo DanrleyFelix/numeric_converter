@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.modules.binary_workbench_constants import ASSEMBLY_LABEL_SEPARATOR as LABEL_SEPARATOR
+from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 
 
 def expand_pseudo_instructions(lines: list[str]) -> list[str]:
@@ -11,7 +12,7 @@ def expand_pseudo_instructions(lines: list[str]) -> list[str]:
 
 
 def expand_pseudo_instruction(text: str) -> list[str]:
-    normalized = _strip_comment(text).strip()
+    normalized = strip_comment(text).strip()
     if not normalized:
         return [text]
     label, code = _split_label(normalized)
@@ -48,7 +49,3 @@ def _split_label(text: str) -> tuple[str | None, str]:
     if not candidate or left != left.rstrip() or " " in candidate or "\t" in candidate:
         return None, text
     return candidate, right.strip()
-
-
-def _strip_comment(text: str) -> str:
-    return text.split(";", 1)[0]

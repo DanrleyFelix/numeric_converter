@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-REGISTERS: dict[str, int] = {
+CANONICAL_REGISTERS: dict[str, int] = {
     "zero": 0,
     "at": 1,
     "v0": 2,
@@ -35,9 +35,17 @@ REGISTERS: dict[str, int] = {
     "s8": 30,
     "ra": 31,
 }
+REGISTERS: dict[str, int] = {
+    **CANONICAL_REGISTERS,
+    **{
+        alias: index
+        for index in range(32)
+        for alias in (str(index), f"r{index}")
+    },
+}
 REGISTER_NAMES: dict[int, str] = {
     value: name
-    for name, value in REGISTERS.items()
+    for name, value in CANONICAL_REGISTERS.items()
     if name != "s8"
 }
 I_OPCODES: dict[str, int] = {

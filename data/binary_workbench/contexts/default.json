@@ -73,7 +73,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\LBA File System.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json"
             },
             "module_directories": {
@@ -144,7 +143,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\call_umi_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\call_umi_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\call_umi_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\call_umi_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\call_umi_versions.json"
             },
             "module_directories": {
@@ -156,7 +154,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f444c5c819cf96541930eac0ca732828dbb5604127f82b14c26df0effefa7138",
+                "versions": "e3c545e62278e4c45e0a25a15dfe4b864fe486b7c893380ae4cadb40956955fb",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "c25d26b16ef05ddd040de404196e4ff9dd6701cfb33dc3d4a5a253aab6e809e1"
             },
@@ -2108,7 +2106,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\call_umi_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\call_umi_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\call_umi_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\call_umi_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\call_umi_versions.json"
             },
             "module_directories": {
@@ -2120,7 +2117,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f444c5c819cf96541930eac0ca732828dbb5604127f82b14c26df0effefa7138",
+                "versions": "e3c545e62278e4c45e0a25a15dfe4b864fe486b7c893380ae4cadb40956955fb",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "c25d26b16ef05ddd040de404196e4ff9dd6701cfb33dc3d4a5a253aab6e809e1"
             },
@@ -4072,7 +4069,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
                 "version:testando_asm": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
                 "version:testando_Asm2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
@@ -4086,7 +4082,7 @@
             "module_checksums": {
                 "symbols": "037d24788061f19e0fae912ad2c3db246d9f84fc5e3af6656ce45146c18361fc",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "db9665bb35e01dc08e483326d4e409f0d6073cb63d8c480fec5d1ebca175104d",
+                "versions": "5d6110806bc032b88022129ca07f920d2f9d272a0a3dbade002f24b1c9d1e60e",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f9da44b565d37d3bc9fe58b9e40fc646680ac2c84475fbd2ebeb2afa9b6af33a"
             },
@@ -4306,7 +4302,7 @@
                     "offsets": {
                         "File": "0x00000000"
                     },
-                    "instruction": "ADDIU $sp, $sp, -0x18",
+                    "instruction": "ADDIU $sp, $sp, -0x18 # testando",
                     "bytes_text": "E8 FF BD 27",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -4316,7 +4312,7 @@
                     "offsets": {
                         "File": "0x00000004"
                     },
-                    "instruction": "SW $a0, 0x0($sp)",
+                    "instruction": "SW $a0, 0x0($sp) //testando",
                     "bytes_text": "00 00 A4 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -4446,8 +4442,8 @@
                     "offsets": {
                         "File": "0x00000038"
                     },
-                    "instruction": "SLL $v1, $v0, 0x2",
-                    "bytes_text": "80 18 02 00",
+                    "instruction": "ADDIU $3, 0, 0",
+                    "bytes_text": "00 00 03 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -4456,8 +4452,8 @@
                     "offsets": {
                         "File": "0x0000003C"
                     },
-                    "instruction": "JALR v0",
-                    "bytes_text": "09 F8 40 00",
+                    "instruction": "SLL $3, r3, 0x2",
+                    "bytes_text": "80 18 03 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -4466,8 +4462,8 @@
                     "offsets": {
                         "File": "0x00000040"
                     },
-                    "instruction": "SRL v1,v0,@equate_2",
-                    "bytes_text": "82 18 02 00",
+                    "instruction": "JALR v0",
+                    "bytes_text": "09 F8 40 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -4476,8 +4472,8 @@
                     "offsets": {
                         "File": "0x00000044"
                     },
-                    "instruction": "SRA v1,v0,@equate_2",
-                    "bytes_text": "83 18 02 00",
+                    "instruction": "SRL v1,v0,@equate_2",
+                    "bytes_text": "82 18 02 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -4486,8 +4482,8 @@
                     "offsets": {
                         "File": "0x00000048"
                     },
-                    "instruction": "LBU v1, _variable_1cd_gp",
-                    "bytes_text": "CD 01 83 93",
+                    "instruction": "SRA v1,v0,@equate_2",
+                    "bytes_text": "83 18 02 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -4495,6 +4491,16 @@
                     "offset": "0x0000004C",
                     "offsets": {
                         "File": "0x0000004C"
+                    },
+                    "instruction": "LBU v1, _variable_1cd_gp",
+                    "bytes_text": "CD 01 83 93",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000050",
+                    "offsets": {
+                        "File": "0x00000050"
                     },
                     "instruction": "ADDIU $sp, $sp, -0x18",
                     "bytes_text": "E8 FF BD 27",

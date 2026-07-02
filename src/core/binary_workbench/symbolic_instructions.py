@@ -9,6 +9,7 @@ from src.modules.binary_workbench_constants import (
 )
 from src.modules.contracts import CPUArchCodec
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
+from src.core.binary_workbench.mips_r3000a.comments import comment_start
 from src.core.binary_workbench.symbolic_replacements import (
     apply_symbol_offsets,
     replace_matching_symbol,
@@ -145,7 +146,7 @@ def _split_label(instruction: str) -> tuple[str, str]:
 
 
 def _split_comment(instruction: str) -> tuple[str, str]:
-    index = instruction.find(";")
+    index = comment_start(instruction)
     if index < 0:
         return instruction, ""
     code = instruction[:index].rstrip()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib import import_module
 
 from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
+from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
@@ -38,7 +39,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         return ("File")
 
     def assemble(self, instruction: str, address: int) -> bytes | None:
-        normalized = _strip_comment(instruction).strip()
+        normalized = strip_comment(instruction).strip()
         if not normalized:
             return b"\x00\x00\x00\x00"
         if normalized.lower() == "nop":
@@ -99,7 +100,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         operand: str,
         symbols: dict[str, str] | None = None,
     ) -> int | None:
-        code = _strip_label(_strip_comment(instruction)).strip()
+        code = _strip_label(strip_comment(instruction)).strip()
         parts = code.replace(",", " ").split()
         if len(parts) < 2:
             return None
@@ -179,8 +180,6 @@ def _module_exists(name: str) -> bool:
     return True
 
 
-def _strip_comment(text: str) -> str:
-    return text.split(";", 1)[0]
 
 
 def _strip_label(text: str) -> str:

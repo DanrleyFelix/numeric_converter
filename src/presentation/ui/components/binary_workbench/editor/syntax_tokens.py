@@ -5,6 +5,7 @@ import re
 from PySide6.QtGui import QColor, QTextCharFormat
 
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.modules.constants import HEX_DIGIT_PATTERN
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
@@ -14,7 +15,7 @@ from src.presentation.ui.components.binary_workbench.editor.constants.highlighte
 BYTE_TOKEN = re.compile(rf"{HEX_DIGIT_PATTERN}{{2}}")
 HEX_TOKEN = re.compile(rf"0x{HEX_DIGIT_PATTERN}+", re.IGNORECASE)
 DECIMAL_TOKEN = re.compile(r"(?<![\w$])\d+(?![\w])")
-REGISTER_TOKEN = re.compile(r"\$?[a-zA-Z_][A-Za-z0-9_]*")
+REGISTER_TOKEN = re.compile(r"\$?(?:r?\d+|[a-zA-Z_][A-Za-z0-9_]*)")
 COMPLETION_TOKEN = re.compile(r"/[A-Za-z0-9_]*|[@_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 VARIABLE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])_[A-Za-z_][A-Za-z0-9_]*")
 EQUATE_TOKEN = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z_][A-Za-z0-9_]*")
@@ -92,7 +93,7 @@ def normalize_instruction_text(text: str, uppercase: bool) -> str:
 
 
 def _normalize_instruction_line(line: str, uppercase: bool) -> str:
-    code, separator, comment = line.partition(";")
+    code, separator, comment = split_comment(line)
     label, label_separator, body = _partition_label(code)
     if uppercase:
         body = _uppercase_hex_values(body)

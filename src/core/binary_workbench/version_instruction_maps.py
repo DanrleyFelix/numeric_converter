@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.core.binary_workbench.mips_r3000a import editor_mips_instruction
+from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruction
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
@@ -58,13 +59,13 @@ def _version_offset_instruction(
 ) -> str:
     offset_text = row.offsets.get(FILE_OFFSET, "0x0")
     offset = int(offset_text, 16)
-    code, separator, comment = row.instruction.partition(";")
+    code, separator, comment = split_comment(row.instruction)
     assembly = raw_mips_instruction(row.instruction, offset, labels, variables, equates)
     data = codec.assemble(assembly, offset) if assembly else None
     if data is None:
         if _comment_only(separator, code):
-            return _comment_feedback(row, comment, codec)
-        return _invalid_instruction_feedback(row, code, comment, codec)
+            return _comment_feedback(row, separator, comment, codec)
+        return _invalid_instruction_feedback(row, code, separator, comment, codec)
     if offset_text in instruction_overlays or separator:
         return row.instruction
     expected = row.bytes_text.replace(" ", "").upper()
@@ -77,6 +78,7 @@ def _version_offset_instruction(
 def _invalid_instruction_feedback(
     row: BinaryWorkbenchRowDTO,
     code: str,
+    separator: str,
     comment: str,
     codec: CPUArchCodec,
 ) -> str:
@@ -85,17 +87,18 @@ def _invalid_instruction_feedback(
     if not restored or not invalid:
         return ""
     note = f"{INVALID_INSTRUCTION_PREFIX} {invalid}."
-    suffix = f" {comment.lstrip()}" if comment.strip() else ""
+    suffix = f" {separator} {comment.lstrip()}" if comment.strip() else ""
     return f"{restored}; {note}{suffix}"
 
 
 def _comment_feedback(
     row: BinaryWorkbenchRowDTO,
+    separator: str,
     comment: str,
     codec: CPUArchCodec,
 ) -> str:
     restored = _restored_instruction(row, codec)
-    return f"{restored}; {comment.lstrip()}" if restored and comment.strip() else ""
+    return f"{restored} {separator} {comment.lstrip()}" if restored and comment.strip() else ""
 
 
 def _comment_only(separator: str, code: str) -> bool:
