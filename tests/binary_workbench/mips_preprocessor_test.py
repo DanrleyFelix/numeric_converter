@@ -1,4 +1,4 @@
-from src.core.binary_workbench.mips_r3000a import (
+﻿from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
     expand_pseudo_instruction,
@@ -120,5 +120,5 @@ def test_mips_hazard_validator_reports_load_use_and_jump_sequence():
 def test_mips_preprocessor_accepts_hash_and_double_slash_comments():
     labels = {"loop": "0x00000010"}
 
-    assert preprocess_instruction("loop: addiu r17, 0, 1 # comment", 0, labels, {}, {}) == "addiu r17, 0, 1"
+    assert preprocess_instruction("loop: addiu r17, $0, 1 # comment", 0, labels, {}, {}) == "addiu r17, $0, 1"
     assert raw_mips_instruction("addiu $r17, $0, 1 // comment", 0, labels, {}, {}) == "addiu $r17, $0, 1"

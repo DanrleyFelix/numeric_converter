@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from src.core.binary_workbench.mips_r3000a.constants import REGISTERS
 
@@ -8,8 +8,12 @@ def word_bytes(word: int) -> bytes:
 
 
 def register(token: str) -> int:
-    return REGISTERS[token.lstrip("$").lower()]
-
+    normalized = token.lower()
+    if normalized.startswith("$"):
+        return REGISTERS[normalized[1:]]
+    if normalized.isdecimal():
+        raise KeyError(token)
+    return REGISTERS[normalized]
 
 def number(token: str) -> int:
     return int(token, 16) if token.lower().startswith(("0x", "-0x")) else int(token, 10)

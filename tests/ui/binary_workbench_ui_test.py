@@ -1,4 +1,4 @@
-import os
+﻿import os
 import tempfile
 from pathlib import Path
 
@@ -1024,7 +1024,7 @@ def test_binary_workbench_ignores_semicolon_comments_when_loading_assembly(tmp_p
         "; 675 = 0x02A3\n"
         "; hook 1 em 0x8001b590\n"
         "jal    0x1D9200 ; call SPELL\n"
-        "; VERSÃO ENCURTADA\n"
+        "; VERSÃƒO ENCURTADA\n"
         "addiu  $sp,$sp,-0x10\n"
         "sw     $a0,0x00($sp)\n"
         "sw     $a1,0x04($sp)\n"
@@ -1878,7 +1878,7 @@ def test_binary_workbench_find_decoded_text_ansi_respects_offset_range(tmp_path:
     tool.open_file_path(binary_path)
 
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO") == [1]
-    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "ção") == [7]
+    assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "Ã§Ã£o") == [7]
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", end_offset=5) == [1]
     assert tool.tabs.find_offsets(BINARY_WORKBENCH_TEXT.FIND_DECODED_TEXT, "HELLO", start_offset=2) == []
 
@@ -2953,7 +2953,8 @@ def test_binary_workbench_grid_completion_enter_keeps_instruction_line(tmp_path:
 
 def test_binary_workbench_highlighter_register_aliases_share_colors():
     assert psx_mips_highlight_color("registers", "$s1") == psx_mips_highlight_color("registers", "r17")
-    assert psx_mips_highlight_color("registers", "$zero") == psx_mips_highlight_color("registers", "0")
+    assert psx_mips_highlight_color("registers", "$zero") == psx_mips_highlight_color("registers", "$0")
+    assert psx_mips_highlight_color("registers", "0") is None
     assert psx_mips_highlight_color("registers", "$fp") == psx_mips_highlight_color("registers", "$s8")
 
 def test_binary_workbench_highlighter_groups_use_distinct_colors():

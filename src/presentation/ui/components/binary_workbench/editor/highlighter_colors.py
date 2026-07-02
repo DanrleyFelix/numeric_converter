@@ -1,4 +1,4 @@
-from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
+﻿from src.presentation.ui.components.binary_workbench.editor.constants.highlighter_rules import (
     PSX_MIPS_HIGHLIGHTER,
 )
 
@@ -7,7 +7,10 @@ def psx_mips_highlight_color(category: str, token: str = "") -> str | None:
     value = PSX_MIPS_HIGHLIGHTER.get(category)
     if isinstance(value, str):
         return value
-    token_name = token.strip().lstrip("$").lower()
+    raw_token = token.strip()
+    token_name = raw_token.lstrip("$").lower()
+    if category == "registers" and token_name.isdecimal() and not raw_token.startswith("$"):
+        return None
     if isinstance(value, list):
         for group, color in value:
             if token_name in group:
