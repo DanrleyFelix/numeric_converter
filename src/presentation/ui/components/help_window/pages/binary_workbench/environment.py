@@ -31,8 +31,13 @@ PAGE = HelpPageDefinition(
         <h2>Commands</h2>
         <ul>
             <li>Type commands in Editor Assembly with a leading slash, such as <code>/sp</code>.</li>
-            <li><code>/sp</code> creates a stack save/restore block. With no parameters it uses <code>a0 a1 a2 a3 v0 v1</code>.</li>
-            <li>You can pass any amount of valid registers to <code>/sp</code>: <code>/sp s0 s1 ra</code>.</li>
+            <li><code>/sp</code> creates a stack save/restore block. It accepts register groups such as <code>/sp s</code> or <code>/sp s t a v k</code>, and still accepts explicit registers.</li>
+            <li><code>/li</code> expands a 32-bit value to <code>lui</code> plus <code>ori</code>. Example: <code>/li 0x801D9200 a0</code>.</li>
+            <li><code>/lb</code>, <code>/lbu</code>, <code>/lh</code>, <code>/lhu</code>, <code>/lw</code>, <code>/sb</code>, <code>/sbu</code>, <code>/sh</code>, <code>/shu</code> and <code>/sw</code> load or store by address, optional base/value registers and optional displacement.</li>
+            <li><code>/blt</code>, <code>/ble</code>, <code>/bgt</code> and <code>/bge</code> expand to <code>slt</code> plus <code>beq</code> or <code>bne</code>, followed by the required delay-slot <code>nop</code>.</li>
+            <li><code>/if</code> accepts compact or spaced comparisons, such as <code>/if t1&lt;t2 loop</code> or <code>/if t1 &lt; t2 loop</code>.</li>
+            <li><code>/where</code> creates a branch-only loop structure with a start label, end label, step update and delay-slot <code>nop</code> lines.</li>
+            <li>When command registers are omitted, automatic registers use <code>t1</code> through <code>t9</code>; <code>t0</code> is kept for internal <code>slt</code> comparisons.</li>
             <li>Custom commands are useful for repeated instruction blocks. Register parameters are optional; when provided, they replace matching registers in the saved command in order.</li>
         </ul>
         <h2>Encoding Tables</h2>

@@ -6,6 +6,10 @@ from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
 from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
+from src.core.binary_workbench.mips_r3000a.editor_commands import (
+    editor_command_names as mips_editor_command_names,
+    editor_command_output as mips_editor_command_output,
+)
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     build_source_line_rows as build_mips_source_line_rows,
     instruction_code as mips_instruction_code,
@@ -25,6 +29,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
     def __init__(self) -> None:
         self._capstone = import_module("capstone") if _module_exists("capstone") else None
         self._keystone = import_module("keystone") if _module_exists("keystone") else None
+        self._where_command_index = 0
 
     @property
     def display_name(self) -> str:
@@ -119,7 +124,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         return value if value >= 0 else None
 
     def editor_command_names(self) -> tuple[str, ...]:
-        return ("/sp",)
+        return mips_editor_command_names()
 
     def editor_command_output(
         self,
@@ -128,6 +133,11 @@ class PsxMipsR3000ACodec(CPUArchCodec):
     ) -> list[str] | None:
         if name == "sp":
             return stack_pointer_command(args)
+        output = mips_editor_command_output(name, args, self._where_command_index)
+        if output is not None and name == "where":
+            self._where_command_index += 1
+        if output is not None:
+            return output
         return None
 
     def instruction_code(self, text: str) -> str:
