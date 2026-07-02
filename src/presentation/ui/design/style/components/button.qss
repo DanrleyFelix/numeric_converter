@@ -13,6 +13,7 @@ QPushButton:hover {
 }
 
 QPushButton:focus {
+    background-color: $bg-button-hover;
     outline: none;
 }
 
@@ -28,6 +29,10 @@ QPushButton#clear:hover {
     background-color: $bg-button-clear-hover;
 }
 
+QPushButton#clear:focus {
+    background-color: $bg-button-clear-hover;
+}
+
 QPushButton#clear:pressed {
     background-color: $bg-button-clear-pressed;
 }
@@ -37,6 +42,10 @@ QPushButton#enter {
 }
 
 QPushButton#enter:hover {
+    background-color: $bg-button-enter-hover;
+}
+
+QPushButton#enter:focus {
     background-color: $bg-button-enter-hover;
 }
 

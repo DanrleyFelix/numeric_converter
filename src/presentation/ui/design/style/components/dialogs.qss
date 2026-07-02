@@ -119,6 +119,13 @@ QToolButton#binary-workbench-tab-nav-button:hover {
     color: $text-main;
 }
 
+QToolButton#binary-workbench-tab-nav-button:focus {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
+    color: $text-main;
+    outline: none;
+}
+
 QToolButton#binary-workbench-tab-nav-button:disabled {
     background-color: transparent;
     border-color: transparent;
@@ -154,6 +161,12 @@ QPushButton#binary-workbench-tab-close {
 QPushButton#binary-workbench-tab-close:hover {
     background-color: $bg-button-enter;
     color: $text-main;
+}
+
+QPushButton#binary-workbench-tab-close:focus {
+    background-color: $bg-button-enter;
+    color: $text-main;
+    outline: none;
 }
 
 QLabel#preferences-title,
@@ -469,6 +482,8 @@ QPushButton#binary-workbench-version-active:hover {
 
 QPushButton#binary-workbench-version-item:focus,
 QPushButton#binary-workbench-version-active:focus {
+    background-color: $bg-workspace-row-hover;
+    border-color: $border-workspace-row-hover;
     outline: none;
 }
 
@@ -591,5 +606,6 @@ QPushButton#preferences-cancel:focus,
 QPushButton#preferences-confirm:focus,
 QPushButton#help-nav-button:focus,
 QPushButton#binary-workbench-action:focus {
+    background-color: $bg-toolbar-button-hover;
     outline: none;
 }

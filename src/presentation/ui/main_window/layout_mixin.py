@@ -131,5 +131,5 @@ class MainWindowLayoutMixin:
                 self.key_panel.sizeHint().height()
                 * MAIN_WINDOW_SIZE.KEY_PANEL_HIDDEN_REDUCTION_RATIO
             )
-            min_height = max(360, MAIN_WINDOW_SIZE.MIN_HEIGHT - reduction)
+            min_height = max(400, MAIN_WINDOW_SIZE.MIN_HEIGHT - reduction)
         self.setMinimumSize(min_width, min_height)

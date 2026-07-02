@@ -21,6 +21,9 @@ QToolButton:hover {
 }
 
 QToolButton:focus {
+    background-color: $bg-toolbar-button-hover;
+    color: $text-main;
+    border: 1px solid transparent;
     outline: none;
 }
 
