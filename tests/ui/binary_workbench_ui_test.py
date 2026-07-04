@@ -3699,3 +3699,188 @@ def test_binary_workbench_binary_comment_line_survives_visible_reload(tmp_path: 
     page._load_visible_rows(0, page.grid.visible_size(), 1)  # type: ignore[attr-defined]
 
     assert page.grid.instructions.toPlainText().splitlines()[1] == "; keep this comment"  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_binary_byte_shift_comment_extra_keeps_original_offsets(tmp_path: Path):
+    binary_path = tmp_path / "offsets.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 8)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.EndOfBlock)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.ShiftModifier))
+    _app().processEvents()
+
+    offsets = [line.strip() for line in page.grid._offset_editors["File"].toPlainText().splitlines()]  # type: ignore[attr-defined]
+    assert offsets[:3] == ["0x00000000", "-", "0x00000004"]
+    assert page.grid._total_size == binary_path.stat().st_size  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_binary_byte_shift_valid_extra_gets_offset(tmp_path: Path):
+    binary_path = tmp_path / "offsets.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 8)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    lines = editor.toPlainText().splitlines()
+    lines.insert(1, "addiu $a0, $zero, 0x1")
+    editor.setPlainText("\n".join(lines))
+    _app().processEvents()
+
+    offsets = [line.strip() for line in page.grid._offset_editors["File"].toPlainText().splitlines()]  # type: ignore[attr-defined]
+    assert offsets[:3] == ["0x00000000", "0x00000004", "0x00000008"]
+
+
+def test_binary_workbench_assembly_no_byte_shift_extra_line_never_gets_offset(tmp_path: Path):
+    assembly_path = tmp_path / "offsets.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("nop\naddiu $a0, $zero, 0x1\nnop")
+    _app().processEvents()
+
+    offsets = [line.strip() for line in page.grid._offset_editors["File"].toPlainText().splitlines()]  # type: ignore[attr-defined]
+    assert offsets == ["0x00000000", "-", "0x00000004"]
+    assert page.grid.bytes.toPlainText().splitlines()[1] == ""  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_assembly_no_byte_shift_backspace_deletes_invalid_offset_line(tmp_path: Path):
+    assembly_path = tmp_path / "locked_delete.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("nop\n; extra\nnop")
+    _app().processEvents()
+    cursor = editor.textCursor()
+    cursor.setPosition(editor.document().findBlockByNumber(1).position())
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop"]
+
+
+def test_binary_workbench_assembly_no_byte_shift_delete_deletes_invalid_offset_line(tmp_path: Path):
+    assembly_path = tmp_path / "locked_delete.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("nop\n; extra\nnop")
+    _app().processEvents()
+    block = editor.document().findBlockByNumber(0)
+    cursor = editor.textCursor()
+    cursor.setPosition(block.position() + len(block.text()))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Delete, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop"]
+
+
+def test_binary_workbench_assembly_no_byte_shift_selection_clears_only_content(tmp_path: Path):
+    assembly_path = tmp_path / "locked_selection.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setPlainText("nop\n; extra\nnop")
+    _app().processEvents()
+    cursor = editor.textCursor()
+    cursor.setPosition(editor.document().findBlockByNumber(1).position())
+    cursor.setPosition(editor.document().findBlockByNumber(2).position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == ["nop", "", "nop"]
+
+
+def test_binary_workbench_assembly_no_byte_shift_backspace_preserves_valid_offset_line(tmp_path: Path):
+    assembly_path = tmp_path / "locked_valid.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    cursor = editor.textCursor()
+    cursor.setPosition(editor.document().findBlockByNumber(1).position())
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop"]
+
+
+def test_binary_workbench_assembly_no_byte_shift_delete_preserves_valid_offset_line(tmp_path: Path):
+    assembly_path = tmp_path / "locked_valid.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    block = editor.document().findBlockByNumber(0)
+    cursor = editor.textCursor()
+    cursor.setPosition(block.position() + len(block.text()))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Delete, Qt.NoModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop"]

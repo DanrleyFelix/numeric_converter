@@ -1,4 +1,4 @@
-import re
+﻿import re
 
 from src.core.binary_workbench.mips_r3000a import (
     build_source_line_rows,
@@ -268,7 +268,7 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
-        if self._locked_virtual_instruction_edit():
+        if self._preserve_instruction_offsets():
             rows = reconcile_locked_virtual_instructions(
                 lines,
                 self._rows,
@@ -459,6 +459,11 @@ class GridEditingMixin:
     def _locked_virtual_instruction_edit(self) -> bool:
         return self._virtual and not self._edit_rules.allow_byte_shift and not self._free_offset_window()
 
+    def _preserve_instruction_offsets(self) -> bool:
+        if self._locked_virtual_instruction_edit():
+            return True
+        return not self._virtual and not self._edit_rules.allow_byte_shift
+
     def _source_rows_start_offset(self) -> int:
         return self._visible_start_offset if self._virtual else 0
 
@@ -468,6 +473,8 @@ class GridEditingMixin:
     ) -> list[BinaryWorkbenchRowDTO] | None:
         if rows is None:
             return None
+        if self._edit_rules.allow_byte_shift:
+            return rows
         updated: list[BinaryWorkbenchRowDTO] = []
         for index, row in enumerate(rows):
             previous = self._row_at(index)

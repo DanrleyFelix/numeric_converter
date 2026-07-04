@@ -34,7 +34,12 @@ class GridEditRulesMixin:
             return True
         if self._free_offset_window():
             return True
+        if not editing_bytes and self._valid_offset_count(rows) == self._valid_offset_count(self._rows):
+            return True
         return self._virtual and not editing_bytes
+
+    def _valid_offset_count(self, rows: list[BinaryWorkbenchRowDTO]) -> int:
+        return sum(1 for row in rows if row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) not in {None, "-"})
 
     def _free_offset_window(self) -> bool:
         return (
@@ -74,7 +79,9 @@ class GridEditRulesMixin:
     def _expanded_virtual_total_size(self, rows: list[BinaryWorkbenchRowDTO]) -> int:
         if not self._virtual:
             return self._total_size
-        if not self._edit_rules.allow_byte_shift and not self._free_offset_window():
+        if self._edit_rules.allow_byte_shift:
+            return max(self._total_size, self._visible_start_offset + (self._valid_offset_count(rows) * ROW_BYTES))
+        if not self._free_offset_window():
             return self._total_size
         if len(rows) <= len(self._rows):
             if self._free_offset_window() or self._removed_only_extra_rows(rows):
@@ -122,11 +129,17 @@ class GridEditRulesMixin:
             if self._remove_extra_instruction_row(editor, row - 1):
                 editor.mark_protected_edit_key_handled()
                 return
+            if self._instruction_line_deletion_locked():
+                editor.mark_protected_edit_key_handled()
+                return
             if self._original_offset_row(row) or self._original_offset_row(row - 1):
                 editor.mark_protected_edit_key_handled()
             return
         if event.key() == Qt.Key_Delete and cursor.positionInBlock() >= len(cursor.block().text()):
             if self._remove_extra_instruction_row(editor, row + 1):
+                editor.mark_protected_edit_key_handled()
+                return
+            if self._instruction_line_deletion_locked():
                 editor.mark_protected_edit_key_handled()
                 return
             if self._original_offset_row(row) or self._original_offset_row(row + 1):
@@ -155,12 +168,17 @@ class GridEditRulesMixin:
 
     def _protected_instruction_edit_key(self, editor) -> bool:
         return (
-            self._virtual
-            and editor is self.instructions
+            editor is self.instructions
             and self._edit_rules.allow_editor_edit
             and not self._edit_rules.allow_byte_shift
-            and not self._free_offset_window()
+            and (
+                not self._virtual
+                or not self._free_offset_window()
+            )
         )
+
+    def _instruction_line_deletion_locked(self) -> bool:
+        return not self._virtual and not self._edit_rules.allow_byte_shift
 
     def _remove_extra_instruction_row(self, editor, row: int) -> bool:
         if self._row_offset(row) is not None:
