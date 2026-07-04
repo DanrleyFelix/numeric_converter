@@ -112,9 +112,11 @@ def _partition_label(text: str) -> tuple[str, str, str]:
 
 
 def _uppercase_mnemonic(text: str) -> str:
-    match = re.search(r"[A-Za-z.][A-Za-z0-9_.]*(?=\s)", text)
+    match = re.search(r"[A-Za-z.][A-Za-z0-9_.]*(?=\s|$)", text)
     if match is None or match.group(0).lower() not in PSX_MIPS_KNOWN_MNEMONICS:
         return text
+    if match.group(0).lower() == "nop":
+        return f"{text[: match.start()]}nop{text[match.end() :]}"
     return f"{text[: match.start()]}{match.group(0).upper()}{text[match.end() :]}"
 
 

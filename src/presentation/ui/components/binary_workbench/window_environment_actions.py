@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_STATE,
@@ -176,10 +176,16 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         current = self.tabs.current_context()
         if current is None:
             return
-        dialog = BinaryWorkbenchReferenceOffsetsDialog(current.reference_offsets, current.reference_offset_bases, current.view_preferences.visible_columns, self)
+        dialog = BinaryWorkbenchReferenceOffsetsDialog(
+            current.reference_offsets,
+            current.reference_offset_bases,
+            current.view_preferences.visible_columns,
+            current.view_preferences.jump_reference_offset,
+            self,
+        )
         if dialog.exec() == dialog.DialogCode.Accepted:
-            offsets, bases, visible = dialog.values()
-            self.tabs.set_current_reference_offsets(offsets, bases, visible)
+            offsets, bases, visible, jump_reference_offset = dialog.values()
+            self.tabs.set_current_reference_offsets(offsets, bases, visible, jump_reference_offset)
 
     def _open_rules(self) -> None:
         current = self.tabs.current_context()

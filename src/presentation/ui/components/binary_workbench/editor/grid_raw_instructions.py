@@ -1,10 +1,7 @@
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor, QTextFormat
 from PySide6.QtWidgets import QTextEdit
 
-from src.core.binary_workbench.mips_r3000a import (
-    raw_mips_instruction,
-    validate_mips_hazards,
-)
+from src.core.binary_workbench.mips_r3000a import raw_mips_instruction, validate_mips_hazards
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -21,7 +18,8 @@ class GridRawInstructionsMixin:
         lines = self._raw_instruction_lines()
         self._set_editor_text(self.raw_instructions, lines)
         self._raw_instruction_highlighter.rehighlight()
-        self._apply_raw_hazards(validate_mips_hazards(lines))
+        self.raw_instructions.set_hazard_extra_selections([])
+        self._apply_instruction_hazards(validate_mips_hazards([row.instruction for row in self._rows]))
 
     def _raw_instruction_lines(self) -> list[str]:
         lines: list[str] = []
@@ -48,11 +46,11 @@ class GridRawInstructionsMixin:
             return ""
         return self._codec.disassemble(data[:ROW_BYTES].ljust(ROW_BYTES, b"\x00"), address)
 
-    def _apply_raw_hazards(self, hazards) -> None:
-        document = self.raw_instructions.document()
-        self.raw_instructions.setExtraSelections(
+    def _apply_instruction_hazards(self, hazards) -> None:
+        document = self.instructions.document()
+        self.instructions.set_hazard_extra_selections(
             [
-                self._raw_hazard_selection(
+                self._instruction_hazard_selection(
                     document.findBlockByNumber(item.line_index),
                     item.severity,
                 )
@@ -60,9 +58,9 @@ class GridRawInstructionsMixin:
             ]
         )
 
-    def _raw_hazard_selection(self, block, severity: str) -> QTextEdit.ExtraSelection:
+    def _instruction_hazard_selection(self, block, severity: str) -> QTextEdit.ExtraSelection:
         selection = QTextEdit.ExtraSelection()
-        selection.cursor = self.raw_instructions.textCursor()
+        selection.cursor = self.instructions.textCursor()
         set_cursor_position(selection.cursor, block.position())
         selection.cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
         selection.format = QTextCharFormat()

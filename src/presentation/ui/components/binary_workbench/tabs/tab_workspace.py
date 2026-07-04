@@ -58,13 +58,13 @@ class TabWorkspaceMixin:
         if current.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             return self._save_internal_parent_workspace(current, path)
         if self.has_unsaved_version_edits(current) and current.active_version_name:
-            self.update_current_version(current.active_version_name)
+            self.update_current_version(current.active_version_name, reload_page=False)
             current = self.current_context()
             if current is None:
                 return False
         updated = self._workspace_repository.save_tab_workspace(current, path)
         self._remember_workspace_for_source(updated)
-        self._set_current_context(self._with_symbol_offsets(updated))
+        self._set_current_context_without_page_reload(self._with_symbol_offsets(updated))
         return True
 
     def _save_internal_parent_workspace(

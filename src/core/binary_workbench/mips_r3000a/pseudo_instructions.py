@@ -1,7 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from src.modules.binary_workbench_constants import ASSEMBLY_LABEL_SEPARATOR as LABEL_SEPARATOR
 from src.core.binary_workbench.mips_r3000a.comments import strip_comment
+
+LI_IMMEDIATE_MIN = -0x8000
+LI_IMMEDIATE_MAX = 0xFFFF
 
 
 def expand_pseudo_instructions(lines: list[str]) -> list[str]:
@@ -30,6 +33,8 @@ def _expand_code(code: str) -> list[str] | None:
         return None
     mnemonic = parts[0].lower()
     operands = parts[1:]
+    if mnemonic == "li" and len(operands) == 2:
+        return _expand_li(operands)
     if mnemonic == "move" and len(operands) == 2:
         return [f"addu {operands[0]}, {operands[1]}, $zero"]
     if mnemonic == "clear" and len(operands) == 1:
@@ -38,6 +43,16 @@ def _expand_code(code: str) -> list[str] | None:
         return [f"subu {operands[0]}, $zero, {operands[1]}"]
     if mnemonic == "b" and len(operands) == 1:
         return [f"beq $zero, $zero, {operands[0]}"]
+    return None
+
+
+def _expand_li(operands: list[str]) -> list[str] | None:
+    try:
+        value = int(operands[1], 0)
+    except ValueError:
+        return None
+    if LI_IMMEDIATE_MIN <= value <= LI_IMMEDIATE_MAX:
+        return [f"addiu {operands[0]}, $zero, {operands[1]}"]
     return None
 
 

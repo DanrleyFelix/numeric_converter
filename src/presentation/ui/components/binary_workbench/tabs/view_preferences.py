@@ -1,4 +1,4 @@
-from copy import deepcopy
+﻿from copy import deepcopy
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO, BinaryWorkbenchViewPreferencesDTO
 
@@ -21,4 +21,5 @@ def copy_view_preferences(
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns=deepcopy(value.visible_columns),
         decoded_text_tables=list(value.decoded_text_tables),
+        jump_reference_offset=value.jump_reference_offset,
     )

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from uuid import uuid4
 
@@ -76,6 +76,7 @@ def create_internal_tab(
                     if name != "Binary"
                 },
                 decoded_text_tables=list(preferences.decoded_text_tables),
+                jump_reference_offset="" if preferences.jump_reference_offset == "Binary" else preferences.jump_reference_offset,
             ),
         }
     )

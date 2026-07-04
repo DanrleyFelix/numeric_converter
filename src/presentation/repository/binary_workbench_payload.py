@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import replace
 from typing import Any
@@ -68,6 +68,7 @@ def _view_preferences(raw: object) -> BinaryWorkbenchViewPreferencesDTO:
     if not isinstance(raw, dict):
         return BinaryWorkbenchViewPreferencesDTO()
     enabled = raw.get("decoded_text_tables")
+    jump_reference = raw.get("jump_reference_offset")
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns=_visible_columns(raw.get("visible_columns")),
         decoded_text_tables=(
@@ -75,6 +76,7 @@ def _view_preferences(raw: object) -> BinaryWorkbenchViewPreferencesDTO:
             if isinstance(enabled, list)
             else BinaryWorkbenchViewPreferencesDTO().decoded_text_tables
         ),
+        jump_reference_offset=str(jump_reference) if isinstance(jump_reference, str) else "",
     )
 
 
@@ -310,6 +312,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
                 if name != "Binary"
             },
             decoded_text_tables=list(view_preferences.decoded_text_tables),
+            jump_reference_offset="" if view_preferences.jump_reference_offset == "Binary" else view_preferences.jump_reference_offset,
         )
     internal_files = _internal_files(raw.get("internal_files"))
     internal_file_start_lba = _int_offset(raw.get("internal_file_start_lba"))
@@ -493,6 +496,7 @@ def binary_workbench_state_to_payload(
                 "view_preferences": {
                     "visible_columns": dict(tab.view_preferences.visible_columns),
                     "decoded_text_tables": list(tab.view_preferences.decoded_text_tables),
+                    "jump_reference_offset": tab.view_preferences.jump_reference_offset,
                 },
             }
             for tab in tabs

@@ -52,7 +52,7 @@ class GridCommitMixin:
             self._configure_scrollbar()
             self._render_offsets()
             self._scroll_static_document(self.scrollbar.value())
-            self.rowsChanged.emit(self.export_rows())
+            self._emit_rows_changed(self.export_rows())
             return
         self._render_offsets()
-        self.rowsChanged.emit(self._rows)
+        self._emit_rows_changed(self._rows)

@@ -24,6 +24,8 @@ class GridRenderingMixin:
         virtual: bool = False,
         uppercase_bytes: bool = True,
         uppercase_instructions: bool = True,
+        reference_offset_bases: dict[str, str] | None = None,
+        jump_reference_offset: str = "",
     ) -> None:
         content_columns = {
             BINARY_WORKBENCH_TEXT.BYTES,
@@ -32,6 +34,10 @@ class GridRenderingMixin:
             BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
         }
         offsets = [name for name in columns if name not in content_columns]
+        self._columns = list(columns)
+        self._visible_offset_columns = offsets
+        self._reference_offset_bases = {BINARY_WORKBENCH_TEXT.FILE: "0x00000000", **dict(reference_offset_bases or {})}
+        self._jump_reference_offset = jump_reference_offset if jump_reference_offset in self._reference_offset_bases else ""
         self._sync_offset_columns(offsets)
         visible = set(columns)
         self.offsets_host.setVisible(bool(offsets))
@@ -48,6 +54,8 @@ class GridRenderingMixin:
         )
         self._uppercase_bytes = uppercase_bytes
         self._uppercase_instructions = uppercase_instructions
+        self.bytes.set_hex_input_mode(True, self._uppercase_bytes)
+        self.instructions.set_uppercase_instruction_hover(self._uppercase_instructions)
         self._virtual = virtual
         for editor in (*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions):
             editor.set_large_binary_mode(virtual)
@@ -56,6 +64,7 @@ class GridRenderingMixin:
         self._dirty_editor_kind = None
         self._visible_start_offset = start_offset
         self._last_visible_offset = start_offset
+        self._refresh_jump_navigation()
         if virtual:
             self._configure_scrollbar()
             self.render_rows(rows, start_offset)
@@ -70,6 +79,7 @@ class GridRenderingMixin:
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
         self._rows = list(rows)
         self._visible_start_offset = start_offset
+        self._refresh_jump_navigation()
         self._render()
         if self._virtual_selection_range is not None:
             self._select_visible_virtual_range(*self._virtual_selection_range)
@@ -89,9 +99,27 @@ class GridRenderingMixin:
         self._instruction_highlighter.set_symbols(labels, variables, equates)
         self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)
-        self.instructions.set_jump_navigation(self._codec, labels, variables, equates)
+        self._refresh_jump_navigation()
         if hasattr(self, "raw_instructions"):
             self._render_raw_instructions()
+
+    def _refresh_jump_navigation(self) -> None:
+        self._instruction_highlighter.set_jump_reference_offsets(
+            self._reference_offset_bases,
+            self._jump_reference_offset,
+            self._total_size,
+        )
+        self.instructions.set_jump_navigation(
+            self._codec,
+            self._labels,
+            self._variables,
+            self._equates,
+            self._reference_offset_bases,
+            self._visible_offset_columns,
+            self._jump_reference_offset,
+            self._visible_start_offset if self._virtual else 0,
+            ROW_BYTES,
+        )
 
     def visible_size(self) -> int:
         return self._visible_row_count() * ROW_BYTES

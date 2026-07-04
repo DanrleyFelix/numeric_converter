@@ -1,4 +1,4 @@
-class BINARY_WORKBENCH_TEXT:
+﻿class BINARY_WORKBENCH_TEXT:
     TITLE: str = "Binary Workbench"
     STATUS_IDLE: str = "Ready."
     STATUS_PLACEHOLDER_TEMPLATE: str = '"{name}" is not implemented yet.'
@@ -30,6 +30,8 @@ class BINARY_WORKBENCH_TEXT:
     STATUS_NO_FOCUSED_EDITOR: str = "Focus Bytes or Instruction before saving."
     STATUS_COMMAND_INVALID_INSTRUCTIONS: str = "Command instructions must contain valid complete assembly instructions."
     STATUS_COMMAND_EMPTY_LINES_REQUIRED: str = "Not enough empty lines to apply this command with current Rules."
+    STATUS_OFFSET_OUT_OF_RANGE: str = "Jump/branch target is outside the current file."
+    STATUS_BRANCH_OUT_OF_RANGE: str = "Branch target is outside the supported 16-bit relative range."
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"
     PREFERENCES: str = "Preferences"
@@ -120,6 +122,7 @@ class BINARY_WORKBENCH_TEXT:
     REFERENCE_NAME: str = "Name"
     REFERENCE_BASE: str = "Base at File 0x0"
     REFERENCE_VISIBLE: str = "Visible"
+    REFERENCE_JUMP_TARGET: str = "Jump"
     GO_TO_SUBTITLE: str = "Navigate by offset, LBA, internal file or symbolic target."
     FIND_SUBTITLE: str = "Search assembly, bytes or decoded ANSI text."
     SELECT_BLOCK_SUBTITLE: str = "Select a block by start/end or start/length."

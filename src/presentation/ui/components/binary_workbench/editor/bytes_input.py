@@ -48,14 +48,16 @@ def bytes_paste_replacement(
 
 
 def bytes_delete_allowed(editor, previous: bool, allow_line_shift: bool) -> bool:
-    cursor = editor.textCursor()
     text = editor.toPlainText()
     start, end = _delete_range(editor, previous)
     if start == end:
         return False
-    crosses_line = "\n" in text[start:end]
+    removed = text[start:end]
+    crosses_line = "\n" in removed
     if crosses_line and not allow_line_shift:
         return False
+    if not crosses_line:
+        return True
     return _document_is_valid(f"{text[:start]}{text[end:]}")
 
 

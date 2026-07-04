@@ -3405,3 +3405,57 @@ def test_binary_workbench_sltu_uses_arithmetic_mnemonic_color():
         "mnemonic",
         "addiu",
     )
+
+
+def test_binary_workbench_update_version_does_not_reload_current_binary_page(tmp_path: Path):
+    binary_path = tmp_path / "no_reload.bin"
+    binary_path.write_bytes(bytes.fromhex("11 00 04 24") + bytes.fromhex("00 00 00 00") * 16)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    page = tool.tabs.currentWidget()
+    lines = page.grid.instructions.toPlainText().splitlines()  # type: ignore[attr-defined]
+    lines[0] = "nop"
+    page.grid.instructions.setPlainText("\n".join(lines))  # type: ignore[attr-defined]
+
+    def fail_load_context(*args, **kwargs):
+        pytest.fail("ALT+S must not reload the current binary page")
+
+    page.load_context = fail_load_context  # type: ignore[method-assign]
+
+    tool._update_version()
+    current = tool.tabs.current_context()
+    active = next(version for version in current.versions if version.name == current.active_version_name)
+
+    assert page.grid.instructions.toPlainText().splitlines()[0] == "nop"  # type: ignore[attr-defined]
+    assert active.rows or active.instruction_overlays or active.instructions_by_line
+
+
+def test_binary_workbench_update_version_does_not_reload_current_assembly_page(tmp_path: Path):
+    assembly_path = tmp_path / "no_reload.asm"
+    assembly_path.write_text("addiu $a0, $zero, 0x11\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    lines = page.grid.instructions.toPlainText().splitlines()  # type: ignore[attr-defined]
+    lines[0] = "nop"
+    page.grid.instructions.setPlainText("\n".join(lines))  # type: ignore[attr-defined]
+
+    def fail_load_context(*args, **kwargs):
+        pytest.fail("ALT+S must not reload the current assembly page")
+
+    page.load_context = fail_load_context  # type: ignore[method-assign]
+
+    tool._update_version()
+    current = tool.tabs.current_context()
+    active = next(version for version in current.versions if version.name == current.active_version_name)
+
+    assert page.grid.instructions.toPlainText().splitlines()[0] == "nop"  # type: ignore[attr-defined]
+    assert active.rows or active.instruction_overlays or active.instructions_by_line

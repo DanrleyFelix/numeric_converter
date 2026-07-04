@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 
@@ -73,6 +73,7 @@ class BinaryWorkbenchTabs(
     programContextChanged = Signal(object)
     statusChanged = Signal(str)
     statusWarningChanged = Signal(str)
+    statusErrorChanged = Signal(str)
     closeRequested = Signal(int)
 
     def __init__(

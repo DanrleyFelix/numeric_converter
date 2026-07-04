@@ -10,6 +10,9 @@ from src.presentation.ui.components.binary_workbench.editor.bytes_input import (
     bytes_insert_allowed,
     is_bytes_editor,
 )
+from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
+    replace_selection_preserving_line_breaks,
+)
 
 
 TEXT_INPUT_BLOCKED_MODIFIERS = (
@@ -34,6 +37,9 @@ class EditorGranularUndoMixin:
             return False
         if event.modifiers() != Qt.NoModifier:
             return False
+        if is_bytes_editor(self) and _bytes_delete_should_preserve_line_breaks(self):
+            replace_selection_preserving_line_breaks(self, self.textCursor())
+            return True
         if is_bytes_editor(self) and not bytes_delete_allowed(
             self,
             event.key() == Qt.Key_Backspace,
@@ -48,7 +54,7 @@ class EditorGranularUndoMixin:
         return True
 
     def _handle_granular_insert(self, event: QKeyEvent) -> bool:
-        if event.modifiers() & TEXT_INPUT_BLOCKED_MODIFIERS:
+        if event.modifiers() & TEXT_INPUT_BLOCKED_MODIFIERS and not is_bytes_editor(self):
             return False
         text = event.text()
         if not text or text in {"\t", "\r", "\n"}:
@@ -74,3 +80,13 @@ class EditorGranularUndoMixin:
             cursor.endEditBlock()
             self._granular_editing = False
         self.setTextCursor(cursor)
+
+
+def _bytes_delete_should_preserve_line_breaks(editor) -> bool:
+    cursor = editor.textCursor()
+    selected = cursor.selection().toPlainText().replace("\u2029", "\n")
+    return (
+        cursor.hasSelection()
+        and not editor.bytes_line_shift_allowed()
+        and "\n" in selected
+    )

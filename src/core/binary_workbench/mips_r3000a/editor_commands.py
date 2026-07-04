@@ -138,6 +138,8 @@ def _condition_branch_lines(
 
 
 def _load_immediate_lines(register: str, value: int) -> list[str]:
+    if -0x8000 <= value <= 0xFFFF:
+        return [f"addiu {register}, zero, {_hex(value)}"]
     value &= 0xFFFFFFFF
     return [
         f"lui {register}, {_hex((value >> 16) & 0xFFFF)}",

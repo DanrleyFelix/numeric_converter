@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QFileDialog
 
 from src.modules.binary_workbench_constants import (
@@ -18,6 +19,9 @@ from src.presentation.ui.components.binary_workbench.file_dialogs import (
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
     BINARY_WORKBENCH_FILE_DIALOG_TEXT,
 )
+
+
+VERSION_UPDATE_POPUP_SUPPRESSION_MS = 120
 
 
 class BinaryWorkbenchWindowVersionMixin:
@@ -50,16 +54,38 @@ class BinaryWorkbenchWindowVersionMixin:
         self._show_unsupported_version_status(current)
 
     def _update_version(self) -> None:
-        current = self.tabs.current_context()
-        if _scratch_workspace_source_required(current):
-            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
-            return
-        name = current.active_version_name if current is not None else ""
-        if name and self.tabs.update_current_version(name):
-            self.tabs.save_current_workspace()
-            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
-            return
-        self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        self._set_editor_popups_suppressed(True)
+        try:
+            current = self.tabs.current_context()
+            if _scratch_workspace_source_required(current):
+                self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+                return
+            name = current.active_version_name if current is not None else ""
+            if name and self.tabs.update_current_version(name, mark_dirty=False, reload_page=False):
+                self.tabs.save_current_workspace()
+                self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+                return
+            self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+        finally:
+            self._hide_editor_popups()
+            QTimer.singleShot(
+                VERSION_UPDATE_POPUP_SUPPRESSION_MS,
+                lambda: self._set_editor_popups_suppressed(False),
+            )
+
+    def _set_editor_popups_suppressed(self, enabled: bool) -> None:
+        grid = self._current_grid()
+        if grid is not None:
+            grid.set_editor_popups_suppressed(enabled)
+
+    def _hide_editor_popups(self) -> None:
+        grid = self._current_grid()
+        if grid is not None:
+            grid.hide_editor_popups()
+
+    def _current_grid(self):
+        page = self.tabs.currentWidget()
+        return getattr(page, "grid", None)
 
     def _change_version(self) -> None:
         current = self.tabs.current_context()

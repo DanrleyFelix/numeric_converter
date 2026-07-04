@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+﻿from dataclasses import dataclass, field
 
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ANSI_TABLE_NAME,
@@ -52,6 +52,7 @@ def _default_binary_workbench_directories() -> dict[str, str]:
 class BinaryWorkbenchViewPreferencesDTO:
     visible_columns: dict[str, bool] = field(default_factory=_default_visible_columns)
     decoded_text_tables: list[str] = field(default_factory=_default_decoded_text_tables)
+    jump_reference_offset: str = ""
 
 
 @dataclass(frozen=True)

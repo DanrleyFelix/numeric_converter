@@ -11,15 +11,18 @@ def replace_selection_preserving_line_breaks(
     prefix: str = "",
 ) -> None:
     start = cursor.selectionStart()
-    selected_text = cursor.selection().toPlainText()
-    line_breaks = "".join("\n" if char == "\n" else "" for char in selected_text)
-    replacement = f"{prefix}{line_breaks}"
+    end = cursor.selectionEnd()
+    first_block = editor.document().findBlock(start)
+    if first_block.isValid():
+        end = min(end, first_block.position() + len(first_block.text()))
     was_granular = bool(getattr(editor, "_granular_editing", False))
     editor._granular_editing = True
     try:
         cursor.beginEditBlock()
         try:
-            cursor.insertText(replacement)
+            set_cursor_position(cursor, start)
+            set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
+            cursor.insertText(prefix)
         finally:
             cursor.endEditBlock()
     finally:

@@ -49,6 +49,7 @@ class BinaryWorkbenchEditorPage(
     contextChanged = Signal(object)
     openLabelTabRequested = Signal(str, int)
     statusWarningRequested = Signal(str)
+    statusErrorRequested = Signal(str)
 
     def __init__(
         self,
@@ -79,6 +80,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
         self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
+        self.grid.navigationWarningRequested.connect(self.statusErrorRequested.emit)
         self._reader: CachedBinaryReader | InternalFileView | None = None
         self._loading_visible_rows = False
         self._suppress_context_changed = False
@@ -95,6 +97,7 @@ class BinaryWorkbenchEditorPage(
         self.load_context(context)
 
     def current_context(self) -> BinaryWorkbenchTabContextDTO:
+        self.grid.flush_pending_rows_changed()
         return self._context
 
     def replace_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
@@ -127,6 +130,8 @@ class BinaryWorkbenchEditorPage(
             self._preferences.group_bytes,
             uppercase_bytes=self._preferences.uppercase_bytes,
             uppercase_instructions=self._preferences.uppercase_instructions,
+            reference_offset_bases=context.reference_offset_bases,
+            jump_reference_offset=context.view_preferences.jump_reference_offset,
         )
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)
@@ -157,6 +162,8 @@ class BinaryWorkbenchEditorPage(
                 True,
                 self._preferences.uppercase_bytes,
                 self._preferences.uppercase_instructions,
+                reference_offset_bases=context.reference_offset_bases,
+                jump_reference_offset=context.view_preferences.jump_reference_offset,
             )
             self._load_visible_rows(
                 offset_from_hex(context.last_open_offset),
@@ -171,6 +178,8 @@ class BinaryWorkbenchEditorPage(
                 self._preferences.group_bytes,
                 uppercase_bytes=self._preferences.uppercase_bytes,
                 uppercase_instructions=self._preferences.uppercase_instructions,
+                reference_offset_bases=context.reference_offset_bases,
+                jump_reference_offset=context.view_preferences.jump_reference_offset,
             )
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)

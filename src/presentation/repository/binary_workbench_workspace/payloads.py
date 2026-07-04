@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -248,6 +248,7 @@ def view_preferences_payload(value: BinaryWorkbenchViewPreferencesDTO) -> dict[s
     return {
         "visible_columns": dict(value.visible_columns),
         "decoded_text_tables": list(value.decoded_text_tables),
+        "jump_reference_offset": value.jump_reference_offset,
     }
 
 
@@ -259,12 +260,14 @@ def view_preferences_from_payload(
         return fallback
     visible = raw.get("visible_columns")
     enabled = raw.get("decoded_text_tables")
+    jump_reference = raw.get("jump_reference_offset")
     return BinaryWorkbenchViewPreferencesDTO(
         visible_columns={
             **fallback.visible_columns,
             **({str(key): bool(value) for key, value in visible.items()} if isinstance(visible, dict) else {}),
         },
         decoded_text_tables=[str(item) for item in enabled] if isinstance(enabled, list) else list(fallback.decoded_text_tables),
+        jump_reference_offset=str(jump_reference) if isinstance(jump_reference, str) else fallback.jump_reference_offset,
     )
 
 

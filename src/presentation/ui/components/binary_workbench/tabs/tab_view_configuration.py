@@ -1,4 +1,4 @@
-from dataclasses import replace
+﻿from dataclasses import replace
 
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEncodingTableDTO,
@@ -33,6 +33,7 @@ class TabViewConfigurationMixin:
                 BINARY_WORKBENCH_TEXT.INSTRUCTION: True,
             },
             decoded_text_tables=list(current.view_preferences.decoded_text_tables),
+            jump_reference_offset=current.view_preferences.jump_reference_offset,
         )
         self._set_view_preferences_for_related_tabs(current, preferences)
 
@@ -47,6 +48,7 @@ class TabViewConfigurationMixin:
         preferences = BinaryWorkbenchViewPreferencesDTO(
             visible_columns=dict(current.view_preferences.visible_columns),
             decoded_text_tables=list(enabled_names),
+            jump_reference_offset=current.view_preferences.jump_reference_offset,
         )
         self._state = BinaryWorkbenchStateDTO(
             **{
@@ -165,4 +167,5 @@ def _internal_view_preferences(
             if name != "Binary"
         },
         decoded_text_tables=list(preferences.decoded_text_tables),
+        jump_reference_offset="" if preferences.jump_reference_offset == "Binary" else preferences.jump_reference_offset,
     )

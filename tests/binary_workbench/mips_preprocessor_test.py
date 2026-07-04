@@ -1,4 +1,5 @@
-﻿from src.core.binary_workbench.mips_r3000a import (
+﻿from src.core.binary_workbench.mips_r3000a.editor_commands import editor_command_output
+from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
     expand_pseudo_instruction,
@@ -56,10 +57,15 @@ def test_mips_source_rows_encode_variables_and_equates_from_raw_instructions():
 
 
 def test_mips_pseudo_instructions_expand_to_core_instructions():
-    assert expand_pseudo_instruction("li $v0, 1") == ["li $v0, 1"]
+    assert expand_pseudo_instruction("li $v0, 1") == ["addiu $v0, $zero, 1"]
     assert expand_pseudo_instruction("move $a0, $s1") == ["addu $a0, $s1, $zero"]
     assert expand_pseudo_instruction("loop: b loop") == ["loop: beq $zero, $zero, loop"]
 
+
+
+
+def test_mips_li_command_uses_single_addiu_for_16_bit_immediate():
+    assert editor_command_output("li", ["0xFFFF", "v0"]) == ["addiu v0, zero, 0xFFFF"]
 
 def test_mips_source_lines_only_advance_offsets_for_valid_instructions():
     rows = build_rows_from_instructions(

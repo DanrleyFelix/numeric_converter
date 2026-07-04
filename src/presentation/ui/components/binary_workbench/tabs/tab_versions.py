@@ -46,7 +46,13 @@ class TabVersionsMixin:
         )
         return True
 
-    def update_current_version(self, name: str) -> bool:
+    def update_current_version(
+        self,
+        name: str,
+        *,
+        mark_dirty: bool = True,
+        reload_page: bool = True,
+    ) -> bool:
         current = self.current_context()
         if not self._is_versioned_context(current) or not current.active_version_name:
             return False
@@ -57,9 +63,11 @@ class TabVersionsMixin:
         current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
         versions = [item for item in current.versions if item.name != current.active_version_name]
-        self._set_current_context(
-            BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": _sorted_versions([*versions, version]), "active_version_name": name, "version_dirty": True})
-        )
+        updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": _sorted_versions([*versions, version]), "active_version_name": name, "version_dirty": mark_dirty})
+        if reload_page:
+            self._set_current_context(updated)
+        else:
+            self._set_current_context_without_page_reload(updated)
         return True
 
     def load_version(self, name: str) -> bool:

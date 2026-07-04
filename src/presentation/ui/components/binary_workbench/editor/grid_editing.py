@@ -1,15 +1,18 @@
+import re
+
 from src.core.binary_workbench.mips_r3000a import (
     build_source_line_rows,
     editor_mips_instruction,
-    expand_pseudo_instructions,
     rebuild_rows_with_offsets,
 )
+from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
+from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
-from src.modules.constants import HEX_DIGITS
+from src.modules.constants import HEX_DIGITS, HEX_DIGIT_PATTERN
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
@@ -20,6 +23,16 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     address_from_row,
     normalize_bytes_text,
     normalize_instruction_text,
+)
+
+
+REFERENCE_JUMP_TARGET = re.compile(
+    rf"\b(?P<mnemonic>j|jal)\s+&(?P<target>[@_]?[A-Za-z_][A-Za-z0-9_]*|[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+))",
+    re.IGNORECASE,
+)
+STANDARD_JUMP_TARGET = re.compile(
+    rf"\b(?:j|jal)\s+(?P<target>[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+))",
+    re.IGNORECASE,
 )
 
 
@@ -78,9 +91,12 @@ class GridEditingMixin:
                 self._codec,
                 self._symbol_offsets,
             )
+        incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
         self._rows = updated
         if not editing_bytes:
-            self._set_editing_labels(labels_from_rows(updated))
+            labels = labels_from_rows(updated)
+            if labels != self._labels:
+                self._set_editing_labels(labels)
         if not self._virtual:
             self._all_rows = rebuild_rows_with_offsets(
                 updated,
@@ -90,16 +106,17 @@ class GridEditingMixin:
             self._rows = list(self._all_rows)
             self._total_size = len(self._all_rows) * ROW_BYTES
             self._configure_scrollbar()
-            self.rowsChanged.emit(self.export_rows())
+            self._emit_rows_changed(self.export_rows(), deferred=not editing_bytes)
         else:
             self._total_size = self._expanded_virtual_total_size(updated)
             self._configure_scrollbar()
-            self.rowsChanged.emit(self._rows)
+            self._emit_rows_changed(self._rows, deferred=not editing_bytes)
         self._render_offsets()
-        target = self.instructions if editing_bytes else self.bytes
-        values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
-        self._set_editor_text(target, values)
-        self._render_raw_instructions()
+        if not incomplete_bytes_edit:
+            target = self.instructions if editing_bytes else self.bytes
+            values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
+            self._set_editor_text(target, values)
+            self._render_raw_instructions()
         if not self._virtual:
             self._scroll_static_document(self.scrollbar.value())
         self._emit_selection_summary()
@@ -119,7 +136,7 @@ class GridEditingMixin:
         self._labels = labels
         self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
         self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
-        self.instructions.set_jump_navigation(self._codec, labels, self._variables, self._equates)
+        self._refresh_jump_navigation()
         self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:
@@ -187,10 +204,11 @@ class GridEditingMixin:
             address = address_from_row(row)
             data = bytes.fromhex(row.bytes_text.replace(" ", ""))
             raw_instruction = self._codec.disassemble(data.ljust(ROW_BYTES, b"\x00"), address)
+            decoded_instruction = editor_mips_instruction(raw_instruction, address)
             decoded.append(
                 BinaryWorkbenchRowDTO(
                     offsets=row.offsets,
-                    instruction=editor_mips_instruction(raw_instruction, address),
+                    instruction=_preserve_comment(decoded_instruction, row.instruction),
                     bytes_text=row.bytes_text,
                 )
             )
@@ -216,6 +234,8 @@ class GridEditingMixin:
             variables,
             equates,
         )
+        rows = self._reference_jump_rows(rows, lines, labels, variables, equates)
+        rows = self._validated_standard_jump_rows(rows, lines)
         return rows or self.export_rows()
 
     def _instruction_lines_with_replacement(
@@ -252,6 +272,8 @@ class GridEditingMixin:
                 self._equates if equates is None else equates,
             )
             return self._rows_with_instruction_spacing(rows, lines)
+        active_variables = self._variables if variables is None else variables
+        active_equates = self._equates if equates is None else equates
         rows = build_source_line_rows(
             lines,
             self._columns or [BINARY_WORKBENCH_TEXT.FILE],
@@ -259,12 +281,157 @@ class GridEditingMixin:
             self._codec,
             self._source_rows_start_offset(),
             labels,
-            self._variables if variables is None else variables,
-            self._equates if equates is None else equates,
+            active_variables,
+            active_equates,
             False,
         )
+        rows = self._reference_jump_rows(rows, lines, labels, active_variables, active_equates)
+        rows = self._validated_standard_jump_rows(rows, lines)
         rows = self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
         return self._rows_with_instruction_spacing(rows, lines)
+
+    def _validated_standard_jump_rows(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None,
+        lines: list[str],
+    ) -> list[BinaryWorkbenchRowDTO] | None:
+        if rows is None:
+            return None
+        file_size = max(self._total_size, len(rows) * ROW_BYTES)
+        updated: list[BinaryWorkbenchRowDTO] = []
+        for index, row in enumerate(rows):
+            line = lines[index] if index < len(lines) else row.instruction
+            if self._invalid_standard_jump_target(line, file_size):
+                updated.append(
+                    BinaryWorkbenchRowDTO(
+                        row.offsets,
+                        row.instruction,
+                        "",
+                        row.original_instruction,
+                        row.original_bytes_text,
+                    )
+                )
+                continue
+            updated.append(row)
+        return updated
+
+    def _invalid_standard_jump_target(self, line: str, file_size: int) -> bool:
+        code, _, _ = split_comment(line)
+        match = STANDARD_JUMP_TARGET.search(code)
+        if match is None:
+            return False
+        try:
+            value = int(match.group("target"), 0)
+        except ValueError:
+            return False
+        if value < JUMP_NAVIGATION_BASE:
+            return True
+        target = value - JUMP_NAVIGATION_BASE
+        return target % ROW_BYTES != 0 or (file_size > 0 and target >= file_size)
+
+    def _reference_jump_rows(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None,
+        lines: list[str],
+        labels: dict[str, str] | None,
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> list[BinaryWorkbenchRowDTO] | None:
+        if rows is None or not self._jump_reference_offset:
+            return rows
+        symbols = self._reference_jump_symbols(labels or self._labels, variables, equates)
+        updated: list[BinaryWorkbenchRowDTO] = []
+        for index, row in enumerate(rows):
+            line = lines[index] if index < len(lines) else row.instruction
+            normalized = self._reference_jump_line(line, symbols)
+            if normalized == line:
+                updated.append(row)
+                continue
+            offset = self._reference_jump_row_offset(index)
+            if offset is None:
+                updated.append(row)
+                continue
+            replacement = build_source_line_rows(
+                [normalized],
+                self._columns or [BINARY_WORKBENCH_TEXT.FILE],
+                self._offset_base_text(),
+                self._codec,
+                offset,
+                labels,
+                variables,
+                equates,
+                True,
+            )
+            if not replacement or not replacement[0].bytes_text:
+                updated.append(row)
+                continue
+            encoded = replacement[0]
+            updated.append(
+                BinaryWorkbenchRowDTO(
+                    row.offsets,
+                    row.instruction,
+                    encoded.bytes_text,
+                    row.original_instruction,
+                    row.original_bytes_text,
+                )
+            )
+        return updated
+
+    def _reference_jump_row_offset(self, index: int) -> int | None:
+        try:
+            return int(self._row_at(index).offsets.get(BINARY_WORKBENCH_TEXT.FILE, "-"), 16)
+        except ValueError:
+            return None
+
+    def _reference_jump_line(self, line: str, symbols: dict[str, str]) -> str:
+        def replacement(match: re.Match[str]) -> str:
+            target = self._reference_jump_standard_target(match.group("target"), symbols)
+            if target is None:
+                return match.group(0)
+            return f"{match.group('mnemonic')} 0x{target:08X}"
+
+        return REFERENCE_JUMP_TARGET.sub(replacement, line)
+
+    def _reference_jump_standard_target(self, token: str, symbols: dict[str, str]) -> int | None:
+        if self._jump_reference_offset not in self._reference_offset_bases:
+            return None
+        value = self._reference_jump_value(token, symbols)
+        if value is None:
+            return None
+        base = self._safe_reference_int(self._reference_offset_bases[self._jump_reference_offset])
+        target = value - base
+        if target < 0 or target % ROW_BYTES != 0:
+            return None
+        if self._total_size > 0 and target >= self._total_size:
+            return None
+        return target + JUMP_NAVIGATION_BASE
+
+    def _reference_jump_value(self, token: str, symbols: dict[str, str]) -> int | None:
+        normalized = token.lower()
+        if normalized in symbols:
+            return self._safe_reference_int(symbols[normalized])
+        try:
+            return int(token, 0)
+        except ValueError:
+            return None
+
+    def _reference_jump_symbols(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> dict[str, str]:
+        return {
+            **{name.lower(): value for name, value in labels.items()},
+            **{f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()},
+            **{f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()},
+        }
+
+    def _safe_reference_int(self, value: str) -> int:
+        try:
+            return int(value, 0)
+        except ValueError:
+            return 0
 
     def _rows_with_instruction_spacing(
         self,
@@ -360,13 +527,45 @@ class GridEditingMixin:
 
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()
-        formatted = normalize_instruction_text(text, self._uppercase_instructions)
-        normalized = "\n".join(expand_pseudo_instructions(formatted.split("\n")))
-        normalized = normalize_instruction_text(normalized, self._uppercase_instructions)
-        if normalized != text and not self._instructions_user_edit_in_progress():
+        normalized = normalize_instruction_text(text, self._uppercase_instructions)
+        if normalized != text and (
+            not self._instructions_user_edit_in_progress()
+            or _nop_case_only_change(text, normalized)
+        ):
             self._set_editor_text(self.instructions, normalized.split("\n"))
         return normalized.split("\n")
 
 
+def _preserve_comment(instruction: str, previous_instruction: str) -> str:
+    _, marker, comment = split_comment(previous_instruction)
+    if not marker:
+        return instruction
+    suffix = f"{marker}{comment}"
+    return f"{instruction} {suffix.lstrip()}"
+
+
 def _without_spacing(text: str) -> str:
     return "".join(text.split())
+
+
+def _has_incomplete_byte_rows(rows: list[BinaryWorkbenchRowDTO]) -> bool:
+    return any(
+        row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) not in {None, "-"}
+        and not row.bytes_text
+        for row in rows
+    )
+
+
+def _nop_case_only_change(original: str, normalized: str) -> bool:
+    original_lines = original.split("\n")
+    normalized_lines = normalized.split("\n")
+    if len(original_lines) != len(normalized_lines):
+        return False
+    changed = False
+    for original_line, normalized_line in zip(original_lines, normalized_lines):
+        if original_line == normalized_line:
+            continue
+        if original_line.strip().lower() != "nop" or normalized_line.strip() != "nop":
+            return False
+        changed = True
+    return changed

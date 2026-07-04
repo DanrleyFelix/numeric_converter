@@ -5,6 +5,7 @@ from PySide6.QtGui import QKeyEvent, QKeySequence, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.modules.constants import HEX_DIGITS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
 from src.presentation.ui.components.binary_workbench.editor.editor_granular_undo import (
@@ -21,6 +22,9 @@ from src.presentation.ui.components.binary_workbench.editor.editor_selection_scr
 )
 from src.presentation.ui.components.binary_workbench.editor.editor_shortcuts import (
     EditorShortcutMixin,
+)
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
+    normalize_instruction_text,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -49,6 +53,7 @@ class WorkbenchEditor(
     selectionAutoScrolled = Signal(object)
     returnKeyPressed = Signal(object, object)
     protectedEditKeyPressed = Signal(object, object)
+    navigationWarningRequested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -61,6 +66,14 @@ class WorkbenchEditor(
         self._label_offsets: dict[str, tuple[str, int]] = {}
         self._jump_codec = None
         self._jump_symbols: dict[str, str] = {}
+        self._jump_symbol_kinds: dict[str, str] = {}
+        self._hex_input_enabled = False
+        self._uppercase_hex_input = False
+        self._uppercase_instruction_cursor = False
+        self._last_instruction_cursor_block: int | None = None
+        self._normalizing_instruction_line = False
+        self._editor_extra_selections = []
+        self._hazard_extra_selections = []
         self._completion_cursor_position: int | None = None
         self._immediate_symbol_menu_enabled = False
         self._completer = QCompleter(self._completion_model, self)
@@ -76,6 +89,7 @@ class WorkbenchEditor(
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
         self.setup_editor_shortcuts()
+        self.cursorPositionChanged.connect(self._normalize_instruction_line_after_offset_change)
 
     def _setup_completion_popup(self) -> None:
         popup = QListView()
@@ -91,15 +105,50 @@ class WorkbenchEditor(
         popup.installEventFilter(self)
         self._completer.setPopup(popup)
 
+    def setExtraSelections(self, selections) -> None:
+        self._editor_extra_selections = list(selections)
+        self._sync_extra_selections()
+
+    def set_hazard_extra_selections(self, selections) -> None:
+        self._hazard_extra_selections = list(selections)
+        self._sync_extra_selections()
+
+    def _sync_extra_selections(self) -> None:
+        super().setExtraSelections([*self._hazard_extra_selections, *self._editor_extra_selections])
+
     def set_shared_scrollbar(self, scrollbar: QScrollBar) -> None:
         self._shared_scrollbar = scrollbar
+
+    def set_hex_input_mode(self, enabled: bool, uppercase: bool) -> None:
+        self._hex_input_enabled = enabled
+        self._uppercase_hex_input = uppercase
+
+    def set_uppercase_hex_input(self, enabled: bool) -> None:
+        self.set_hex_input_mode(True, enabled)
+
+    def set_uppercase_instruction_hover(self, enabled: bool) -> None:
+        self._uppercase_instruction_cursor = enabled
+        self._last_instruction_cursor_block = self.textCursor().blockNumber()
+
+    def set_completion_popup_suppressed(self, enabled: bool) -> None:
+        self._completion_popup_suppressed = enabled
+        if enabled:
+            self.hide_completion_popup()
+
+    def completion_popup_suppressed(self) -> bool:
+        return self._completion_popup_suppressed
+
+    def hide_completion_popup(self) -> None:
+        self._completion_cursor_position = None
+        self._completer.popup().hide()
 
     def mouseMoveEvent(self, event) -> None:
         super().mouseMoveEvent(event)
         if event.buttons() & Qt.LeftButton:
             self._update_selection_scroll(event.position().toPoint())
             return
-        self._update_label_cursor(event.position().toPoint())
+        position = event.position().toPoint()
+        self._update_label_cursor(position)
         self._stop_selection_scroll()
 
     def mousePressEvent(self, event) -> None:
@@ -120,7 +169,7 @@ class WorkbenchEditor(
         width = max(2, self.cursorWidth())
         for position in self.multicursor_positions():
             cursor = QTextCursor(self.document())
-            cursor.setPosition(position)
+            set_cursor_position(cursor, position)
             rect = self.cursorRect(cursor)
             painter.fillRect(rect.x(), rect.y(), width, rect.height(), color)
 
@@ -143,6 +192,10 @@ class WorkbenchEditor(
             return
         if self.handle_editor_shortcut(event):
             event.accept()
+            return
+        if self._is_instruction_editor() and _alt_shortcut_event(event):
+            self._completer.popup().hide()
+            event.ignore()
             return
         if event.matches(QKeySequence.Copy):
             self.copyRequested.emit(self)
@@ -176,8 +229,14 @@ class WorkbenchEditor(
             if self._protected_edit_key_handled:
                 event.accept()
                 return
+        filtered_event = self._hex_text_event(event)
+        if filtered_event is None:
+            event.accept()
+            return
+        event = filtered_event
         if self.handle_granular_text_edit(event):
             self._refresh_completions()
+            self._normalize_instruction_after_comment_start(event.text())
             event.accept()
             return
         if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
@@ -191,6 +250,7 @@ class WorkbenchEditor(
         if self._shared_scrollbar is None:
             super().keyPressEvent(event)
             self._refresh_completions()
+            self._normalize_instruction_after_comment_start(event.text())
             return
         key = event.key()
         if key in {Qt.Key_PageUp, Qt.Key_PageDown}:
@@ -214,6 +274,62 @@ class WorkbenchEditor(
             return
         super().keyPressEvent(event)
         self._refresh_completions()
+        self._normalize_instruction_after_comment_start(event.text())
+
+    def _normalize_instruction_after_comment_start(self, text: str) -> None:
+        if text in {";", "#", "/"}:
+            self._normalize_current_instruction_line()
+
+    def _normalize_instruction_line_after_offset_change(self) -> None:
+        block_number = self.textCursor().blockNumber()
+        previous = self._last_instruction_cursor_block
+        self._last_instruction_cursor_block = block_number
+        if self._normalizing_instruction_line or previous is None or previous == block_number:
+            return
+        self._normalize_instruction_block(self.document().findBlockByNumber(previous))
+
+    def _normalize_current_instruction_line(self) -> None:
+        self._normalize_instruction_block(self.textCursor().block())
+
+    def _normalize_instruction_block(self, block) -> None:
+        if self._normalizing_instruction_line or not self._uppercase_instruction_cursor or not block.isValid():
+            return
+        text = block.text()
+        normalized = normalize_instruction_text(text, True)
+        if normalized == text:
+            return
+        current = self.textCursor()
+        cursor = QTextCursor(block)
+        self._normalizing_instruction_line = True
+        try:
+            cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+            cursor.insertText(normalized)
+            self.setTextCursor(current)
+        finally:
+            self._normalizing_instruction_line = False
+            self._last_instruction_cursor_block = self.textCursor().blockNumber()
+
+    def _hex_text_event(self, event: QKeyEvent) -> QKeyEvent | None:
+        text = event.text()
+        if not self._hex_input_enabled or not text:
+            return event
+        if not any(_is_printable_text_input(char) for char in text):
+            return event
+        filtered = "".join(char for char in text if char in HEX_DIGITS)
+        if not filtered:
+            return None
+        if self._uppercase_hex_input:
+            filtered = filtered.upper()
+        if filtered == text:
+            return event
+        return QKeyEvent(
+            event.type(),
+            event.key(),
+            event.modifiers(),
+            filtered,
+            event.isAutoRepeat(),
+            event.count(),
+        )
 
     def _move_cursor_to_edge(self, top: bool) -> None:
         cursor = self.textCursor()
@@ -255,3 +371,13 @@ class WorkbenchEditor(
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
+
+
+def _alt_shortcut_event(event: QKeyEvent) -> bool:
+    return bool(event.modifiers() & Qt.AltModifier) and not bool(
+        event.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier | Qt.MetaModifier)
+    )
+
+
+def _is_printable_text_input(char: str) -> bool:
+    return char.isprintable() and char not in {"\t", "\r", "\n"}

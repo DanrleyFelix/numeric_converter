@@ -28,6 +28,9 @@ class EditorPageBinaryLoadingMixin:
     def _load_visible_rows(self, offset: int, size: int, direction: int) -> None:
         if self._loading_visible_rows or self._reader is None:
             return
+        self.grid.flush_pending_rows_changed()
+        if _has_incomplete_byte_rows(self.grid.export_rows()):
+            return
         self._loading_visible_rows = True
         visible_offset = max(0, offset)
         self._reader.prefetch_for_offset(visible_offset, direction)
@@ -88,7 +91,10 @@ class EditorPageBinaryLoadingMixin:
     def _update_overlay(self, rows: list) -> None:
         if self._reader is None:
             return
-        if self.grid.edit_origin_kind() not in {BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION}:
+        origin = self.grid.edit_origin_kind()
+        if origin not in {BINARY_WORKBENCH_TEXT.BYTES, BINARY_WORKBENCH_TEXT.INSTRUCTION}:
+            return
+        if origin == BINARY_WORKBENCH_TEXT.BYTES and _has_incomplete_byte_rows(rows):
             return
         overlays = dict(self._context.byte_overlays)
         instruction_overlays = instruction_overlays_for_rows(self._context, self.grid, rows)
@@ -148,3 +154,11 @@ class EditorPageBinaryLoadingMixin:
         if len(data) < target_size:
             data += b"\x00" * (target_size - len(data))
         return apply_overlay_bytes(offset, data, overlays)
+
+
+def _has_incomplete_byte_rows(rows: list) -> bool:
+    return any(
+        row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) not in {None, "-"}
+        and not row.bytes_text
+        for row in rows
+    )

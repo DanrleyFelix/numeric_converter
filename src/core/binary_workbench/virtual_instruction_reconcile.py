@@ -42,7 +42,7 @@ def reconcile_locked_virtual_instructions(
             rows.append(_assembled_or_previous(line, base, offset_names, offset_bases, codec, labels, variables, equates))
             cursor += 1
             continue
-        match = _matching_later_row(line, code_rows, cursor)
+        match = _matching_later_row(line, code_rows, cursor) if len(lines) < len(visible_rows) else None
         if match is not None:
             rows.extend(_cleared_rows(code_rows[cursor:match]))
             rows.append(_row_with_instruction(code_rows[match], line))

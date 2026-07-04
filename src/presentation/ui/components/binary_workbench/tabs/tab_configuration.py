@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from src.core.binary_workbench.file_ops import apply_version_rows
 from src.core.binary_workbench.mips_r3000a import rebuild_rows_with_offsets
@@ -128,7 +128,13 @@ class TabConfigurationMixin:
             updates.update({"original_rows": rows, "rows": rows})
         self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates}))
 
-    def set_current_reference_offsets(self, reference_offsets: list[str], reference_offset_bases: dict[str, str], visible_columns: dict[str, bool]) -> None:
+    def set_current_reference_offsets(
+        self,
+        reference_offsets: list[str],
+        reference_offset_bases: dict[str, str],
+        visible_columns: dict[str, bool],
+        jump_reference_offset: str = "",
+    ) -> None:
         current = self.current_context()
         if current is None:
             return
@@ -140,6 +146,7 @@ class TabConfigurationMixin:
                 BINARY_WORKBENCH_TEXT.INSTRUCTION: True,
             },
             decoded_text_tables=list(current.view_preferences.decoded_text_tables),
+            jump_reference_offset=jump_reference_offset if jump_reference_offset in reference_offsets else "",
         )
         rows = rebuild_rows_with_offsets(current.rows, reference_offsets, reference_offset_bases)
         self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, "reference_offsets": reference_offsets, "reference_offset_bases": reference_offset_bases, "rows": rows, "view_preferences": preferences}))

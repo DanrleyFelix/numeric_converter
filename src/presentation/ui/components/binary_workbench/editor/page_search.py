@@ -16,7 +16,10 @@ from src.core.binary_workbench.text_search import (
     find_hex_nibbles_in_rows,
     hex_nibbles,
 )
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_SEARCH_EVENT_CHUNKS
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
+    BINARY_WORKBENCH_SEARCH_EVENT_CHUNKS,
+)
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.page_overlays import overlay_bytes
 
@@ -26,6 +29,9 @@ class EditorPageSearchMixin:
         self.grid.commit_current_editor_text()
 
     def go_to_offset(self, offset: int) -> None:
+        if not self._navigation_offset_is_valid(offset):
+            self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
+            return
         self.commit_current_editor_text()
         self._pending_selection = (offset, offset)
         self.grid.set_visible_offset(offset)
@@ -33,12 +39,27 @@ class EditorPageSearchMixin:
             self._select_pending_offset()
 
     def go_to_instruction_offset(self, offset: int) -> None:
+        if not self._navigation_offset_is_valid(offset):
+            self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
+            return
         self.commit_current_editor_text()
         self._pending_selection = (offset, offset)
         self.grid.set_visible_offset(offset)
         if self._reader is None:
             self.grid.select_instruction_offsets(offset, offset)
             self._pending_selection = None
+
+    def _navigation_offset_is_valid(self, offset: int) -> bool:
+        return 0 <= offset < self._navigation_file_size() and offset % ROW_BYTES == 0
+
+    def _navigation_file_size(self) -> int:
+        size = max(self._context.file_size, self._context.original_file_size)
+        if self._reader is not None:
+            size = max(size, self._reader.file_size)
+        if size > 0:
+            return size
+        rows = self.grid.export_rows() or self._context.rows
+        return max((index + 1) * 4 for index, row in enumerate(rows) if row.bytes_text or row.instruction.strip()) if rows else 0
 
     def find_text(self, mode: str, query: str, start_offset=None, end_offset=None, max_results=None) -> bool:
         results = self.find_offsets(mode, query, start_offset, end_offset, max_results)

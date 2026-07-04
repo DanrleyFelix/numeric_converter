@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QWidget
 
 from src.core.binary_workbench.selection_limits import (
@@ -36,6 +36,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_virtual_selecti
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 
 
+ROWS_CHANGED_DEBOUNCE_MS = 180
+
+
 class BinaryWorkbenchGrid(
     GridLayoutMixin,
     GridResizingMixin,
@@ -61,6 +64,7 @@ class BinaryWorkbenchGrid(
     labelOpenTabRequested = Signal(str, int)
     commandsChanged = Signal(dict)
     commandWarningRequested = Signal(str)
+    navigationWarningRequested = Signal(str)
 
     def __init__(self, codec: CPUArchCodec) -> None:
         super().__init__()
@@ -77,6 +81,9 @@ class BinaryWorkbenchGrid(
         self._group_bytes = 1
         self._uppercase_bytes = True
         self._uppercase_instructions = True
+        self._reference_offset_bases: dict[str, str] = {}
+        self._visible_offset_columns: list[str] = []
+        self._jump_reference_offset = ""
         self._decoded_text_values: dict[int, str] = {}
         self._labels: dict[str, str] = {}
         self._variables: dict[str, str] = {}
@@ -98,8 +105,57 @@ class BinaryWorkbenchGrid(
         self._virtual_selection_range: tuple[str, int, int] | None = None
         self._virtual_selection_scrolling = False
         self._selection_limit_bytes = DEFAULT_SELECTION_LIMIT_BYTES
+        self._pending_rows_changed: list[BinaryWorkbenchRowDTO] | None = None
+        self._pending_rows_changed_origin: str | None = None
+        self._rows_changed_emit_timer = QTimer(self)
+        self._rows_changed_emit_timer.setSingleShot(True)
+        self._rows_changed_emit_timer.timeout.connect(self.flush_pending_rows_changed)
         self._build_ui()
         self._refresh_command_completions()
+
+    def _emit_rows_changed(self, rows: list[BinaryWorkbenchRowDTO], deferred: bool = False) -> None:
+        snapshot = list(rows)
+        if not deferred:
+            self._pending_rows_changed = None
+            self._pending_rows_changed_origin = None
+            self._rows_changed_emit_timer.stop()
+            self.rowsChanged.emit(snapshot)
+            return
+        self._pending_rows_changed = snapshot
+        self._pending_rows_changed_origin = self._edit_origin_kind
+        self._rows_changed_emit_timer.start(ROWS_CHANGED_DEBOUNCE_MS)
+
+    def flush_pending_rows_changed(self) -> None:
+        if self._pending_rows_changed is None:
+            return
+        rows = self._pending_rows_changed
+        origin = self._pending_rows_changed_origin
+        self._pending_rows_changed = None
+        self._pending_rows_changed_origin = None
+        self._rows_changed_emit_timer.stop()
+        previous_origin = self._edit_origin_kind
+        self._edit_origin_kind = origin
+        try:
+            self.rowsChanged.emit(rows)
+        finally:
+            self._edit_origin_kind = previous_origin
+
+    def set_editor_popups_suppressed(self, enabled: bool) -> None:
+        for editor in self._popup_editors():
+            editor.set_completion_popup_suppressed(enabled)
+
+    def hide_editor_popups(self) -> None:
+        for editor in self._popup_editors():
+            editor.hide_completion_popup()
+
+    def _popup_editors(self):
+        return (
+            *self._offset_editors.values(),
+            self.raw_instructions,
+            self.bytes,
+            self.decoded_text,
+            self.instructions,
+        )
 
     def set_codec(self, codec: CPUArchCodec) -> None:
         self._codec = codec

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 
@@ -112,10 +112,8 @@ def _replace_load_immediate_pseudo(text: str) -> str:
         value = int(tokens[2], 0)
     except ValueError:
         return text
-    if SHORT_IMMEDIATE_MIN <= value <= SHORT_IMMEDIATE_MAX:
+    if SHORT_IMMEDIATE_MIN <= value <= MIPS_HALF_MASK:
         return f"addiu {tokens[1]}, $zero, {tokens[2]}"
-    if 0 <= value <= MIPS_HALF_MASK:
-        return f"ori {tokens[1]}, $zero, {tokens[2]}"
     if value & MIPS_HALF_MASK == 0:
         return f"lui {tokens[1]}, 0x{(value >> MIPS_HALF_SHIFT) & MIPS_HALF_MASK:x}"
     return text

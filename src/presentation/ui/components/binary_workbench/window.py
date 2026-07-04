@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
@@ -86,6 +86,7 @@ class BinaryWorkbenchWindow(
         self.statusBar().hide()
         self.tabs.statusChanged.connect(self._show_status)
         self.tabs.statusWarningChanged.connect(self._show_warning_status)
+        self.tabs.statusErrorChanged.connect(lambda message: self._show_status(message, 0, True))
         self.tabs.stateChanged.connect(self.stateChanged.emit)
         self.tabs.preferencesChanged.connect(self.preferencesChanged.emit)
         self.tabs.programContextChanged.connect(self.programContextChanged.emit)

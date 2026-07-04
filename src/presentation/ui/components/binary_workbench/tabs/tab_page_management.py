@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QPushButton, QTabBar
@@ -83,6 +83,7 @@ class TabPageManagementMixin:
         )
         page.openLabelTabRequested.connect(self.open_label_tab)
         page.statusWarningRequested.connect(self.statusWarningChanged.emit)
+        page.statusErrorRequested.connect(self.statusErrorChanged.emit)
         index = self.addTab(page, tab_text(context.display_name))
         self.setTabToolTip(index, context.display_name)
         self.tabBar().add_close_button(index, self._close_button(page))

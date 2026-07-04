@@ -128,13 +128,15 @@ class TabStateMixin:
 
     def current_context(self) -> BinaryWorkbenchTabContextDTO | None:
         index = self.currentIndex()
-        return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
+        if not 0 <= index < len(self._state.tabs):
+            return None
+        return self._fresh_context_at(index)
 
     def context_at(self, index: int) -> BinaryWorkbenchTabContextDTO | None:
         return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
 
     def has_unsaved_changes(self, index: int) -> bool:
-        context = self.context_at(index)
+        context = self._fresh_context_at(index) if index == self.currentIndex() else self.context_at(index)
         if context is None:
             return False
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
@@ -199,6 +201,16 @@ class TabStateMixin:
         self.statusChanged.emit(template.format(name=closed.display_name))
         if active_index < 0:
             self.stateChanged.emit(self._state)
+
+    def _fresh_context_at(self, index: int) -> BinaryWorkbenchTabContextDTO | None:
+        if not 0 <= index < len(self._state.tabs):
+            return None
+        page = self.widget(index)
+        if not isinstance(page, BinaryWorkbenchEditorPage):
+            return self._state.tabs[index]
+        context = page.current_context()
+        self._replace_context_without_emit(context.tab_id, context)
+        return context
 
     def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
         context = self._context_with_universal_commands(context)
@@ -398,6 +410,21 @@ class TabStateMixin:
         self._ensure_workspace_heavy_loaded(index)
         self._enforce_workspace_heavy_limit()
 
+    def _set_current_context_without_page_reload(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        index = self.currentIndex()
+        if not 0 <= index < len(self._state.tabs):
+            return
+        self._replace_context(context.tab_id, context)
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.set_preferences(self._preferences)
+            page.replace_context(context)
+        self._remember_workspace_tab_access(context.tab_id)
+        self._enforce_workspace_heavy_limit()
+
     def _replace_context_without_emit(
         self,
         tab_id: str,
@@ -436,7 +463,7 @@ class TabStateMixin:
         previous = getattr(self, "_active_tab_index", -1)
         if previous != index and 0 <= previous < len(self._state.tabs):
             previous_context = self.context_at(previous)
-            if previous_context is not None and previous_context.keep_workspace_resources:
+            if previous_context is not None:
                 previous_context = self._commit_page_context_without_emit(previous, previous_context)
             if previous_context is not None and self._workspace_context_unloadable(previous, previous_context):
                 self._unload_workspace_heavy_tab(previous)

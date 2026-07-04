@@ -32,6 +32,9 @@ class EditorCompletionMixin:
         }
 
     def _refresh_completions(self) -> None:
+        if getattr(self, "_completion_popup_suppressed", False):
+            self.hide_completion_popup()
+            return
         prefix = self._current_completion_prefix()
         candidates = self._candidates_for_prefix(prefix)
         if not prefix or not candidates:
