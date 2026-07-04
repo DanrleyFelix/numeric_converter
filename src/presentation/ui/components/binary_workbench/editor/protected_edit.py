@@ -12,9 +12,11 @@ def replace_selection_preserving_line_breaks(
 ) -> None:
     start = cursor.selectionStart()
     end = cursor.selectionEnd()
-    first_block = editor.document().findBlock(start)
-    if first_block.isValid():
-        end = min(end, first_block.position() + len(first_block.text()))
+    selected = cursor.selection().toPlainText().replace("\u2029", "\n")
+    replacement = prefix
+    if "\n" in selected:
+        line_breaks = "".join("\n" for character in selected if character == "\n")
+        replacement = f"{prefix}{line_breaks}"
     was_granular = bool(getattr(editor, "_granular_editing", False))
     editor._granular_editing = True
     try:
@@ -22,7 +24,7 @@ def replace_selection_preserving_line_breaks(
         try:
             set_cursor_position(cursor, start)
             set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
-            cursor.insertText(prefix)
+            cursor.insertText(replacement)
         finally:
             cursor.endEditBlock()
     finally:

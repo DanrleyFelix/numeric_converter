@@ -26,16 +26,12 @@
             "offset_regions_loaded": false,
             "encoding_tables": [],
             "versions": [],
-            "active_version_name": "testando_Asm2",
+            "active_version_name": "default",
             "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\scratch_1_workspace_manifest.json",
             "module_paths": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
-                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
-                "version:testando_asm": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
-                "version:testando_Asm2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -44,9 +40,9 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "35b4a95b6919659a755e73d94290aa95273b484da5e2b9e440d56bc69aa492ab",
+                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "9dceb2a927a7d452646fae86d0ece5c484111bedbbe968d08de473e61dfe3963",
+                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -176,7 +172,7 @@
                     "offsets": {
                         "File": "0x00000000"
                     },
-                    "instruction": "LUI t1, 0x801D",
+                    "instruction": "LUI $t1, 0x801D",
                     "bytes_text": "1D 80 09 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -186,7 +182,7 @@
                     "offsets": {
                         "File": "0x00000004"
                     },
-                    "instruction": "ORI t1, t1, 0x9200",
+                    "instruction": "ORI $t1, $t1, 0x9200",
                     "bytes_text": "00 92 29 35",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -196,7 +192,7 @@
                     "offsets": {
                         "File": "0x00000008"
                     },
-                    "instruction": "ADDIU a2, a2, 2",
+                    "instruction": "ADDIU $a2, $a2, 0x2",
                     "bytes_text": "02 00 C6 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -652,6 +648,7 @@
             "internal_parent_tab_id": "3ed9795392194f4b8992b83365dd1d00",
             "internal_parent_byte_overlays": {
                 "0x0000E5C8": "54 53 2D 58",
+                "0x0000E5CC": "20 45 58 45",
                 "0x0000E5D0": "20 00 A5 24",
                 "0x0000E5D4": "D8 29 01 80",
                 "0x0000E5D8": "00 00 00 00",
@@ -665,6 +662,10 @@
                 "0x0000E5F8": "07 00 1D 00",
                 "0x0000E5FC": "07 00 1D 00",
                 "0x0000E600": "07 00 1D 00",
+                "0x0000E604": "00 00 00 00",
+                "0x0000E608": "00 00 00 00",
+                "0x0000E60C": "00 00 00 00",
+                "0x0000E610": "00 00 00 00",
                 "0x0000E614": "00 00 00 00",
                 "0x0000E618": "00 00 00 00",
                 "0x0000E61C": "00 00 00 00",
@@ -792,7 +793,7 @@
             "module_checksums": {
                 "symbols": "e7ff062e1fcd4442395f81455d517998b745bf39e0f254f25082efb3dc1ef082",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "480852ccbf432ffaec30013a25371b814c0d28231faf86f7deb414cbf9451455",
+                "versions": "a605b203f7f5fa9db2eac2e2be58dc81e5dd20d9d8dc0ebd51e04824d3c176d6",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "9949854ea845ca56e0d14aa5677a22f6b3035b2e8a866f9b652b39916ed33dd5"
             },
@@ -836,6 +837,11 @@
                 "0x00080170": "F0 FF 40 14",
                 "0x00080174": "21 20 20 02",
                 "0x001C996C": "13 00 00 00",
+                "0x00000004": "20 45 58 45",
+                "0x0000003C": "00 00 00 00",
+                "0x00000040": "00 00 00 00",
+                "0x00000044": "00 00 00 00",
+                "0x00000048": "00 00 00 00",
                 "0x000035DC": "2A 10 43 00",
                 "0x000035E0": "FB FF 40 14",
                 "0x000035E8": "C0 01 82 8F",

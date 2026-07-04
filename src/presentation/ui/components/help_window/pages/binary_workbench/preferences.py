@@ -16,6 +16,9 @@ PAGE = HelpPageDefinition(
             <li>Add extra offset columns beside File Offset.</li>
             <li>A common use is mapping file offsets to the real memory address used by a PSX emulator.</li>
             <li>This makes it easier to answer questions like where a certain instruction is located in RAM.</li>
+            <li>The selected reference offset can be used as the address base for <code>j</code> and <code>jal</code> targets.</li>
+            <li>Prefix the target with <code>&amp;</code> to tell the editor that the hexadecimal address belongs to the selected reference offset, for example <code>jal &amp;0x801D9274</code> or <code>j &amp;0x801D9274</code>.</li>
+            <li>Without <code>&amp;</code>, jumps keep the standard file-offset based behavior. Branch instructions do not use reference-offset targets.</li>
         </ul>
         <h2>View</h2>
         <ul>
@@ -26,8 +29,11 @@ PAGE = HelpPageDefinition(
         <h2>Rules</h2>
         <ul>
             <li>Rules control whether the Bytes or Assembly editor can be edited.</li>
-            <li>They also control byte shifting and whether free editing is allowed after the original file end.</li>
-            <li>Use stricter rules when you want patches to stay inside existing row boundaries.</li>
+            <li>Allow byte shifting lets edits add or remove instruction rows, changing the offsets that come after the edit.</li>
+            <li>When byte shifting is disabled, valid offset rows are preserved. Backspace, Delete and selections clear the row content instead of removing the row.</li>
+            <li>Invalid offset rows, shown as <code>-</code>, can still be removed because they do not represent a protected file offset.</li>
+            <li>Free editing after the original file end only affects extra space beyond the loaded source data.</li>
+            <li>Use stricter rules when patches must stay inside existing row boundaries and the original offsets must remain stable.</li>
         </ul>
         <h2>Advanced Configuration</h2>
         <ul>

@@ -99,7 +99,9 @@ class GridEditingMixin:
             if labels != self._labels:
                 self._set_editing_labels(labels)
         if not self._virtual:
-            self._all_rows = rebuild_rows_with_offsets(
+            self._all_rows = list(updated) if (
+                not editing_bytes and self._preserve_instruction_offsets()
+            ) else rebuild_rows_with_offsets(
                 updated,
                 self._columns or [BINARY_WORKBENCH_TEXT.FILE],
                 self._offset_base_text(),
