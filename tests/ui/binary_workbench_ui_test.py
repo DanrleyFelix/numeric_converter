@@ -3884,3 +3884,58 @@ def test_binary_workbench_assembly_no_byte_shift_delete_preserves_valid_offset_l
     _app().processEvents()
 
     assert editor.toPlainText().splitlines() == ["nop", "nop"]
+
+
+def test_binary_workbench_alt_g_action_returns_to_clicked_jump_origin(tmp_path: Path):
+    assembly_path = tmp_path / "jump_history.asm"
+    assembly_path.write_text("nop\nnop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.go_to_instruction_offset(4)  # type: ignore[attr-defined]
+    assert page._jump_return_history_by_version == {}  # type: ignore[attr-defined]
+
+    page.go_to_clicked_instruction_offset(8, 0)  # type: ignore[attr-defined]
+    history_key = page._jump_return_history_key()  # type: ignore[attr-defined]
+    assert page._jump_return_history_by_version[history_key] == [0]  # type: ignore[attr-defined]
+
+    tool._return_jump_action.trigger()  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert page._jump_return_history_by_version[history_key] == []  # type: ignore[attr-defined]
+    assert page.grid.instructions.textCursor().blockNumber() == 0  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_jump_return_history_is_limited_and_version_scoped(tmp_path: Path):
+    assembly_path = tmp_path / "jump_history_versions.asm"
+    assembly_path.write_text("nop\n" * 64, encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    current = page.current_context()  # type: ignore[attr-defined]
+    page.replace_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, "active_version_name": "v1"}))  # type: ignore[attr-defined]
+
+    for index in range(55):
+        page.go_to_clicked_instruction_offset(8, index * 4)  # type: ignore[attr-defined]
+
+    v1_history = page._jump_return_history_by_version["v1"]  # type: ignore[attr-defined]
+    assert len(v1_history) == 50
+    assert v1_history[0] == 20
+    assert v1_history[-1] == 216
+
+    current = page.current_context()  # type: ignore[attr-defined]
+    page.replace_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, "active_version_name": "v2"}))  # type: ignore[attr-defined]
+    page.go_to_clicked_instruction_offset(8, 4)  # type: ignore[attr-defined]
+
+    assert page._jump_return_history_by_version["v2"] == [4]  # type: ignore[attr-defined]
+    assert page.return_to_previous_jump_offset() is True  # type: ignore[attr-defined]
+    assert page._jump_return_history_by_version["v2"] == []  # type: ignore[attr-defined]
+    assert page._jump_return_history_by_version["v1"][-1] == 216  # type: ignore[attr-defined]

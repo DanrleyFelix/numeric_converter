@@ -149,12 +149,15 @@ class EditorLabelNavigationMixin:
         if self._mnemonic_at_position(position) in JUMP_MNEMONICS:
             return True
         row_bytes = self._jump_navigation_row_bytes
-        source = self._jump_navigation_start_offset + (self.cursorForPosition(position).blockNumber() * row_bytes)
+        source = self._navigation_source_offset(position)
         delta = target - (source + row_bytes)
         if delta % row_bytes != 0:
             return False
         immediate = delta // row_bytes
         return BRANCH_IMMEDIATE_MIN <= immediate <= BRANCH_IMMEDIATE_MAX
+
+    def _navigation_source_offset(self, position: QPoint) -> int:
+        return self._jump_navigation_start_offset + (self.cursorForPosition(position).blockNumber() * self._jump_navigation_row_bytes)
 
     def _mnemonic_at_position(self, position: QPoint) -> str:
         block_text = self.cursorForPosition(position).block().text()
@@ -208,7 +211,7 @@ class EditorLabelNavigationMixin:
             return
         target = self._navigation_target_at_position(position)
         if event.button() == Qt.LeftButton and target is not None and target == self._pressed_navigation_target:
-            self.labelActivated.emit(target)
+            self.jumpNavigationActivated.emit(target, self._navigation_source_offset(position))
         if event.button() == Qt.LeftButton:
             self._show_symbol_tooltip(event)
         self._pressed_navigation_target = None

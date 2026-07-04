@@ -33,6 +33,8 @@ from src.presentation.ui.components.binary_workbench.editor.table import BinaryW
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 
+JUMP_RETURN_HISTORY_LIMIT = 50
+
 if TYPE_CHECKING:
     from src.core.binary_workbench.block_reader import CachedBinaryReader
     from src.core.binary_workbench.internal_file_reader import InternalFileView
@@ -77,6 +79,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.copySelectionRequested.connect(self._copy_virtual_selection)
         self.grid.immediateSymbolRequested.connect(self._add_immediate_symbol)
         self.grid.labelActivated.connect(self.go_to_instruction_offset)
+        self.grid.jumpNavigationActivated.connect(self.go_to_clicked_instruction_offset)
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
         self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
@@ -85,6 +88,7 @@ class BinaryWorkbenchEditorPage(
         self._loading_visible_rows = False
         self._suppress_context_changed = False
         self._pending_selection: tuple[int, int] | None = None
+        self._jump_return_history_by_version: dict[str, list[int]] = {}
         footer, (
             self.offset_summary,
             self.summary,
@@ -99,6 +103,30 @@ class BinaryWorkbenchEditorPage(
     def current_context(self) -> BinaryWorkbenchTabContextDTO:
         self.grid.flush_pending_rows_changed()
         return self._context
+
+    def go_to_clicked_instruction_offset(self, target_offset: int, source_offset: int) -> None:
+        if self._navigation_offset_is_valid(target_offset) and self._navigation_offset_is_valid(source_offset):
+            self._push_jump_return_offset(source_offset)
+        self.go_to_instruction_offset(target_offset)
+
+    def return_to_previous_jump_offset(self) -> bool:
+        history = self._jump_return_history()
+        if not history:
+            return False
+        self.go_to_instruction_offset(history.pop())
+        return True
+
+    def _push_jump_return_offset(self, offset: int) -> None:
+        history = self._jump_return_history()
+        history.append(offset)
+        if len(history) > JUMP_RETURN_HISTORY_LIMIT:
+            del history[: len(history) - JUMP_RETURN_HISTORY_LIMIT]
+
+    def _jump_return_history(self) -> list[int]:
+        return self._jump_return_history_by_version.setdefault(self._jump_return_history_key(), [])
+
+    def _jump_return_history_key(self) -> str:
+        return self._context.active_version_name or ""
 
     def replace_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context

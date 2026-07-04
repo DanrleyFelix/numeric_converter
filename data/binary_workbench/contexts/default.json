@@ -31,7 +31,9 @@
             "module_paths": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json"
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -42,7 +44,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
+                "versions": "843f0a93254011c6697c048451705cfcc38a0628be042ece7730cf7a0d190cc9",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -793,12 +795,12 @@
             "module_checksums": {
                 "symbols": "e7ff062e1fcd4442395f81455d517998b745bf39e0f254f25082efb3dc1ef082",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "a605b203f7f5fa9db2eac2e2be58dc81e5dd20d9d8dc0ebd51e04824d3c176d6",
+                "versions": "a8dc370130134a6488bf9d1319be36227f54a4edfb0155cea38e8d29c93e35d8",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "9949854ea845ca56e0d14aa5677a22f6b3035b2e8a866f9b652b39916ed33dd5"
             },
             "custom_commands": {},
-            "last_open_offset": "0x00000000",
+            "last_open_offset": "0x00040800",
             "navigation_history": [],
             "file_size": 1902592,
             "original_file_size": 1902592,
@@ -1293,7 +1295,7 @@
             }
         }
     ],
-    "active_tab_id": "e37c50b776c8479e96f7eec0ff5be19d",
+    "active_tab_id": "a26f7d42cf504c57ab47268a30d46249",
     "share_view_preferences": false,
     "commands_by_arch": {
         "PSX - Mips R3000A": {

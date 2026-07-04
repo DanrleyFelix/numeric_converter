@@ -61,6 +61,7 @@ class BinaryWorkbenchGrid(
     copySelectionRequested = Signal(str, int, int)
     immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
+    jumpNavigationActivated = Signal(int, int)
     labelOpenTabRequested = Signal(str, int)
     commandsChanged = Signal(dict)
     commandWarningRequested = Signal(str)

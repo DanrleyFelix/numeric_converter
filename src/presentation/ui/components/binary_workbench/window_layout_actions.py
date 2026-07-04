@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -33,6 +34,10 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)
         self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
         self.toolbar.help_action.triggered.connect(self.open_guide)
+        self._return_jump_action = QAction("Return to Previous Jump", self)
+        self._return_jump_action.setShortcut(QKeySequence("Alt+G"))
+        self._return_jump_action.setShortcutContext(Qt.WindowShortcut)
+        self._return_jump_action.triggered.connect(self.tabs.return_to_previous_jump_offset)
         self.addActions([
             self.toolbar.go_to_action,
             self.toolbar.find_action,
@@ -44,6 +49,7 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.version_action,
             self.toolbar.save_version_action,
             self.toolbar.save_binary_file_action,
+            self._return_jump_action,
         ])
         self.toolbar.advanced_configuration_action.triggered.connect(self._open_advanced_configuration)
         for action in self._placeholder_actions():

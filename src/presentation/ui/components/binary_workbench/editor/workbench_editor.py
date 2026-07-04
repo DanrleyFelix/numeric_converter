@@ -45,6 +45,7 @@ class WorkbenchEditor(
     selectAllRequested = Signal()
     immediateSymbolRequested = Signal(str, str, int, int)
     labelActivated = Signal(int)
+    jumpNavigationActivated = Signal(int, int)
     labelOpenTabRequested = Signal(str, int)
     addCommandRequested = Signal(str, str)
     copyRequested = Signal(object)

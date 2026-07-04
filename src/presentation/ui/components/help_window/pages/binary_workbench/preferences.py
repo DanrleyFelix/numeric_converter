@@ -18,6 +18,7 @@ PAGE = HelpPageDefinition(
             <li>This makes it easier to answer questions like where a certain instruction is located in RAM.</li>
             <li>The selected reference offset can be used as the address base for <code>j</code> and <code>jal</code> targets.</li>
             <li>Prefix the target with <code>&amp;</code> to tell the editor that the hexadecimal address belongs to the selected reference offset, for example <code>jal &amp;0x801D9274</code> or <code>j &amp;0x801D9274</code>.</li>
+            <li>Use a standalone custom reference value such as <code>&amp;0x00012345</code> when that reference-offset address should appear as clickable navigation.</li>
             <li>Without <code>&amp;</code>, jumps keep the standard file-offset based behavior. Branch instructions do not use reference-offset targets.</li>
         </ul>
         <h2>View</h2>
