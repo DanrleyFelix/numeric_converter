@@ -102,6 +102,7 @@ class BinaryWorkbenchEditorPage(
 
     def replace_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context
+        self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)

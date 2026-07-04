@@ -1,6 +1,9 @@
+﻿from dataclasses import replace
+
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
@@ -98,6 +101,7 @@ class EditorPageBinaryLoadingMixin:
             return
         overlays = dict(self._context.byte_overlays)
         instruction_overlays = instruction_overlays_for_rows(self._context, self.grid, rows)
+        versions = _versions_with_visible_line_comments(self._context, rows) if origin == BINARY_WORKBENCH_TEXT.INSTRUCTION else self._context.versions
         file_size = self._context.original_file_size or self._reader.file_size
         for row in rows:
             try:
@@ -117,6 +121,7 @@ class EditorPageBinaryLoadingMixin:
         if (
             overlays == self._context.byte_overlays
             and instruction_overlays == self._context.instruction_overlays
+            and versions == self._context.versions
             and file_size == self._context.file_size
             and rows == self._context.rows
         ):
@@ -128,6 +133,7 @@ class EditorPageBinaryLoadingMixin:
                 **self._context.__dict__,
                 "byte_overlays": overlays,
                 "instruction_overlays": instruction_overlays,
+                "versions": versions,
                 "rows": rows,
                 "file_size": file_size,
                 "labels": labels,
@@ -162,3 +168,64 @@ def _has_incomplete_byte_rows(rows: list) -> bool:
         and not row.bytes_text
         for row in rows
     )
+
+def _versions_with_visible_line_comments(context: BinaryWorkbenchTabContextDTO, rows: list) -> list:
+    if not context.active_version_name:
+        return context.versions
+    comments = _visible_line_comments(rows)
+    span = _visible_line_span(rows)
+    if span is None and not comments:
+        return context.versions
+    updated = []
+    changed = False
+    for version in context.versions:
+        if version.name != context.active_version_name:
+            updated.append(version)
+            continue
+        instructions = dict(version.instructions_by_line)
+        if span is not None:
+            start, end = span
+            for line in range(start, end + 1):
+                instructions.pop(line, None)
+        instructions.update(comments)
+        if instructions == version.instructions_by_line:
+            updated.append(version)
+            continue
+        updated.append(replace(version, instructions_by_line=instructions, symbols_loaded=True))
+        changed = True
+    return updated if changed else context.versions
+
+
+def _visible_line_comments(rows: list) -> dict[int, str]:
+    line_base = _line_base(rows)
+    return {
+        line_base + index: row.instruction
+        for index, row in enumerate(rows)
+        if row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) == "-" and row.instruction.strip()
+    }
+
+
+def _visible_line_span(rows: list) -> tuple[int, int] | None:
+    lines = [
+        line
+        for row in rows
+        if (line := _row_line_number(row)) is not None
+    ]
+    if not lines:
+        return None
+    return min(lines), max(lines) + 1
+
+
+def _line_base(rows: list) -> int:
+    for index, row in enumerate(rows):
+        line = _row_line_number(row)
+        if line is not None:
+            return line - index
+    return 0
+
+
+def _row_line_number(row) -> int | None:
+    try:
+        return int(row.offsets.get(BINARY_WORKBENCH_TEXT.FILE, "-"), 16) // ROW_BYTES
+    except ValueError:
+        return None

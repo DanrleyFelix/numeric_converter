@@ -10,7 +10,6 @@ from src.core.binary_workbench.encoding_tables import encoding_table_from_payloa
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.version_overlays import (
-    instructions_by_line_from_rows,
     without_blank_instruction_overlays,
 )
 from src.modules.binary_workbench_constants import (
@@ -136,9 +135,7 @@ def _row_payload(row: BinaryWorkbenchRowDTO) -> dict[str, object]:
 
 def _version_instructions_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, str]:
     stored = version.instructions_by_line
-    values = stored if isinstance(stored, dict) and stored else (
-        instructions_by_line_from_rows(version.rows) or {}
-    )
+    values = stored if isinstance(stored, dict) and stored else {}
     return {
         str(line): instruction
         for line, instruction in sorted(values.items())
@@ -204,18 +201,32 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
         name = item.get("name")
         if not isinstance(name, str) or not name:
             continue
+        rows = _rows(item.get("rows"))
+        instructions_by_line = _instructions_by_line(item.get("instructions"))
+        if rows and _instructions_match_rows(instructions_by_line, rows):
+            instructions_by_line = {}
         versions.append(
             BinaryWorkbenchVersionDTO(
                 name=name,
-                rows=_rows(item.get("rows")),
+                rows=rows,
                 instruction_overlays=_instruction_overlays(item.get("instructions")),
-                instructions_by_line=_instructions_by_line(item.get("instructions")),
+                instructions_by_line=instructions_by_line,
                 variables=normalize_string_map(item.get("variables")),
                 equates=normalize_string_map(item.get("equates")),
                 symbols_loaded="variables" in item or "equates" in item,
             )
         )
     return sorted_versions(versions, name_of=lambda version: version.name)
+
+
+def _instructions_match_rows(
+    instructions: dict[int, str],
+    rows: list[BinaryWorkbenchRowDTO],
+) -> bool:
+    return bool(instructions) and all(
+        0 <= line < len(rows) and rows[line].instruction == instruction
+        for line, instruction in instructions.items()
+    )
 
 
 def _instructions_by_line(raw: object) -> dict[int, str]:

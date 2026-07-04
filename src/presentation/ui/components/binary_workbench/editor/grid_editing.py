@@ -15,6 +15,7 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as
 from src.modules.constants import HEX_DIGITS, HEX_DIGIT_PATTERN
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -134,7 +135,14 @@ class GridEditingMixin:
         was_updating = self._updating
         self._updating = True
         self._labels = labels
+        self._symbol_offsets = symbol_offsets(
+            self._rows,
+            self._variables,
+            self._equates,
+            labels,
+        )
         self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+        self._raw_instruction_highlighter.set_symbols(labels, self._variables, self._equates)
         self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
         self._refresh_jump_navigation()
         self._updating = was_updating

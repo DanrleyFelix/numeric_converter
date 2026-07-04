@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
@@ -16,6 +16,9 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
 )
 from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
     replace_selection_preserving_line_breaks,
+)
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TEXT,
 )
 
 INSTRUCTIONS_PANEL = "binary-workbench-instructions-panel"
@@ -67,6 +70,8 @@ class EditorShortcutMixin:
             return self._handle_occurrence_edit(event)
         if event.matches(QKeySequence.Paste) and is_bytes_editor(self):
             return self._handle_bytes_paste()
+        if self._instruction_block_paste_must_preserve_rows(event):
+            return self._handle_instruction_block_paste()
         return self._block_large_binary_multiline_edit(event)
 
     def handle_alt_click_multicursor(self, event) -> bool:
@@ -200,6 +205,8 @@ class EditorShortcutMixin:
             return True
         if event.matches(QKeySequence.Paste):
             text = QApplication.clipboard().text()
+            if self._handle_instruction_occurrence_paste(text):
+                return True
             replacement = self._multicursor_paste_replacement(text)
             if replacement is None:
                 return True
@@ -224,13 +231,17 @@ class EditorShortcutMixin:
         return False
 
     def _block_large_binary_multiline_edit(self, event: QKeyEvent) -> bool:
-        if not self._large_binary_mode or not self._is_instruction_editor():
+        if not self._is_instruction_editor():
             return False
         if not self._selection_spans_multiple_blocks():
             return False
+        if event.matches(QKeySequence.Paste):
+            return False if self.bytes_line_shift_allowed() else self._handle_instruction_block_paste()
+        if not self._large_binary_mode:
+            return False
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
             return False
-        if event.matches(QKeySequence.Cut) or event.matches(QKeySequence.Paste):
+        if event.matches(QKeySequence.Cut):
             return True
         if event.matches(QKeySequence.Copy) or _ctrl_only(event.modifiers()):
             return False
@@ -339,7 +350,7 @@ class EditorShortcutMixin:
 
     def _replace_occurrence_ranges(
         self,
-        value: str,
+        value: str | list[str],
         ranges: list[tuple[int, int]] | None = None,
         keep_multicursor: bool | None = None,
     ) -> None:
@@ -349,9 +360,12 @@ class EditorShortcutMixin:
             return
         keep_multicursor = self._all_occurrence_ranges_empty(ranges) if keep_multicursor is None else keep_multicursor
         source = self.toPlainText()
+        values = value if isinstance(value, list) else [value] * len(ranges)
+        if len(values) != len(ranges):
+            return
         replacements = [
-            (start, end, _range_replacement(source[start:end], value))
-            for start, end in ranges
+            (start, end, _range_replacement(source[start:end], replacement))
+            for (start, end), replacement in zip(ranges, values)
         ]
         cursor = QTextCursor(self.document())
         cursor.beginEditBlock()
@@ -463,8 +477,52 @@ class EditorShortcutMixin:
         cursor.setPosition(end_block.position() + len(end_block.text()))
         self.setTextCursor(cursor)
 
+    def _instruction_block_paste_must_preserve_rows(self, event: QKeyEvent) -> bool:
+        if not event.matches(QKeySequence.Paste):
+            return False
+        if self.bytes_line_shift_allowed() or not self._is_instruction_editor():
+            return False
+        return (
+            _text_spans_lines(self.textCursor().selection().toPlainText())
+            or _text_spans_lines(QApplication.clipboard().text())
+        )
+
+    def _handle_instruction_block_paste(self) -> bool:
+        cursor = self.textCursor()
+        selected_lines = _clipboard_lines(cursor.selection().toPlainText())
+        lines = _clipboard_lines(QApplication.clipboard().text())
+        if not selected_lines or len(lines) != len(selected_lines):
+            self.navigationWarningRequested.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_MULTILINE_PASTE_LINE_MISMATCH
+            )
+            return True
+        start, _ = self._selected_block_range()
+        end = start + len(selected_lines) - 1
+        current = self.toPlainText().split("\n")
+        updated = [*current[:start], *lines, *current[end + 1:]]
+        self._replace_lines(updated, start, end, False)
+        return True
+
     def _is_instruction_editor(self) -> bool:
         return self.objectName() == INSTRUCTIONS_PANEL
+
+    def _handle_instruction_occurrence_paste(self, text: str) -> bool:
+        if is_bytes_editor(self):
+            return False
+        normalized = _normalized_clipboard_text(text)
+        if "\n" not in normalized:
+            return False
+        ranges = self._occurrence_paste_ranges()
+        if len(ranges) <= 1:
+            return False
+        lines = _clipboard_lines(normalized)
+        if len(lines) != len(ranges):
+            self.navigationWarningRequested.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_MULTILINE_PASTE_LINE_MISMATCH
+            )
+            return True
+        self._replace_occurrence_ranges(lines, ranges, True)
+        return True
 
     def _is_code_editor(self) -> bool:
         return self.objectName() in CODE_PANELS
@@ -483,7 +541,18 @@ def _ctrl_shift_only(modifiers: Qt.KeyboardModifiers) -> bool:
 
 
 def _normalized_clipboard_text(text: str) -> str:
-    return text.replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("\u2029", "\n").replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _clipboard_lines(text: str) -> list[str]:
+    normalized = _normalized_clipboard_text(text)
+    if normalized.endswith("\n"):
+        normalized = normalized[:-1]
+    return normalized.split("\n") if normalized else []
+
+
+def _text_spans_lines(text: str) -> bool:
+    return "\n" in _normalized_clipboard_text(text)
 
 
 def _range_replacement(selected_text: str, value: str) -> str:

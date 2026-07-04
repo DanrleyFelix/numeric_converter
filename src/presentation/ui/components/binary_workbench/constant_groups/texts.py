@@ -32,6 +32,7 @@
     STATUS_COMMAND_EMPTY_LINES_REQUIRED: str = "Not enough empty lines to apply this command with current Rules."
     STATUS_OFFSET_OUT_OF_RANGE: str = "Jump/branch target is outside the current file."
     STATUS_BRANCH_OUT_OF_RANGE: str = "Branch target is outside the supported 16-bit relative range."
+    STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"
     PREFERENCES: str = "Preferences"

@@ -1,4 +1,5 @@
-﻿import os
+﻿import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_FIND_MAX_LENGTH_KB,
 )
 from src.modules.dtos import (
+    BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchTabContextDTO,
@@ -3459,3 +3461,241 @@ def test_binary_workbench_update_version_does_not_reload_current_assembly_page(t
 
     assert page.grid.instructions.toPlainText().splitlines()[0] == "nop"  # type: ignore[attr-defined]
     assert active.rows or active.instruction_overlays or active.instructions_by_line
+
+def test_binary_workbench_instruction_block_paste_replaces_mouse_selected_lines():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("nop\nnop\nnop\nnop")
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(editor.document().findBlockByNumber(3).position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("addiu $a0, $zero, 0x1\naddiu $a1, $zero, 0x2\nnop")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == [
+        "addiu $a0, $zero, 0x1",
+        "addiu $a1, $zero, 0x2",
+        "nop",
+        "nop",
+    ]
+
+
+def test_binary_workbench_instruction_block_paste_requires_exact_selected_line_count():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("nop\nnop\nnop\nnop")
+    warnings: list[str] = []
+    editor.navigationWarningRequested.connect(warnings.append)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(editor.document().findBlockByNumber(3).position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("addiu $a0, $zero, 0x1\naddiu $a1, $zero, 0x2")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop", "nop", "nop"]
+    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_MULTILINE_PASTE_LINE_MISMATCH]
+
+
+def test_binary_workbench_instruction_block_paste_allows_mismatch_when_byte_shift_enabled():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.set_bytes_line_shift_allowed(True)
+    editor.setPlainText("nop\nnop\nnop\nnop")
+    warnings: list[str] = []
+    editor.navigationWarningRequested.connect(warnings.append)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(editor.document().findBlockByNumber(3).position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("addiu $a0, $zero, 0x1\naddiu $a1, $zero, 0x2")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert warnings == []
+    assert editor.toPlainText() != "nop\nnop\nnop\nnop"
+
+
+def test_binary_workbench_assembly_version_rows_ignore_duplicate_line_payload(tmp_path: Path):
+    assembly_path = tmp_path / "teste_scra.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    versions_path = tmp_path / "teste_scra_versions.json"
+    rows = [
+        _version_row_payload("-", "; keep asm comment row", ""),
+        _version_row_payload("0x00000000", "start: nop", "00 00 00 00"),
+        _version_row_payload("0x00000004", "addiu $a0, $zero, 0x1", "01 00 04 24"),
+    ]
+    versions_path.write_text(
+        json.dumps(
+            {
+                "active_version": "testando_Asm2",
+                "versions": {
+                    "testando_Asm2": {
+                        "0": rows[0]["instruction"],
+                        "1": rows[1]["instruction"],
+                        "2": rows[2]["instruction"],
+                        "rows": rows,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    assert tool.tabs.load_versions_file(versions_path) == "testando_Asm2"
+    current = tool.tabs.current_context()
+    page = tool.tabs.currentWidget()
+
+    assert current is not None
+    assert [row.offsets.get("File") for row in current.rows] == [
+        "-",
+        "0x00000000",
+        "0x00000004",
+    ]
+    assert [row.instruction for row in current.rows] == [
+        "; keep asm comment row",
+        "start: nop",
+        "addiu $a0, $zero, 0x1",
+    ]
+    assert page.grid.instructions.toPlainText().splitlines() == [  # type: ignore[attr-defined]
+        "; keep asm comment row",
+        "start: nop",
+        "ADDIU $a0, $zero, 0x1",
+    ]
+
+
+def test_binary_workbench_new_editor_label_updates_symbol_state(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("fresh_label: nop\nnop")  # type: ignore[attr-defined]
+    _app().processEvents()
+    current = tool.tabs.current_context()
+
+    assert current is not None
+    assert current.labels["fresh_label"] == "0x00000000"
+    assert current.symbol_offsets["fresh_label"] == ["0x00000000"]
+    assert page.grid._labels["fresh_label"] == "0x00000000"  # type: ignore[attr-defined]
+
+
+def _version_row_payload(offset: str, instruction: str, bytes_text: str) -> dict[str, object]:
+    return {
+        "offset": offset,
+        "offsets": {"File": offset},
+        "instruction": instruction,
+        "bytes_text": bytes_text,
+        "original_instruction": instruction,
+        "original_bytes_text": bytes_text,
+    }
+
+
+def test_binary_workbench_instruction_block_paste_blocks_multiline_clipboard_into_single_line():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("nop\nnop\nnop")
+    warnings: list[str] = []
+    editor.navigationWarningRequested.connect(warnings.append)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(0)
+    cursor.setPosition(len("nop"), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+    app.clipboard().setText("addiu $a0, $zero, 0x1\naddiu $a1, $zero, 0x2")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == ["nop", "nop", "nop"]
+    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_MULTILINE_PASTE_LINE_MISMATCH]
+
+
+def test_binary_workbench_instruction_multicursor_paste_maps_clipboard_lines_once():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.setPlainText("nop\nnop\nnop\nnop")
+    ranges = []
+    for index in range(4):
+        block = editor.document().findBlockByNumber(index)
+        ranges.append((block.position(), block.position() + len(block.text())))
+    editor._occurrence_ranges = ranges
+    editor._occurrence_query = "nop"
+    editor._apply_occurrence_selection(ranges[-1])
+    app.clipboard().setText(
+        "addiu $a0, $zero, 0x1\n"
+        "addiu $a1, $zero, 0x2\n"
+        "addiu $a2, $zero, 0x3\n"
+        "addiu $a3, $zero, 0x4"
+    )
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_V, Qt.ControlModifier))
+
+    assert editor.toPlainText().splitlines() == [
+        "addiu $a0, $zero, 0x1",
+        "addiu $a1, $zero, 0x2",
+        "addiu $a2, $zero, 0x3",
+        "addiu $a3, $zero, 0x4",
+    ]
+
+
+def test_binary_workbench_shift_enter_adds_comment_in_binary_with_byte_shift_enabled(tmp_path: Path):
+    binary_path = tmp_path / "comments.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 8)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))  # type: ignore[attr-defined]
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    editor.setFocus()
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.EndOfBlock)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.ShiftModifier))
+    _app().processEvents()
+
+    assert editor.toPlainText().splitlines()[1] == "; "
+
+
+def test_binary_workbench_binary_comment_line_survives_visible_reload(tmp_path: Path):
+    binary_path = tmp_path / "comments.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 32)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    editor = page.grid.instructions  # type: ignore[attr-defined]
+    lines = editor.toPlainText().splitlines()
+    lines.insert(1, "; keep this comment")
+    editor.setPlainText("\n".join(lines))
+    _app().processEvents()
+    page.grid.flush_pending_rows_changed()  # type: ignore[attr-defined]
+    current = page.current_context()
+    active = next(version for version in current.versions if version.name == current.active_version_name)
+
+    assert active.instructions_by_line.get(1) == "; keep this comment"
+
+    page._load_visible_rows(0, page.grid.visible_size(), 1)  # type: ignore[attr-defined]
+
+    assert page.grid.instructions.toPlainText().splitlines()[1] == "; keep this comment"  # type: ignore[attr-defined]

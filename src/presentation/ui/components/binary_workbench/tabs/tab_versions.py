@@ -112,22 +112,21 @@ class TabVersionsMixin:
             byte_overlays,
             instruction_overlays,
         )
-        self._set_current_context(
-            compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
-                **{
-                    **current.__dict__,
-                    "rows": rows,
-                    "versions": _sorted_versions(versions),
-                    "read_mode": "assembly" if version.instructions_by_line else current.read_mode,
-                    "byte_overlays": byte_overlays,
-                    "instruction_overlays": instruction_overlays,
-                    "variables": variables,
-                    "equates": equates,
-                    "active_version_name": name,
-                    "version_dirty": False,
-                }
-            ))
-        )
+        updated = compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "rows": rows,
+                "versions": _sorted_versions(versions),
+                "read_mode": "assembly" if version.instructions_by_line else current.read_mode,
+                "byte_overlays": byte_overlays,
+                "instruction_overlays": instruction_overlays,
+                "variables": variables,
+                "equates": equates,
+                "active_version_name": name,
+                "version_dirty": False,
+            }
+        ))
+        self._set_current_context(self._with_symbol_offsets(updated))
         return True
 
     def load_versions_file(self, path) -> str | None:

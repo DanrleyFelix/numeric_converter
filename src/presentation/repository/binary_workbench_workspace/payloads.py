@@ -25,12 +25,12 @@ from src.core.binary_workbench.editor.commands.payloads import (
 )
 from src.presentation.repository.binary_workbench_payload import (
     _instruction_overlays,
+    _instructions_match_rows,
     _internal_files,
     _row_payload,
     _rows,
 )
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
-from src.core.binary_workbench.version_overlays import instructions_by_line_from_rows
 from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 
@@ -101,11 +101,7 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
         if isinstance(version.instructions_by_line, dict)
         else {}
     )
-    line_instructions = (
-        stored
-        if stored or overlays
-        else instructions_by_line_from_rows(version.rows) or {}
-    )
+    line_instructions = stored if stored or overlays else {}
     instructions = {
         **{offset: instruction for offset, instruction in sorted(overlays.items())},
         **{
@@ -334,14 +330,15 @@ def version_from_payload(
     if not isinstance(payload, dict):
         return None
     name = payload.get("name")
+    rows = _rows(payload.get("rows"))
     instructions_by_line = _instructions_by_line(payload.get("instructions"))
     overlays = _instruction_overlays(payload.get("instructions"))
     if not overlays:
         overlays = _instruction_overlays(payload.get("instruction_overlays"))
     if not overlays:
-        overlays = instruction_overlays_from_rows(rows := _rows(payload.get("rows")))
-    else:
-        rows = _rows(payload.get("rows"))
+        overlays = instruction_overlays_from_rows(rows)
+    if rows and _instructions_match_rows(instructions_by_line, rows):
+        instructions_by_line = {}
     version_name = name if isinstance(name, str) and name else fallback_name
     symbols_loaded = "variables" in payload or "equates" in payload
     return BinaryWorkbenchVersionDTO(
@@ -367,18 +364,20 @@ def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkb
             continue
         instructions = raw_version.get("instructions")
         instructions = instructions if isinstance(instructions, dict) else raw_version
-        versions.append(
-            BinaryWorkbenchVersionDTO(
-                name=name,
-                rows=_rows(raw_version.get("rows")),
-                instructions_by_line=_instructions_by_line(instructions),
-                instruction_overlays=_instruction_overlays(instructions),
-                variables=normalize_string_map(raw_version.get("variables")),
-                equates=normalize_string_map(raw_version.get("equates")),
-                symbols_loaded="variables" in raw_version or "equates" in raw_version,
-            )
+        version = version_from_payload(
+            {
+                "name": name,
+                "instructions": instructions,
+                "rows": raw_version.get("rows"),
+                "variables": raw_version.get("variables"),
+                "equates": raw_version.get("equates"),
+            },
+            name,
         )
+        if version is not None:
+            versions.append(version)
     return sorted_versions(versions, name_of=lambda version: version.name)
+
 
 
 def active_version_from_payload(

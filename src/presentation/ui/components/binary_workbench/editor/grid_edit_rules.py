@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+﻿from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
@@ -20,6 +20,7 @@ class GridEditRulesMixin:
     def set_edit_rules(self, rules: BinaryWorkbenchEditRulesDTO) -> None:
         self._edit_rules = rules
         self.bytes.set_bytes_line_shift_allowed(rules.allow_byte_shift)
+        self.instructions.set_bytes_line_shift_allowed(rules.allow_byte_shift)
 
     def set_original_file_size(self, value: int) -> None:
         self._original_file_size = max(0, value)
@@ -186,7 +187,6 @@ class GridEditRulesMixin:
             editor is self.instructions
             and self._edit_rules.allow_editor_edit
             and bool(event.modifiers() & Qt.ShiftModifier)
-            and (not self._virtual or not self._edit_rules.allow_byte_shift)
         )
 
     def _return_key_should_insert_instruction_line(self, editor) -> bool:
