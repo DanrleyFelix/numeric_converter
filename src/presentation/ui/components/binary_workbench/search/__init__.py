@@ -1,6 +1,7 @@
 from src.presentation.ui.components.binary_workbench.search.dialogs import (
     BinaryWorkbenchFindDialog,
     BinaryWorkbenchGoToDialog,
+    BinaryWorkbenchHazardsWindow,
     BinaryWorkbenchSelectBlockDialog,
 )
 
@@ -8,5 +9,6 @@ from src.presentation.ui.components.binary_workbench.search.dialogs import (
 __all__ = [
     "BinaryWorkbenchFindDialog",
     "BinaryWorkbenchGoToDialog",
+    "BinaryWorkbenchHazardsWindow",
     "BinaryWorkbenchSelectBlockDialog",
 ]

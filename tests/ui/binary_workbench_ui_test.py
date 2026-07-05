@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -15,6 +15,7 @@ from src.main import create_main_window
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_FIND_DEFAULT_LENGTH_KB,
     BINARY_WORKBENCH_FIND_MAX_LENGTH_KB,
+    BINARY_WORKBENCH_HAZARDS_MAX_LENGTH_KB,
 )
 from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
@@ -903,7 +904,7 @@ def test_binary_workbench_binary_symbols_refresh_overlay_bytes(tmp_path: Path):
     assert page.grid.bytes.toPlainText().splitlines()[:2] == ["B3 01 09 24", "5C 01 04 24"]  # type: ignore[attr-defined]
 
 
-def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
+def test_binary_workbench_editor_assembly_marks_hazards(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
     tool = window._binary_workbench_window
@@ -917,7 +918,8 @@ def test_binary_workbench_raw_instructions_mark_hazards(tmp_path: Path):
     _app().processEvents()
 
     assert page.grid.raw_instructions.isReadOnly() is True  # type: ignore[attr-defined]
-    assert len(page.grid.raw_instructions.extraSelections()) == 2  # type: ignore[attr-defined]
+    assert page.grid.raw_instructions.extraSelections() == []  # type: ignore[attr-defined]
+    assert len(page.grid.instructions.extraSelections()) == 2  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_li_stays_in_editor_and_converts_only_in_raw(tmp_path: Path):
@@ -3939,3 +3941,95 @@ def test_binary_workbench_jump_return_history_is_limited_and_version_scoped(tmp_
     assert page.return_to_previous_jump_offset() is True  # type: ignore[attr-defined]
     assert page._jump_return_history_by_version["v2"] == []  # type: ignore[attr-defined]
     assert page._jump_return_history_by_version["v1"][-1] == 216  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_hazards_window_uses_find_fields_and_navigates(tmp_path: Path):
+    assembly_path = tmp_path / "hazards.asm"
+    assembly_path.write_text(
+        "lw $v0, 0x10($sp)\n"
+        "addiu $a0, $v0, 0x1\n"
+        "j 0x00000010\n"
+        "jal 0x00000014\n"
+        "nop\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    assert [(item.offset, item.instruction.lower()) for item in tool.tabs.refresh_hazards(0, 20)] == [
+        (4, "addiu $a0, $v0, 0x1"),
+        (12, "jal 0x00000014"),
+    ]
+
+    tool._open_hazards()
+    hazards_window = tool._hazards_window
+    assert hazards_window is not None
+    assert hazards_window.findChild(QLabel, "preferences-title") is None
+    assert hazards_window.findChild(QComboBox) is None
+    assert all(editor.placeholderText() != BINARY_WORKBENCH_TEXT.VALUE for editor in hazards_window.findChildren(QLineEdit))
+    assert [button.text() for button in hazards_window.findChildren(QPushButton)] == [BINARY_WORKBENCH_TEXT.FIND_HAZARDS]
+    assert hazards_window.start.placeholderText() == BINARY_WORKBENCH_TEXT.START_OFFSET
+    assert hazards_window.end.placeholderText() == BINARY_WORKBENCH_TEXT.END_OFFSET
+    assert hazards_window.length.placeholderText() == BINARY_WORKBENCH_TEXT.FIND_LENGTH
+    assert hazards_window.results.count() == 2
+    assert hazards_window.results.item(0).text().lower() == "0x00000004    addiu $a0, $v0, 0x1"
+
+    requested_offsets: list[int] = []
+    hazards_window.goToRequested.connect(requested_offsets.append)
+    hazards_window.results.itemClicked.emit(hazards_window.results.item(0))
+    _app().processEvents()
+
+    assert requested_offsets == [4]
+    assert hazards_window.isVisible()
+
+
+def test_binary_workbench_hazards_search_range_limit_and_cache_persist(tmp_path: Path):
+    assembly_path = tmp_path / "hazards_cache.asm"
+    assembly_path.write_text(
+        "lw $v0, 0x10($sp)\n"
+        "addiu $a0, $v0, 0x1\n"
+        "nop\n"
+        "lw $a1, 0x20($sp)\n"
+        "addiu $a2, $a1, 0x2\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    tool._open_hazards()
+    hazards_window = tool._hazards_window
+    assert hazards_window is not None
+    hazards_window.start.setText("0x00000000")
+    hazards_window.length.setText(str(BINARY_WORKBENCH_HAZARDS_MAX_LENGTH_KB + 1))
+    hazards_window.refresh_results()
+
+    cache_path = tmp_path / "data" / "binary_workbench" / "hazard_cache.json"
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+
+    assert hazards_window.length.text() == str(BINARY_WORKBENCH_HAZARDS_MAX_LENGTH_KB)
+    assert [item["offset"] for item in payload["entries"][0]["items"]] == [
+        "0x00000004",
+        "0x00000010",
+    ]
+
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "lw $v0, 0x10($sp)\n"
+        "nop\n"
+        "nop\n"
+        "lw $a1, 0x20($sp)\n"
+        "addiu $a2, $a1, 0x2"
+    )
+    _app().processEvents()
+    hazards_window.end.setText("0x00000008")
+    hazards_window.length.setText("")
+    hazards_window.refresh_results()
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+
+    assert [item["offset"] for item in payload["entries"][0]["items"]] == ["0x00000010"]

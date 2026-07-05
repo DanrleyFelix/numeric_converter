@@ -1,4 +1,4 @@
-﻿from src.core.binary_workbench.mips_r3000a.editor_commands import editor_command_output
+from src.core.binary_workbench.mips_r3000a.editor_commands import editor_command_output
 from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
@@ -122,6 +122,10 @@ def test_mips_hazard_validator_reports_load_use_and_jump_sequence():
     )
 
     assert [(item.line_index, item.severity) for item in hazards] == [(1, "warning"), (3, "error")]
+
+    alias_hazards = validate_mips_hazards(["lw $2, 0($s0)", "bne $v0, $zero, 0x10"])
+
+    assert [(item.line_index, item.severity) for item in alias_hazards] == [(1, "warning")]
 
 def test_mips_preprocessor_accepts_hash_and_double_slash_comments():
     labels = {"loop": "0x00000010"}

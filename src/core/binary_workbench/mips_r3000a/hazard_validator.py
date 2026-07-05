@@ -3,12 +3,20 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, J_OPCODES, R_JUMP_FUNCTS
+from src.core.binary_workbench.mips_r3000a.constants import (
+    BRANCH_OPCODES,
+    J_OPCODES,
+    R_JUMP_FUNCTS,
+    REGISTERS,
+)
 
 LOAD_MNEMONICS = {"lb", "lbu", "lh", "lhu", "lw", "lwl", "lwr"}
 STORE_MNEMONICS = {"sb", "sh", "sw", "swl", "swr"}
 JUMP_MNEMONICS = {*BRANCH_OPCODES, *J_OPCODES, *R_JUMP_FUNCTS, "bgez", "bltz"}
-REGISTER_PATTERN = re.compile(r"\$?([a-z][a-z0-9]*)", re.IGNORECASE)
+REGISTER_PATTERN = re.compile(
+    r"\$(r?\d+|[a-z][a-z0-9]*)|(?<![0-9a-z])([a-z][a-z0-9]*)(?![0-9a-z])",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -73,9 +81,25 @@ def _read_registers(mnemonic: str, operands: list[str]) -> set[str]:
 
 
 def _registers_from_text(text: str) -> set[str]:
-    return {match.group(1).lower() for match in REGISTER_PATTERN.finditer(text)}
+    return {
+        register
+        for match in REGISTER_PATTERN.finditer(text)
+        if (register := _canonical_register(_match_register(match)))
+    }
 
 
 def _register_name(token: str) -> str:
     match = REGISTER_PATTERN.search(token)
-    return match.group(1).lower() if match else ""
+    return _canonical_register(_match_register(match)) if match else ""
+
+
+def _match_register(match) -> str:
+    return next(group for group in match.groups() if group)
+
+
+def _canonical_register(name: str) -> str:
+    raw = name.lower()
+    index = REGISTERS.get(raw)
+    if index is None:
+        return raw
+    return str(index)

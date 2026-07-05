@@ -75,6 +75,7 @@ class BinaryWorkbenchWindow(
         self.resize(BINARY_WORKBENCH_LAYOUT.WINDOW_WIDTH, BINARY_WORKBENCH_LAYOUT.WINDOW_HEIGHT)
         self.toolbar = BinaryWorkbenchToolbar()
         self._help_window: HelpWindow | None = None
+        self._hazards_window = None
         self.tabs = BinaryWorkbenchTabs(
             state,
             workspace_directory,

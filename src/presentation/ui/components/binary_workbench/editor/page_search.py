@@ -9,6 +9,10 @@ from src.core.binary_workbench.searching import (
     offset_matches_hex,
     offset_matches_instruction,
 )
+from src.core.binary_workbench.hazards import (
+    hazard_items_from_reader,
+    hazard_items_from_rows,
+)
 from src.core.binary_workbench.text_search import (
     ansi_text_bytes,
     big_endian_hex_to_little_endian_nibbles,
@@ -85,6 +89,21 @@ class EditorPageSearchMixin:
 
     def last_search_end_offset(self) -> int | None:
         return getattr(self, "_last_search_end_offset", None)
+
+    def hazard_items(self, start_offset=None, end_offset=None):
+        self.commit_current_editor_text()
+        self.remember_search_end_offset(start_offset, end_offset)
+        if self._reader is not None:
+            return hazard_items_from_reader(
+                self._reader,
+                self.grid._codec,
+                overlay_bytes(self._context.byte_overlays),
+                start_offset,
+                end_offset,
+                self._context.instruction_overlays,
+                self._yield_search_events,
+            )
+        return hazard_items_from_rows(self.grid.export_rows() or self._context.rows, start_offset, end_offset)
 
     def remember_search_end_offset(self, start_offset: int | None, end_offset: int | None) -> None:
         search_end = effective_search_end(self._reader, self._context.rows, end_offset)

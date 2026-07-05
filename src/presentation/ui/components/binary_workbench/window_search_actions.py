@@ -5,6 +5,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.search import (
     BinaryWorkbenchFindDialog,
     BinaryWorkbenchGoToDialog,
+    BinaryWorkbenchHazardsWindow,
     BinaryWorkbenchSelectBlockDialog,
 )
 
@@ -41,6 +42,21 @@ class BinaryWorkbenchWindowSearchMixin:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NOT_FOUND, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         self.tabs.go_to_offset(offset)
+
+    def _open_hazards(self) -> None:
+        if getattr(self, "_hazards_window", None) is None:
+            self._hazards_window = BinaryWorkbenchHazardsWindow(
+                self.tabs.cached_hazards,
+                self.tabs.refresh_hazards,
+                self.tabs.last_search_end_offset,
+                self,
+            )
+            self._hazards_window.goToRequested.connect(self.tabs.go_to_offset)
+            self._hazards_window.destroyed.connect(lambda: setattr(self, "_hazards_window", None))
+        self._hazards_window.refresh_cached_results()
+        self._hazards_window.show()
+        self._hazards_window.raise_()
+        self._hazards_window.activateWindow()
 
     def _open_select_block(self) -> None:
         dialog = BinaryWorkbenchSelectBlockDialog(self)

@@ -1,4 +1,5 @@
 from src.core.binary_workbench.search_cache import SearchCacheQuery
+from src.core.binary_workbench.hazard_cache import HazardCacheItem
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
@@ -94,6 +95,33 @@ class TabNavigationSearchMixin:
             return page.last_search_end_offset()
         return None
 
+    def cached_hazards(
+        self,
+        start_offset: int | None = None,
+        end_offset: int | None = None,
+    ) -> list[HazardCacheItem]:
+        source_id = self._current_cache_source_id()
+        if source_id is None:
+            return []
+        return self._hazard_cache_repository.items(source_id, start_offset, end_offset)
+
+    def refresh_hazards(
+        self,
+        start_offset: int | None = None,
+        end_offset: int | None = None,
+    ) -> list[HazardCacheItem]:
+        page = self.currentWidget()
+        source_id = self._current_cache_source_id()
+        if source_id is None or not isinstance(page, BinaryWorkbenchEditorPage):
+            return []
+        items = page.hazard_items(start_offset, end_offset)
+        return self._hazard_cache_repository.replace_range(
+            source_id,
+            start_offset,
+            end_offset,
+            items,
+        )
+
     def focused_editor_kind(self) -> str | None:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
@@ -134,8 +162,7 @@ class TabNavigationSearchMixin:
         current = self.current_context()
         if current is None or not query or max_results is not None:
             return None
-        source = current.source_path or current.workspace_path or current.tab_id
-        source_id = f"{current.kind}:{source}:{current.file_size}:{current.active_version_name or ''}"
+        source_id = self._cache_source_id(current)
         return SearchCacheQuery(
             source_id=source_id,
             mode=mode,
@@ -144,3 +171,11 @@ class TabNavigationSearchMixin:
             end_offset=end_offset,
             result_limit=max_results,
         )
+
+    def _current_cache_source_id(self) -> str | None:
+        current = self.current_context()
+        return None if current is None else self._cache_source_id(current)
+
+    def _cache_source_id(self, current: BinaryWorkbenchTabContextDTO) -> str:
+        source = current.source_path or current.workspace_path or current.tab_id
+        return f"{current.kind}:{source}:{current.file_size}:{current.active_version_name or ''}"

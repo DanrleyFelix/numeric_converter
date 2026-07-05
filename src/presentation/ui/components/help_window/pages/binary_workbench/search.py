@@ -19,6 +19,13 @@ PAGE = HelpPageDefinition(
             <li>After a search, Start Offset is auto-filled with the end of the searched range so the next search can continue forward.</li>
             <li><b>Length</b> is in KB and is capped at <code>50KB</code> to keep searches responsive.</li>
         </ul>
+        <h2>Hazards</h2>
+        <ul>
+            <li><b>Search &gt; Hazards</b> opens an independent window with cached delay hazards for the current tab/version.</li>
+            <li>Use Start Offset, End Offset and Length just like Find. Hazard scans are capped at <code>1MB</code> per search.</li>
+            <li><b>Find Hazards</b> scans the selected range and updates the JSON cache by offset for that range.</li>
+            <li>Each result shows the hazard offset and instruction. Activating a result navigates to that offset while keeping the Hazards window open.</li>
+        </ul>
         <h2>Select Block</h2>
         <ul>
             <li>Select an exact byte range by start/end or start/length.</li>

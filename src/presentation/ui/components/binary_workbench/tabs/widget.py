@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -10,6 +10,7 @@ from src.core.binary_workbench.search_cache import (
     SearchCacheRepository,
     SearchCacheService,
 )
+from src.core.binary_workbench.hazard_cache import HazardCacheRepository
 from src.modules.application_dtos import ProgramContextDTO
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
@@ -103,6 +104,9 @@ class BinaryWorkbenchTabs(
         )
         self._search_cache: SearchCacheService | None = None
         self._find_cache_session_active = False
+        self._hazard_cache_repository = HazardCacheRepository(
+            self._workspace_repository.directory.parent / "hazard_cache.json"
+        )
         self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
         self._program_context = program_context or ProgramContextDTO()
         self._controller = BinaryWorkbenchController()

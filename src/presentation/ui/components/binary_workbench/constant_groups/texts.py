@@ -60,6 +60,8 @@
     RULES: str = "Rules"
     GO_TO: str = "Go to"
     FIND: str = "Find"
+    HAZARDS: str = "Hazards"
+    FIND_HAZARDS: str = "Find Hazards"
     SELECT_BLOCK: str = "Select Block"
     SELECT_ALL: str = "Select All"
     CONFIRM: str = "Confirm"

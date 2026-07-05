@@ -40,6 +40,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.rules_action = QAction(BINARY_WORKBENCH_TEXT.RULES, self)
         self.go_to_action = QAction(BINARY_WORKBENCH_TEXT.GO_TO, self)
         self.find_action = QAction(BINARY_WORKBENCH_TEXT.FIND, self)
+        self.hazards_action = QAction(BINARY_WORKBENCH_TEXT.HAZARDS, self)
         self.select_block_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_BLOCK, self)
         self.select_all_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_ALL, self)
         self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
@@ -80,6 +81,7 @@ class BinaryWorkbenchToolbar(QFrame):
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.SEARCH, Icons.search(), [
             self.go_to_action,
             self.find_action,
+            self.hazards_action,
             self.select_block_action,
         ]))
         layout.addWidget(self._build_action_button(BINARY_WORKBENCH_TEXT.HELP, Icons.help(), self.help_action))
