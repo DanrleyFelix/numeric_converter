@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTextBrowser, QToolButton, QWidget
 
 from src.main import create_main_window
@@ -121,19 +122,22 @@ def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
     assert nav_titles == [
         "Main Window",
         "File",
+        "Versions",
+        "Internal Files",
         "Environment",
         "Preferences",
         "Search",
+        "Editor Helpers",
         "Shortcuts",
     ]
     page = tool._help_window.pages.currentWidget()
     browser = page.findChild(QTextBrowser, "help-page")
     assert browser is not None
     assert browser.verticalScrollBar().objectName() == "help-page-scrollbar"
-    tool._help_window.navigation.setCurrentRow(5)
+    tool._help_window.navigation.setCurrentRow(nav_titles.index("Shortcuts"))
     shortcuts_browser = tool._help_window.pages.currentWidget().findChild(QTextBrowser, "help-page")
     text = shortcuts_browser.toPlainText()
-    for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+K", "Ctrl+Y"):
+    for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+R", "Alt+K", "Ctrl+Y"):
         assert value in text
 
 
@@ -3964,13 +3968,23 @@ def test_binary_workbench_hazards_window_uses_find_fields_and_navigates(tmp_path
         (12, "jal 0x00000014"),
     ]
 
-    tool._open_hazards()
+    tool.show()
+    tool.activateWindow()
+    tool.setFocus()
+    QTest.keyClick(tool, Qt.Key_R, Qt.AltModifier)
+    _app().processEvents()
     hazards_window = tool._hazards_window
     assert hazards_window is not None
     assert hazards_window.findChild(QLabel, "preferences-title") is None
     assert hazards_window.findChild(QComboBox) is None
     assert all(editor.placeholderText() != BINARY_WORKBENCH_TEXT.VALUE for editor in hazards_window.findChildren(QLineEdit))
-    assert [button.text() for button in hazards_window.findChildren(QPushButton)] == [BINARY_WORKBENCH_TEXT.FIND_HAZARDS]
+    assert tool._hazards_shortcut_action.shortcut().toString() == "Alt+R"
+    buttons = {button.text(): button for button in hazards_window.findChildren(QPushButton)}
+    assert set(buttons) == {BINARY_WORKBENCH_TEXT.CANCEL, BINARY_WORKBENCH_TEXT.FIND_HAZARDS}
+    assert "OK" not in buttons
+    assert buttons[BINARY_WORKBENCH_TEXT.FIND_HAZARDS].mapTo(hazards_window, QPoint()).x() < buttons[
+        BINARY_WORKBENCH_TEXT.CANCEL
+    ].mapTo(hazards_window, QPoint()).x()
     assert hazards_window.start.placeholderText() == BINARY_WORKBENCH_TEXT.START_OFFSET
     assert hazards_window.end.placeholderText() == BINARY_WORKBENCH_TEXT.END_OFFSET
     assert hazards_window.length.placeholderText() == BINARY_WORKBENCH_TEXT.FIND_LENGTH
@@ -4002,7 +4016,11 @@ def test_binary_workbench_hazards_search_range_limit_and_cache_persist(tmp_path:
 
     assert tool is not None
     tool.open_assembly_path(assembly_path)
-    tool._open_hazards()
+    tool.show()
+    tool.activateWindow()
+    tool.setFocus()
+    QTest.keyClick(tool, Qt.Key_R, Qt.AltModifier)
+    _app().processEvents()
     hazards_window = tool._hazards_window
     assert hazards_window is not None
     hazards_window.start.setText("0x00000000")

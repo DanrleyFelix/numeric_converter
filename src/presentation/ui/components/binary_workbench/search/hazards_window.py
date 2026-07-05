@@ -78,6 +78,9 @@ class BinaryWorkbenchHazardsWindow(QDialog):
         layout.addWidget(self.end)
         layout.addWidget(self.length)
         layout.addWidget(self.results)
+        self.cancel_button = QPushButton(BINARY_WORKBENCH_TEXT.CANCEL, self)
+        configure_binary_workbench_dialog_action(self.cancel_button)
+        self.cancel_button.clicked.connect(self.close)
         self.find_button = QPushButton(BINARY_WORKBENCH_TEXT.FIND_HAZARDS, self)
         configure_binary_workbench_dialog_action(self.find_button)
         self.find_button.clicked.connect(self.refresh_results)
@@ -88,6 +91,7 @@ class BinaryWorkbenchHazardsWindow(QDialog):
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.find_button, 0, Qt.AlignLeft)
         row.addStretch(1)
+        row.addWidget(self.cancel_button, 0, Qt.AlignRight)
         layout.addLayout(row)
         self.refresh_cached_results()
 

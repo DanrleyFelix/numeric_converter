@@ -323,12 +323,19 @@ QListWidget#binary-workbench-search-results {
     background-color: $bg-workspace-row;
     color: $text-main;
     border: 1px solid $border-workspace-row;
-    border-radius: $radius-10;
+    border-radius: $radius-0;
+    padding-left: $space-0;
+    padding-right: $space-0;
+    padding-top: $space-0;
+    padding-bottom: $space-0;
 }
 
 QListWidget#binary-workbench-search-results::item {
     border: none;
     border-radius: $radius-0;
+    min-height: 24px;
+    padding-left: $space-8;
+    padding-right: $space-8;
 }
 
 QListWidget#binary-workbench-search-results::item:selected {

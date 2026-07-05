@@ -20,6 +20,7 @@ PAGE = HelpPageDefinition(
             <li><code>Ctrl+G</code>: open Go to.</li>
             <li><code>Alt+G</code>: return to the previous offset after navigating by clicking a <code>j</code>, <code>jal</code> or branch target. The history is temporary, limited to 50 returns, and separated by tab/version.</li>
             <li><code>Ctrl+F</code>: open Find.</li>
+            <li><code>Alt+H</code>: open Hazards.</li>
             <li><code>Ctrl+E</code>: open Select Block.</li>
             <li><code>Ctrl+A</code>: select all content in the active editor surface.</li>
         </ul>

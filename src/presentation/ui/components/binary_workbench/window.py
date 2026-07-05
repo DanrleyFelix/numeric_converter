@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import QLabel, QMainWindow
 
 from src.modules.application_dtos import ProgramContextDTO
@@ -134,6 +134,17 @@ class BinaryWorkbenchWindow(
         ensure_window_on_available_screen(self._help_window, self)
         self._help_window.raise_()
         self._help_window.activateWindow()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if (
+            event.key() == Qt.Key_H
+            and bool(event.modifiers() & Qt.AltModifier)
+            and not bool(event.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier | Qt.MetaModifier))
+        ):
+            self._open_hazards()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.tabs.flush_open_workspaces()
