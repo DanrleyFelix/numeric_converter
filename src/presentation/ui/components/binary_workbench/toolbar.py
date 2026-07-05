@@ -52,6 +52,8 @@ class BinaryWorkbenchToolbar(QFrame):
         self.save_binary_file_action.setShortcut(QKeySequence("Ctrl+S"))
         self.go_to_action.setShortcut(QKeySequence("Ctrl+G"))
         self.find_action.setShortcut(QKeySequence("Ctrl+F"))
+        self.hazards_action.setShortcut(QKeySequence("Alt+H"))
+        self.hazards_action.setShortcutVisibleInContextMenu(True)
         self.select_block_action.setShortcut(QKeySequence("Ctrl+E"))
         self.select_block_action.setShortcutContext(Qt.ApplicationShortcut)
         self.select_all_action.setShortcut(QKeySequence("Ctrl+A"))

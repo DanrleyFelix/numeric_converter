@@ -35,10 +35,6 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)
         self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
         self.toolbar.help_action.triggered.connect(self.open_guide)
-        self._hazards_shortcut_action = QAction("Open Hazards", self)
-        self._hazards_shortcut_action.setShortcut(QKeySequence("Alt+H"))
-        self._hazards_shortcut_action.setShortcutContext(Qt.WindowShortcut)
-        self._hazards_shortcut_action.triggered.connect(self._open_hazards)
         self._return_jump_action = QAction("Return to Previous Jump", self)
         self._return_jump_action.setShortcut(QKeySequence("Alt+G"))
         self._return_jump_action.setShortcutContext(Qt.WindowShortcut)
@@ -54,7 +50,6 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.version_action,
             self.toolbar.save_version_action,
             self.toolbar.save_binary_file_action,
-            self._hazards_shortcut_action,
             self._return_jump_action,
         ])
         self.toolbar.advanced_configuration_action.triggered.connect(self._open_advanced_configuration)

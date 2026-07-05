@@ -137,7 +137,7 @@ def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
     tool._help_window.navigation.setCurrentRow(nav_titles.index("Shortcuts"))
     shortcuts_browser = tool._help_window.pages.currentWidget().findChild(QTextBrowser, "help-page")
     text = shortcuts_browser.toPlainText()
-    for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+R", "Alt+K", "Ctrl+Y"):
+    for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+H", "Alt+K", "Ctrl+Y"):
         assert value in text
 
 
@@ -3971,14 +3971,14 @@ def test_binary_workbench_hazards_window_uses_find_fields_and_navigates(tmp_path
     tool.show()
     tool.activateWindow()
     tool.setFocus()
-    QTest.keyClick(tool, Qt.Key_R, Qt.AltModifier)
+    QTest.keyClick(tool, Qt.Key_H, Qt.AltModifier)
     _app().processEvents()
     hazards_window = tool._hazards_window
     assert hazards_window is not None
     assert hazards_window.findChild(QLabel, "preferences-title") is None
     assert hazards_window.findChild(QComboBox) is None
     assert all(editor.placeholderText() != BINARY_WORKBENCH_TEXT.VALUE for editor in hazards_window.findChildren(QLineEdit))
-    assert tool._hazards_shortcut_action.shortcut().toString() == "Alt+R"
+    assert tool.toolbar.hazards_action.shortcut().toString() == "Alt+H"
     buttons = {button.text(): button for button in hazards_window.findChildren(QPushButton)}
     assert set(buttons) == {BINARY_WORKBENCH_TEXT.CANCEL, BINARY_WORKBENCH_TEXT.FIND_HAZARDS}
     assert "OK" not in buttons
@@ -4019,7 +4019,7 @@ def test_binary_workbench_hazards_search_range_limit_and_cache_persist(tmp_path:
     tool.show()
     tool.activateWindow()
     tool.setFocus()
-    QTest.keyClick(tool, Qt.Key_R, Qt.AltModifier)
+    QTest.keyClick(tool, Qt.Key_H, Qt.AltModifier)
     _app().processEvents()
     hazards_window = tool._hazards_window
     assert hazards_window is not None
