@@ -117,7 +117,7 @@ versions, navigation state and dirty state.
   focused tabs.
 - `Version` stores named edit sets and can restore or replace visible edited
   rows without immediately rewriting the original file.
-- `Go to`, `Find` and `Select Block` provide focused navigation and selection.
+- `Go to`, `Find`, `Hazards` and `Select Block` provide focused navigation, delay-hazard review and selection.
 - `Environment` tools manage symbols, labels, offset regions, LBA file maps,
   custom commands and encoding tables.
 - `Preferences` controls byte formatting, visible columns, edit rules,
@@ -136,7 +136,9 @@ The main editor view is made of synchronized row surfaces:
 
 Rows are represented by `BinaryWorkbenchRowDTO`, which carries offsets,
 instruction text, byte text and original values. The editor tracks meaningful
-edits through overlays rather than blindly rewriting full source data.
+edits through overlays rather than blindly rewriting full source data. Bytes
+editing preserves comments and supports Backspace/Delete without shifting rows
+when byte shifting rules protect existing offsets.
 
 The PSX MIPS R3000A codec lives under `src/core/binary_workbench/mips_r3000a`.
 It uses project fallback assemblers/disassemblers and can use `capstone` and
@@ -220,15 +222,41 @@ Symbols keep assembly readable:
 - Equates use the `@name` form and are suited for immediate constants.
 - Raw Instructions shows resolved values after symbolic replacement.
 
-Labels are detected from assembly rows. Jump and branch operands that target
-labels can be clicked for navigation. Go To can resolve file offsets, reference
-offsets, LBA values, labels, equates, variables and named internal files.
+Labels are detected from assembly rows and refreshed across tab/version changes.
+Jump and branch operands that target labels can be clicked for navigation. Go To
+can resolve file offsets, reference offsets, LBA values, labels, equates,
+variables and named internal files. Clicking jump or branch targets records a
+volatile per-tab/version return history, and `Alt+G` returns to the previous
+clicked source offset. Reference-offset jumps use an explicit `&` prefix, such
+as `jal &0x801D9274`, so standard file-offset jumps stay unambiguous.
+
+### Hazards, Rules and Editing Safety
+
+`Search > Hazards` opens an independent range-based window for delay-hazard
+review. It reuses Find-style Start Offset, End Offset and Length controls, keeps
+results in a JSON hazard cache keyed by offset and lists each hazard beside the
+corresponding instruction. Results remain navigable while the window stays open,
+and `Alt+H` opens the Hazards window from the Search menu.
+
+The MIPS editor marks delay hazards and invalid jump/branch targets only in
+Editor Assembly. Raw Instructions keeps showing the resolved instruction stream
+without warning backgrounds. Hazard detection includes branch/jump delay-slot
+cases and load/use register hazards. Invalid jump and branch targets account for
+alignment, file limits and selected reference-offset settings.
+
+Rules separate fixed-row patching from byte-shifting edits. When byte shifting is
+disabled, valid original rows remain present and destructive selection deletes
+clear row content instead of removing protected offsets. Extra invalid rows can
+still be removed, and scratch-code tabs must be saved before workspace-backed
+symbols, versions or environment modules are created.
 
 ### Versions, Overlays and Internal Files
 
 Versions are named edit sets. They can store instruction overlays, line-based
-instructions and row payloads. A version can be loaded into a tab, updated from
-the current editor state and saved as a module.
+instructions, comments and row payloads. A version can be loaded into a tab,
+updated from the current editor state and saved as a module without rewriting the
+original source file. Scratch tabs become workspace-capable after their first
+save links the tab to a real file path.
 
 Internal file tabs are mapped through the configured LBA File System. They keep
 their parent source visible and map changes back to parent binary offsets, which
@@ -237,8 +265,11 @@ avoids manual offset math when editing named files inside a larger image.
 ### Commands and Encoding Tables
 
 Editor commands are typed in Editor Assembly with a leading slash. `/sp` creates
-a stack save/restore block, and custom commands can store repeated instruction
-blocks with optional register substitution.
+a stack save/restore block. `/li` supports immediate loading, using a single
+instruction when the value fits and `lui`/`ori` expansion when required. `/where`
+creates branch-only loop templates with labels on the same line as their
+instructions and delay-slot `nop` rows. Custom commands can store repeated
+instruction blocks with optional register substitution.
 
 Encoding tables map byte values to text for decoded text workflows. Find can
 search decoded text after the relevant table is available to the active context.
@@ -327,10 +358,10 @@ dist/macos
 Artifact names follow this format:
 
 ```text
-numeric-workbench-v2.0-<os>-<architecture>
+numeric-workbench-v2.1-<os>-<architecture>
 ```
 
-v2.0 ships portable bundles only. Native installers are intentionally out of
+v2.1 ships portable bundles only. Native installers are intentionally out of
 scope for this release.
 
 The PyInstaller config keeps the bundle smaller by excluding unused Qt stacks
@@ -369,7 +400,7 @@ context to reproduce the issue. This is especially important for Binary
 Workbench because real binary editing workflows expose edge cases that are hard
 to predict from isolated tests.
 
-The project will need refactoring and better organization after the v2.0
+The project will need refactoring and better organization after the v2.1
 feature cycle. The UI layer grew quickly and now contains responsibilities that
 should move toward controllers, presenters or core services. QSS files also need
 cleanup, several UI files are spread without their own focused subfolders, and
