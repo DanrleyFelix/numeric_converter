@@ -179,7 +179,7 @@ class InstructionHighlighter(QSyntaxHighlighter):
         if not JUMP_TARGET_TOKEN.fullmatch(token):
             return None
         target = self._target_file_offset(mnemonic, token)
-        if target is None or target < 0 or target % ROW_BYTES != 0 or self._target_exceeds_file(target):
+        if target is None or target < 0 or target % ROW_BYTES != 0:
             return start, end
         return None
 
@@ -213,8 +213,6 @@ class InstructionHighlighter(QSyntaxHighlighter):
         except ValueError:
             return None
 
-    def _target_exceeds_file(self, target: int) -> bool:
-        return self._file_size > 0 and target >= self._file_size
 
 
 def invalid_address_format() -> QTextCharFormat:

@@ -31,7 +31,9 @@
             "module_paths": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json"
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -42,7 +44,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
+                "versions": "843f0a93254011c6697c048451705cfcc38a0628be042ece7730cf7a0d190cc9",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -488,48 +490,7 @@
             "equates": {},
             "variables": {},
             "symbol_offsets": {},
-            "internal_files": [
-                {
-                    "name": "DATA",
-                    "start_lba": 23
-                },
-                {
-                    "name": "SLUS_014.11",
-                    "start_lba": 25
-                },
-                {
-                    "name": "SYSTEM.CNF",
-                    "start_lba": 24
-                },
-                {
-                    "name": "MASTER.XA",
-                    "start_lba": 199931
-                },
-                {
-                    "name": "MODEL.MRG",
-                    "start_lba": 28535
-                },
-                {
-                    "name": "MOVIE.STR",
-                    "start_lba": 202735
-                },
-                {
-                    "name": "SD_BGM.DAT",
-                    "start_lba": 2936
-                },
-                {
-                    "name": "SD_SE.DAT",
-                    "start_lba": 2193
-                },
-                {
-                    "name": "SU.MRG",
-                    "start_lba": 954
-                },
-                {
-                    "name": "WA_MRG.MRG",
-                    "start_lba": 10102
-                }
-            ],
+            "internal_files": [],
             "internal_file_start_lba": null,
             "internal_parent_tab_id": null,
             "internal_parent_byte_overlays": {},
@@ -558,7 +519,7 @@
             },
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
-                "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
+                "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
                 "versions": "6a743f60a15e6ec53b74ed827b42641f0b3194b5bada21fd4c32e89c54c09ad8",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
@@ -1109,7 +1070,7 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
+                "symbols": "4c60963d8f86f4da3e7a5112e5f8a6af8a5ac1bfb712a99e7c3c11f6768ded3e",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
                 "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
@@ -1247,22 +1208,12 @@
                     "original_bytes_text": ""
                 },
                 {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-"
-                    },
-                    "instruction": "; tesntando",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
                     "offset": "0x00000010",
                     "offsets": {
                         "File": "0x00000010"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "JAL @equate_24d34",
+                    "bytes_text": "4D 93 00 0C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1271,8 +1222,8 @@
                     "offsets": {
                         "File": "0x00000014"
                     },
-                    "instruction": "LUI t1, 0x801A",
-                    "bytes_text": "1A 80 09 3C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1281,8 +1232,8 @@
                     "offsets": {
                         "File": "0x00000018"
                     },
-                    "instruction": "ORI t1, t1, 0xB364",
-                    "bytes_text": "64 B3 29 35",
+                    "instruction": "LUI t1, 0x801A",
+                    "bytes_text": "1A 80 09 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1291,8 +1242,8 @@
                     "offsets": {
                         "File": "0x0000001C"
                     },
-                    "instruction": "LHU t2, 0x0(t1)",
-                    "bytes_text": "00 00 2A 95",
+                    "instruction": "ORI t1, t1, 0xB364",
+                    "bytes_text": "64 B3 29 35",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1300,6 +1251,16 @@
                     "offset": "0x00000020",
                     "offsets": {
                         "File": "0x00000020"
+                    },
+                    "instruction": "LHU t2, 0x0(t1)",
+                    "bytes_text": "00 00 2A 95",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000024",
+                    "offsets": {
+                        "File": "0x00000024"
                     },
                     "instruction": "ADDIU t2, t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -1322,7 +1283,7 @@
             }
         }
     ],
-    "active_tab_id": "a26f7d42cf504c57ab47268a30d46249",
+    "active_tab_id": "df04e99f85a64341a47474cb8fb23224",
     "share_view_preferences": false,
     "commands_by_arch": {
         "PSX - Mips R3000A": {
