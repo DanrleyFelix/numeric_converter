@@ -5,8 +5,9 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser
+from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser, QWidget
 
 from src.modules.dtos import CommandLogPreferencesDTO, FormattingOutputDTO
 from src.main import create_main_window
@@ -163,9 +164,11 @@ def test_tools_menu_exposes_binary_workbench_and_placeholders():
     tools_menu = window.toolbar.tools_button.menu()
     action_texts = [action.text() for action in tools_menu.actions() if action.text()]
 
+    assert tools_menu.objectName() == "numeric-workbench-placeholder-menu"
     assert window.toolbar.tools_button.text().strip() == "Tools"
     assert "Binary Workbench" in action_texts
     assert action_texts == ["Binary Workbench"]
+    assert tools_menu.actions()[0].icon().isNull() is False
 
 
 def test_tools_menu_opens_single_binary_workbench_window_with_generic_title():
@@ -204,6 +207,9 @@ def test_donor_opens_its_own_window_without_using_footer_output():
     assert donor_window is not None
     assert donor_window.windowTitle() == "Donor"
     assert donor_window.findChild(QLabel, "workspace-table-title") is None
+    assert donor_window.findChild(QWidget, "workspace-table-shell") is None
+    assert donor_window.findChild(QWidget, "donor-shell") is not None
+    assert any(label.text() == "PayPal" for label in donor_window.findChildren(QLabel, "donor-section-title"))
     assert window.footer.status.text() == initial_footer_text
 
     window._open_donor()
@@ -274,6 +280,23 @@ def test_command_autocomplete_popup_uses_app_styling_and_scrollbar_policies():
     assert popup.frameShape() == popup.Shape.NoFrame
     assert popup.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
     assert popup.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
+
+
+def test_command_window_context_menu_matches_binary_workbench_style_and_shortcuts():
+    window = _window()
+    menu = window.body.command_panel.editor._context_menu()
+    actions = {
+        action.text().replace("&", "").split("\t", 1)[0].strip(): action
+        for action in menu.actions()
+    }
+
+    assert menu.objectName() == "binary-workbench-editor-context-menu"
+    assert actions["Undo"].icon().isNull() is False
+    assert actions["Delete"].icon().isNull() is False
+    assert actions["Select All"].icon().isNull() is False
+    assert actions["Delete"].shortcut() == QKeySequence("Backspace")
+    assert actions["Delete"].isShortcutVisibleInContextMenu()
+    menu.deleteLater()
 
 
 def test_main_window_minimum_height_shrinks_when_key_panel_is_hidden():
@@ -426,6 +449,29 @@ def test_enter_accepts_variable_autocomplete_and_hides_popup():
     _app().processEvents()
 
     assert window.body.command_panel.current_input() == "alpha"
+    assert popup.isVisible() is False
+
+
+def test_variable_autocomplete_hides_when_prefix_matches_candidate_exactly():
+    window = _window()
+    editor = window.body.command_panel.editor
+
+    window.body.command_panel.set_input_text("pao_de_arroz=5")
+    window._on_command_text_changed()
+    window._on_command_submitted()
+
+    editor.setFocus()
+    QTest.keyClicks(editor, "pao_de_")
+    _app().processEvents()
+    popup = editor._completer.popup()
+
+    assert popup.isVisible()
+    assert popup.currentIndex().data() == "pao_de_arroz"
+
+    QTest.keyClicks(editor, "arroz")
+    _app().processEvents()
+
+    assert editor.toPlainText() == "pao_de_arroz"
     assert popup.isVisible() is False
 
 

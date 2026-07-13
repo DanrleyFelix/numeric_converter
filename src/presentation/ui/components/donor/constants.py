@@ -3,10 +3,12 @@ class DONOR_TEXT:
     SUBTITLE: str = "Support the creator of Numeric and Binary WorkBench."
     PIX_LABEL: str = "PIX (Brazilian instant payment system)"
     BANK_LABEL: str = "Bank Account"
+    PAYPAL_LABEL: str = "PayPal"
     PATREON_LABEL: str = "Patreon"
     LINKS_LABEL: str = "Links"
     OTHER_LABEL: str = "Other Options"
     PIX_KEY: str = "danrleyfelix@gmail.com"
+    PAYPAL_ACCOUNT: str = "danrleyfelix@gmail.com"
     BANK_ACCOUNT: str = "Bank 104 · Branch 3880 · Account 932845322-0"
     PATREON_URL: str = "https://www.patreon.com/c/DanrleyFelix"
     SUPPORT_LINKS: tuple[str, ...] = (
@@ -21,9 +23,9 @@ class DONOR_TEXT:
 class DONOR_LAYOUT:
     WINDOW_WIDTH: int = 760
     WINDOW_HEIGHT: int = 460
-    ROOT_LEFT: int = 28
-    ROOT_TOP: int = 28
-    ROOT_RIGHT: int = 28
-    ROOT_BOTTOM: int = 28
+    ROOT_LEFT: int = 20
+    ROOT_TOP: int = 20
+    ROOT_RIGHT: int = 20
+    ROOT_BOTTOM: int = 20
     ROOT_SPACING: int = 12
     CARD_SPACING: int = 4

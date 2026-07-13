@@ -12,7 +12,7 @@ class DonorWindow(QMainWindow):
         self.resize(DONOR_LAYOUT.WINDOW_WIDTH, DONOR_LAYOUT.WINDOW_HEIGHT)
 
         shell = QFrame()
-        shell.setObjectName("workspace-table-shell")
+        shell.setObjectName("donor-shell")
         layout = QVBoxLayout(shell)
         layout.setContentsMargins(
             DONOR_LAYOUT.ROOT_LEFT,
@@ -25,6 +25,7 @@ class DonorWindow(QMainWindow):
         layout.addWidget(self._label("donor-subtitle", DONOR_TEXT.SUBTITLE))
         layout.addWidget(self._card(DONOR_TEXT.PIX_LABEL, DONOR_TEXT.PIX_KEY))
         layout.addWidget(self._card(DONOR_TEXT.BANK_LABEL, DONOR_TEXT.BANK_ACCOUNT))
+        layout.addWidget(self._card(DONOR_TEXT.PAYPAL_LABEL, DONOR_TEXT.PAYPAL_ACCOUNT))
         layout.addWidget(self._link_card(DONOR_TEXT.PATREON_LABEL, (DONOR_TEXT.PATREON_URL,)))
         layout.addWidget(self._link_card(DONOR_TEXT.LINKS_LABEL, DONOR_TEXT.SUPPORT_LINKS))
         layout.addWidget(

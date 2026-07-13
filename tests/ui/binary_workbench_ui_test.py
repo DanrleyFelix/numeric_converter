@@ -42,6 +42,9 @@ from src.presentation.ui.components.binary_workbench.editor.constants.highlighte
 from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
     psx_mips_highlight_color,
 )
+from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
+    invalid_instruction,
+)
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
     use_white_menu_icons,
 )
@@ -49,6 +52,7 @@ from src.presentation.ui.components.binary_workbench.editor import (
     page_immediate_symbols as page_immediate_symbols_module,
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
+from src.presentation.ui.components.binary_workbench.editor.add_command_dialog import AddCommandDialog
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
     BinaryWorkbenchInternalFileDialog,
     BinaryWorkbenchLbaFilesystemDialog,
@@ -404,6 +408,23 @@ def test_binary_workbench_create_version_uses_centered_confirm_button():
     assert dialog.name_field.height() == confirm.height()
     assert dialog.name_field.mapTo(dialog, QPoint()).x() == confirm.mapTo(dialog, QPoint()).x()
     assert confirm.mapTo(dialog, QPoint()).y() - dialog.name_field.mapTo(dialog, QPoint()).y() > dialog.name_field.height()
+
+
+def test_binary_workbench_add_command_dialog_uses_wide_centered_controls():
+    _app()
+    dialog = AddCommandDialog()
+    dialog.show()
+    _app().processEvents()
+    confirm = next(button for button in dialog.findChildren(QPushButton) if button.text() == BINARY_WORKBENCH_TEXT.CONFIRM)
+
+    assert dialog.width() == BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_DIALOG_WIDTH
+    assert dialog.width() == 300
+    assert dialog.height() == BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_DIALOG_HEIGHT
+    assert dialog.layout().getContentsMargins() == (20, 20, 20, 20)
+    assert dialog.name_input.width() == BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_FIELD_WIDTH
+    assert dialog.name_input.width() == 260
+    assert confirm.width() == BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_FIELD_WIDTH
+    assert dialog.name_input.mapTo(dialog, QPoint()).x() == confirm.mapTo(dialog, QPoint()).x()
 
 
 def test_binary_workbench_load_versions_file_replaces_available_versions(tmp_path: Path):
@@ -2532,8 +2553,10 @@ def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
     assert editor._completion_model.stringList() == ["_variable1"]
     assert editor._candidates_for_prefix("_") == ["_variable1"]
     assert editor._candidates_for_prefix("_VAR") == ["_variable1"]
+    assert editor._candidates_for_prefix("_variable1") == []
     assert editor._candidates_for_prefix("@") == ["@equate1"]
     assert editor._candidates_for_prefix("@EQU") == ["@equate1"]
+    assert editor._candidates_for_prefix("@equate1") == []
 
 
 def test_binary_workbench_editor_undo_restores_backspace_one_key_at_a_time():
@@ -2555,8 +2578,26 @@ def test_binary_workbench_editor_undo_restores_backspace_one_key_at_a_time():
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
     assert editor.toPlainText() == "WORD 0x3078302"
 
+
+def test_binary_workbench_instruction_casing_normalization_preserves_cursor_and_undo():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-instructions-panel")
+    editor.set_uppercase_instruction_hover(True)
+
+    for key, text in ((Qt.Key_N, "N"), (Qt.Key_O, "O"), (Qt.Key_P, "P")):
+        QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier, text))
+
+    assert editor.toPlainText() == "nop"
+    assert editor.textCursor().position() == len("nop")
+
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
-    assert editor.toPlainText() == "WORD 0x3078302C"
+
+    assert editor.toPlainText() == "NO"
+    assert editor.textCursor().position() == len("NO")
+
+    QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    assert editor.toPlainText() == "N"
 
 
 def test_binary_workbench_editor_ctrl_q_keeps_previous_ctrl_d_selections():
@@ -2968,9 +3009,7 @@ def test_binary_workbench_highlighter_register_aliases_share_colors():
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
     shared_symbol_color = PSX_MIPS_HIGHLIGHTER["equate"]
     distinct_colors = [
-        PSX_MIPS_HIGHLIGHTER["label"],
         psx_mips_highlight_color("mnemonic", "beq"),
-        psx_mips_highlight_color("mnemonic", "j"),
         psx_mips_highlight_color("mnemonic", "lw"),
         psx_mips_highlight_color("mnemonic", "mfhi"),
         psx_mips_highlight_color("mnemonic", "addiu"),
@@ -2980,9 +3019,22 @@ def test_binary_workbench_highlighter_groups_use_distinct_colors():
         psx_mips_highlight_color("registers", "ra"),
     ]
 
+    assert PSX_MIPS_HIGHLIGHTER["label"] == shared_symbol_color
     assert PSX_MIPS_HIGHLIGHTER["variable"] == shared_symbol_color
+    assert shared_symbol_color == "#1E90FF"
     assert shared_symbol_color not in distinct_colors
     assert len(distinct_colors) == len(set(distinct_colors))
+
+
+def test_binary_workbench_highlighter_colors_supported_pseudo_instructions():
+    other_color = psx_mips_highlight_color("mnemonic", "addiu")
+    branch_color = psx_mips_highlight_color("mnemonic", "beq")
+
+    for mnemonic in ("li", "move", "clear", "neg"):
+        assert psx_mips_highlight_color("mnemonic", mnemonic) == other_color
+        assert invalid_instruction(f"{mnemonic} $a0, $s1") is False
+    assert psx_mips_highlight_color("mnemonic", "b") == branch_color
+    assert invalid_instruction("b loop") is False
 
 
 def test_binary_workbench_symbols_do_not_match_different_directory(tmp_path: Path):

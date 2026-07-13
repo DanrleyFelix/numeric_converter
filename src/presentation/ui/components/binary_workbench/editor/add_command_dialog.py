@@ -34,7 +34,7 @@ class AddCommandDialog(QDialog):
             BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_FIELD_WIDTH,
         )
         self.name_input.returnPressed.connect(self.accept)
-        ok = symbol_button(BINARY_WORKBENCH_TEXT.OK, "preferences-ok", self)
+        ok = symbol_button(BINARY_WORKBENCH_TEXT.CONFIRM, "preferences-ok", self)
         size_symbol_action(ok, BINARY_WORKBENCH_LAYOUT.ADD_COMMAND_FIELD_WIDTH)
         ok.clicked.connect(self.accept)
         layout.addWidget(self.name_input)

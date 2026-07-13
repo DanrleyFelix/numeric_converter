@@ -12,6 +12,7 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Add Equate": "\uf52c",
     "Open Label in New Tab": "\uf35d",
     "Add Command": "\uf0fe",
+    "Binary Workbench": "\uf126",
 }
 
 CONTEXT_MENU_SHORTCUTS = {

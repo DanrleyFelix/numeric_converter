@@ -1,7 +1,10 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
+from PySide6.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
+from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
+    use_white_menu_icons,
+)
 from src.presentation.ui.components.converter_panel.constants import CONVERTER_PANEL_SIZE
 from src.presentation.ui.components.converter_panel.helpers import (
     display_position_from_raw_index,
@@ -77,6 +80,17 @@ class ConverterInputEdit(QPlainTextEdit):
             event.accept()
             return
         event.accept()
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        menu = self._context_menu()
+        menu.exec(event.globalPos())
+        menu.deleteLater()
+
+    def _context_menu(self):
+        menu = self.createStandardContextMenu()
+        menu.setObjectName("binary-workbench-editor-context-menu")
+        use_white_menu_icons(menu)
+        return menu
 
     def _replace_selection_or_insert(self, text: str) -> None:
         insert_text = "".join(

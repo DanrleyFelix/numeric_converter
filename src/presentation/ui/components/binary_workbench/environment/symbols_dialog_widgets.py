@@ -33,7 +33,7 @@ def symbol_input(
         editor.addAction(Icons.search_muted(), QLineEdit.ActionPosition.TrailingPosition)
     size_symbol_input(editor, width, expanding=expanding)
     editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-    editor.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH)
+    editor.setFixedWidth(width)
     return editor
 
 

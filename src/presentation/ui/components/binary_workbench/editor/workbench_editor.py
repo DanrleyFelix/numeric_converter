@@ -104,6 +104,7 @@ class WorkbenchEditor(
         popup.setMouseTracking(True)
         popup.setSpacing(0)
         popup.installEventFilter(self)
+        popup.viewport().installEventFilter(self)
         self._completer.setPopup(popup)
 
     def setExtraSelections(self, selections) -> None:
@@ -303,9 +304,32 @@ class WorkbenchEditor(
         cursor = QTextCursor(block)
         self._normalizing_instruction_line = True
         try:
+            cursor.joinPreviousEditBlock()
             cursor.select(QTextCursor.SelectionType.LineUnderCursor)
             cursor.insertText(normalized)
+            cursor.endEditBlock()
             self.setTextCursor(current)
+        finally:
+            self._normalizing_instruction_line = False
+            self._last_instruction_cursor_block = self.textCursor().blockNumber()
+
+    def normalize_granular_instruction_line(self) -> None:
+        if not self._is_instruction_editor() or not self._uppercase_instruction_cursor:
+            return
+        cursor = self.textCursor()
+        block = cursor.block()
+        text = block.text()
+        normalized = normalize_instruction_text(text, True)
+        if normalized == text or len(normalized) != len(text):
+            return
+        position = cursor.position()
+        normalizer = QTextCursor(block)
+        self._normalizing_instruction_line = True
+        try:
+            normalizer.select(QTextCursor.SelectionType.LineUnderCursor)
+            normalizer.insertText(normalized)
+            set_cursor_position(cursor, position)
+            self.setTextCursor(cursor)
         finally:
             self._normalizing_instruction_line = False
             self._last_instruction_cursor_block = self.textCursor().blockNumber()
@@ -362,7 +386,7 @@ class WorkbenchEditor(
 
     def eventFilter(self, watched, event) -> bool:
         popup = self._completer.popup()
-        if watched is popup and event.type() == QEvent.Type.KeyPress:
+        if (watched is popup or watched is popup.viewport()) and event.type() == QEvent.Type.KeyPress:
             if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab}:
                 self._accept_current_completion()
                 event.accept()

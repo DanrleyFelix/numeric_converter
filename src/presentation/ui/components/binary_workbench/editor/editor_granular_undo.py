@@ -76,6 +76,8 @@ class EditorGranularUndoMixin:
         cursor.beginEditBlock()
         try:
             operation(cursor)
+            if hasattr(self, "normalize_granular_instruction_line"):
+                self.normalize_granular_instruction_line()
         finally:
             cursor.endEditBlock()
             self._granular_editing = False

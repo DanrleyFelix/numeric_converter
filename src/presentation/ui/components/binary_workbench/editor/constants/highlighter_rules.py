@@ -11,12 +11,12 @@ def _register_aliases(names: list[str]) -> list[str]:
     return sorted(aliases)
 
 
-PSX_MIPS_BRANCH_MNEMONICS = ["beq", "bne", "bgtz", "blez", "bltz", "bgez", "beqz", "bnez"]
+PSX_MIPS_BRANCH_MNEMONICS = ["beq", "bne", "bgtz", "blez", "bltz", "bgez", "beqz", "bnez", "b"]
 PSX_MIPS_JUMP_MNEMONICS = ["j", "jal", "jr", "jalr"]
 PSX_MIPS_DELAY_SLOT_LOAD_MNEMONICS = ["lb", "lbu", "lh", "lhu", "lw", "lwl", "lwr"]
 PSX_MIPS_HI_LO_TRANSFER_MNEMONICS = ["mfhi", "mflo", "mfho", "mthi", "mtlo"]
 PSX_MIPS_SPECIAL_INSTRUCTION_MNEMONICS = ["break", "syscall", "byte", "half", "word", "nop"]
-PSX_MIPS_OTHER_INSTRUCTION_MNEMONICS = ["add", "addi", "addiu", "li", "addu", "and", "andi", "div", "divu", "lui", "mult", "multu", "nor", "or", "ori", "sb", "sh", "sll", "sllv", "slt", "sltu", "slti", "sltiu", "sra", "srav", "srl", "srlv", "sub", "subu", "sw", "swl", "swr", "xor", "xori"]
+PSX_MIPS_OTHER_INSTRUCTION_MNEMONICS = ["add", "addi", "addiu", "li", "move", "clear", "neg", "addu", "and", "andi", "div", "divu", "lui", "mult", "multu", "nor", "or", "ori", "sb", "sh", "sll", "sllv", "slt", "sltu", "slti", "sltiu", "sra", "srav", "srl", "srlv", "sub", "subu", "sw", "swl", "swr", "xor", "xori"]
 PSX_MIPS_ARGUMENT_VALUE_REGISTERS = _register_aliases(["a0", "a1", "a2", "a3", "v0", "v1"])
 PSX_MIPS_TEMPORARY_SAVED_VALUE_REGISTERS = _register_aliases([
     "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
@@ -51,9 +51,9 @@ PSX_MIPS_HIGHLIGHTER = {
         [PSX_MIPS_SPECIAL_REGISTERS, "#8FA6FF"],
     ],
     "hex": "#62C6A1",
-    "label": "#FF4FD8",
-    "equate": "#FF4FD8",
-    "variable": "#FF4FD8",
+    "label": "#1E90FF",
+    "equate": "#1E90FF",
+    "variable": "#1E90FF",
     "command": "#4F6DFF",
     "invalid_instruction": "#CD1C1C",
     "comment": "#7F879B",

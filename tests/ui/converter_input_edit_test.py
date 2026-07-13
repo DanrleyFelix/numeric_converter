@@ -3,7 +3,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QKeyEvent, QTextCursor
+from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication
 
 from src.presentation.ui.components.converter_panel import ConverterInputEdit
@@ -54,6 +54,25 @@ def test_converter_select_all_backspace_removes_raw_content():
 
     assert editor.raw_value == ""
     assert values[-1] == ("hexLE", "")
+
+
+def test_converter_context_menu_matches_binary_workbench_style_and_shortcuts():
+    _app()
+    editor = ConverterInputEdit("hexLE")
+
+    menu = editor._context_menu()
+    actions = {
+        action.text().replace("&", "").split("\t", 1)[0].strip(): action
+        for action in menu.actions()
+    }
+
+    assert menu.objectName() == "binary-workbench-editor-context-menu"
+    assert actions["Undo"].icon().isNull() is False
+    assert actions["Delete"].icon().isNull() is False
+    assert actions["Select All"].icon().isNull() is False
+    assert actions["Delete"].shortcut() == QKeySequence("Backspace")
+    assert actions["Delete"].isShortcutVisibleInContextMenu()
+    menu.deleteLater()
 
 
 def test_converter_inserts_at_current_cursor_position():

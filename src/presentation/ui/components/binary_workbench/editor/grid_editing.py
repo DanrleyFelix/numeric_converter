@@ -545,10 +545,7 @@ class GridEditingMixin:
     def _normalized_instruction_lines(self) -> list[str]:
         text = self.instructions.toPlainText()
         normalized = normalize_instruction_text(text, self._uppercase_instructions)
-        if normalized != text and (
-            not self._instructions_user_edit_in_progress()
-            or _nop_case_only_change(text, normalized)
-        ):
+        if normalized != text and not self._instructions_user_edit_in_progress():
             self._set_editor_text(self.instructions, normalized.split("\n"))
         return normalized.split("\n")
 
@@ -571,18 +568,3 @@ def _has_incomplete_byte_rows(rows: list[BinaryWorkbenchRowDTO]) -> bool:
         and not row.bytes_text
         for row in rows
     )
-
-
-def _nop_case_only_change(original: str, normalized: str) -> bool:
-    original_lines = original.split("\n")
-    normalized_lines = normalized.split("\n")
-    if len(original_lines) != len(normalized_lines):
-        return False
-    changed = False
-    for original_line, normalized_line in zip(original_lines, normalized_lines):
-        if original_line == normalized_line:
-            continue
-        if original_line.strip().lower() != "nop" or normalized_line.strip() != "nop":
-            return False
-        changed = True
-    return changed

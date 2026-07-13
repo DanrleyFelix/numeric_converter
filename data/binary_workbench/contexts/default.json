@@ -1070,7 +1070,7 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "4c60963d8f86f4da3e7a5112e5f8a6af8a5ac1bfb712a99e7c3c11f6768ded3e",
+                "symbols": "e67d3b591c56e8209f772c551584162d1e3b572f32644510a65c79ca37bbd4b1",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
                 "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
@@ -1212,8 +1212,8 @@
                     "offsets": {
                         "File": "0x00000010"
                     },
-                    "instruction": "JAL @equate_24d34",
-                    "bytes_text": "4D 93 00 0C",
+                    "instruction": "JAL 0x62",
+                    "bytes_text": "18 00 00 0C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1264,6 +1264,96 @@
                     },
                     "instruction": "ADDIU t2, t2, 0x2",
                     "bytes_text": "02 00 4A 25",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000028",
+                    "offsets": {
+                        "File": "0x00000028"
+                    },
+                    "instruction": "ADDIU $t2, $t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000002C",
+                    "offsets": {
+                        "File": "0x0000002C"
+                    },
+                    "instruction": "addu $t2, $t3, $zero",
+                    "bytes_text": "21 50 60 01",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000030",
+                    "offsets": {
+                        "File": "0x00000030"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000034",
+                    "offsets": {
+                        "File": "0x00000034"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000038",
+                    "offsets": {
+                        "File": "0x00000038"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000003C",
+                    "offsets": {
+                        "File": "0x0000003C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000040",
+                    "offsets": {
+                        "File": "0x00000040"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000044",
+                    "offsets": {
+                        "File": "0x00000044"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "-",
+                    "offsets": {
+                        "File": "-"
+                    },
+                    "instruction": "",
+                    "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 }

@@ -67,12 +67,12 @@ class EditorCompletionMixin:
     def _candidates_for_prefix(self, prefix: str) -> list[str]:
         normalized = prefix.lower()
         if normalized.startswith("/"):
-            return [item for item in self._completion_items["command"] if item.lower().startswith(normalized)]
+            return _partial_prefix_matches(self._completion_items["command"], normalized)
         if normalized.startswith("_"):
-            return [item for item in self._completion_items["variable"] if item.lower().startswith(normalized)]
+            return _partial_prefix_matches(self._completion_items["variable"], normalized)
         if normalized.startswith("@"):
-            return [item for item in self._completion_items["equate"] if item.lower().startswith(normalized)]
-        return [item for item in self._completion_items["label"] if item.lower().startswith(normalized)]
+            return _partial_prefix_matches(self._completion_items["equate"], normalized)
+        return _partial_prefix_matches(self._completion_items["label"], normalized)
 
     def _accept_current_completion(self) -> bool:
         popup = self._completer.popup()
@@ -144,3 +144,12 @@ class EditorCompletionMixin:
 
 def _first_completion(values: list[str]) -> str:
     return values[0] if values else ""
+
+
+def _partial_prefix_matches(values: list[str], normalized_prefix: str) -> list[str]:
+    return [
+        item
+        for item in values
+        if item.lower().startswith(normalized_prefix)
+        and item.lower() != normalized_prefix
+    ]

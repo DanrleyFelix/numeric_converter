@@ -8,6 +8,9 @@ from src.presentation.ui.components.toolbar_constants import (
     TOOLBAR_SIZE,
     TOOLBAR_TEXT,
 )
+from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
+    use_white_menu_icons,
+)
 from src.presentation.ui.design.icons import Icons
 
 
@@ -34,6 +37,7 @@ class Toolbar(QFrame):
         self.auto_convert_action.setCheckable(True)
         self.auto_convert_action.setChecked(False)
         self.binary_workbench_action = QAction(TOOLBAR_TEXT.BINARY_WORKBENCH, self)
+        self.binary_workbench_action.setIcon(Icons.binary())
         self.user_guide_action = QAction(TOOLBAR_TEXT.USER_GUIDE, self)
         self.donor_action = QAction(TOOLBAR_TEXT.DONOR, self)
         self._configure_shortcuts()
@@ -49,7 +53,9 @@ class Toolbar(QFrame):
         preferences_menu.addAction(self.auto_convert_action)
 
         tools_menu = QMenu(self)
+        tools_menu.setObjectName("numeric-workbench-placeholder-menu")
         tools_menu.addAction(self.binary_workbench_action)
+        use_white_menu_icons(tools_menu)
 
         help_menu = QMenu(self)
         help_menu.addAction(self.user_guide_action)

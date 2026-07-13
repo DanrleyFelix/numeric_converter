@@ -1,10 +1,48 @@
 from PySide6.QtCore import QEvent, QItemSelectionModel, QRect, Qt, Signal, QStringListModel
-from PySide6.QtGui import QKeyEvent, QPainter, QTextCursor
+from PySide6.QtGui import QContextMenuEvent, QKeyEvent, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit
 
 from src.presentation.ui.components.command_panel.prompt_area import PromptArea
+from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
+    use_white_menu_icons,
+)
 from src.presentation.ui.helpers.completer_popup import fit_completer_popup_height
 from src.presentation.ui.helpers.load_qss import STYLESHEET
+
+
+class CommandCompleterPopup(QListView):
+    def __init__(self, owner: "CommandEdit") -> None:
+        super().__init__()
+        self._owner = owner
+        self._restoring_current_index = False
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() in (Qt.Key_Up, Qt.Key_Down):
+            self._owner._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
+            event.accept()
+            return
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
+            self._owner._accept_popup_completion()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def currentChanged(self, current, previous) -> None:
+        super().currentChanged(current, previous)
+        if current.isValid() or self._restoring_current_index:
+            return
+        model = self.model()
+        count = model.rowCount()
+        if count <= 0 or not previous.isValid():
+            return
+        target = 0 if previous.row() >= count - 1 else count - 1
+        self._restoring_current_index = True
+        try:
+            index = model.index(target, 0)
+            self.setCurrentIndex(index)
+            self.selectionModel().setCurrentIndex(index, QItemSelectionModel.ClearAndSelect)
+        finally:
+            self._restoring_current_index = False
 
 
 class CommandEdit(QPlainTextEdit):
@@ -26,10 +64,10 @@ class CommandEdit(QPlainTextEdit):
         self._completer.setCompletionMode(QCompleter.PopupCompletion)
         self._completer.setFilterMode(Qt.MatchStartsWith)
         self._completer.activated.connect(self.insert_completion)
-        popup = QListView()
+        popup = CommandCompleterPopup(self)
         popup.setObjectName("command-completer")
         popup.setStyleSheet(STYLESHEET)
-        popup.setFocusPolicy(Qt.NoFocus)
+        popup.setFocusPolicy(Qt.StrongFocus)
         popup.setFrameShape(QFrame.NoFrame)
         popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         popup.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -37,6 +75,7 @@ class CommandEdit(QPlainTextEdit):
         popup.setMouseTracking(True)
         popup.setSpacing(0)
         popup.installEventFilter(self)
+        popup.viewport().installEventFilter(self)
         self._completer.setPopup(popup)
         self.setContentsMargins(0, 0, 0, 0)
         self.blockCountChanged.connect(self.updatePromptAreaWidth)
@@ -113,7 +152,7 @@ class CommandEdit(QPlainTextEdit):
 
     def eventFilter(self, watched, event) -> bool:
         popup = self._completer.popup()
-        if watched is popup and event.type() == QEvent.Type.KeyPress:
+        if (watched is popup or watched is popup.viewport()) and event.type() == QEvent.Type.KeyPress:
             if event.key() in (Qt.Key_Up, Qt.Key_Down):
                 self._move_popup_selection(-1 if event.key() == Qt.Key_Up else 1)
                 event.accept()
@@ -130,6 +169,17 @@ class CommandEdit(QPlainTextEdit):
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        menu = self._context_menu()
+        menu.exec(event.globalPos())
+        menu.deleteLater()
+
+    def _context_menu(self):
+        menu = self.createStandardContextMenu()
+        menu.setObjectName("binary-workbench-editor-context-menu")
+        use_white_menu_icons(menu)
+        return menu
 
     def paintPromptArea(self, event):
         painter = QPainter(self._promptArea)
@@ -180,6 +230,11 @@ class CommandEdit(QPlainTextEdit):
         if not prefix or not (prefix[0].isalpha() or prefix[0] == "_"):
             self._completer.popup().hide()
             return
+        matches = _partial_prefix_matches(self._variable_completions, prefix)
+        if not matches:
+            self._completer.popup().hide()
+            return
+        self._completion_model.setStringList(matches)
         if prefix != self._completer.completionPrefix():
             self._completer.setCompletionPrefix(prefix)
             self._completer.popup().setCurrentIndex(
@@ -238,3 +293,13 @@ class CommandEdit(QPlainTextEdit):
         self._history_mode_active = False
         self._completion_model.setStringList(self._variable_completions)
         self._completer.popup().hide()
+
+
+def _partial_prefix_matches(values: list[str], prefix: str) -> list[str]:
+    normalized = prefix.lower()
+    return [
+        item
+        for item in values
+        if item.lower().startswith(normalized)
+        and item.lower() != normalized
+    ]
