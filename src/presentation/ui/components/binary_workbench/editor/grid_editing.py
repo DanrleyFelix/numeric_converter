@@ -8,6 +8,7 @@ from src.core.binary_workbench.mips_r3000a import (
 from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
+from src.core.binary_workbench.row_structure import structural_offset_delta
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
@@ -92,9 +93,10 @@ class GridEditingMixin:
                 self._codec,
                 self._symbol_offsets,
             )
+        offset_delta = structural_offset_delta(self._rows, updated)
         incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
         self._rows = updated
-        if not editing_bytes:
+        if offset_delta:
             labels = labels_from_rows(updated)
             if labels != self._labels:
                 self._set_editing_labels(labels)
@@ -120,7 +122,8 @@ class GridEditingMixin:
             values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
             self._set_editor_text(target, values)
             self._render_raw_instructions()
-        self._refresh_label_folding()
+        if offset_delta:
+            self._refresh_label_folding()
         if not self._virtual:
             self._scroll_static_document(self.scrollbar.value())
         self._emit_selection_summary()

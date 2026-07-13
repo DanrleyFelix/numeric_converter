@@ -7,9 +7,6 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
-from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
-    labels_from_rows,
-)
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import (
     update_selection_summary,
 )
@@ -21,7 +18,9 @@ class EditorPageContextMixin:
         if self._reader is not None:
             self._update_overlay(rows)
             return
-        self._update_context(symbol_updates(self._context, rows))
+        self._update_context(
+            symbol_updates(self._context, rows, self.grid.current_labels())
+        )
 
     def _on_commands_changed(self, commands: dict[str, list[str]]) -> None:
         self._update_context({"custom_commands": commands})
@@ -75,8 +74,13 @@ class EditorPageContextMixin:
         self.contextChanged.emit(self._context)
 
 
-def symbol_updates(context: BinaryWorkbenchTabContextDTO, rows: list) -> dict[str, object]:
-    labels = labels_from_rows(rows)
+def symbol_updates(
+    context: BinaryWorkbenchTabContextDTO,
+    rows: list,
+    labels: dict[str, str],
+) -> dict[str, object]:
+    """Build context updates from the grid's current structural label snapshot."""
+
     updates = {
         "rows": rows,
         "labels": labels,

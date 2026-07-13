@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     normalize_instruction_text,
 )
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
+from src.core.binary_workbench.row_structure import first_valid_label_offset
 
 
 class GridRenderingMixin:
@@ -102,6 +103,16 @@ class GridRenderingMixin:
         self._refresh_jump_navigation()
         if hasattr(self, "raw_instructions"):
             self._render_raw_instructions()
+
+    def current_labels(self) -> dict[str, str]:
+        """Return the in-memory label snapshot used by branch navigation."""
+
+        return dict(self._labels)
+
+    def label_navigation_target(self, label: str) -> int | None:
+        """Resolve one clicked label against the grid's current rows."""
+
+        return first_valid_label_offset(self._rows, label)
 
     def _refresh_jump_navigation(self) -> None:
         self._instruction_highlighter.set_jump_reference_offsets(

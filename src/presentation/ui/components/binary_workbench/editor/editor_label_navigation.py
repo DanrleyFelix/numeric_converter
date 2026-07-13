@@ -1,5 +1,7 @@
 ﻿import re
 
+from collections.abc import Callable
+
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QToolTip
@@ -27,6 +29,14 @@ DEFAULT_ROW_BYTES = 4
 
 
 class EditorLabelNavigationMixin:
+    def set_label_target_resolver(
+        self,
+        resolver: Callable[[str], int | None],
+    ) -> None:
+        """Set the on-demand resolver used for clicked label operands."""
+
+        self._label_target_resolver = resolver
+
     def set_label_offsets(self, labels: dict[str, str]) -> None:
         self._label_offsets = {
             name.lower(): (name, safe_int(offset))
@@ -47,6 +57,7 @@ class EditorLabelNavigationMixin:
     ) -> None:
         self._jump_codec = codec
         label_symbols = {name.lower(): value for name, value in labels.items()}
+        self._jump_label_symbols = set(label_symbols)
         variable_symbols = {f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}
         equate_symbols = {f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}
         self._jump_symbols = {**label_symbols, **variable_symbols, **equate_symbols}
@@ -80,6 +91,12 @@ class EditorLabelNavigationMixin:
         return target, self._jump_target_tooltip(target)
 
     def _standard_target(self, position: QPoint, token: str) -> int | None:
+        if self._label_target_resolver is not None:
+            live_target = self._label_target_resolver(token)
+            if live_target is not None:
+                return live_target
+            if token.lower() in self._jump_label_symbols:
+                return None
         instruction = self.cursorForPosition(position).block().text()
         return self._jump_codec.jump_navigation_target(
             instruction,

@@ -70,6 +70,8 @@ class WorkbenchEditor(
         self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": [], "command": []}
         self._symbol_tooltips: dict[str, str] = {}
         self._label_offsets: dict[str, tuple[str, int]] = {}
+        self._label_target_resolver = None
+        self._jump_label_symbols: set[str] = set()
         self._jump_codec = None
         self._jump_symbols: dict[str, str] = {}
         self._jump_symbol_kinds: dict[str, str] = {}

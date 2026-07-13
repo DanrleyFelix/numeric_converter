@@ -46,6 +46,7 @@ class GridLayoutMixin:
         self.bytes.textChanged.connect(self._on_bytes_changed)
         self.instructions.textChanged.connect(self._on_instructions_changed)
         self.instructions.set_immediate_symbol_menu_enabled(True)
+        self.instructions.set_label_target_resolver(self.label_navigation_target)
         self.instructions.immediateSymbolRequested.connect(self.immediateSymbolRequested)
         self.instructions.addCommandRequested.connect(self._add_custom_command_from_selection)
         self.instructions.labelActivated.connect(self.labelActivated)
