@@ -52,7 +52,10 @@ def _load_store_command(name: str, args: list[str]) -> list[str] | None:
         return None
     base, target = selected
     mnemonic = STORE_ALIASES.get(name, name)
-    return [*_load_immediate_lines(base, numbers[0] - offset), f"{mnemonic} {target}, {_hex(offset)}({base})"]
+    return [
+        *_load_immediate_lines(base, numbers[0] - offset),
+        f"{mnemonic} {_register_text(target)}, {_hex(offset)}({_register_text(base)})",
+    ]
 
 
 def _branch_command(name: str, args: list[str]) -> list[str] | None:
@@ -83,8 +86,8 @@ def _where_command(args: list[str], index: int) -> list[str] | None:
         f"{start}: {condition[0]}",
         *condition[1:],
         "# loop body stays here",
-        f"addiu {r1}, {r1}, {_hex(step)}",
-        f"beq zero, zero, {start}",
+        f"addiu {_register_text(r1)}, {_register_text(r1)}, {_hex(step)}",
+        f"beq {_register_text('zero')}, {_register_text('zero')}, {start}",
         "nop",
         f"{end}: nop",
     ]
@@ -130,20 +133,25 @@ def _condition_branch_lines(
 ) -> list[str]:
     if operator in {"==", "!="}:
         branch = "beq" if (operator == "==") == branch_when_true else "bne"
-        return [f"{branch} {r1}, {r2}, {destination}", "nop"]
+        return [f"{branch} {_register_text(r1)}, {_register_text(r2)}, {destination}", "nop"]
     left, right = (r2, r1) if operator in {">", "<="} else (r1, r2)
     true_branch = "bne" if operator in {"<", ">"} else "beq"
     branch = true_branch if branch_when_true else ("beq" if true_branch == "bne" else "bne")
-    return [f"slt t0, {left}, {right}", f"{branch} t0, zero, {destination}", "nop"]
+    return [
+        f"slt {_register_text('t0')}, {_register_text(left)}, {_register_text(right)}",
+        f"{branch} {_register_text('t0')}, {_register_text('zero')}, {destination}",
+        "nop",
+    ]
 
 
 def _load_immediate_lines(register: str, value: int) -> list[str]:
+    target = _register_text(register)
     if -0x8000 <= value <= 0xFFFF:
-        return [f"addiu {register}, zero, {_hex(value)}"]
+        return [f"addiu {target}, {_register_text('zero')}, {_hex(value)}"]
     value &= 0xFFFFFFFF
     return [
-        f"lui {register}, {_hex((value >> 16) & 0xFFFF)}",
-        f"ori {register}, {register}, {_hex(value & 0xFFFF)}",
+        f"lui {target}, {_hex((value >> 16) & 0xFFFF)}",
+        f"ori {target}, {target}, {_hex(value & 0xFFFF)}",
     ]
 
 
@@ -176,6 +184,10 @@ def _split_args(args: list[str]) -> tuple[tuple[int, ...], tuple[str, ...], tupl
 def _register(token: str) -> str | None:
     value = token.strip().lstrip("$").lower()
     return value if value and value in REGISTERS and not value.isdecimal() else None
+
+
+def _register_text(register: str) -> str:
+    return f"${register.lstrip('$')}"
 
 
 def _number(token: str) -> int | None:

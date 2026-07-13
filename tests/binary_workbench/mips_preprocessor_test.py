@@ -65,7 +65,31 @@ def test_mips_pseudo_instructions_expand_to_core_instructions():
 
 
 def test_mips_li_command_uses_single_addiu_for_16_bit_immediate():
-    assert editor_command_output("li", ["0xFFFF", "v0"]) == ["addiu v0, zero, 0xFFFF"]
+    assert editor_command_output("li", ["0xFFFF", "v0"]) == ["addiu $v0, $zero, 0xFFFF"]
+    assert editor_command_output("li", ["0xFFFF", "$v0"]) == ["addiu $v0, $zero, 0xFFFF"]
+
+
+def test_mips_editor_commands_emit_registers_with_dollar_sign_without_requiring_it():
+    assert editor_command_output("lw", ["0x80010010", "4", "s0", "$v0"]) == [
+        "lui $s0, 0x8001",
+        "ori $s0, $s0, 0xC",
+        "lw $v0, 0x4($s0)",
+    ]
+    assert editor_command_output("blt", ["s1", "$s2", "target"]) == [
+        "slt $t0, $s1, $s2",
+        "bne $t0, $zero, target",
+        "nop",
+    ]
+    assert editor_command_output("where", ["s1<s2", "4"]) == [
+        "where_001_start: slt $t0, $s1, $s2",
+        "beq $t0, $zero, where_001_end",
+        "nop",
+        "# loop body stays here",
+        "addiu $s1, $s1, 0x4",
+        "beq $zero, $zero, where_001_start",
+        "nop",
+        "where_001_end: nop",
+    ]
 
 def test_mips_source_lines_only_advance_offsets_for_valid_instructions():
     rows = build_rows_from_instructions(

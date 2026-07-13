@@ -32,8 +32,9 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
-                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
+                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:testando_asm": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:testando_Asm2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -42,9 +43,9 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
+                "symbols": "22fa88a14fc78dc2b13c83bf063c69985869e6b0f4dec4bf5400723f8ac1c75a",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "843f0a93254011c6697c048451705cfcc38a0628be042ece7730cf7a0d190cc9",
+                "versions": "f222b8927b8b42e18a28987dae17e49b8bfb5989ceed012f3d3128dc2aeb2967",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -174,8 +175,8 @@
                     "offsets": {
                         "File": "0x00000000"
                     },
-                    "instruction": "LUI $t1, 0x801D",
-                    "bytes_text": "1D 80 09 3C",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -184,8 +185,8 @@
                     "offsets": {
                         "File": "0x00000004"
                     },
-                    "instruction": "ORI $t1, $t1, 0x9200",
-                    "bytes_text": "00 92 29 35",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -194,8 +195,8 @@
                     "offsets": {
                         "File": "0x00000008"
                     },
-                    "instruction": "ADDIU $a2, $a2, 0x2",
-                    "bytes_text": "02 00 C6 24",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -214,8 +215,8 @@
                     "offsets": {
                         "File": "0x00000010"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "JAL 0x62",
+                    "bytes_text": "18 00 00 0C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -234,8 +235,8 @@
                     "offsets": {
                         "File": "0x00000018"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "LUI t1, 0x801A",
+                    "bytes_text": "1A 80 09 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -244,8 +245,8 @@
                     "offsets": {
                         "File": "0x0000001C"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ORI t1, t1, 0xB364",
+                    "bytes_text": "64 B3 29 35",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -254,8 +255,8 @@
                     "offsets": {
                         "File": "0x00000020"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "LHU t2, 0x0(t1)",
+                    "bytes_text": "00 00 2A 95",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -264,8 +265,8 @@
                     "offsets": {
                         "File": "0x00000024"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ADDIU t2, t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -274,8 +275,8 @@
                     "offsets": {
                         "File": "0x00000028"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ADDIU $t2, $t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -284,8 +285,8 @@
                     "offsets": {
                         "File": "0x0000002C"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ADDU $t2, $t3, $zero",
+                    "bytes_text": "21 50 60 01",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -294,8 +295,8 @@
                     "offsets": {
                         "File": "0x00000030"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "LUI a0, 0x801D",
+                    "bytes_text": "1D 80 04 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -304,8 +305,8 @@
                     "offsets": {
                         "File": "0x00000034"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ORI a0, a0, 0x9938",
+                    "bytes_text": "38 99 84 34",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -458,6 +459,66 @@
                     "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000074",
+                    "offsets": {
+                        "File": "0x00000074"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000078",
+                    "offsets": {
+                        "File": "0x00000078"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000007C",
+                    "offsets": {
+                        "File": "0x0000007C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000080",
+                    "offsets": {
+                        "File": "0x00000080"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000084",
+                    "offsets": {
+                        "File": "0x00000084"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000088",
+                    "offsets": {
+                        "File": "0x00000088"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
                 }
             ],
             "view_preferences": {
@@ -507,7 +568,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\LBA File System.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
                 "version:test_bin": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json"
             },
@@ -520,7 +580,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "6a743f60a15e6ec53b74ed827b42641f0b3194b5bada21fd4c32e89c54c09ad8",
+                "versions": "f80717275bcdf0a60dbf3bc73c7624a6616f5d66db76cf339f96d576c59a11a6",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
@@ -743,7 +803,6 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:test_skus": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:v1": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json"
@@ -757,7 +816,7 @@
             "module_checksums": {
                 "symbols": "e7ff062e1fcd4442395f81455d517998b745bf39e0f254f25082efb3dc1ef082",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "a5f4640f4ff9451ef54ec6dd3035a1fbaf72cecf3cc6f06673b63ce36a1afbee",
+                "versions": "55ecb97c4cb10e5a8e75eb9d6394e78896c8f193bad04eb8fe2ae0ef0d409eb3",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "9949854ea845ca56e0d14aa5677a22f6b3035b2e8a866f9b652b39916ed33dd5"
             },
@@ -1032,9 +1091,9 @@
         },
         {
             "tab_id": "df04e99f85a64341a47474cb8fb23224",
-            "kind": "scratch",
-            "display_name": "scratch_1.asm",
-            "source_path": null,
+            "kind": "assembly",
+            "display_name": "teste_new_v23.asm",
+            "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\teste_new_v23.asm",
             "cpu_arch": "PSX - Mips R3000A",
             "read_mode": "assembly",
             "reference_offsets": [
@@ -1056,12 +1115,15 @@
             "offset_regions_loaded": false,
             "encoding_tables": [],
             "versions": [],
-            "active_version_name": null,
+            "active_version_name": "default",
             "workspace_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\scratch_1_workspace_manifest.json",
             "module_paths": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\scratch_1_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\scratch_1_workspace_manifest_lba.json",
-                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json"
+                "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\scratch_1_workspace_manifest_offset_regions.json",
+                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:testando_asm": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json",
+                "version:testando_Asm2": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\scratch_1_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -1070,17 +1132,17 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "e67d3b591c56e8209f772c551584162d1e3b572f32644510a65c79ca37bbd4b1",
+                "symbols": "22fa88a14fc78dc2b13c83bf063c69985869e6b0f4dec4bf5400723f8ac1c75a",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
+                "versions": "f222b8927b8b42e18a28987dae17e49b8bfb5989ceed012f3d3128dc2aeb2967",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
             "custom_commands": {},
             "last_open_offset": "0x00000000",
             "navigation_history": [],
-            "file_size": 32,
-            "original_file_size": 32,
+            "file_size": 76,
+            "original_file_size": 76,
             "version_dirty": false,
             "byte_overlays": {},
             "instruction_overlays": {},
@@ -1126,101 +1188,19 @@
                     "original_bytes_text": ""
                 },
                 {
-                    "offset": "0x00000010",
+                    "offset": "-",
                     "offsets": {
-                        "File": "0x00000010"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x00000014",
-                    "offsets": {
-                        "File": "0x00000014"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x00000018",
-                    "offsets": {
-                        "File": "0x00000018"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x0000001C",
-                    "offsets": {
-                        "File": "0x0000001C"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                }
-            ],
-            "rows": [
-                {
-                    "offset": "0x00000000",
-                    "offsets": {
-                        "File": "0x00000000"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x00000004",
-                    "offsets": {
-                        "File": "0x00000004"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x00000008",
-                    "offsets": {
-                        "File": "0x00000008"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x0000000C",
-                    "offsets": {
-                        "File": "0x0000000C"
-                    },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x00000010",
-                    "offsets": {
-                        "File": "0x00000010"
+                        "File": "-"
                     },
                     "instruction": "JAL 0x62",
-                    "bytes_text": "18 00 00 0C",
+                    "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
                 {
-                    "offset": "0x00000014",
+                    "offset": "0x00000010",
                     "offsets": {
-                        "File": "0x00000014"
+                        "File": "0x00000010"
                     },
                     "instruction": "nop",
                     "bytes_text": "00 00 00 00",
@@ -1228,9 +1208,9 @@
                     "original_bytes_text": ""
                 },
                 {
-                    "offset": "0x00000018",
+                    "offset": "0x00000014",
                     "offsets": {
-                        "File": "0x00000018"
+                        "File": "0x00000014"
                     },
                     "instruction": "LUI t1, 0x801A",
                     "bytes_text": "1A 80 09 3C",
@@ -1238,12 +1218,22 @@
                     "original_bytes_text": ""
                 },
                 {
+                    "offset": "0x00000018",
+                    "offsets": {
+                        "File": "0x00000018"
+                    },
+                    "instruction": "ORI t1, t1, 0xB364",
+                    "bytes_text": "64 B3 29 35",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
                     "offset": "0x0000001C",
                     "offsets": {
                         "File": "0x0000001C"
                     },
-                    "instruction": "ORI t1, t1, 0xB364",
-                    "bytes_text": "64 B3 29 35",
+                    "instruction": "LHU t2, 0x0(t1)",
+                    "bytes_text": "00 00 2A 95",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1252,8 +1242,8 @@
                     "offsets": {
                         "File": "0x00000020"
                     },
-                    "instruction": "LHU t2, 0x0(t1)",
-                    "bytes_text": "00 00 2A 95",
+                    "instruction": "ADDIU t2, t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1262,7 +1252,7 @@
                     "offsets": {
                         "File": "0x00000024"
                     },
-                    "instruction": "ADDIU t2, t2, 0x2",
+                    "instruction": "ADDIU $t2, $t2, @equate_2",
                     "bytes_text": "02 00 4A 25",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -1272,8 +1262,8 @@
                     "offsets": {
                         "File": "0x00000028"
                     },
-                    "instruction": "ADDIU $t2, $t2, @equate_2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "addu $t2, $t3, $zero",
+                    "bytes_text": "21 50 60 01",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1282,8 +1272,8 @@
                     "offsets": {
                         "File": "0x0000002C"
                     },
-                    "instruction": "addu $t2, $t3, $zero",
-                    "bytes_text": "21 50 60 01",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1338,9 +1328,51 @@
                     "original_bytes_text": ""
                 },
                 {
-                    "offset": "0x00000044",
+                    "offset": "-",
                     "offsets": {
-                        "File": "0x00000044"
+                        "File": "-"
+                    },
+                    "instruction": "",
+                    "bytes_text": "",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                }
+            ],
+            "rows": [
+                {
+                    "offset": "0x00000000",
+                    "offsets": {
+                        "File": "0x00000000"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000004",
+                    "offsets": {
+                        "File": "0x00000004"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000008",
+                    "offsets": {
+                        "File": "0x00000008"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000000C",
+                    "offsets": {
+                        "File": "0x0000000C"
                     },
                     "instruction": "nop",
                     "bytes_text": "00 00 00 00",
@@ -1352,8 +1384,308 @@
                     "offsets": {
                         "File": "-"
                     },
-                    "instruction": "",
+                    "instruction": "JAL 0x62",
                     "bytes_text": "",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000010",
+                    "offsets": {
+                        "File": "0x00000010"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000014",
+                    "offsets": {
+                        "File": "0x00000014"
+                    },
+                    "instruction": "LUI t1, 0x801A",
+                    "bytes_text": "1A 80 09 3C",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000018",
+                    "offsets": {
+                        "File": "0x00000018"
+                    },
+                    "instruction": "ORI t1, t1, 0xB364",
+                    "bytes_text": "64 B3 29 35",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000001C",
+                    "offsets": {
+                        "File": "0x0000001C"
+                    },
+                    "instruction": "LHU t2, 0x0(t1)",
+                    "bytes_text": "00 00 2A 95",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000020",
+                    "offsets": {
+                        "File": "0x00000020"
+                    },
+                    "instruction": "ADDIU t2, t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000024",
+                    "offsets": {
+                        "File": "0x00000024"
+                    },
+                    "instruction": "ADDIU $t2, $t2, @equate_2",
+                    "bytes_text": "02 00 4A 25",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000028",
+                    "offsets": {
+                        "File": "0x00000028"
+                    },
+                    "instruction": "ADDU $t2, $t3, $zero",
+                    "bytes_text": "21 50 60 01",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000002C",
+                    "offsets": {
+                        "File": "0x0000002C"
+                    },
+                    "instruction": "LUI a0, 0x801D",
+                    "bytes_text": "1D 80 04 3C",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000030",
+                    "offsets": {
+                        "File": "0x00000030"
+                    },
+                    "instruction": "LUI $a0, 0x801D",
+                    "bytes_text": "1D 80 04 3C",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000034",
+                    "offsets": {
+                        "File": "0x00000034"
+                    },
+                    "instruction": "ORI $a0, $a0, 0x9938",
+                    "bytes_text": "38 99 84 34",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000038",
+                    "offsets": {
+                        "File": "0x00000038"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000003C",
+                    "offsets": {
+                        "File": "0x0000003C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000040",
+                    "offsets": {
+                        "File": "0x00000040"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000044",
+                    "offsets": {
+                        "File": "0x00000044"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000048",
+                    "offsets": {
+                        "File": "0x00000048"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000004C",
+                    "offsets": {
+                        "File": "0x0000004C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000050",
+                    "offsets": {
+                        "File": "0x00000050"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000054",
+                    "offsets": {
+                        "File": "0x00000054"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000058",
+                    "offsets": {
+                        "File": "0x00000058"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000005C",
+                    "offsets": {
+                        "File": "0x0000005C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000060",
+                    "offsets": {
+                        "File": "0x00000060"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000064",
+                    "offsets": {
+                        "File": "0x00000064"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000068",
+                    "offsets": {
+                        "File": "0x00000068"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000006C",
+                    "offsets": {
+                        "File": "0x0000006C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000070",
+                    "offsets": {
+                        "File": "0x00000070"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000074",
+                    "offsets": {
+                        "File": "0x00000074"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000078",
+                    "offsets": {
+                        "File": "0x00000078"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x0000007C",
+                    "offsets": {
+                        "File": "0x0000007C"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000080",
+                    "offsets": {
+                        "File": "0x00000080"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000084",
+                    "offsets": {
+                        "File": "0x00000084"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 }
