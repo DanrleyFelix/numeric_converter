@@ -103,6 +103,14 @@ class Icons:
         return Icons._icon("help", "icon-toolbar")
 
     @staticmethod
+    def collapse_circle():
+        return Icons._icon("collapse_circle", "icon-toolbar")
+
+    @staticmethod
+    def expand_circle():
+        return Icons._icon("expand_circle", "icon-toolbar")
+
+    @staticmethod
     def copy():
         return Icons._icon("copy", "icon-toolbar")
 

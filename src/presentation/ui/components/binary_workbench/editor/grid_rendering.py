@@ -148,6 +148,7 @@ class GridRenderingMixin:
         self._instruction_highlighter.rehighlight()
         self._render_raw_instructions()
         self._render_offsets()
+        self._refresh_label_folding()
         self._emit_selection_summary()
 
     def _render_offsets(self) -> None:
@@ -179,7 +180,7 @@ class GridRenderingMixin:
 
     def _scroll_static_document(self, value: int) -> None:
         offset = self._aligned_scroll_offset(value)
-        row_index = offset // ROW_BYTES
+        row_index = self._visible_block_position(offset // ROW_BYTES)
         self._visible_start_offset = offset
         self._last_visible_offset = offset
         editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions]

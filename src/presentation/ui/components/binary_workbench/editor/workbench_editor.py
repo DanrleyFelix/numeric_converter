@@ -17,6 +17,9 @@ from src.presentation.ui.components.binary_workbench.editor.editor_immediate_men
 from src.presentation.ui.components.binary_workbench.editor.editor_label_navigation import (
     EditorLabelNavigationMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.editor_label_folding import (
+    EditorLabelFoldingMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.editor_selection_scroll import (
     EditorSelectionScrollMixin,
 )
@@ -36,6 +39,7 @@ class WorkbenchEditor(
     EditorCompletionMixin,
     EditorImmediateMenuMixin,
     EditorLabelNavigationMixin,
+    EditorLabelFoldingMixin,
     EditorSelectionScrollMixin,
     EditorShortcutMixin,
     EditorGranularUndoMixin,
@@ -55,6 +59,7 @@ class WorkbenchEditor(
     returnKeyPressed = Signal(object, object)
     protectedEditKeyPressed = Signal(object, object)
     navigationWarningRequested = Signal(str)
+    labelFoldToggled = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -89,6 +94,7 @@ class WorkbenchEditor(
         self._protected_edit_key_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
+        self._setup_label_folding()
         self.setup_editor_shortcuts()
         self.cursorPositionChanged.connect(self._normalize_instruction_line_after_offset_change)
 

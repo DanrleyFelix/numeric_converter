@@ -45,7 +45,7 @@
             "module_checksums": {
                 "symbols": "22fa88a14fc78dc2b13c83bf063c69985869e6b0f4dec4bf5400723f8ac1c75a",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f222b8927b8b42e18a28987dae17e49b8bfb5989ceed012f3d3128dc2aeb2967",
+                "versions": "30d4fe4b50a5e7011b0b8bd2923aa6109a22281ba3cbda1ec9cedd165416417f",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -305,8 +305,8 @@
                     "offsets": {
                         "File": "0x00000034"
                     },
-                    "instruction": "ORI a0, a0, 0x9938",
-                    "bytes_text": "38 99 84 34",
+                    "instruction": "LUI $a0, 0x801D",
+                    "bytes_text": "1D 80 04 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -315,8 +315,8 @@
                     "offsets": {
                         "File": "0x00000038"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "ORI $a0, $a0, 0x9938",
+                    "bytes_text": "38 99 84 34",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -568,6 +568,7 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\LBA File System.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_workspace_manifest_offset_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
                 "version:test_bin": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json"
             },
@@ -580,7 +581,7 @@
             "module_checksums": {
                 "symbols": "6a1b832712966aa597aca5f2d7278821d68d77c4bc10413c3f4460f21be4de14",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f80717275bcdf0a60dbf3bc73c7624a6616f5d66db76cf339f96d576c59a11a6",
+                "versions": "6a743f60a15e6ec53b74ed827b42641f0b3194b5bada21fd4c32e89c54c09ad8",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
@@ -803,6 +804,7 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\dist\\windows\\numeric-workbench-v2.0-windows-x86_64\\data\\binary_workbench\\workspaces\\LBA File System\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_offset_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:test_skus": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json",
                 "version:v1": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_SLUS_014_19_workspace_manifest_versions.json"
@@ -816,7 +818,7 @@
             "module_checksums": {
                 "symbols": "e7ff062e1fcd4442395f81455d517998b745bf39e0f254f25082efb3dc1ef082",
                 "lba_filesystem": "b5219e95fec89e008882a779daa6ff8770cd2f6cef71991a727762b9a163653f",
-                "versions": "55ecb97c4cb10e5a8e75eb9d6394e78896c8f193bad04eb8fe2ae0ef0d409eb3",
+                "versions": "a5f4640f4ff9451ef54ec6dd3035a1fbaf72cecf3cc6f06673b63ce36a1afbee",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "9949854ea845ca56e0d14aa5677a22f6b3035b2e8a866f9b652b39916ed33dd5"
             },
@@ -1134,7 +1136,7 @@
             "module_checksums": {
                 "symbols": "22fa88a14fc78dc2b13c83bf063c69985869e6b0f4dec4bf5400723f8ac1c75a",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f222b8927b8b42e18a28987dae17e49b8bfb5989ceed012f3d3128dc2aeb2967",
+                "versions": "30d4fe4b50a5e7011b0b8bd2923aa6109a22281ba3cbda1ec9cedd165416417f",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
@@ -1404,7 +1406,7 @@
                     "offsets": {
                         "File": "0x00000014"
                     },
-                    "instruction": "LUI t1, 0x801A",
+                    "instruction": "test: LUI t1, 0x801A",
                     "bytes_text": "1A 80 09 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -1464,7 +1466,7 @@
                     "offsets": {
                         "File": "0x0000002C"
                     },
-                    "instruction": "LUI a0, 0x801D",
+                    "instruction": "test2: LUI a0, 0x801D",
                     "bytes_text": "1D 80 04 3C",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -1494,8 +1496,8 @@
                     "offsets": {
                         "File": "0x00000038"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "JR $ra",
+                    "bytes_text": "08 00 E0 03",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1514,8 +1516,8 @@
                     "offsets": {
                         "File": "0x00000040"
                     },
-                    "instruction": "nop",
-                    "bytes_text": "00 00 00 00",
+                    "instruction": "BEQ $zero, $zero, test",
+                    "bytes_text": "F4 FF 00 10",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -1683,6 +1685,16 @@
                     "offset": "0x00000084",
                     "offsets": {
                         "File": "0x00000084"
+                    },
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "0x00000088",
+                    "offsets": {
+                        "File": "0x00000088"
                     },
                     "instruction": "nop",
                     "bytes_text": "00 00 00 00",

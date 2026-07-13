@@ -50,6 +50,7 @@ class GridLayoutMixin:
         self.instructions.addCommandRequested.connect(self._add_custom_command_from_selection)
         self.instructions.labelActivated.connect(self.labelActivated)
         self.instructions.jumpNavigationActivated.connect(self.jumpNavigationActivated)
+        self.instructions.labelFoldToggled.connect(self.toggle_label_fold)
         self.instructions.labelOpenTabRequested.connect(self.labelOpenTabRequested)
         self.instructions.navigationWarningRequested.connect(self.navigationWarningRequested)
         self.raw_instructions.focused.connect(lambda: self._set_last_editor(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS))

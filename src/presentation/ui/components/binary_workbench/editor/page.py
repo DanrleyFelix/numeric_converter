@@ -105,6 +105,7 @@ class BinaryWorkbenchEditorPage(
         return self._context
 
     def go_to_clicked_instruction_offset(self, target_offset: int, source_offset: int) -> None:
+        self.grid.expand_label_for_offset(target_offset)
         if self._navigation_offset_is_valid(target_offset) and self._navigation_offset_is_valid(source_offset):
             self._push_jump_return_offset(source_offset)
         self.go_to_instruction_offset(target_offset)
@@ -171,6 +172,12 @@ class BinaryWorkbenchEditorPage(
         self._context = context
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
+        self.grid.set_label_folding_enabled(
+            context.kind in {
+                BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+                BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+            }
+        )
         self.grid.set_decoded_text_values(enabled_encoding_values(
             context.encoding_tables,
             context.view_preferences.decoded_text_tables,

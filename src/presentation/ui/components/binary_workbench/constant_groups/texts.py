@@ -103,6 +103,8 @@
     ADD_VARIABLE_FROM_IMMEDIATE: str = "Add Variable"
     ADD_EQUATE_FROM_IMMEDIATE: str = "Add Equate"
     OPEN_LABEL_NEW_TAB: str = "Open Label in New Tab"
+    COLLAPSE_LABEL: str = "Collapse label instructions"
+    EXPAND_LABEL: str = "Expand label instructions"
     ADD_COMMAND: str = "Add Command"
     COMMAND_INSTRUCTION_HEADER: str = "Instruction"
     COMMAND_NAME: str = "Command Name"

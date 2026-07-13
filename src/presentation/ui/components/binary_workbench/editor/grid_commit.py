@@ -42,6 +42,7 @@ class GridCommitMixin:
             self._set_editing_labels(labels)
         self._commit_rows_to_context(rows)
         self._render_raw_instructions()
+        self._refresh_label_folding()
         self._dirty_editor_kind = None
 
     def _commit_rows_to_context(self, rows: list[BinaryWorkbenchRowDTO]) -> None:

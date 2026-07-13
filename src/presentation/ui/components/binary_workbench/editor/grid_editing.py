@@ -120,6 +120,7 @@ class GridEditingMixin:
             values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
             self._set_editor_text(target, values)
             self._render_raw_instructions()
+        self._refresh_label_folding()
         if not self._virtual:
             self._scroll_static_document(self.scrollbar.value())
         self._emit_selection_summary()

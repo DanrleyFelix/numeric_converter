@@ -20,6 +20,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_edit_rules impo
 )
 from src.presentation.ui.components.binary_workbench.editor.grid_editing import GridEditingMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_layout import GridLayoutMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_label_folding import (
+    GridLabelFoldingMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_offsets import GridOffsetsMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_rendering import GridRenderingMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_resizing import GridResizingMixin
@@ -41,6 +44,7 @@ ROWS_CHANGED_DEBOUNCE_MS = 180
 
 class BinaryWorkbenchGrid(
     GridLayoutMixin,
+    GridLabelFoldingMixin,
     GridResizingMixin,
     GridRenderingMixin,
     GridCommandsMixin,
@@ -87,6 +91,9 @@ class BinaryWorkbenchGrid(
         self._jump_reference_offset = ""
         self._decoded_text_values: dict[int, str] = {}
         self._labels: dict[str, str] = {}
+        self._label_folding_enabled = False
+        self._label_fold_regions = []
+        self._collapsed_labels: set[str] = set()
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
         self._symbol_offsets: dict[str, list[str]] = {}

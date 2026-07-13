@@ -3651,6 +3651,73 @@ def test_binary_workbench_new_editor_label_updates_symbol_state(tmp_path: Path):
     assert page.grid._labels["fresh_label"] == "0x00000000"  # type: ignore[attr-defined]
 
 
+def test_binary_workbench_label_fold_hides_complete_rows_without_deleting_them(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "start: nop\naddiu $v0, $zero, 1\njr $ra\nnext: nop\nnop"
+    )
+    _app().processEvents()
+    page.grid.flush_pending_rows_changed()  # type: ignore[attr-defined]
+    original_text = page.grid.instructions.toPlainText()  # type: ignore[attr-defined]
+    original_rows = page.grid.export_rows()  # type: ignore[attr-defined]
+
+    page.grid.instructions.request_label_fold_toggle(0)  # type: ignore[attr-defined]
+
+    editors = [
+        *page.grid._offset_editors.values(),  # type: ignore[attr-defined]
+        page.grid.raw_instructions,  # type: ignore[attr-defined]
+        page.grid.bytes,  # type: ignore[attr-defined]
+        page.grid.decoded_text,  # type: ignore[attr-defined]
+        page.grid.instructions,  # type: ignore[attr-defined]
+    ]
+    assert page.grid.instructions._label_fold_gutter.isVisible() is True  # type: ignore[attr-defined]
+    assert page.grid.instructions._label_fold_regions[0] == ("start", True)  # type: ignore[attr-defined]
+    assert page.grid._offset_editors["File"].document().findBlockByNumber(0).text() == "0x00000000"  # type: ignore[attr-defined]
+    assert page.grid.raw_instructions.document().findBlockByNumber(0).text()  # type: ignore[attr-defined]
+    assert page.grid.bytes.document().findBlockByNumber(0).text()  # type: ignore[attr-defined]
+    for editor in editors:
+        assert editor.document().findBlockByNumber(0).isVisible() is True
+        assert editor.document().findBlockByNumber(1).isVisible() is False
+        assert editor.document().findBlockByNumber(2).isVisible() is False
+        assert editor.document().findBlockByNumber(3).isVisible() is True
+    assert page.grid.instructions.toPlainText() == original_text  # type: ignore[attr-defined]
+    assert page.grid.export_rows() == original_rows  # type: ignore[attr-defined]
+
+    page.grid.toggle_label_fold("start")  # type: ignore[attr-defined]
+    assert all(editor.document().findBlockByNumber(1).isVisible() for editor in editors)
+    assert all(editor.document().findBlockByNumber(2).isVisible() for editor in editors)
+
+
+def test_binary_workbench_branch_navigation_expands_target_label(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "start: nop\nnop\njr $ra\ntarget: nop\nnop\njr $ra\nbeq $zero, $zero, target"
+    )
+    _app().processEvents()
+    page.grid.flush_pending_rows_changed()  # type: ignore[attr-defined]
+    page.grid.toggle_label_fold("target")  # type: ignore[attr-defined]
+    target_body = page.grid.instructions.document().findBlockByNumber(4)  # type: ignore[attr-defined]
+    assert target_body.isVisible() is False
+
+    page.grid.jumpNavigationActivated.emit(0x0C, 0x18)  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    assert target_body.isVisible() is True
+    assert page.grid.instructions._label_fold_regions[3] == ("target", False)  # type: ignore[attr-defined]
+
+
 def _version_row_payload(offset: str, instruction: str, bytes_text: str) -> dict[str, object]:
     return {
         "offset": offset,
