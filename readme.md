@@ -36,6 +36,23 @@ capabilities, technical structure and release/build notes.
   labels, internal files, offset regions, decoded text and search/navigation.
 - Builds portable bundles for Windows, Linux and macOS through PyInstaller.
 
+## What's New in v2.2
+
+- Local Symbols remain owned by a tab and shared by its versions, while Global
+  Symbols are available across tabs. Both scopes now feed the same autocomplete,
+  highlighting, preprocessing, assembly and offset-calculation pipeline.
+- Editor symbols are interactive: click to change a symbol, click a jump target
+  to navigate, or use `Ctrl+Click` on a jump symbol to edit it.
+- `Replace Bytes` (`Ctrl+R`) replaces ranges by real file offset, confirms
+  overwrites of non-zero data and respects the Allow byte shifting rule when a
+  replacement grows the file.
+- PSX MIPS input accepts inferred-register short forms such as
+  `addiu $a0, 0x5` and `and $s0, $a0`; Raw Instructions keeps the expanded form.
+- Label folding, branch/jump target handling and viewport-independent selection
+  were refined for large assembly and binary editing sessions.
+- `Ctrl+Space` recovers an offscreen dialog or window. Repeating it within five
+  seconds moves and centers the same window on the other monitor.
+
 ## Numeric WorkBench
 
 The numeric side combines a converter and a command window.
@@ -117,7 +134,8 @@ versions, navigation state and dirty state.
   focused tabs.
 - `Version` stores named edit sets and can restore or replace visible edited
   rows without immediately rewriting the original file.
-- `Go to`, `Find`, `Hazards` and `Select Block` provide focused navigation, delay-hazard review and selection.
+- `Go to`, `Find`, `Hazards`, `Select Block` and `Replace Bytes` provide focused
+  navigation, delay-hazard review, range selection and byte replacement.
 - `Environment` tools manage symbols, labels, offset regions, LBA file maps,
   custom commands and encoding tables.
 - `Preferences` controls byte formatting, visible columns, edit rules,
@@ -165,7 +183,7 @@ Each tab context stores:
 - tab id, kind, display name and source path;
 - CPU architecture and read mode;
 - reference offsets and reference offset bases;
-- labels, variables, equates and symbol offsets;
+- labels, tab-local symbols, effective Local/Global Symbol values and symbol offsets;
 - internal file mappings and parent/child tab metadata;
 - LBA sector size and offset regions;
 - versions and active version name;
@@ -358,10 +376,10 @@ dist/macos
 Artifact names follow this format:
 
 ```text
-numeric-workbench-v2.1-<os>-<architecture>
+numeric-workbench-v2.2-<os>-<architecture>
 ```
 
-v2.1 ships portable bundles only. Native installers are intentionally out of
+v2.2 ships portable bundles only. Native installers are intentionally out of
 scope for this release.
 
 The PyInstaller config keeps the bundle smaller by excluding unused Qt stacks
@@ -400,7 +418,7 @@ context to reproduce the issue. This is especially important for Binary
 Workbench because real binary editing workflows expose edge cases that are hard
 to predict from isolated tests.
 
-The project will need refactoring and better organization after the v2.1
+The project will need refactoring and better organization after the v2.2
 feature cycle. The UI layer grew quickly and now contains responsibilities that
 should move toward controllers, presenters or core services. QSS files also need
 cleanup, several UI files are spread without their own focused subfolders, and

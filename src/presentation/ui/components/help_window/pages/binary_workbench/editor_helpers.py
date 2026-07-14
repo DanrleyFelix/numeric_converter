@@ -10,6 +10,13 @@ PAGE = HelpPageDefinition(
         <ul>
             <li><code>Alt+W</code> creates a Symbol from the immediate value under the cursor.</li>
             <li>The context menu offers the same action when an immediate value is available.</li>
+            <li>Click a symbol in Editor Assembly to change its name or value. For a symbol used by <code>j</code> or <code>jal</code>, use <code>Ctrl+Click</code> because normal click navigates to the resolved target.</li>
+        </ul>
+        <h2>Short instructions</h2>
+        <ul>
+            <li>Destination instructions can omit a repeated source register when it can be inferred. For example, <code>addiu $a0, 0x5</code> becomes <code>addiu $a0, $a0, 0x5</code>.</li>
+            <li>Register forms work the same way: <code>and $s0, $a0</code> becomes <code>and $s0, $s0, $a0</code>.</li>
+            <li>Editor Assembly keeps the short form while Raw Instructions shows the complete instruction used by the assembler.</li>
         </ul>
         <h2>Custom commands</h2>
         <ul>

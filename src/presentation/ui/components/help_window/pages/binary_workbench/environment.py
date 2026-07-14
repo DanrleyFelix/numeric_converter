@@ -10,9 +10,10 @@ PAGE = HelpPageDefinition(
         <ul>
             <li>Symbols accept both <code>_name</code> and <code>@name</code> forms in assembly instructions.</li>
             <li><b>Local Symbols</b> belong to the current file/tab and are shared by all of its versions.</li>
-            <li><b>Global Symbols</b> are available to every open tab for the current Binary Workbench session and are not attached to a workspace or version.</li>
+            <li><b>Global Symbols</b> are available to every open tab and are not attached to a workspace or version.</li>
+            <li>Autocomplete, highlighting, preprocessing and assembly use the combined Global and Local Symbols for the active tab. A Local Symbol takes precedence when both scopes contain the same name.</li>
             <li>Loading a Symbols JSON merges entries by name; matching names are updated and unrelated symbols remain available.</li>
-            <li>Activate an existing symbol row to change its name or value.</li>
+            <li>Click a symbol token in Editor Assembly to open Change Symbol Values. When the symbol is a jump target, normal click navigates and <code>Ctrl+Click</code> opens the editor instead.</li>
             <li>Symbols keep source text readable while Raw Instructions shows the resolved values.</li>
         </ul>
         <h2>Labels</h2>

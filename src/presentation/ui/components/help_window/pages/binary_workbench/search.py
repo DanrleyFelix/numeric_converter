@@ -31,5 +31,12 @@ PAGE = HelpPageDefinition(
             <li>Select an exact byte range by start/end or start/length.</li>
             <li>This is useful before copying data, comparing ranges or applying a focused edit.</li>
         </ul>
+        <h2>Replace Bytes</h2>
+        <ul>
+            <li><code>Ctrl+R</code> opens Replace Bytes with Start Offset initialized from the typing cursor.</li>
+            <li>Enter hexadecimal bytes and optionally restrict the operation with End Offset or Length.</li>
+            <li>The replacement reads the real target range even when it is outside the current viewport and asks for confirmation before overwriting non-zero bytes.</li>
+            <li>Growing the file or shifting following bytes is allowed only when <b>Allow byte shifting</b> is enabled in Rules.</li>
+        </ul>
     """,
 )
