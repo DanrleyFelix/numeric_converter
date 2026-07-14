@@ -256,6 +256,14 @@ class EditorLabelNavigationMixin:
         self._stop_selection_scroll()
         super().mouseReleaseEvent(event)
         position = event.position().toPoint()
+        edit_jump_symbol = (
+            event.button() == Qt.LeftButton
+            and bool(event.modifiers() & Qt.ControlModifier)
+            and bool(self._symbol_token_at_position(position))
+        )
+        if edit_jump_symbol:
+            self._pressed_navigation_target = None
+            return
         warning = self._navigation_warning_at_position(position)
         if event.button() == Qt.LeftButton and warning:
             self.navigationWarningRequested.emit(warning)

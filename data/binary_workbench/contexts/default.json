@@ -34,9 +34,7 @@
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols\\Yu_Gi_Oh_FM_workspace_manifest_symbols.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\LBA File System.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\Yu_Gi_Oh_FM_workspace_manifest_offset_regions.json",
-                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
-                "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json",
-                "version:test_bin": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json"
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\Yu_Gi_Oh_FM_workspace_manifest_versions.json"
             },
             "module_directories": {
                 "symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Symbols",
@@ -45,9 +43,9 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "83850adc5f59ffc4c2a2dccf1e2ed54e906d26c41d3e771c21eb8081b3efa28d",
+                "symbols": "72f398da425a6384ee81636bb203f3f6d221151adab334a8cdbf02f6e93eef52",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "ddfb98ad939e7168f87b817c07f502bbbef25d6a48a53a6e46f2213483cb7456",
+                "versions": "e813d6f9b0c02f23ce7a63824d9c59118cd467e7f38380b88d32154121b7a973",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "3616a19dab661aa0b2667f915dc0da23b688553fa4b7ff06eabd2ebb724e6f1b"
             },
@@ -121,7 +119,7 @@
             "module_checksums": {
                 "symbols": "50942ebb04d0bf9bfb3f91a7aa3ef6d376a0534000ceb23bded2f44f42e36968",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "f3c9e44a75b25a98d3cd8cfa36e9f26db814acb47eed440bfcebf1466370a705",
+                "versions": "7c733b7a8b75e3cb0be60dba7d6405f158e2c6dea0656d4028bffa7a080f3dfd",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -455,6 +453,16 @@
                     "bytes_text": "18 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
+                },
+                {
+                    "offset": "-",
+                    "offsets": {
+                        "File": "-"
+                    },
+                    "instruction": "JA",
+                    "bytes_text": "",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
                 }
             ],
             "view_preferences": {
@@ -475,7 +483,35 @@
     ],
     "active_tab_id": "e37c50b776c8479e96f7eec0ff5be19d",
     "global_symbols": {
-        "test1": "20"
+        "addr_slot_temp": "0x24C($gp)",
+        "card_atk_offset": "0xE",
+        "card_boost_offset": "0x12",
+        "card_flags_offset": "0x16",
+        "card_id_offset": "0xC",
+        "card_number_offset": "0x18",
+        "card_terrain_offset": "0x14",
+        "card_used": "0x248($gp)",
+        "effect_test_addr1": "0x1d9200",
+        "effect_test_addr2": "0x1D9244",
+        "effect_test_addr3": "0x1D927C",
+        "equate_8": "0x8",
+        "equate_801d": "0x801D",
+        "field_hand_index": "0x1C",
+        "is_card_on_field": "0x8000",
+        "is_cpu_turn": "0x2CD($gp)",
+        "max_index_spell": "0xE",
+        "p1_deck": "0x801A7E20",
+        "p1_field_addr": "0x801A7B64",
+        "p2_deck": "0x801A7F10",
+        "p2_field_addr": "0x801A7D08",
+        "return_original": "0x0025CCC",
+        "spell_dispatch": "0x26BA4",
+        "spell_id": "0x2a1",
+        "summonCard": "0x24D34",
+        "temp2_var_addr": "-0x72E4($gp)",
+        "temp_var_addr": "-0x72E8($gp)",
+        "test1": "20",
+        "variable_1d9200": "0x1D9200"
     },
     "share_view_preferences": false,
     "commands_by_arch": {

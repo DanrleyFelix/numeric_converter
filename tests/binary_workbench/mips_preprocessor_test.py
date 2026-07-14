@@ -78,10 +78,13 @@ def test_mips_navigation_targets_require_jump_or_branch_operand():
 
 def test_mips_jump_labels_are_adjusted_only_for_assembler_input():
     labels = {"label_teste": "0x1D9200"}
+    symbols = {"jump_symbol": "0x1D9200"}
 
     assert preprocess_instruction("j label_teste", 0, labels, {}, {}) == "j 0x1e8a00"
     assert preprocess_instruction("jal label_teste", 0, labels, {}, {}) == "jal 0x1e8a00"
     assert raw_mips_instruction("j label_teste", 0, labels, {}, {}) == "j 0x1e8a00"
+    assert preprocess_instruction("jal @jump_symbol", 0, {}, symbols, symbols) == "jal 0x1D9200"
+    assert raw_mips_instruction("jal @jump_symbol", 0, {}, symbols, symbols) == "jal 0x1d9200"
     assert (
         preprocess_instruction(
             "beq $zero, $zero, label_teste",

@@ -8,10 +8,7 @@ from src.core.binary_workbench.mips_r3000a import (
 from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
-from src.core.binary_workbench.row_structure import (
-    structural_offset_delta,
-    valid_offset_end,
-)
+from src.core.binary_workbench.row_structure import structural_offset_delta
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
@@ -330,11 +327,10 @@ class GridEditingMixin:
     ) -> list[BinaryWorkbenchRowDTO] | None:
         if rows is None:
             return None
-        file_size = max(self.current_file_size(), valid_offset_end(rows))
         updated: list[BinaryWorkbenchRowDTO] = []
         for index, row in enumerate(rows):
             line = lines[index] if index < len(lines) else row.instruction
-            if self._invalid_standard_jump_target(line, file_size):
+            if self._invalid_standard_jump_target(line):
                 updated.append(
                     BinaryWorkbenchRowDTO(
                         row.offsets,
@@ -348,7 +344,7 @@ class GridEditingMixin:
             updated.append(row)
         return updated
 
-    def _invalid_standard_jump_target(self, line: str, file_size: int) -> bool:
+    def _invalid_standard_jump_target(self, line: str) -> bool:
         code, _, _ = split_comment(line)
         match = STANDARD_JUMP_TARGET.search(code)
         if match is None:
@@ -360,7 +356,7 @@ class GridEditingMixin:
         if value < JUMP_NAVIGATION_BASE:
             return True
         target = value - JUMP_NAVIGATION_BASE
-        return target % ROW_BYTES != 0 or (file_size > 0 and target >= file_size)
+        return target % ROW_BYTES != 0
 
     def _reference_jump_rows(
         self,
@@ -434,8 +430,6 @@ class GridEditingMixin:
         base = self._safe_reference_int(self._reference_offset_bases[self._jump_reference_offset])
         target = value - base
         if target < 0 or target % ROW_BYTES != 0:
-            return None
-        if self._total_size > 0 and target >= self._total_size:
             return None
         return target + JUMP_NAVIGATION_BASE
 

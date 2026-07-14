@@ -209,7 +209,10 @@ class InstructionHighlighter(QSyntaxHighlighter):
             target is None
             or target < 0
             or target % ROW_BYTES != 0
-            or target >= self._file_size
+            or (
+                mnemonic not in JUMP_NAVIGATION_MNEMONICS
+                and target >= self._file_size
+            )
         ):
             return start, end
         return None

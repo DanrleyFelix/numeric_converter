@@ -247,6 +247,7 @@ class TabWorkspaceMixin:
         self,
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
+        context = self._context_with_global_symbols(context)
         rows = _rows_with_loaded_symbols(context)
         labels = merged_instruction_labels(rows, context.instruction_overlays)
         labels = labels or context.labels

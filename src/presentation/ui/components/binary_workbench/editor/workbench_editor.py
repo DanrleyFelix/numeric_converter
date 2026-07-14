@@ -187,7 +187,10 @@ class WorkbenchEditor(
         edit_symbol = (
             symbol
             and symbol == self._pressed_symbol_token
-            and self._navigation_target_at_position(position) is None
+            and (
+                self._navigation_target_at_position(position) is None
+                or bool(event.modifiers() & Qt.ControlModifier)
+            )
         )
         super().mouseReleaseEvent(event)
         if event.button() == Qt.LeftButton:

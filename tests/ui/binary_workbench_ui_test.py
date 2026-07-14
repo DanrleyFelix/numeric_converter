@@ -4091,7 +4091,7 @@ def test_binary_workbench_highlighter_colors_supported_pseudo_instructions():
     assert invalid_instruction("b loop") is False
 
 
-def test_binary_workbench_highlighter_requires_aligned_label_inside_current_file():
+def test_binary_workbench_highlighter_requires_branch_target_inside_current_file():
     _app()
     editor = QPlainTextEdit()
     highlighter = InstructionHighlighter(editor.document())
@@ -4225,7 +4225,7 @@ def test_binary_workbench_jump_highlighter_separates_labels_symbols_and_addresse
     highlighter.set_jump_reference_offsets(
         {"RAM": "0x80000000"},
         "RAM",
-        0x200000,
+        8,
     )
 
     assert highlighter._target_file_offset("j", "label_teste") == 0x1D9200
@@ -4236,6 +4236,7 @@ def test_binary_workbench_jump_highlighter_separates_labels_symbols_and_addresse
         "j label_teste",
         "j 0x1D9200",
         "jal 0x1D9200",
+        "jal @jump_symbol",
         "j &0x801D9200",
         "jal &0x801D9200",
     ):
@@ -4253,7 +4254,7 @@ def test_binary_workbench_reference_jump_normalizes_and_assembles_valid_target()
     grid = BinaryWorkbenchGrid(codec)
     grid._jump_reference_offset = "RAM"
     grid._reference_offset_bases = {"RAM": "0x80000000"}
-    grid._total_size = 0x200000
+    grid._total_size = 8
 
     for mnemonic in ("j", "jal"):
         normalized = grid._reference_jump_line(
@@ -4261,7 +4262,8 @@ def test_binary_workbench_reference_jump_normalizes_and_assembles_valid_target()
             {},
         )
         assert normalized == f"{mnemonic} 0x001E8A00"
-        assert grid._invalid_standard_jump_target(normalized, grid._total_size) is False
+        assert grid._invalid_standard_jump_target(normalized) is False
+        assert grid._invalid_standard_jump_target(f"{mnemonic} 0x1D9200") is False
         assert codec.assemble(normalized, 0) is not None
 
 
@@ -5101,6 +5103,34 @@ def test_binary_workbench_click_navigation_reports_misaligned_target(
     assert editor._navigation_warning_at_position(point) == BINARY_WORKBENCH_TEXT.STATUS_TARGET_MISALIGNED
 
 
+def test_binary_workbench_ctrl_click_edits_jump_symbol_without_navigating():
+    from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
+
+    _app()
+    editor = WorkbenchEditor()
+    symbols = {"jump_symbol": "0x1D9200"}
+    editor.setPlainText("jal @jump_symbol")
+    editor.set_symbol_helpers({}, symbols, symbols)
+    editor.set_jump_navigation(PsxMipsR3000ACodec(), {}, symbols, symbols)
+    editor.resize(320, 100)
+    editor.show()
+    _app().processEvents()
+    block = editor.document().firstBlock()
+    cursor = QTextCursor(block)
+    cursor.setPosition(block.position() + block.text().index("jump_symbol") + 2)
+    point = editor.cursorRect(cursor).center()
+    navigated: list[int] = []
+    edited: list[str] = []
+    editor.jumpNavigationActivated.connect(lambda target, _source: navigated.append(target))
+    editor.symbolEditRequested.connect(edited.append)
+
+    QTest.mouseClick(editor.viewport(), Qt.LeftButton, Qt.NoModifier, point)
+    QTest.mouseClick(editor.viewport(), Qt.LeftButton, Qt.ControlModifier, point)
+
+    assert navigated == [0x1C9A00]
+    assert edited == ["jump_symbol"]
+
+
 def test_binary_workbench_new_label_updates_highlighter_and_branch_target_immediately(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -5268,6 +5298,25 @@ def test_binary_workbench_local_and_global_symbols_have_separate_ownership(
         "local_value": "0x10",
     }
     assert first_context.equates == first_context.variables
+    first_editor = tool.tabs.currentWidget().grid.instructions  # type: ignore[attr-defined]
+    assert first_editor._candidates_for_prefix("@g") == ["@global_value"]
+    assert first_editor._candidates_for_prefix("@l") == ["@local_value"]
+    assert first_editor._symbol_tooltips["@global_value"].endswith("0x20")
+    first_grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    assert first_grid._instruction_highlighter._equates["@global_value"] == "0x20"
+
+    local_only_context = BinaryWorkbenchTabContextDTO(
+        **{
+            **first_context.__dict__,
+            "variables": dict(first_context.symbols),
+            "equates": dict(first_context.symbols),
+        }
+    )
+    reloaded_context = tool.tabs._with_symbol_offsets(local_only_context)
+    assert reloaded_context.symbols == {"local_value": "0x10"}
+    assert reloaded_context.variables == first_context.variables
+    assert reloaded_context.rows[0].bytes_text == "20 00 02 24"
+    assert reloaded_context.symbol_offsets["global_value"] == ["0x00000000"]
 
     tool.open_assembly_path(second)
     second_context = tool.tabs.current_context()
