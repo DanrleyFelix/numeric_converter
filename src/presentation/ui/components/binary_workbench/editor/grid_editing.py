@@ -8,7 +8,10 @@ from src.core.binary_workbench.mips_r3000a import (
 from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
-from src.core.binary_workbench.row_structure import structural_offset_delta
+from src.core.binary_workbench.row_structure import (
+    structural_offset_delta,
+    valid_offset_end,
+)
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
@@ -20,7 +23,10 @@ from src.presentation.ui.components.binary_workbench.symbols import symbol_offse
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
-from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import labels_from_rows
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    label_declarations_changed,
+    labels_from_rows,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     address_from_row,
     normalize_bytes_text,
@@ -40,26 +46,37 @@ STANDARD_JUMP_TARGET = re.compile(
 
 class GridEditingMixin:
     def _on_bytes_changed(self) -> None:
-        if self._updating:
+        if self._updating or self._syncing_editor_change:
             return
         if not self._editor_change_allowed(True):
             self._restore_editor_after_rejected_change(True)
             return
         if not self._has_meaningful_editor_change(self.bytes):
             return
-        if not self._bytes_user_edit_in_progress():
-            self._normalize_bytes_editor_text()
-        self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
+        self._syncing_editor_change = True
+        try:
+            if not self._bytes_user_edit_in_progress():
+                self._normalize_bytes_editor_text()
+            self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
+        finally:
+            self._syncing_editor_change = False
 
     def _on_instructions_changed(self) -> None:
-        if self._updating:
+        if self._updating or self._syncing_editor_change:
             return
         if not self._editor_change_allowed(False):
             self._restore_editor_after_rejected_change(False)
             return
         if not self._has_meaningful_editor_change(self.instructions):
             return
-        self._sync_user_rows(self._normalized_instruction_lines(), BINARY_WORKBENCH_TEXT.INSTRUCTION)
+        self._syncing_editor_change = True
+        try:
+            self._sync_user_rows(
+                self._normalized_instruction_lines(),
+                BINARY_WORKBENCH_TEXT.INSTRUCTION,
+            )
+        finally:
+            self._syncing_editor_change = False
 
     def edit_origin_kind(self) -> str | None:
         return self._edit_origin_kind
@@ -94,9 +111,10 @@ class GridEditingMixin:
                 self._symbol_offsets,
             )
         offset_delta = structural_offset_delta(self._rows, updated)
+        labels_changed = label_declarations_changed(self._rows, updated)
         incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
         self._rows = updated
-        if offset_delta:
+        if offset_delta or labels_changed:
             labels = labels_from_rows(updated)
             if labels != self._labels:
                 self._set_editing_labels(labels)
@@ -113,7 +131,7 @@ class GridEditingMixin:
             self._configure_scrollbar()
             self._emit_rows_changed(self.export_rows(), deferred=not editing_bytes)
         else:
-            self._total_size = self._expanded_virtual_total_size(updated)
+            self._total_size = self._expanded_virtual_total_size(updated, offset_delta)
             self._configure_scrollbar()
             self._emit_rows_changed(self._rows, deferred=not editing_bytes)
         self._render_offsets()
@@ -122,7 +140,8 @@ class GridEditingMixin:
             values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
             self._set_editor_text(target, values)
             self._render_raw_instructions()
-        if offset_delta:
+        if offset_delta or labels_changed:
+            self._refresh_jump_navigation()
             self._refresh_label_folding()
         if not self._virtual:
             self._scroll_static_document(self.scrollbar.value())
@@ -311,7 +330,7 @@ class GridEditingMixin:
     ) -> list[BinaryWorkbenchRowDTO] | None:
         if rows is None:
             return None
-        file_size = max(self._total_size, len(rows) * ROW_BYTES)
+        file_size = max(self.current_file_size(), valid_offset_end(rows))
         updated: list[BinaryWorkbenchRowDTO] = []
         for index, row in enumerate(rows):
             line = lines[index] if index < len(lines) else row.instruction

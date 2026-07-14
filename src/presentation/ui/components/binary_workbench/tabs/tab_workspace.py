@@ -19,6 +19,8 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchViewPreferencesDTO,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
+    COMMANDS,
+    ENCODING_TABLES,
     LBA_FILESYSTEM,
     OFFSET_REGIONS,
     SYMBOLS,
@@ -38,18 +40,22 @@ DIRECTORY_KEYS = {
     BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY: LBA_FILESYSTEM,
     BINARY_WORKBENCH_STATE.OFFSET_REGIONS_DIRECTORY: OFFSET_REGIONS,
     BINARY_WORKBENCH_STATE.VERSIONS_DIRECTORY: VERSIONS,
+    BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY: COMMANDS,
+    BINARY_WORKBENCH_STATE.ENCODING_TABLES_DIRECTORY: ENCODING_TABLES,
 }
 
 
 class TabWorkspaceMixin:
     def workspace_module_directory(self, action_key: str) -> str:
-        current = self.current_context()
         module_key = DIRECTORY_KEYS.get(action_key)
-        if current is not None and module_key:
-            if value := current.module_directories.get(module_key):
-                return value
+        if module_key:
+            directory = self._workspace_repository.environment_directory(module_key)
+            return str(directory) if directory is not None else ""
         defaults = self._workspace_repository.default_module_directories()
         return defaults.get(module_key or "", "")
+
+    def import_environment_file(self, module_key: str, path: Path) -> Path:
+        return self._workspace_repository.import_environment_file(module_key, path)
 
     def save_current_workspace(self, path: Path | None = None) -> bool:
         current = self.current_context()
@@ -145,6 +151,7 @@ class TabWorkspaceMixin:
         current = self.current_context()
         if current is None:
             return
+        path = self.import_environment_file(module_key, path)
         self._set_current_context(
             BinaryWorkbenchTabContextDTO(
                 **{
@@ -152,7 +159,7 @@ class TabWorkspaceMixin:
                     "module_paths": {**current.module_paths, module_key: str(path)},
                     "module_directories": {
                         **current.module_directories,
-                        module_key: str(path.parent),
+                        module_key: str(self._workspace_repository.environment_directory(module_key) or path.parent),
                     },
                 }
             )
@@ -215,6 +222,7 @@ class TabWorkspaceMixin:
             return any(current.get(key) != value for key, value in context.module_checksums.items())
         return any(
             (
+                context.symbols,
                 context.variables,
                 context.equates,
                 context.internal_files,

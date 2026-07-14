@@ -8,9 +8,8 @@ PAGE = HelpPageDefinition(
         <p>Editor helpers keep repeated assembly edits close to the Editor Assembly surface.</p>
         <h2>Immediate symbols</h2>
         <ul>
-            <li><code>Alt+W</code> creates a Variable from the immediate value under the cursor.</li>
-            <li><code>Alt+E</code> creates an Equate from the immediate value under the cursor.</li>
-            <li>The context menu offers the same actions when an immediate value is available.</li>
+            <li><code>Alt+W</code> creates a Symbol from the immediate value under the cursor.</li>
+            <li>The context menu offers the same action when an immediate value is available.</li>
         </ul>
         <h2>Custom commands</h2>
         <ul>

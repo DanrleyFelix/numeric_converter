@@ -113,6 +113,7 @@ class BinaryWorkbenchTabContextDTO:
     reference_offsets: list[str] = field(default_factory=list)
     reference_offset_bases: dict[str, str] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
+    symbols: dict[str, str] = field(default_factory=dict)
     equates: dict[str, str] = field(default_factory=dict)
     variables: dict[str, str] = field(default_factory=dict)
     symbol_offsets: dict[str, list[str]] = field(default_factory=dict)

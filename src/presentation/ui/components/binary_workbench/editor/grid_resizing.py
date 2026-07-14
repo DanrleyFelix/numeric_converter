@@ -84,5 +84,10 @@ class GridResizingMixin:
                 BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH,
             )
             editor.copyRequested.connect(lambda source: source.copy())
+            editor.selectionStarted.connect(self._clear_virtual_selection)
+            editor.selectionAutoScrollAboutToStep.connect(self._capture_virtual_selection_anchor)
+            editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
+            editor.viewportChangeAboutToStart.connect(self._capture_virtual_viewport_selection)
+            editor.viewportChangeFinished.connect(self._finish_virtual_viewport_change)
             self._offset_editors[name] = editor
             self.offsets_layout.addWidget(shell, 0)

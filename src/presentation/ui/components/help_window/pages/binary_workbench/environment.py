@@ -8,8 +8,11 @@ PAGE = HelpPageDefinition(
         <p>Environment tools make a binary easier to read, navigate and edit repeatedly.</p>
         <h2>Symbols</h2>
         <ul>
-            <li><b>Variables</b> use the <code>_name</code> form and are useful for addresses or offsets that appear in instructions.</li>
-            <li><b>Equates</b> use the <code>@name</code> form and are useful for immediate constants.</li>
+            <li>Symbols accept both <code>_name</code> and <code>@name</code> forms in assembly instructions.</li>
+            <li><b>Local Symbols</b> belong to the current file/tab and are shared by all of its versions.</li>
+            <li><b>Global Symbols</b> are available to every open tab for the current Binary Workbench session and are not attached to a workspace or version.</li>
+            <li>Loading a Symbols JSON merges entries by name; matching names are updated and unrelated symbols remain available.</li>
+            <li>Activate an existing symbol row to change its name or value.</li>
             <li>Symbols keep source text readable while Raw Instructions shows the resolved values.</li>
         </ul>
         <h2>Labels</h2>

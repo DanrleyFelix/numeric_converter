@@ -14,8 +14,6 @@ from src.presentation.ui.components.binary_workbench.editor.editor_shortcuts imp
     INSTRUCTIONS_PANEL,
 )
 from src.presentation.ui.components.binary_workbench.editor.immediate_tokens import (
-    immediate_token_at_cursor,
-    immediate_token_at_position,
     variable_token_at_cursor,
     variable_token_at_position,
 )
@@ -30,10 +28,7 @@ class EditorImmediateMenuMixin:
             return False
         if key == Qt.Key_W:
             token = variable_token_at_cursor(self)
-            target = BINARY_WORKBENCH_TEXT.VARIABLE_TARGET
-        elif key == Qt.Key_E:
-            token = _equate_token_at_cursor(self)
-            target = BINARY_WORKBENCH_TEXT.EQUATE_TARGET
+            target = BINARY_WORKBENCH_TEXT.SYMBOL_TARGET
         elif key == Qt.Key_K:
             selected_code = _selected_code(self)
             if not selected_code:
@@ -55,8 +50,6 @@ class EditorImmediateMenuMixin:
 
     def contextMenuEvent(self, event) -> None:
         variable_token = variable_token_at_position(self, event.pos())
-        immediate_token = immediate_token_at_position(self, event.pos())
-        equate_token = immediate_token if variable_token == immediate_token else None
         label = self._label_at_position(event.pos())
         selected_code = _selected_code(self)
         if (
@@ -73,8 +66,7 @@ class EditorImmediateMenuMixin:
         menu = self.createStandardContextMenu()
         menu.setObjectName("binary-workbench-editor-context-menu")
         menu.addSeparator()
-        variable = menu.addAction(BINARY_WORKBENCH_TEXT.ADD_VARIABLE_FROM_IMMEDIATE) if variable_token else None
-        equate = menu.addAction(BINARY_WORKBENCH_TEXT.ADD_EQUATE_FROM_IMMEDIATE) if equate_token else None
+        symbol = menu.addAction(BINARY_WORKBENCH_TEXT.ADD_SYMBOL_FROM_IMMEDIATE) if variable_token else None
         open_label = menu.addAction(BINARY_WORKBENCH_TEXT.OPEN_LABEL_NEW_TAB) if label else None
         add_command = (
             menu.addAction(BINARY_WORKBENCH_TEXT.ADD_COMMAND)
@@ -83,19 +75,12 @@ class EditorImmediateMenuMixin:
         )
         use_white_menu_icons(menu)
         selected = menu.exec(event.globalPos())
-        if selected is variable and variable_token is not None:
+        if selected is symbol and variable_token is not None:
             self.immediateSymbolRequested.emit(
-                BINARY_WORKBENCH_TEXT.VARIABLE_TARGET,
+                BINARY_WORKBENCH_TEXT.SYMBOL_TARGET,
                 variable_token.value,
                 variable_token.start,
                 variable_token.end,
-            )
-        elif selected is equate and equate_token is not None:
-            self.immediateSymbolRequested.emit(
-                BINARY_WORKBENCH_TEXT.EQUATE_TARGET,
-                equate_token.value,
-                equate_token.start,
-                equate_token.end,
             )
         elif selected is open_label and label is not None:
             self.labelOpenTabRequested.emit(*label)
@@ -107,12 +92,6 @@ class EditorImmediateMenuMixin:
         name = ask_command_name(self)
         if name:
             self.addCommandRequested.emit(name, selected_code)
-
-
-def _equate_token_at_cursor(editor):
-    variable_token = variable_token_at_cursor(editor)
-    immediate_token = immediate_token_at_cursor(editor)
-    return immediate_token if variable_token == immediate_token else None
 
 
 def _label_at_cursor(editor) -> tuple[str, int] | None:

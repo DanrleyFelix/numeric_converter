@@ -37,6 +37,7 @@ class BinaryWorkbenchLbaFilesystemDTO:
 class BinaryWorkbenchSymbolsDTO:
     name: str
     file_identifiers: list[str] = field(default_factory=list)
+    symbols: dict[str, str] = field(default_factory=dict)
     variables: dict[str, str] = field(default_factory=dict)
     equates: dict[str, str] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)

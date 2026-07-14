@@ -4,7 +4,11 @@ from importlib import import_module
 
 from src.core.binary_workbench.mips_r3000a.assembler import assemble_fallback
 from src.core.binary_workbench.mips_r3000a.comments import strip_comment
-from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
+from src.core.binary_workbench.mips_r3000a.constants import (
+    BRANCH_OPCODES,
+    JUMP_FILE_OFFSET_BASE,
+    SPECIAL_BRANCH_RT,
+)
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
 from src.core.binary_workbench.mips_r3000a.editor_commands import (
     editor_command_names as mips_editor_command_names,
@@ -20,7 +24,7 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_PSX_MIPS_R30
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.modules.contracts import CPUArchCodec
 
-JUMP_NAVIGATION_BASE = 0xF800
+JUMP_NAVIGATION_BASE = JUMP_FILE_OFFSET_BASE
 JUMP_NAVIGATION_MNEMONICS = {"j", "jump", "jal"}
 TWO_OPERAND_BRANCH_MNEMONICS = {"blez", "bgtz", *SPECIAL_BRANCH_RT}
 

@@ -179,7 +179,12 @@ class InstructionHighlighter(QSyntaxHighlighter):
         if not JUMP_TARGET_TOKEN.fullmatch(token):
             return None
         target = self._target_file_offset(mnemonic, token)
-        if target is None or target < 0 or target % ROW_BYTES != 0:
+        if (
+            target is None
+            or target < 0
+            or target % ROW_BYTES != 0
+            or target >= self._file_size
+        ):
             return start, end
         return None
 
@@ -194,10 +199,15 @@ class InstructionHighlighter(QSyntaxHighlighter):
                 return None
             base = self._reference_offset_bases.get(self._jump_reference_offset, 0)
             return value - base
-        if mnemonic in JUMP_NAVIGATION_MNEMONICS and self._numeric_token_value(body) is not None:
-            if value < JUMP_NAVIGATION_BASE:
-                return None
-            return value - JUMP_NAVIGATION_BASE
+        normalized = body.lower()
+        if normalized in self._labels:
+            return value
+        if mnemonic in JUMP_NAVIGATION_MNEMONICS and (
+            normalized in self._variables
+            or normalized in self._equates
+            or self._numeric_token_value(body) is not None
+        ):
+            return value - JUMP_NAVIGATION_BASE if value >= JUMP_NAVIGATION_BASE else None
         return value
 
     def _target_value(self, token: str) -> int | None:

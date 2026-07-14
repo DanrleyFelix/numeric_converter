@@ -5,6 +5,7 @@ import re
 from src.core.binary_workbench.mips_r3000a.constants import (
     BRANCH_OPCODES,
     I_OPCODES,
+    JUMP_FILE_OFFSET_BASE,
     J_OPCODES,
     R_CODE_FUNCTS,
     R_FUNCTS,
@@ -86,16 +87,28 @@ def _replace_prefixed_symbols(text: str, prefix: str, values: dict[str, str]) ->
     result = text
     for name, value in values.items():
         symbol = f"{prefix}{name.lstrip(prefix)}"
-        result = re.sub(re.escape(symbol), value, result, flags=re.IGNORECASE)
+        pattern = rf"(?<![A-Za-z0-9_]){re.escape(symbol)}(?![A-Za-z0-9_])"
+        result = re.sub(pattern, value, result, flags=re.IGNORECASE)
     return result
 
 
 def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
     result = text
+    mnemonic = _instruction_mnemonic(text)
     for name, value in labels.items():
-        target = _label_target(_safe_int(value, fallback), fallback)
+        label_offset = _safe_int(value, fallback)
+        target = (
+            label_offset + JUMP_FILE_OFFSET_BASE
+            if mnemonic in J_OPCODES
+            else _label_target(label_offset, fallback)
+        )
         result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
     return result
+
+
+def _instruction_mnemonic(text: str) -> str:
+    parts = text.replace(",", " ").split()
+    return parts[0].lower() if parts else ""
 
 
 def _label_target(value: int, address: int) -> int:

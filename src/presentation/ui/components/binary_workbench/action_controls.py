@@ -67,7 +67,7 @@ def configure_binary_workbench_action(button: QPushButton) -> None:
         BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
     )
     button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.StrongFocus)
+    button.setFocusPolicy(Qt.NoFocus)
 
 
 def configure_binary_workbench_dialog_action(button: QPushButton) -> None:
@@ -86,7 +86,7 @@ def configure_binary_workbench_dialog_button(
     if width is not None:
         button.setFixedWidth(width)
     button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.StrongFocus)
+    button.setFocusPolicy(Qt.NoFocus)
     button.setAutoDefault(True)
     configure_binary_workbench_control_height(button)
 
@@ -126,7 +126,13 @@ def configure_binary_workbench_combo(
     else:
         combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     combo.setCursor(Qt.PointingHandCursor)
-    configure_binary_workbench_control_height(combo)
+    combo.setContentsMargins(0, 0, 0, 0)
+    combo.ensurePolished()
+    combo.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
+    view = combo.view()
+    if hasattr(view, "setUniformItemSizes"):
+        view.setUniformItemSizes(True)
+    view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
 
 def configure_binary_workbench_input(editor: QLineEdit, width: int) -> None:

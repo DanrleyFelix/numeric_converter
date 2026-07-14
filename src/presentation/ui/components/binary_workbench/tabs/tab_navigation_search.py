@@ -32,6 +32,12 @@ class TabNavigationSearchMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.select_block(start_offset, end_offset)
 
+    def current_cursor_offset(self) -> int | None:
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            return page.current_cursor_offset()
+        return None
+
     def select_all_content(self) -> None:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):

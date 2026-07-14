@@ -37,8 +37,7 @@ PAGE = HelpPageDefinition(
         </ul>
         <h2>Immediate helpers and editing</h2>
         <ul>
-            <li><code>Alt+W</code>: create a Variable from the immediate under the cursor.</li>
-            <li><code>Alt+E</code>: create an Equate from the immediate under the cursor.</li>
+            <li><code>Alt+W</code>: create a Symbol from the immediate under the cursor.</li>
             <li><code>Alt+K</code>: create a custom Command from selected assembly instructions.</li>
             <li><code>Alt+J</code>: open the label under the cursor in a new tab.</li>
             <li><code>Ctrl+C</code>, <code>Ctrl+X</code>, <code>Ctrl+V</code>: copy, cut and paste in the active editor.</li>

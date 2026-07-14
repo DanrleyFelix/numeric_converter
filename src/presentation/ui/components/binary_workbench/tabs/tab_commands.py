@@ -8,12 +8,12 @@ from src.core.binary_workbench.editor.commands.payloads import (
     commands_from_payload,
     commands_payload,
 )
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_STATE
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
 )
 from src.modules.utils import read_json, write_json
+from src.presentation.repository.binary_workbench_workspace.constants import COMMANDS
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload import (
     state_payload,
@@ -35,6 +35,7 @@ class TabCommandsMixin:
         current = self.current_context()
         if current is None:
             return False
+        self.import_environment_file(COMMANDS, path)
         self._replace_commands_for_arch(
             current.cpu_arch,
             {**self._commands_for_context(current), **loaded},
@@ -47,8 +48,7 @@ class TabCommandsMixin:
             return None
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
         write_json(target, commands_payload(commands_from_context(self._commands_for_context(current))))
-        self.set_directory(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY, target.parent)
-        return target
+        return self.import_environment_file(COMMANDS, target)
 
     def replace_custom_command(self, name: str, instructions: list[str]) -> bool:
         page = self.currentWidget()

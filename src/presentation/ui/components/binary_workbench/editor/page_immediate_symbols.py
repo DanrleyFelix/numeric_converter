@@ -17,23 +17,25 @@ from src.presentation.ui.components.binary_workbench.symbols import symbol_offse
 
 class EditorPageImmediateSymbolsMixin:
     def _add_immediate_symbol(self, kind: str, value: str, start: int = -1, end: int = -1) -> None:
+        cursor = self.grid.instructions.textCursor()
+        cursor_state = (cursor.blockNumber(), cursor.positionInBlock())
         dialog = ImmediateSymbolNameDialog(kind, value, self)
         if dialog.exec() != dialog.DialogCode.Accepted or not dialog.symbol_name():
             return
         name = dialog.symbol_name()
         replacement = _replacement_range(kind, name, start, end)
+        local_symbols = dict(self._context.symbols)
+        local_symbols[name] = value
         variables = dict(self._context.variables)
-        equates = dict(self._context.equates)
-        if kind == BINARY_WORKBENCH_TEXT.VARIABLE_TARGET:
-            variables[name] = value
-        else:
-            equates[name] = value
+        variables[name] = value
+        equates = dict(variables)
         labels = labels_from_rows(self.grid.export_rows())
         rows = self.grid.rows_encoded_with_symbols(variables, equates, labels, replacement)
         labels = labels_from_rows(rows)
         offsets = symbol_offsets(rows, variables, equates, labels)
         self.grid.set_symbols(labels, variables, equates, offsets)
         updates: dict[str, object] = {
+            "symbols": local_symbols,
             "variables": variables,
             "equates": equates,
             "labels": labels,
@@ -61,6 +63,12 @@ class EditorPageImmediateSymbolsMixin:
         self._update_context(updates)
         if replacement is not None:
             self.load_context(self._context)
+        block = self.grid.instructions.document().findBlockByNumber(cursor_state[0])
+        if block.isValid():
+            cursor = self.grid.instructions.textCursor()
+            cursor.setPosition(block.position() + min(cursor_state[1], len(block.text())))
+            self.grid.instructions.setTextCursor(cursor)
+            self.grid.instructions.setFocus()
 
 
 def _replacement_range(
@@ -71,7 +79,7 @@ def _replacement_range(
 ) -> tuple[int, int, str] | None:
     if start < 0 or end <= start:
         return None
-    prefix = "_" if kind == BINARY_WORKBENCH_TEXT.VARIABLE_TARGET else "@"
+    prefix = "_"
     return start, end, f"{prefix}{name.lstrip(prefix)}"
 
 

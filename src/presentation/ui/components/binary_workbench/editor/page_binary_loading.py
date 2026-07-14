@@ -66,8 +66,9 @@ class EditorPageBinaryLoadingMixin:
             self._context.symbol_offsets,
             self.grid._codec,
         )
+        current_size = effective_reader_size(self._reader, self._context.file_size)
         self.grid.render_rows(rows, visible_offset)
-        self.grid.set_virtual_total_size(self._reader.file_size)
+        self.grid.set_virtual_total_size(current_size)
         original_size = effective_reader_size(
             self._reader,
             self._context.original_file_size,
@@ -82,7 +83,7 @@ class EditorPageBinaryLoadingMixin:
             **{
                 **self._context.__dict__,
                 "rows": rows,
-                "file_size": effective_reader_size(self._reader, self._context.file_size),
+                "file_size": current_size,
                 "original_file_size": original_size,
                 "last_open_offset": f"0x{visible_offset:08X}",
                 "labels": labels,
@@ -99,10 +100,17 @@ class EditorPageBinaryLoadingMixin:
             return
         if origin == BINARY_WORKBENCH_TEXT.BYTES and _has_incomplete_byte_rows(rows):
             return
-        overlays = dict(self._context.byte_overlays)
-        instruction_overlays = instruction_overlays_for_rows(self._context, self.grid, rows)
+        current_size = max(
+            self._context.original_file_size or self._reader.file_size,
+            self.grid.current_file_size(),
+        )
+        overlays = _overlays_before_size(self._context.byte_overlays, current_size)
+        instruction_overlays = _overlays_before_size(
+            instruction_overlays_for_rows(self._context, self.grid, rows),
+            current_size,
+        )
         versions = _versions_with_visible_line_comments(self._context, rows) if origin == BINARY_WORKBENCH_TEXT.INSTRUCTION else self._context.versions
-        file_size = self._context.original_file_size or self._reader.file_size
+        file_size = current_size
         for row in rows:
             try:
                 offset = int(row.offsets.get("File", "0x0"), 16)
@@ -169,6 +177,17 @@ def _has_incomplete_byte_rows(rows: list) -> bool:
         for row in rows
     )
 
+
+def _overlays_before_size(overlays: dict[str, str], size: int) -> dict[str, str]:
+    retained: dict[str, str] = {}
+    for offset, value in overlays.items():
+        try:
+            if int(offset, 0) < size:
+                retained[offset] = value
+        except ValueError:
+            continue
+    return retained
+
 def _versions_with_visible_line_comments(context: BinaryWorkbenchTabContextDTO, rows: list) -> list:
     if not context.active_version_name:
         return context.versions
@@ -191,7 +210,7 @@ def _versions_with_visible_line_comments(context: BinaryWorkbenchTabContextDTO, 
         if instructions == version.instructions_by_line:
             updated.append(version)
             continue
-        updated.append(replace(version, instructions_by_line=instructions, symbols_loaded=True))
+        updated.append(replace(version, instructions_by_line=instructions))
         changed = True
     return updated if changed else context.versions
 

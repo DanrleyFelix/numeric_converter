@@ -3,10 +3,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.core.binary_workbench.mips_r3000a import build_scratch_rows
+from src.core.binary_workbench.row_structure import valid_offset_end
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
     BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
-    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
     BINARY_WORKBENCH_TAB_KIND,
 )
 from src.modules.binary_workbench_dtos import (
@@ -39,8 +39,7 @@ def create_binary_tab(
     preferences = preferences or BinaryWorkbenchPreferencesDTO()
     block_size = preferences.block_size
     rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), block_size, dict(DEFAULT_REF_BASES))
-    variables: dict[str, str] = {}
-    equates: dict[str, str] = {}
+    symbols: dict[str, str] = {}
     labels: dict[str, str] = {}
     file_size = path.stat().st_size if path.exists() else 0
     return BinaryWorkbenchTabContextDTO(
@@ -52,9 +51,10 @@ def create_binary_tab(
         reference_offsets=list(DEFAULT_REFS),
         reference_offset_bases=dict(DEFAULT_REF_BASES),
         labels=labels,
-        equates=equates,
-        variables=variables,
-        symbol_offsets=symbol_offsets(rows, variables, equates, labels),
+        symbols=symbols,
+        equates=symbols,
+        variables=symbols,
+        symbol_offsets=symbol_offsets(rows, symbols, symbols, labels),
         internal_files=[],
         lba_sector_size=BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
         original_rows=deepcopy(rows),
@@ -83,8 +83,7 @@ def create_assembly_tab(
     read_mode = resolve_read_mode(path, "assembly")
     preferences = preferences or BinaryWorkbenchPreferencesDTO()
     rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), preferences.block_size, dict(DEFAULT_REF_BASES))
-    variables: dict[str, str] = {}
-    equates: dict[str, str] = {}
+    symbols: dict[str, str] = {}
     labels = labels_from_path(path, read_mode)
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
@@ -95,13 +94,14 @@ def create_assembly_tab(
         reference_offsets=list(DEFAULT_REFS),
         reference_offset_bases=dict(DEFAULT_REF_BASES),
         labels=labels,
-        equates=equates,
-        variables=variables,
-        symbol_offsets=symbol_offsets(rows, variables, equates, labels),
+        symbols=symbols,
+        equates=symbols,
+        variables=symbols,
+        symbol_offsets=symbol_offsets(rows, symbols, symbols, labels),
         original_rows=deepcopy(rows),
         rows=rows,
-        file_size=len(rows) * ROW_BYTES,
-        original_file_size=len(rows) * ROW_BYTES,
+        file_size=valid_offset_end(rows),
+        original_file_size=valid_offset_end(rows),
         versions=[
             BinaryWorkbenchVersionDTO(name=BINARY_WORKBENCH_DEFAULT_VERSION_NAME)
         ] if path.is_file() else [],
@@ -121,8 +121,8 @@ def create_scratch_tab(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchTabCont
         reference_offset_bases=dict(DEFAULT_REF_BASES),
         original_rows=deepcopy(rows),
         rows=rows,
-        file_size=len(rows) * ROW_BYTES,
-        original_file_size=len(rows) * ROW_BYTES,
+        file_size=valid_offset_end(rows),
+        original_file_size=valid_offset_end(rows),
         view_preferences=seed_view_preferences(state),
     )
 
@@ -133,10 +133,7 @@ def create_label_tab(parent: BinaryWorkbenchTabContextDTO, label: str) -> Binary
             **deepcopy(parent.__dict__),
             "tab_id": uuid4().hex,
             "keep_workspace_resources": True,
-            "display_name": BINARY_WORKBENCH_TEXT.LABEL_TAB_NAME_TEMPLATE.format(
-                label=label,
-                source=parent.display_name,
-            ),
+            "display_name": parent.display_name,
         }
     )
 

@@ -10,6 +10,8 @@ PAGE = HelpPageDefinition(
         <ul>
             <li>Open <b>Version</b> before saving a modified binary when the current edits need a named record.</li>
             <li><b>Att Version</b> updates the active version with the current editor state.</li>
+            <li>The <b>default</b> version is a safety copy refreshed after every three uses of <b>Alt+S</b>.</li>
+            <li>Keep at least two named versions in addition to <b>default</b> so experiments and recovery points stay separate.</li>
             <li>The version name should describe the patch or experiment, not the source file itself.</li>
         </ul>
         <h2>Load and replace</h2>

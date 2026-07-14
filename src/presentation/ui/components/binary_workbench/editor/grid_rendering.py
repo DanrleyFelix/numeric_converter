@@ -11,7 +11,10 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     normalize_instruction_text,
 )
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
-from src.core.binary_workbench.row_structure import first_valid_label_offset
+from src.core.binary_workbench.row_structure import (
+    first_valid_label_offset,
+    valid_offset_end,
+)
 
 
 class GridRenderingMixin:
@@ -28,6 +31,8 @@ class GridRenderingMixin:
         reference_offset_bases: dict[str, str] | None = None,
         jump_reference_offset: str = "",
     ) -> None:
+        self._reset_virtual_undo_cache()
+        self._clear_virtual_selection()
         content_columns = {
             BINARY_WORKBENCH_TEXT.BYTES,
             BINARY_WORKBENCH_TEXT.DECODED_TEXT,
@@ -78,11 +83,23 @@ class GridRenderingMixin:
         self._schedule_layout_refresh()
 
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
+        if self._virtual:
+            if (
+                self._viewport_line_selection is None
+                and self._virtual_selection_range is None
+            ):
+                self._capture_viewport_line_selection()
+            self._capture_virtual_undo(self._visible_start_offset, start_offset)
+            if self._viewport_line_selection is not None:
+                self._virtual_selection_scrolling = True
         self._rows = list(rows)
         self._visible_start_offset = start_offset
         self._refresh_jump_navigation()
         self._render()
-        if self._virtual_selection_range is not None:
+        self._restore_virtual_undo(start_offset)
+        if self._viewport_line_selection is not None:
+            self._restore_viewport_line_selection()
+        elif self._virtual_selection_range is not None:
             self._select_visible_virtual_range(*self._virtual_selection_range)
         self._dirty_editor_kind = None
 
@@ -93,6 +110,11 @@ class GridRenderingMixin:
         equates: dict[str, str],
         symbol_offsets: dict[str, list[str]] | None = None,
     ) -> None:
+        symbols_changed = (
+            labels != self._labels
+            or variables != self._variables
+            or equates != self._equates
+        )
         self._labels = dict(labels)
         self._variables = dict(variables)
         self._equates = dict(equates)
@@ -101,8 +123,20 @@ class GridRenderingMixin:
         self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
         self.instructions.set_symbol_helpers(labels, variables, equates)
         self._refresh_jump_navigation()
-        if hasattr(self, "raw_instructions"):
+        if symbols_changed and hasattr(self, "raw_instructions"):
+            restore_raw_selection = self._virtual and (
+                self.raw_instructions.textCursor().hasSelection()
+                or (
+                    self._viewport_line_selection is not None
+                    and self._viewport_line_selection[0]
+                    == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
+                )
+            )
+            if self.raw_instructions.textCursor().hasSelection():
+                self._capture_viewport_line_selection(self.raw_instructions)
             self._render_raw_instructions()
+            if restore_raw_selection:
+                self._restore_viewport_line_selection()
 
     def current_labels(self) -> dict[str, str]:
         """Return the in-memory label snapshot used by branch navigation."""
@@ -112,13 +146,35 @@ class GridRenderingMixin:
     def label_navigation_target(self, label: str) -> int | None:
         """Resolve one clicked label against the grid's current rows."""
 
-        return first_valid_label_offset(self._rows, label)
+        target = first_valid_label_offset(self._rows, label)
+        if target is None:
+            value = next(
+                (
+                    offset
+                    for name, offset in self._labels.items()
+                    if name.lower() == label.lower()
+                ),
+                None,
+            )
+            try:
+                target = int(value, 0) if value is not None else None
+            except ValueError:
+                return None
+        if target is None or target < 0 or target % ROW_BYTES != 0:
+            return None
+        file_size = self.current_file_size()
+        if target >= file_size:
+            fallback_size = max(file_size, valid_offset_end(self._rows))
+            if self._virtual and fallback_size != file_size:
+                self.set_virtual_total_size(fallback_size)
+                file_size = fallback_size
+        return target if target < file_size else None
 
     def _refresh_jump_navigation(self) -> None:
         self._instruction_highlighter.set_jump_reference_offsets(
             self._reference_offset_bases,
             self._jump_reference_offset,
-            self._total_size,
+            self.current_file_size(),
         )
         self.instructions.set_jump_navigation(
             self._codec,
@@ -135,11 +191,17 @@ class GridRenderingMixin:
     def visible_size(self) -> int:
         return self._visible_row_count() * ROW_BYTES
 
+    def current_file_size(self) -> int:
+        if self._virtual:
+            return self._total_size
+        return valid_offset_end(self._all_rows)
+
     def set_virtual_total_size(self, size: int) -> None:
         if not self._virtual or size == self._total_size:
             return
         self._total_size = max(0, size)
         self._configure_scrollbar()
+        self._refresh_jump_navigation()
 
     def export_rows(self) -> list[BinaryWorkbenchRowDTO]:
         return list(self._all_rows if not self._virtual else self._rows)
@@ -170,13 +232,7 @@ class GridRenderingMixin:
             )
 
     def _display_offset(self, editor: QPlainTextEdit, text: str) -> str:
-        if text != "-":
-            return text
-        metrics = editor.fontMetrics()
-        available = editor.viewport().width() - (editor.document().documentMargin() * 2)
-        padding = max(0, int((available - metrics.horizontalAdvance(text)) / 2))
-        spaces = padding // max(1, metrics.horizontalAdvance(" "))
-        return f"{' ' * spaces}{text}"
+        return text
 
     def _on_scrollbar_changed(self, value: int) -> None:
         if self._updating:
@@ -205,6 +261,8 @@ class GridRenderingMixin:
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
         text = "\n".join(lines)
         if editor.toPlainText() == text:
+            if self._virtual:
+                editor.verticalScrollBar().setValue(0)
             self._remember_editor_text_signature(editor)
             return
         was_updating = self._updating
@@ -212,7 +270,9 @@ class GridRenderingMixin:
         scroll_value = editor.verticalScrollBar().value()
         try:
             editor.setPlainText(text)
-            if not self._virtual:
+            if self._virtual:
+                editor.verticalScrollBar().setValue(0)
+            else:
                 editor.verticalScrollBar().setValue(min(scroll_value, editor.verticalScrollBar().maximum()))
             self._remember_editor_text_signature(editor)
         finally:

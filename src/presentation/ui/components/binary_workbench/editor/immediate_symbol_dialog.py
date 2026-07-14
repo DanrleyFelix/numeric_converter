@@ -18,10 +18,20 @@ SYMBOL_NAME_CLEANUP = re.compile(r"[^0-9a-z_]+")
 
 
 class ImmediateSymbolNameDialog(QDialog):
-    def __init__(self, kind: str, value: str, parent=None) -> None:
+    def __init__(
+        self,
+        kind: str,
+        value: str,
+        parent=None,
+        *,
+        name: str | None = None,
+        editable_value: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._kind = kind
         self._value = value
+        self._name = name
+        self._editable_value = editable_value
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(kind)
         self.setMaximumSize(
@@ -32,6 +42,9 @@ class ImmediateSymbolNameDialog(QDialog):
 
     def symbol_name(self) -> str:
         return self.name_input.text().strip()
+
+    def symbol_value(self) -> str:
+        return self.value_input.text().strip()
 
     def _build_dialog(self) -> None:
         layout = QVBoxLayout(self)
@@ -45,16 +58,16 @@ class ImmediateSymbolNameDialog(QDialog):
         self.name_input = symbol_input(
             BINARY_WORKBENCH_TEXT.SYMBOL_NAME,
             shell,
-            _default_name(self._kind, self._value),
+            self._name or _default_name(self._kind, self._value),
             field_width,
         )
-        value_input = symbol_input(
+        self.value_input = symbol_input(
             BINARY_WORKBENCH_TEXT.SYMBOL_VALUE,
             shell,
             self._value,
             field_width,
         )
-        value_input.setReadOnly(True)
+        self.value_input.setReadOnly(not self._editable_value)
         row = QHBoxLayout()
         row.setSpacing(BINARY_WORKBENCH_LAYOUT.IMMEDIATE_SYMBOL_FIELD_SPACING)
         ok = symbol_button("OK", "preferences-ok", shell)
@@ -67,13 +80,13 @@ class ImmediateSymbolNameDialog(QDialog):
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
         row.addLayout(_field_action_column(self.name_input, ok))
-        row.addLayout(_field_action_column(value_input, cancel))
+        row.addLayout(_field_action_column(self.value_input, cancel))
         shell_layout.addLayout(row)
         layout.addWidget(shell)
 
 
 def _default_name(kind: str, value: str) -> str:
-    prefix = "variable" if kind == BINARY_WORKBENCH_TEXT.VARIABLE_TARGET else "equate"
+    prefix = "symbol"
     cleaned = value.lower().replace("-", "minus_").replace("+", "").replace("0x", "")
     cleaned = SYMBOL_NAME_CLEANUP.sub("_", cleaned.replace("$", "")).strip("_")
     return f"{prefix}_{cleaned or 'value'}"

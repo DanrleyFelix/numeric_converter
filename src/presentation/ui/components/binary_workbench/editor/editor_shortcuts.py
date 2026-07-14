@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication, QTextEdit
 
+from src.core.binary_workbench.clipboard_text import without_empty_lines
 from src.presentation.ui.components.binary_workbench.editor.bytes_input import (
     BYTES_PANEL,
     bytes_insert_allowed,
@@ -100,7 +101,7 @@ class EditorShortcutMixin:
         return True
 
     def _handle_bytes_paste(self) -> bool:
-        text = QApplication.clipboard().text()
+        text = without_empty_lines(QApplication.clipboard().text())
         cursor = self.textCursor()
         replacement = bytes_paste_replacement(
             text,

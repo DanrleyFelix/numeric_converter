@@ -62,6 +62,8 @@ class BinaryWorkbenchWindowVersionMixin:
                 return
             name = current.active_version_name if current is not None else ""
             if name and self.tabs.update_current_version(name, mark_dirty=False, reload_page=False):
+                self.tabs.mark_initial_version_saved(current.tab_id)
+                self.tabs.backup_default_version_if_due()
                 self.tabs.save_current_workspace()
                 self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
                 return

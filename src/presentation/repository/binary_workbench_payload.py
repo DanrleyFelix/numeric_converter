@@ -9,6 +9,7 @@ from src.core.binary_workbench.context_overlays import (
 from src.core.binary_workbench.encoding_tables import encoding_table_from_payload
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_names import sorted_versions
+from src.core.binary_workbench.symbol_values import merged_symbol_values
 from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
@@ -211,9 +212,9 @@ def _versions(raw: object) -> list[BinaryWorkbenchVersionDTO]:
                 rows=rows,
                 instruction_overlays=_instruction_overlays(item.get("instructions")),
                 instructions_by_line=instructions_by_line,
-                variables=normalize_string_map(item.get("variables")),
-                equates=normalize_string_map(item.get("equates")),
-                symbols_loaded="variables" in item or "equates" in item,
+                variables={},
+                equates={},
+                symbols_loaded=False,
             )
         )
     return sorted_versions(versions, name_of=lambda version: version.name)
@@ -339,6 +340,11 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     if kind not in {"binary", "internal"}:
         byte_overlays = {}
         instruction_overlays = {}
+    symbols = merged_symbol_values(
+        normalize_string_map(raw.get("symbols")),
+        normalize_string_map(raw.get("variables")),
+        normalize_string_map(raw.get("equates")),
+    )
     context = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
         kind=kind,
@@ -351,8 +357,9 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         reference_offsets=reference_offsets,
         reference_offset_bases=reference_offset_bases,
         labels=normalize_string_map(raw.get("labels")),
-        equates=normalize_string_map(raw.get("equates")),
-        variables=normalize_string_map(raw.get("variables")),
+        symbols=symbols,
+        equates=symbols,
+        variables=symbols,
         symbol_offsets=_string_list_map(raw.get("symbol_offsets")),
         search_cache={},
         internal_files=internal_files,
@@ -454,8 +461,7 @@ def binary_workbench_state_to_payload(
                 "reference_offsets": list(tab.reference_offsets),
                 "reference_offset_bases": {k: v for k, v in dict(tab.reference_offset_bases).items() if not (k == "File" and v == "0x00000000")},
                 "labels": {} if _module_backed(tab, VERSIONS) else dict(tab.labels),
-                "equates": {} if _module_backed(tab, SYMBOLS) else dict(tab.equates),
-                "variables": {} if _module_backed(tab, SYMBOLS) else dict(tab.variables),
+                "symbols": {} if _module_backed(tab, SYMBOLS) else dict(tab.symbols),
                 "symbol_offsets": {} if _has_symbol_offset_modules(tab) else {
                     key: list(value) for key, value in tab.symbol_offsets.items()
                 },
@@ -482,10 +488,6 @@ def binary_workbench_state_to_payload(
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
                         "instructions": _version_instructions_payload(version),
-                        **({
-                            "variables": dict(version.variables),
-                            "equates": dict(version.equates),
-                        } if version.symbols_loaded or version.variables or version.equates else {}),
                     }
                     for version in sorted_versions(tab.versions, name_of=lambda item: item.name)
                 ],

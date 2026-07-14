@@ -59,7 +59,10 @@ class BinaryWorkbenchWindowSearchMixin:
         self._hazards_window.activateWindow()
 
     def _open_select_block(self) -> None:
-        dialog = BinaryWorkbenchSelectBlockDialog(self)
+        dialog = BinaryWorkbenchSelectBlockDialog(
+            self,
+            start_offset=self.tabs.current_cursor_offset(),
+        )
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         selected = dialog.selected_range()

@@ -46,6 +46,7 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
             if not encoding_table_conflicts(name, self._enabled, list(self._tables.values())):
                 self._enabled.append(name)
         self._directory = directory
+        self._loaded_paths: list[Path] = []
         self._buttons: dict[str, QPushButton] = {}
         self._conflict_generation: dict[str, int] = {}
         layout = QVBoxLayout(self)
@@ -79,6 +80,9 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
     def directory(self) -> str:
         return self._directory
 
+    def loaded_paths(self) -> list[Path]:
+        return list(self._loaded_paths)
+
     def _load_table(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, BINARY_WORKBENCH_TEXT.ENCODING_TABLES, self._directory, BINARY_WORKBENCH_FILE_DIALOG_TEXT.ENCODING_TABLE_JSON_FILTER)
         if not path:
@@ -88,6 +92,7 @@ class BinaryWorkbenchEncodingTablesDialog(QDialog):
         if table is None or table.name == BINARY_WORKBENCH_ANSI_TABLE_NAME:
             return
         self._directory = str(source.parent)
+        self._loaded_paths.append(source)
         self._tables[table.name] = table
         self._enabled = [name for name in self._enabled if name != table.name]
         self._rebuild_buttons()

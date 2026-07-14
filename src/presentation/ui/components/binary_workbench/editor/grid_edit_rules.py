@@ -76,20 +76,27 @@ class GridEditRulesMixin:
         self._remember_editor_text_signature(editor)
         self._emit_selection_summary()
 
-    def _expanded_virtual_total_size(self, rows: list[BinaryWorkbenchRowDTO]) -> int:
+    def _expanded_virtual_total_size(
+        self,
+        rows: list[BinaryWorkbenchRowDTO],
+        offset_delta: int = 0,
+    ) -> int:
         if not self._virtual:
             return self._total_size
         if self._edit_rules.allow_byte_shift:
-            return max(self._total_size, self._visible_start_offset + (self._valid_offset_count(rows) * ROW_BYTES))
+            return max(0, self._total_size + offset_delta)
         if not self._free_offset_window():
             return self._total_size
-        if len(rows) <= len(self._rows):
-            if self._free_offset_window() or self._removed_only_extra_rows(rows):
-                return max(self._original_boundary(), self._visible_start_offset + (len(rows) * ROW_BYTES))
+        if not offset_delta:
             return self._total_size
-        return max(self._total_size, self._visible_start_offset + (len(rows) * ROW_BYTES))
+        return max(self._original_boundary(), self._total_size + offset_delta)
 
     def _handle_editor_return_key(self, editor, event) -> None:
+        if self._alt_return_event(event):
+            if self._alt_return_should_insert_nop(editor):
+                self._insert_nop_line(editor)
+                editor.mark_return_key_handled()
+            return
         if self._apply_instruction_command(editor):
             editor.mark_return_key_handled()
             return
@@ -207,6 +214,15 @@ class GridEditRulesMixin:
             and bool(event.modifiers() & Qt.ShiftModifier)
         )
 
+    def _alt_return_event(self, event) -> bool:
+        return bool(event.modifiers() & Qt.AltModifier) and not bool(
+            event.modifiers()
+            & (Qt.ControlModifier | Qt.ShiftModifier | Qt.MetaModifier)
+        )
+
+    def _alt_return_should_insert_nop(self, editor) -> bool:
+        return self._return_key_should_insert_instruction_line(editor)
+
     def _return_key_should_insert_instruction_line(self, editor) -> bool:
         return (
             not self._virtual
@@ -220,6 +236,18 @@ class GridEditRulesMixin:
         try:
             cursor.insertText("\n")
             self._normalize_previous_instruction_line(cursor)
+        finally:
+            cursor.endEditBlock()
+        editor.setTextCursor(cursor)
+
+    def _insert_nop_line(self, editor) -> None:
+        cursor = editor.textCursor()
+        cursor.movePosition(QTextCursor.EndOfBlock)
+        cursor.beginEditBlock()
+        try:
+            cursor.insertText("\n")
+            self._normalize_previous_instruction_line(cursor)
+            cursor.insertText("nop\n")
         finally:
             cursor.endEditBlock()
         editor.setTextCursor(cursor)

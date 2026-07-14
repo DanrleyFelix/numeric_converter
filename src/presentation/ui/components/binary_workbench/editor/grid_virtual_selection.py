@@ -1,5 +1,7 @@
 from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QApplication
 
+from src.core.binary_workbench.clipboard_text import without_empty_lines
 from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
@@ -18,6 +20,7 @@ class GridVirtualSelectionMixin:
             start_offset,
             end_offset,
         )
+        self._viewport_line_selection = None
         self._virtual_selection_anchor = normalized_start
         self._virtual_selection_kind = kind
         self._virtual_selection_range = (kind, normalized_start, normalized_end)
@@ -29,11 +32,11 @@ class GridVirtualSelectionMixin:
 
     def _copy_editor_selection(self, editor) -> None:
         if self._virtual_selection_range is None:
-            editor.copy()
+            self._copy_local_editor_selection(editor)
             return
         kind, anchor_offset, cursor_offset = self._virtual_selection_range
         if kind != self._editor_kind_for_selection(editor):
-            editor.copy()
+            self._copy_local_editor_selection(editor)
             return
         first, last = sorted((anchor_offset, cursor_offset))
         self.copySelectionRequested.emit(
@@ -42,15 +45,30 @@ class GridVirtualSelectionMixin:
             capped_end_offset(first, last, self._selection_limit_bytes),
         )
 
+    def _copy_local_editor_selection(self, editor) -> None:
+        kind = self._editor_kind_for_selection(editor)
+        if kind not in {
+            BINARY_WORKBENCH_TEXT.BYTES,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        }:
+            editor.copy()
+            return
+        QApplication.clipboard().setText(
+            without_empty_lines(editor.textCursor().selection().toPlainText())
+        )
+
     def _capture_virtual_selection_anchor(self, editor) -> None:
         if not self._virtual:
             return
         kind = self._editor_kind_for_selection(editor)
         if kind is None:
+            self._capture_viewport_line_selection(editor)
+            self._virtual_selection_scrolling = True
             return
         if self._virtual_selection_anchor is not None and self._virtual_selection_kind == kind:
             self._virtual_selection_scrolling = True
             return
+        self._capture_viewport_line_selection(editor)
         cursor = editor.textCursor()
         position = cursor.anchor() if cursor.hasSelection() else cursor.position()
         self._virtual_selection_anchor = self._offset_for_editor_position(editor, position)
@@ -61,13 +79,69 @@ class GridVirtualSelectionMixin:
         if not self._virtual or self._virtual_selection_anchor is None:
             return
         kind = self._editor_kind_for_selection(editor)
-        if kind is None or kind != self._virtual_selection_kind:
+        if kind is None:
+            if self._update_viewport_line_selection_cursor(
+                editor,
+                editor.textCursor().position(),
+            ):
+                self._restore_viewport_line_selection()
+            self._virtual_selection_scrolling = False
+            return
+        if kind != self._virtual_selection_kind:
             self._virtual_selection_scrolling = False
             return
         cursor_offset = self._offset_for_editor_position(editor, editor.textCursor().position())
         self._virtual_selection_range = (kind, self._virtual_selection_anchor, cursor_offset)
-        self._select_visible_virtual_range(kind, self._virtual_selection_anchor, cursor_offset)
+        if self._update_viewport_line_selection_cursor(
+            editor,
+            editor.textCursor().position(),
+        ):
+            self._restore_viewport_line_selection()
+        else:
+            self._select_visible_virtual_range(
+                kind,
+                self._virtual_selection_anchor,
+                cursor_offset,
+            )
         self._emit_virtual_selection_summary(kind, self._virtual_selection_anchor, cursor_offset)
+        self._virtual_selection_scrolling = False
+
+    def _capture_virtual_viewport_selection(self, editor) -> None:
+        if not self._virtual or not editor.textCursor().hasSelection():
+            return
+        kind = self._editor_kind_for_selection(editor)
+        if self._virtual_selection_range is not None and self._virtual_selection_kind == kind:
+            self._virtual_selection_scrolling = True
+            return
+        if (
+            self._viewport_line_selection is None
+            or self._viewport_editor_for_key(self._viewport_line_selection[0]) is not editor
+        ):
+            self._capture_viewport_line_selection(editor)
+        if kind is None:
+            return
+        cursor = editor.textCursor()
+        anchor_offset = self._offset_for_editor_position(editor, cursor.anchor())
+        cursor_offset = self._offset_for_editor_position(editor, cursor.position())
+        self._virtual_selection_anchor = anchor_offset
+        self._virtual_selection_kind = kind
+        self._virtual_selection_range = (kind, anchor_offset, cursor_offset)
+        self._virtual_selection_scrolling = True
+
+    def _finish_virtual_viewport_change(self, editor) -> None:
+        if not self._virtual:
+            self._virtual_selection_scrolling = False
+            return
+        if self._restore_viewport_line_selection():
+            self._virtual_selection_scrolling = False
+            return
+        if self._virtual_selection_range is None:
+            self._virtual_selection_scrolling = False
+            return
+        kind, anchor_offset, cursor_offset = self._virtual_selection_range
+        if kind == self._editor_kind_for_selection(editor):
+            self._select_visible_virtual_range(kind, anchor_offset, cursor_offset)
+            self._emit_virtual_selection_summary(kind, anchor_offset, cursor_offset)
         self._virtual_selection_scrolling = False
 
     def _select_visible_virtual_range(self, kind: str, anchor_offset: int, cursor_offset: int) -> None:
@@ -95,6 +169,7 @@ class GridVirtualSelectionMixin:
         set_cursor_position(cursor, positions[0])
         set_cursor_position(cursor, positions[1], QTextCursor.KeepAnchor)
         self.bytes.setTextCursor(cursor)
+        self.bytes.verticalScrollBar().setValue(0)
 
     def _select_visible_instruction_range(self, kind: str, start_offset: int, end_offset: int) -> None:
         start_row = self._row_for_offset(start_offset)
@@ -111,6 +186,7 @@ class GridVirtualSelectionMixin:
         set_cursor_position(cursor, start_block.position())
         set_cursor_position(cursor, end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
         editor.setTextCursor(cursor)
+        editor.verticalScrollBar().setValue(0)
 
     def _emit_virtual_selection_summary(self, kind: str, anchor_offset: int, cursor_offset: int) -> None:
         first, last = sorted((anchor_offset, cursor_offset))
@@ -126,6 +202,7 @@ class GridVirtualSelectionMixin:
         )
 
     def _clear_virtual_selection(self, *_args) -> None:
+        self._viewport_line_selection = None
         self._virtual_selection_anchor = None
         self._virtual_selection_kind = None
         self._virtual_selection_range = None

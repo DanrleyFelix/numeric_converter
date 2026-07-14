@@ -45,6 +45,24 @@ def labels_from_rows(rows: list[BinaryWorkbenchRowDTO]) -> dict[str, str]:
     return labels_from_lines_at_rows([row.instruction for row in rows], rows)
 
 
+def label_declarations_changed(
+    previous_rows: list[BinaryWorkbenchRowDTO],
+    rows: list[BinaryWorkbenchRowDTO],
+) -> bool:
+    if len(previous_rows) != len(rows):
+        return True
+    for previous, current in zip(previous_rows, rows):
+        if previous.instruction == current.instruction:
+            continue
+        if ":" not in previous.instruction and ":" not in current.instruction:
+            continue
+        previous_label = label_from_instruction(previous.instruction)
+        current_label = label_from_instruction(current.instruction)
+        if previous_label != current_label:
+            return True
+    return False
+
+
 def labels_from_lines_at_rows(
     lines: list[str],
     rows: list[BinaryWorkbenchRowDTO],

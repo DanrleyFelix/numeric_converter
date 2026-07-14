@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchSymbolsDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
@@ -60,7 +60,7 @@ class BinaryWorkbenchSymbolsDialog(
         self._loaded_library_name = ""
         self._loaded_library_path = ""
         self._symbol_offsets = dict(symbol_offsets or {})
-        self._rows: list[tuple[QComboBox, QLineEdit, QLineEdit, QWidget, QWidget]] = []
+        self._rows: list[tuple[QLineEdit, QLineEdit, QWidget, QWidget]] = []
         self._build_dialog(variables, equates, labels, default_library_name)
 
     def _build_dialog(

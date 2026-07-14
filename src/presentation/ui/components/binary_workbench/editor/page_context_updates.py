@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.core.binary_workbench.row_structure import valid_offset_end
 from src.core.binary_workbench.version_overlays import without_blank_instruction_overlays
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
@@ -15,12 +16,20 @@ from src.presentation.ui.components.binary_workbench.symbols import symbol_offse
 
 class EditorPageContextMixin:
     def _on_rows_changed(self, rows: list) -> None:
+        previous_size = self._context.file_size
         if self._reader is not None:
             self._update_overlay(rows)
-            return
-        self._update_context(
-            symbol_updates(self._context, rows, self.grid.current_labels())
-        )
+        else:
+            self._update_context(
+                symbol_updates(
+                    self._context,
+                    rows,
+                    self.grid.current_labels(),
+                    self.grid.current_file_size(),
+                )
+            )
+        if self._context.file_size > previous_size:
+            self.structuralVersionSaveRequested.emit()
 
     def _on_commands_changed(self, commands: dict[str, list[str]]) -> None:
         self._update_context({"custom_commands": commands})
@@ -78,11 +87,13 @@ def symbol_updates(
     context: BinaryWorkbenchTabContextDTO,
     rows: list,
     labels: dict[str, str],
+    file_size: int | None = None,
 ) -> dict[str, object]:
     """Build context updates from the grid's current structural label snapshot."""
 
     updates = {
         "rows": rows,
+        "file_size": valid_offset_end(rows) if file_size is None else file_size,
         "labels": labels,
         "version_dirty": context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY,
         "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),

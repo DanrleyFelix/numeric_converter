@@ -1,6 +1,5 @@
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QComboBox,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -35,18 +34,6 @@ def symbol_input(
     editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     editor.setFixedWidth(width)
     return editor
-
-
-def symbol_kind_combo(parent: QWidget, value: str, *, expanding: bool = False) -> QComboBox:
-    combo = QComboBox(parent)
-    combo.setObjectName("binary-workbench-dialog-input")
-    combo.addItems(["Variable", "Equate"])
-    combo.setCurrentText(value)
-    combo.setCursor(Qt.PointingHandCursor)
-    size_symbol_input(combo, BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH, expanding=expanding)
-    combo.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-    combo.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SYMBOL_KIND_WIDTH)
-    return combo
 
 
 def size_symbol_input(widget: QWidget, width: int, *, expanding: bool = False) -> None:
@@ -90,7 +77,7 @@ def symbol_field(text: str, widget: QWidget, *, expanding: bool = False) -> QWid
 def symbol_button(text: str, object_name: str, parent: QWidget) -> QPushButton:
     button = QPushButton(text, parent)
     button.setObjectName(object_name)
-    button.setFocusPolicy(Qt.StrongFocus)
+    button.setFocusPolicy(Qt.NoFocus)
     button.setCursor(Qt.PointingHandCursor)
     button.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     button.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH)
@@ -101,7 +88,7 @@ class SymbolRemoveRowButton(QPushButton):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self.setObjectName("workspace-row-remove")
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.NoFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setIcon(Icons.remove())
         self.setIconSize(QSize(WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE, WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE))

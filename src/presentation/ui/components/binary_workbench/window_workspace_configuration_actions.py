@@ -4,7 +4,7 @@ from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
 )
-from src.presentation.repository.binary_workbench_workspace.constants import OFFSET_REGIONS
+from src.presentation.repository.binary_workbench_workspace.constants import ENCODING_TABLES, OFFSET_REGIONS
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchEncodingTablesDialog,
@@ -43,10 +43,8 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
             self,
         )
         dialog.exec()
-        self.tabs.set_directory(
-            BINARY_WORKBENCH_STATE.ENCODING_TABLES_DIRECTORY,
-            Path(dialog.directory()),
-        )
+        for path in dialog.loaded_paths():
+            self.tabs.import_environment_file(ENCODING_TABLES, path)
         self.tabs.set_current_encoding_tables(dialog.tables(), dialog.enabled_names())
 
     def _open_offset_regions(self) -> None:

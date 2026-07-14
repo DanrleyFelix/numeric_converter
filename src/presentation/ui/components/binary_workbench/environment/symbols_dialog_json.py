@@ -3,6 +3,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QFileDialog
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchSymbolsDTO
+from src.core.binary_workbench.symbol_values import merged_symbol_values
 from src.modules.utils import read_json, write_json
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.file_dialogs.constants import (
@@ -15,18 +16,17 @@ class SymbolsDialogJsonMixin:
         library = symbols_from_json_payload(read_json(path), path.stem)
         if library is None:
             return False
-        self._clear_rows()
         self._loaded_library_name = library.name
         self._loaded_library_path = str(path)
-        self._load_rows(library.variables, library.equates, library.labels)
+        self._merge_rows(library.symbols)
         self._remember_symbols_directory(path)
         return True
 
     def save_library_json(self, path: Path) -> bool:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
         library_name = target.stem
-        variables, equates, _ = self.values()
-        write_json(target, symbols_payload(library_name, variables, equates))
+        symbols, _, _ = self.values()
+        write_json(target, symbols_payload(library_name, symbols))
         self._save_requested = True
         self._saved_library_name = library_name
         self._saved_library_path = str(target)
@@ -69,14 +69,17 @@ def symbols_from_json_payload(payload: dict[str, object] | None, fallback_name: 
         return None
     return BinaryWorkbenchSymbolsDTO(
         name=_text_value(raw.get("name")) or fallback_name,
-        variables=_string_map(raw.get("variables")),
-        equates=_string_map(raw.get("equates")),
+        symbols=merged_symbol_values(
+            _string_map(raw.get("symbols")),
+            _string_map(raw.get("variables")),
+            _string_map(raw.get("equates")),
+        ),
         labels={},
     )
 
 
-def symbols_payload(name: str, variables: dict[str, str], equates: dict[str, str]) -> dict[str, object]:
-    return {"name": name, "variables": variables, "equates": equates}
+def symbols_payload(name: str, symbols: dict[str, str]) -> dict[str, object]:
+    return {"name": name, "symbols": merged_symbol_values(symbols)}
 
 
 def symbols_filename(name: str) -> str:

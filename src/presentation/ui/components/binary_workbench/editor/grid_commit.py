@@ -2,6 +2,7 @@ from src.core.binary_workbench.row_structure import structural_offset_delta
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    label_declarations_changed,
     labels_from_rows,
 )
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
@@ -38,13 +39,16 @@ class GridCommitMixin:
             self._restore_editor_after_rejected_change(editing_bytes)
             return
         offset_delta = structural_offset_delta(self._rows, rows)
+        labels_changed = label_declarations_changed(self._rows, rows)
         self._rows = rows
-        if offset_delta:
+        if offset_delta or labels_changed:
             labels = labels_from_rows(rows)
-            self._set_editing_labels(labels)
+            if labels != self._labels:
+                self._set_editing_labels(labels)
         self._commit_rows_to_context(rows)
         self._render_raw_instructions()
-        if offset_delta:
+        if offset_delta or labels_changed:
+            self._refresh_jump_navigation()
             self._refresh_label_folding()
         self._dirty_editor_kind = None
 

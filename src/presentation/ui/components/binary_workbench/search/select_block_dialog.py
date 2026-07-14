@@ -13,7 +13,7 @@ from src.presentation.ui.components.binary_workbench.search.dialog_layout import
 
 
 class BinaryWorkbenchSelectBlockDialog(QDialog):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, start_offset: int | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SELECT_BLOCK)
@@ -34,6 +34,8 @@ class BinaryWorkbenchSelectBlockDialog(QDialog):
         set_hex_value_validator(self.start)
         set_hex_value_validator(self.end)
         set_decimal_integer_validator(self.length)
+        if start_offset is not None:
+            self.start.setText(f"0x{max(0, start_offset):08X}")
         finish_search_dialog(
             layout,
             self.start,

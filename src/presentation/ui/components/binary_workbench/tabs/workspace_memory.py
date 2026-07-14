@@ -5,7 +5,7 @@ from dataclasses import replace
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 
-WORKSPACE_HEAVY_TAB_LIMIT = 1
+WORKSPACE_HEAVY_TAB_LIMIT = 5
 
 
 def unloadable_workspace_context(context: BinaryWorkbenchTabContextDTO) -> bool:
@@ -23,6 +23,7 @@ def workspace_heavy_context_loaded(context: BinaryWorkbenchTabContextDTO) -> boo
     return any(
         (
             context.labels,
+            context.symbols,
             context.variables,
             context.equates,
             context.symbol_offsets,
@@ -51,8 +52,6 @@ def unload_workspace_heavy_context(
 ) -> BinaryWorkbenchTabContextDTO:
     updates = {
         "labels": {},
-        "variables": {},
-        "equates": {},
         "symbol_offsets": {},
         "search_cache": {},
         "versions": [],

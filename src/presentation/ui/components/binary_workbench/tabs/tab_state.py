@@ -40,6 +40,7 @@ SHARED_WORKSPACE_FIELDS = {
     "reference_offsets",
     "reference_offset_bases",
     "labels",
+    "symbols",
     "equates",
     "variables",
     "symbol_offsets",
@@ -86,7 +87,9 @@ class TabStateMixin:
                     **state_payload(self._state),
                     "tabs": [
                         self._context_with_universal_encoding_tables(
-                            self._context_with_universal_commands(tab)
+                            self._context_with_global_symbols(
+                                self._context_with_universal_commands(tab)
+                            )
                         )
                         for tab in self._state.tabs
                     ],
@@ -103,24 +106,15 @@ class TabStateMixin:
         self.stateChanged.emit(self._state)
 
     def directory_for(self, action_key: str) -> str:
+        if action_key in DIRECTORY_KEYS:
+            return self.workspace_module_directory(action_key)
         if value := self._state.directories.get(action_key, ""):
             return value
         return self.workspace_module_directory(action_key)
 
     def set_directory(self, action_key: str, path: Path) -> None:
-        module_key = DIRECTORY_KEYS.get(action_key)
-        current = self.current_context()
-        if module_key and current is not None:
-            current = BinaryWorkbenchTabContextDTO(
-                **{
-                    **current.__dict__,
-                    "module_directories": {
-                        **current.module_directories,
-                        module_key: str(path),
-                    },
-                }
-            )
-            self._replace_context(current.tab_id, current)
+        if action_key in DIRECTORY_KEYS:
+            return
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "directories": {**self._state.directories, action_key: str(path)}}
         )
@@ -215,10 +209,26 @@ class TabStateMixin:
     def _append_tab(self, context: BinaryWorkbenchTabContextDTO) -> None:
         context = self._context_with_universal_commands(context)
         context = self._context_with_universal_encoding_tables(context)
+        context = self._context_with_global_symbols(context)
         self._state = BinaryWorkbenchStateDTO(
             **{**state_payload(self._state), "tabs": [*self._state.tabs, context], "active_tab_id": context.tab_id}
         )
         self._add_tab_page(context)
+        if self._global_symbols:
+            page = self.widget(self.count() - 1)
+            context = self._context_with_symbol_values(
+                context,
+                self.local_symbols(context),
+                page,
+            )
+            self._state = BinaryWorkbenchStateDTO(
+                **{
+                    **state_payload(self._state),
+                    "tabs": [*self._state.tabs[:-1], context],
+                }
+            )
+            if isinstance(page, BinaryWorkbenchEditorPage):
+                page.load_context(context)
         self.setCurrentIndex(self.count() - 1)
         self._ensure_workspace_heavy_loaded(self.currentIndex())
         self._enforce_workspace_heavy_limit()
@@ -390,6 +400,9 @@ class TabStateMixin:
         if not isinstance(page, BinaryWorkbenchEditorPage):
             self._stale_context_pages.add(context.tab_id)
             return
+        if page is not self.currentWidget():
+            self._stale_context_pages.add(context.tab_id)
+            return
         if workspace_heavy_context_unloaded(context):
             page.replace_context(context)
             self._stale_context_pages.add(context.tab_id)
@@ -465,9 +478,7 @@ class TabStateMixin:
             previous_context = self.context_at(previous)
             if previous_context is not None:
                 previous_context = self._commit_page_context_without_emit(previous, previous_context)
-            if previous_context is not None and self._workspace_context_unloadable(previous, previous_context):
-                self._unload_workspace_heavy_tab(previous)
-            elif previous_context is not None and _persist_on_tab_switch(previous_context):
+            if previous_context is not None and _persist_on_tab_switch(previous_context):
                 persisted = self._persist_workspace_context_for_unload(previous, previous_context)
                 if persisted is not None:
                     self._replace_context_without_emit(persisted.tab_id, persisted)
@@ -571,7 +582,8 @@ def _internal_workspace_changed(context: BinaryWorkbenchTabContextDTO) -> bool:
     if context.module_checksums:
         return False
     return bool(
-        context.variables
+        context.symbols
+        or context.variables
         or context.equates
         or context.offset_regions
         or context.offset_regions_loaded

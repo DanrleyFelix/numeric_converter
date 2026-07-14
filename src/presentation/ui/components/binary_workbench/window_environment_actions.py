@@ -68,15 +68,18 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             self.tabs.save_current_workspace()
 
     def _open_symbols(self) -> None:
+        self._open_local_symbols()
+
+    def _open_local_symbols(self) -> None:
         current = self.tabs.current_context()
         if current is None:
             return
-        if _scratch_workspace_source_required(current):
-            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
+        if self.tabs.scratch_initial_version_required(current):
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_SYMBOLS_VERSION_REQUIRED)
             return
         dialog = BinaryWorkbenchSymbolsDialog(
-            current.variables,
-            current.equates,
+            self.tabs.local_symbols(current),
+            {},
             current.labels,
             [],
             current.display_name,
@@ -84,18 +87,40 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             self,
             symbol_offsets=current.symbol_offsets,
         )
+        dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.LOCAL_SYMBOLS)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
         dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
-        variables, equates, _ = dialog.values()
-        self.tabs.set_current_symbols(variables, equates, current.labels)
+        symbols, _, _ = dialog.values()
+        self.tabs.set_current_symbols(symbols, {}, current.labels)
         module_path = dialog.saved_library_path() or dialog.loaded_library_path()
         if module_path:
             self.tabs.set_current_module_path(SYMBOLS, Path(module_path))
         if dialog.should_save_library() or dialog.loaded_library_name():
             self.tabs.save_current_symbols(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
         self.tabs.save_current_workspace()
+
+    def _open_global_symbols(self) -> None:
+        current = self.tabs.current_context()
+        if current is None:
+            return
+        dialog = BinaryWorkbenchSymbolsDialog(
+            self.tabs.global_symbols(),
+            {},
+            current.labels,
+            [],
+            BINARY_WORKBENCH_TEXT.GLOBAL_SYMBOLS,
+            self.tabs.directory_for(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY),
+            self,
+            symbol_offsets=current.symbol_offsets,
+        )
+        dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.GLOBAL_SYMBOLS)
+        dialog.goToRequested.connect(self.tabs.go_to_offset)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        symbols, _, _ = dialog.values()
+        self.tabs.set_global_symbols(symbols)
 
     def _open_labels(self) -> None:
         self.tabs.commit_current_editor_text()
@@ -208,11 +233,3 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog = BinaryWorkbenchInternalFileDialog(current.internal_files, self)
         if dialog.exec() == dialog.DialogCode.Accepted and dialog.selected_name() is not None:
             self.tabs.open_internal_tab(dialog.selected_name())
-
-
-def _scratch_workspace_source_required(current) -> bool:
-    return (
-        current is not None
-        and current.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH
-        and not current.source_path
-    )

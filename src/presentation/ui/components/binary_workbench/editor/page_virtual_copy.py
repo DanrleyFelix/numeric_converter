@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QApplication
 
+from src.core.binary_workbench.clipboard_text import without_empty_lines
 from src.core.binary_workbench.mips_r3000a import build_rows_from_bytes
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
@@ -20,6 +21,11 @@ class EditorPageVirtualCopyMixin:
             text = self._copy_virtual_raw_instructions(start_offset, end_offset)
         else:
             text = self._copy_virtual_instructions(start_offset, end_offset)
+        if kind in {
+            BINARY_WORKBENCH_TEXT.BYTES,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        }:
+            text = without_empty_lines(text)
         QApplication.clipboard().setText(text)
 
     def _copy_virtual_bytes(self, start_offset: int, end_offset: int) -> str:

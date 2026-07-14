@@ -34,6 +34,8 @@ class TabWorkspaceMemoryMixin:
         self._workspace_access_counter = 0
         self._workspace_tab_access: dict[str, int] = {}
         self._workspace_modules_loaded: set[str] = set()
+        self._version_update_counts: dict[str, int] = {}
+        self._scratch_tabs_pending_initial_version: set[str] = set()
         self._active_tab_index = -1
 
     def _remember_workspace_tab_access(self, tab_id: str) -> None:
@@ -43,6 +45,23 @@ class TabWorkspaceMemoryMixin:
     def _forget_workspace_tab_access(self, tab_id: str) -> None:
         self._workspace_tab_access.pop(tab_id, None)
         self._workspace_modules_loaded.discard(tab_id)
+        self._version_update_counts.pop(tab_id, None)
+        self._scratch_tabs_pending_initial_version.discard(tab_id)
+
+    def mark_scratch_initial_version_pending(self, tab_id: str) -> None:
+        self._scratch_tabs_pending_initial_version.add(tab_id)
+
+    def mark_initial_version_saved(self, tab_id: str) -> None:
+        self._scratch_tabs_pending_initial_version.discard(tab_id)
+
+    def scratch_initial_version_required(
+        self,
+        context: BinaryWorkbenchTabContextDTO | None,
+    ) -> bool:
+        return context is not None and (
+            context.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH
+            or context.tab_id in self._scratch_tabs_pending_initial_version
+        )
 
     def flush_open_workspaces(self) -> None:
         self._commit_open_tab_pages()
@@ -261,6 +280,7 @@ def _restored_module_backed_workspace_context(
     )
     has_missing_symbols = (
         SYMBOLS in context.module_paths
+        and not context.symbols
         and not context.variables
         and not context.equates
     )
@@ -299,7 +319,8 @@ def _internal_workspace_has_payload(context: BinaryWorkbenchTabContextDTO) -> bo
 
 def _workspace_has_payload(context: BinaryWorkbenchTabContextDTO) -> bool:
     return bool(
-        context.variables
+        context.symbols
+        or context.variables
         or context.equates
         or context.offset_regions
         or context.offset_regions_loaded

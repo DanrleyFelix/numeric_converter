@@ -43,11 +43,15 @@ class TabConfigurationMixin:
                 assembly_edit_rules=self._preferences.assembly_edit_rules,
             )
         )
-        updates: dict[str, object] = {"cpu_arch": cpu_arch, "read_mode": read_mode}
-        if current.source_path and current.kind in {BINARY_WORKBENCH_TAB_KIND.BINARY, BINARY_WORKBENCH_TAB_KIND.ASSEMBLY}:
-            rows = reload_source_rows(Path(current.source_path), read_mode, current.reference_offsets, block_size, current.reference_offset_bases)
-            updates.update({"original_rows": rows, "rows": rows})
-        self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, **updates}))
+        self._set_current_context(
+            BinaryWorkbenchTabContextDTO(
+                **{
+                    **current.__dict__,
+                    "cpu_arch": cpu_arch,
+                    "read_mode": read_mode,
+                }
+            )
+        )
 
     def set_current_group_bytes(self, value: int) -> None:
         self.set_current_bytes_formatter(
@@ -77,7 +81,12 @@ class TabConfigurationMixin:
             page.load_preferences(self._preferences)
 
     def edit_rules_for_current_context(self) -> BinaryWorkbenchEditRulesDTO:
-        current = self.current_context()
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.commit_current_editor_text()
+            current = page.current_context()
+        else:
+            current = self.current_context()
         if current is None or current.kind in {
             BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
             BINARY_WORKBENCH_TAB_KIND.SCRATCH,

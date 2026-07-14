@@ -111,6 +111,7 @@ class BinaryWorkbenchTabs(
         self._program_context = program_context or ProgramContextDTO()
         self._controller = BinaryWorkbenchController()
         self._state = BinaryWorkbenchStateDTO()
+        self._global_symbols: dict[str, str] = {}
         self._stale_context_pages: set[str] = set()
         self._initialize_workspace_memory()
         self.currentChanged.connect(self._sync_active_tab)

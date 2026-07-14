@@ -8,7 +8,7 @@ PAGE = HelpPageDefinition(
         <p>Search tools focus the current tab without changing the underlying data.</p>
         <h2>Go to</h2>
         <ul>
-            <li>Navigate by File Offset, configured reference offsets, LBA, Label, Equate, Variable or named Internal File.</li>
+            <li>Navigate by File Offset, configured reference offsets, LBA, Label, Symbol or named Internal File.</li>
             <li>When a target resolves to more than one offset, choose the desired result from the list.</li>
             <li>Labels and symbols are useful here because they let you navigate by meaning instead of memorized hex offsets.</li>
         </ul>

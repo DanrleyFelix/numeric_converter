@@ -225,8 +225,9 @@ def test_binary_workbench_context_payload_omits_module_backed_heavy_data():
 
     tab = payload["tabs"][0]
     assert tab["labels"] == {}
-    assert tab["variables"] == {}
-    assert tab["equates"] == {}
+    assert tab["symbols"] == {}
+    assert "variables" not in tab
+    assert "equates" not in tab
     assert tab["symbol_offsets"] == {}
     assert tab["custom_commands"] == {}
     assert tab["versions"] == []
@@ -236,6 +237,45 @@ def test_binary_workbench_context_payload_omits_module_backed_heavy_data():
     assert payload["encoding_tables"] == [
         {"name": "ansi", "values": {"0x41": "A"}},
     ]
+
+
+def test_binary_workbench_legacy_symbol_fields_load_into_canonical_symbols():
+    state = binary_workbench_state_from_payload(
+        {
+            "tabs": [
+                {
+                    "tab_id": "legacy",
+                    "kind": "assembly",
+                    "display_name": "legacy.asm",
+                    "variables": {"old_var": "0x10"},
+                    "equates": {"old_equate": "0x20"},
+                    "versions": [
+                        {
+                            "name": "v1",
+                            "variables": {"version_var": "0x30"},
+                            "equates": {"version_equate": "0x40"},
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    context = state.tabs[0]
+    assert context.symbols == {
+        "old_var": "0x10",
+        "old_equate": "0x20",
+    }
+    assert context.variables == context.symbols
+    assert context.equates == context.symbols
+    assert context.versions[0].variables == {}
+    assert context.versions[0].equates == {}
+    assert context.versions[0].symbols_loaded is False
+
+    payload = binary_workbench_state_to_payload(state)
+    assert payload["tabs"][0]["symbols"] == context.symbols
+    assert "variables" not in payload["tabs"][0]
+    assert "equates" not in payload["tabs"][0]
 
 
 def test_program_context_roundtrip_tracks_recent_and_last_binary_workspace(tmp_path: Path):
@@ -289,8 +329,7 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
         kind="binary",
         display_name=source.name,
         source_path=str(source),
-        variables={"variable1": "20"},
-        equates={"equate1": "0x34"},
+        symbols={"variable1": "20", "equate1": "0x34"},
         internal_files=[BinaryWorkbenchInternalFileDTO("slus", 24)],
         versions=[
             BinaryWorkbenchVersionDTO(
@@ -322,8 +361,9 @@ def test_binary_workbench_workspace_manifest_roundtrip_modules(tmp_path: Path):
     assert manifest.exists()
     assert version_file.exists()
     assert '"0"' in version_file.read_text(encoding="utf-8")
-    assert loaded.variables == {"variable1": "20"}
-    assert loaded.equates == {"equate1": "0x34"}
+    assert loaded.symbols == {"variable1": "20", "equate1": "0x34"}
+    assert loaded.variables == loaded.symbols
+    assert loaded.equates == loaded.symbols
     assert loaded.internal_files == [BinaryWorkbenchInternalFileDTO("slus", 24)]
     assert loaded.active_version_name == "v1"
     assert loaded.instruction_overlays["0x00000000"].startswith("Label_1:")
@@ -389,6 +429,7 @@ def test_binary_workbench_context_versions_roundtrip_symbols_and_natural_order()
                 tab_id="tab",
                 kind="binary",
                 display_name="versions.bin",
+                symbols={"shared": "0x2"},
                 versions=[
                     BinaryWorkbenchVersionDTO(
                         "v10",
@@ -415,12 +456,13 @@ def test_binary_workbench_context_versions_roundtrip_symbols_and_natural_order()
     assert [version["name"] for version in payload["tabs"][0]["versions"]] == ["v1", "v2", "v10"]
     assert loaded.tabs[0].active_version_name == "v2"
     assert [version.name for version in loaded.tabs[0].versions] == ["v1", "v2", "v10"]
-    assert loaded.tabs[0].versions[1].variables == {"var2": "0x2"}
-    assert loaded.tabs[0].versions[1].symbols_loaded is True
+    assert loaded.tabs[0].symbols == {"shared": "0x2"}
+    assert loaded.tabs[0].versions[1].variables == {}
+    assert loaded.tabs[0].versions[1].symbols_loaded is False
     assert loaded.tabs[0].versions[0].symbols_loaded is False
 
 
-def test_binary_workbench_workspace_versions_persist_symbols_and_keep_natural_order(tmp_path: Path):
+def test_binary_workbench_workspace_versions_share_tab_symbols_and_keep_natural_order(tmp_path: Path):
     source = tmp_path / "versions.bin"
     source.write_bytes(bytes.fromhex("00 00 00 00"))
     repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
@@ -429,8 +471,7 @@ def test_binary_workbench_workspace_versions_persist_symbols_and_keep_natural_or
         kind="binary",
         display_name=source.name,
         source_path=str(source),
-        variables={"var2": "0x2"},
-        equates={"eq2": "0x22"},
+        symbols={"var2": "0x2", "eq2": "0x22"},
         versions=[
             BinaryWorkbenchVersionDTO(
                 "v10",
@@ -470,16 +511,19 @@ def test_binary_workbench_workspace_versions_persist_symbols_and_keep_natural_or
 
     assert payload["active_version"] == "v2"
     assert list(payload["versions"]) == ["v1", "v2", "v10"]
-    assert payload["versions"]["v1"]["variables"] == {}
+    assert "variables" not in payload["versions"]["v1"]
+    assert "equates" not in payload["versions"]["v1"]
     assert loaded.active_version_name == "v2"
-    assert loaded.variables == {"var2": "0x2"}
-    assert loaded.equates == {"eq2": "0x22"}
+    assert loaded.symbols == {"var2": "0x2", "eq2": "0x22"}
+    assert loaded.variables == loaded.symbols
+    assert loaded.equates == loaded.symbols
     assert [version.name for version in loaded.versions] == ["v1", "v2", "v10"]
     assert lazy_v10 is not None
-    assert lazy_v10.variables == {"var10": "0x10"}
+    assert lazy_v10.variables == {}
+    assert lazy_v10.equates == {}
 
 
-def test_binary_workbench_workspace_legacy_versions_fall_back_to_global_symbols(tmp_path: Path):
+def test_binary_workbench_workspace_versions_use_shared_local_symbols(tmp_path: Path):
     source = tmp_path / "legacy.bin"
     source.write_bytes(bytes.fromhex("00 00 00 00"))
     repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
@@ -490,8 +534,7 @@ def test_binary_workbench_workspace_legacy_versions_fall_back_to_global_symbols(
             kind="binary",
             display_name=source.name,
             source_path=str(source),
-            variables={"legacy_var": "0x44"},
-            equates={"legacy_eq": "0x55"},
+            symbols={"legacy_var": "0x44", "legacy_eq": "0x55"},
             versions=[BinaryWorkbenchVersionDTO("v1")],
             active_version_name="v1",
         ),
@@ -513,6 +556,44 @@ def test_binary_workbench_workspace_legacy_versions_fall_back_to_global_symbols(
         manifest,
     )
 
-    assert loaded.variables == {"legacy_var": "0x44"}
-    assert loaded.equates == {"legacy_eq": "0x55"}
+    assert loaded.symbols == {"legacy_var": "0x44", "legacy_eq": "0x55"}
+    assert loaded.variables == loaded.symbols
+    assert loaded.equates == loaded.symbols
     assert loaded.versions[0].symbols_loaded is False
+
+
+def test_binary_workbench_workspace_imports_external_module_into_fixed_directory(tmp_path: Path):
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    external_directory = tmp_path / "external"
+    external_directory.mkdir()
+    external = external_directory / "shared_symbols.json"
+    external.write_text('{"name":"shared","variables":{"value":"0x10"},"equates":{}}', encoding="utf-8")
+
+    imported = repository.import_environment_file(SYMBOLS, external)
+
+    assert imported == repository.directory / "Symbols" / external.name
+    assert imported.read_text(encoding="utf-8") == external.read_text(encoding="utf-8")
+
+
+def test_binary_workbench_workspace_save_rehomes_external_module_paths(tmp_path: Path):
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    external_directory = tmp_path / "external"
+    external_directory.mkdir()
+    external = external_directory / "custom_symbols.json"
+    external.write_text('{"untouched":true}', encoding="utf-8")
+    tab = BinaryWorkbenchTabContextDTO(
+        tab_id="tab",
+        kind="scratch",
+        display_name="scratch",
+        symbols={"value": "0x20"},
+        module_paths={SYMBOLS: str(external)},
+        module_directories={SYMBOLS: str(external_directory)},
+    )
+
+    saved = repository.save_tab_workspace(tab)
+
+    expected = repository.directory / "Symbols" / external.name
+    assert saved.module_paths[SYMBOLS] == str(expected)
+    assert saved.module_directories[SYMBOLS] == str(repository.directory / "Symbols")
+    assert json.loads(expected.read_text(encoding="utf-8"))["symbols"] == {"value": "0x20"}
+    assert json.loads(external.read_text(encoding="utf-8")) == {"untouched": True}

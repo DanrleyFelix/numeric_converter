@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.core.binary_workbench.selection_limits import capped_end_offset
+from src.core.binary_workbench.row_structure import valid_offset_end
 from src.core.binary_workbench.encoding_tables import enabled_encoding_values
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
@@ -49,7 +50,9 @@ class BinaryWorkbenchEditorPage(
     QWidget,
 ):
     contextChanged = Signal(object)
+    structuralVersionSaveRequested = Signal()
     openLabelTabRequested = Signal(str, int)
+    symbolEditRequested = Signal(str)
     statusWarningRequested = Signal(str)
     statusErrorRequested = Signal(str)
 
@@ -78,6 +81,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
         self.grid.copySelectionRequested.connect(self._copy_virtual_selection)
         self.grid.immediateSymbolRequested.connect(self._add_immediate_symbol)
+        self.grid.symbolEditRequested.connect(self.symbolEditRequested.emit)
         self.grid.labelActivated.connect(self.go_to_instruction_offset)
         self.grid.jumpNavigationActivated.connect(self.go_to_clicked_instruction_offset)
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
@@ -108,7 +112,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.expand_label_for_offset(target_offset)
         if self._navigation_offset_is_valid(target_offset) and self._navigation_offset_is_valid(source_offset):
             self._push_jump_return_offset(source_offset)
-        self.go_to_instruction_offset(target_offset)
+        self.go_to_instruction_offset(target_offset, typing_cursor=True)
 
     def return_to_previous_jump_offset(self) -> bool:
         history = self._jump_return_history()
@@ -257,6 +261,9 @@ class BinaryWorkbenchEditorPage(
     def select_all_content(self) -> None:
         self.grid.select_all_content()
 
+    def current_cursor_offset(self) -> int:
+        return self.grid.current_cursor_offset()
+
     def assembly_text(self) -> str:
         return self.grid.assembly_text()
 
@@ -289,7 +296,7 @@ class BinaryWorkbenchEditorPage(
     ) -> BinaryWorkbenchTabContextDTO:
         if context.original_file_size > 0:
             return context
-        original_file_size = self._reader.file_size if self._reader is not None else len(context.rows) * ROW_BYTES
+        original_file_size = self._reader.file_size if self._reader is not None else valid_offset_end(context.rows)
         return BinaryWorkbenchTabContextDTO(
             **{
                 **context.__dict__,

@@ -36,6 +36,12 @@ from src.presentation.ui.components.binary_workbench.editor.grid_selection_range
 from src.presentation.ui.components.binary_workbench.editor.grid_virtual_selection import (
     GridVirtualSelectionMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.grid_virtual_undo import (
+    GridVirtualUndoMixin,
+)
+from src.presentation.ui.components.binary_workbench.editor.grid_viewport_selection import (
+    GridViewportSelectionMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 
 
@@ -54,6 +60,8 @@ class BinaryWorkbenchGrid(
     GridEditingMixin,
     GridSelectionMixin,
     GridVirtualSelectionMixin,
+    GridViewportSelectionMixin,
+    GridVirtualUndoMixin,
     GridSelectionRangesMixin,
     GridOffsetsMixin,
     QWidget,
@@ -64,6 +72,7 @@ class BinaryWorkbenchGrid(
     selectAllRequested = Signal()
     copySelectionRequested = Signal(str, int, int)
     immediateSymbolRequested = Signal(str, str, int, int)
+    symbolEditRequested = Signal(str)
     labelActivated = Signal(int)
     jumpNavigationActivated = Signal(int, int)
     labelOpenTabRequested = Signal(str, int)
@@ -80,6 +89,7 @@ class BinaryWorkbenchGrid(
         self._all_rows: list[BinaryWorkbenchRowDTO] = []
         self._offset_editors: dict[str, WorkbenchEditor] = {}
         self._updating = False
+        self._syncing_editor_change = False
         self._virtual = False
         self._total_size = 0
         self._original_file_size = 0
@@ -112,7 +122,9 @@ class BinaryWorkbenchGrid(
         self._virtual_selection_kind: str | None = None
         self._virtual_selection_range: tuple[str, int, int] | None = None
         self._virtual_selection_scrolling = False
+        self._viewport_line_selection = None
         self._selection_limit_bytes = DEFAULT_SELECTION_LIMIT_BYTES
+        self._reset_virtual_undo_cache()
         self._pending_rows_changed: list[BinaryWorkbenchRowDTO] | None = None
         self._pending_rows_changed_origin: str | None = None
         self._rows_changed_emit_timer = QTimer(self)

@@ -33,7 +33,7 @@ class EditorPageSearchMixin:
         self.grid.commit_current_editor_text()
 
     def go_to_offset(self, offset: int) -> None:
-        if not self._navigation_offset_is_valid(offset):
+        if not self._file_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
             return
         self.commit_current_editor_text()
@@ -42,19 +42,25 @@ class EditorPageSearchMixin:
         if self._reader is None:
             self._select_pending_offset()
 
-    def go_to_instruction_offset(self, offset: int) -> None:
+    def go_to_instruction_offset(self, offset: int, *, typing_cursor: bool = False) -> None:
         if not self._navigation_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
             return
         self.commit_current_editor_text()
         self._pending_selection = (offset, offset)
         self.grid.set_visible_offset(offset)
-        if self._reader is None:
+        if typing_cursor:
+            self.grid.point_instruction_offset(offset)
+            self._pending_selection = None
+        elif self._reader is None:
             self.grid.select_instruction_offsets(offset, offset)
             self._pending_selection = None
 
     def _navigation_offset_is_valid(self, offset: int) -> bool:
-        return 0 <= offset < self._navigation_file_size() and offset % ROW_BYTES == 0
+        return self._file_offset_is_valid(offset) and offset % ROW_BYTES == 0
+
+    def _file_offset_is_valid(self, offset: int) -> bool:
+        return 0 <= offset < self._navigation_file_size()
 
     def _navigation_file_size(self) -> int:
         size = max(self._context.file_size, self._context.original_file_size)

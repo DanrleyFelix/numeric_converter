@@ -20,9 +20,11 @@ def resolve_go_to_offsets(
             return [int(raw, 10) * sectors[target]]
         if target == BINARY_WORKBENCH_TEXT.LABEL_TARGET:
             return offsets_from_strings([symbol_value(context.labels, raw)])
-        if target == BINARY_WORKBENCH_TEXT.EQUATE_TARGET:
-            return offsets_from_strings(symbol_offsets(context.symbol_offsets, raw))
-        if target == BINARY_WORKBENCH_TEXT.VARIABLE_TARGET:
+        if target in {
+            BINARY_WORKBENCH_TEXT.SYMBOL_TARGET,
+            BINARY_WORKBENCH_TEXT.EQUATE_TARGET,
+            BINARY_WORKBENCH_TEXT.VARIABLE_TARGET,
+        }:
             return offsets_from_strings(symbol_offsets(context.symbol_offsets, raw))
         if target == BINARY_WORKBENCH_TEXT.INTERNAL_FILE_TARGET:
             return internal_file_offsets(context, raw)

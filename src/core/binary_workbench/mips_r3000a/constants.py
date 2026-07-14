@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+JUMP_FILE_OFFSET_BASE = 0xF800
+
 CANONICAL_REGISTERS: dict[str, int] = {
     "zero": 0,
     "at": 1,

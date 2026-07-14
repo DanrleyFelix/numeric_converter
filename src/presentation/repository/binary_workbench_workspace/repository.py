@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from shutil import copy2
 
 from src.core.binary_workbench.context_overlays import compact_binary_context_overlays
 from src.core.binary_workbench.file_ops import overlay_from_version_rows
@@ -17,6 +18,7 @@ from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO, BinaryWorkb
 from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
+    ENVIRONMENT_FOLDERS,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
@@ -72,6 +74,21 @@ class BinaryWorkbenchWorkspaceRepository:
         return self._directory
     def default_module_directories(self) -> dict[str, str]:
         return default_module_directories(self._directory)
+    def environment_directory(self, key: str) -> Path | None:
+        folder = ENVIRONMENT_FOLDERS.get(key)
+        if folder is None:
+            return None
+        target = self._directory / folder
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+    def import_environment_file(self, key: str, source: Path) -> Path:
+        directory = self.environment_directory(key)
+        if directory is None:
+            return source
+        target = directory / source.name
+        if source.resolve() != target.resolve():
+            copy2(source, target)
+        return target
     @property
     def decoded_tables_directory(self) -> Path:
         return self._decoded_tables_directory
@@ -108,6 +125,7 @@ class BinaryWorkbenchWorkspaceRepository:
         module_paths = module_paths_from_manifest(modules, self._directory)
         if _manifest_internal_file_start_lba(manifest) is not None:
             module_paths = _module_paths_for_manifest(module_paths, path)
+        module_paths = self._import_module_paths(module_paths)
         variables, equates = symbols_from_payload(read_json(Path(module_paths.get(SYMBOLS, ""))))
         sector_size, files = lba_from_payload(read_json(Path(module_paths.get(LBA_FILESYSTEM, ""))))
         if tab.internal_file_start_lba is not None and not files:
@@ -167,6 +185,7 @@ class BinaryWorkbenchWorkspaceRepository:
         loaded = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
             **{
                 **tab.__dict__,
+                "symbols": active_variables,
                 "variables": active_variables,
                 "equates": active_equates,
                 "internal_files": files,
@@ -211,16 +230,18 @@ class BinaryWorkbenchWorkspaceRepository:
         tab = compact_binary_context_overlays(tab)
         target = self._normalize_manifest_path(path or Path(tab.workspace_path or self._default_manifest(tab)))
         target.parent.mkdir(parents=True, exist_ok=True)
-        directories = {
-            key: value
-            for key, value in {**self.default_module_directories(), **tab.module_directories}.items()
-            if key in MODULE_FOLDERS
-        }
+        directories = self.default_module_directories()
         module_paths = {key: value for key, value in tab.module_paths.items() if key in MODULE_FOLDERS}
         stem = safe_stem(target.stem)
         if tab.internal_file_start_lba is not None:
             module_paths = _module_paths_for_internal_save(module_paths, stem)
-        module_paths[SYMBOLS] = str(self._write_module(directories, module_paths, SYMBOLS, stem, symbols_payload(stem, tab.variables, tab.equates)))
+        module_paths[SYMBOLS] = str(self._write_module(
+            directories,
+            module_paths,
+            SYMBOLS,
+            stem,
+            symbols_payload(stem, tab.symbols),
+        ))
         module_paths[LBA_FILESYSTEM] = str(self._write_module(directories, module_paths, LBA_FILESYSTEM, stem, lba_payload(stem, tab.lba_sector_size, tab.internal_files)))
         if tab.offset_regions_loaded or OFFSET_REGIONS not in module_paths:
             existing = read_json(Path(module_paths.get(OFFSET_REGIONS, "")))
@@ -289,7 +310,11 @@ class BinaryWorkbenchWorkspaceRepository:
         target = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
         return target if target.is_absolute() and self._directory in target.parents else self._directory / target.name
     def _write_module(self, directories: dict[str, str], paths: dict[str, str], key: str, stem: str, payload: dict[str, object]) -> Path:
-        target = Path(paths.get(key) or Path(directories[key]) / f"{stem}_{MODULE_SUFFIXES[key]}.json")
+        directory = Path(directories[key])
+        directory.mkdir(parents=True, exist_ok=True)
+        existing = Path(paths[key]) if paths.get(key) else None
+        filename = existing.name if existing is not None else f"{stem}_{MODULE_SUFFIXES[key]}.json"
+        target = directory / filename
         return write_json(target, payload)
 
     def _write_versions(self, tab: BinaryWorkbenchTabContextDTO, directories: dict[str, str], paths: dict[str, str], stem: str) -> dict[str, str]:
@@ -349,7 +374,16 @@ class BinaryWorkbenchWorkspaceRepository:
     ) -> Path:
         active_key = f"{VERSION_PATH_PREFIX}{tab.active_version_name or ''}"
         existing = paths.get(VERSIONS) or paths.get(active_key)
-        return Path(existing or Path(directories[VERSIONS]) / f"{stem}_versions.json")
+        directory = Path(directories[VERSIONS])
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory / (Path(existing).name if existing else f"{stem}_versions.json")
+
+    def _import_module_paths(self, paths: dict[str, str]) -> dict[str, str]:
+        imported: dict[str, str] = {}
+        for key, value in paths.items():
+            module_key = VERSIONS if key.startswith(VERSION_PATH_PREFIX) else key
+            imported[key] = str(self.import_environment_file(module_key, Path(value)))
+        return imported
 
     def _version_rows(
         self,
@@ -382,11 +416,7 @@ def _symbols_for_version(
     fallback_variables: dict[str, str],
     fallback_equates: dict[str, str],
 ) -> tuple[dict[str, str], dict[str, str]]:
-    if version is None or not (
-        version.symbols_loaded or version.variables or version.equates
-    ):
-        return dict(fallback_variables), dict(fallback_equates)
-    return dict(version.variables), dict(version.equates)
+    return dict(fallback_variables), dict(fallback_equates)
 
 
 def _apply_instruction_overlays(

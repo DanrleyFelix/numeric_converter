@@ -30,10 +30,33 @@ class EditorSelectionScrollMixin:
         if self._shared_scrollbar is None or self._selection_scroll_delta == 0:
             self._stop_selection_scroll()
             return
-        self.selectionAutoScrollAboutToStep.emit(self)
-        self._shared_scrollbar.setValue(self._shared_scrollbar.value() + self._selection_scroll_delta)
         position = self.viewport().mapFromGlobal(QCursor.pos())
-        cursor = self.cursorForPosition(QPoint(max(position.x(), 0), max(position.y(), 0)))
+        self._extend_selection_viewport(self._selection_scroll_delta, position)
+
+    def _extend_selection_viewport(
+        self,
+        delta: int,
+        position: QPoint | None = None,
+    ) -> None:
+        if self._shared_scrollbar is None or delta == 0:
+            return
+        self.selectionAutoScrollAboutToStep.emit(self)
+        previous = self._shared_scrollbar.value()
+        self._shared_scrollbar.setValue(previous + delta)
+        if self._shared_scrollbar.value() == previous:
+            self.selectionAutoScrolled.emit(self)
+            return
+        if position is None:
+            position = QPoint(
+                self.cursorRect().center().x(),
+                self.viewport().height() - 1 if delta > 0 else 0,
+            )
+        else:
+            position = QPoint(
+                max(0, min(position.x(), self.viewport().width() - 1)),
+                self.viewport().height() - 1 if delta > 0 else 0,
+            )
+        cursor = self.cursorForPosition(position)
         selection = self.textCursor()
         anchor = selection.anchor()
         set_cursor_position(selection, anchor)

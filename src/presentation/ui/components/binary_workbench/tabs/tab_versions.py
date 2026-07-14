@@ -11,6 +11,7 @@ from src.core.binary_workbench.file_ops import (
 from src.core.binary_workbench.internal_version_rows import (
     build_internal_version_rows_from_overlay,
 )
+from src.core.binary_workbench.row_structure import valid_offset_end
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     without_blank_instruction_overlays,
@@ -18,7 +19,10 @@ from src.core.binary_workbench.version_overlays import (
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.version_line_comments import apply_line_comments
 from src.core.binary_workbench.version_names import sorted_versions
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSION_PATH_PREFIX,
@@ -95,11 +99,8 @@ class TabVersionsMixin:
         else:
             byte_overlays = overlay_from_version_rows(version.rows)
             instruction_overlays = self._instruction_overlays_from_version(current, version)
-        variables, equates = _symbols_for_version(
-            version,
-            current.variables,
-            current.equates,
-        )
+        variables = dict(current.variables)
+        equates = dict(current.equates)
         if instruction_overlays:
             byte_overlays.update(
                 byte_overlays_from_instruction_overlays(
@@ -120,6 +121,7 @@ class TabVersionsMixin:
                 "read_mode": "assembly" if version.instructions_by_line else current.read_mode,
                 "byte_overlays": byte_overlays,
                 "instruction_overlays": instruction_overlays,
+                "file_size": _version_file_size(current, rows, byte_overlays),
                 "variables": variables,
                 "equates": equates,
                 "active_version_name": name,
@@ -133,6 +135,7 @@ class TabVersionsMixin:
         current = self.current_context()
         if not self._is_versioned_context(current):
             return None
+        path = Path(path)
         if hasattr(self._workspace_repository, "load_versions_file_with_active"):
             loaded, active = self._workspace_repository.load_versions_file_with_active(path)
         else:
@@ -140,6 +143,7 @@ class TabVersionsMixin:
             active = loaded[0].name if loaded else None
         if not loaded or active is None:
             return None
+        path = self.import_environment_file(VERSIONS, path)
         loaded = _versions_with_only_active_loaded(loaded, active)
         module_paths = {
             key: value
@@ -157,7 +161,7 @@ class TabVersionsMixin:
                     "module_paths": module_paths,
                     "module_directories": {
                         **current.module_directories,
-                        "versions": str(path.parent),
+                        "versions": str(self._workspace_repository.environment_directory(VERSIONS) or path.parent),
                     },
                 }
             )
@@ -222,10 +226,49 @@ class TabVersionsMixin:
             rows=rows,
             instruction_overlays=instruction_overlays,
             instructions_by_line=instructions_by_line,
-            variables=dict(current.variables),
-            equates=dict(current.equates),
-            symbols_loaded=True,
+            variables={},
+            equates={},
+            symbols_loaded=False,
         )
+
+    def backup_default_version_if_due(self) -> bool:
+        current = self.current_context()
+        if not self._is_versioned_context(current):
+            return False
+        count = self._version_update_counts.get(current.tab_id, 0) + 1
+        self._version_update_counts[current.tab_id] = count
+        if count % 3:
+            return False
+        default_version = self._version_from_current(
+            BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
+            current,
+        )
+        versions = [
+            version
+            for version in current.versions
+            if version.name != BINARY_WORKBENCH_DEFAULT_VERSION_NAME
+        ]
+        self._set_current_context_without_page_reload(
+            BinaryWorkbenchTabContextDTO(
+                **{
+                    **current.__dict__,
+                    "versions": _sorted_versions([*versions, default_version]),
+                }
+            )
+        )
+        return True
+
+    def autosave_current_version_after_structure(self) -> bool:
+        current = self.current_context()
+        if current is None or not current.active_version_name:
+            return False
+        if not self.update_current_version(
+            current.active_version_name,
+            mark_dirty=False,
+            reload_page=False,
+        ):
+            return False
+        return self.save_current_workspace()
 
     @staticmethod
     def _is_versioned_context(current: BinaryWorkbenchTabContextDTO | None) -> bool:
@@ -272,14 +315,23 @@ class TabVersionsMixin:
 
 
 
-def _symbols_for_version(
-    version: BinaryWorkbenchVersionDTO,
-    fallback_variables: dict[str, str],
-    fallback_equates: dict[str, str],
-) -> tuple[dict[str, str], dict[str, str]]:
-    if not (version.symbols_loaded or version.variables or version.equates):
-        return dict(fallback_variables), dict(fallback_equates)
-    return dict(version.variables), dict(version.equates)
+def _version_file_size(
+    current: BinaryWorkbenchTabContextDTO,
+    rows: list,
+    byte_overlays: dict[str, str],
+) -> int:
+    size = valid_offset_end(rows)
+    if current.kind != BINARY_WORKBENCH_TAB_KIND.ASSEMBLY:
+        size = max(size, current.original_file_size)
+    for offset, bytes_text in byte_overlays.items():
+        try:
+            size = max(
+                size,
+                int(offset, 0) + (len(bytes_text.replace(" ", "")) // 2),
+            )
+        except ValueError:
+            continue
+    return size
 
 
 def _sorted_versions(

@@ -26,6 +26,12 @@ MODULE_FOLDERS = {
     OFFSET_REGIONS: "Offset Regions",
 }
 
+ENVIRONMENT_FOLDERS = {
+    **MODULE_FOLDERS,
+    COMMANDS: "Commands",
+    ENCODING_TABLES: "Encoding Tables",
+}
+
 MODULE_SUFFIXES = {
     SYMBOLS: "symbols",
     LBA_FILESYSTEM: "lba",

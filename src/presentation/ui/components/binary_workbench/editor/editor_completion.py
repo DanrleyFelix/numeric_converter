@@ -125,12 +125,16 @@ class EditorCompletionMixin:
         self.ensureCursorVisible()
 
     def _show_symbol_tooltip(self, event) -> None:
-        token = self._strict_token_at_position(event.position().toPoint()).lower()
-        text = self._symbol_tooltips.get(token) if token.startswith(("_", "@")) else None
+        token = self._symbol_token_at_position(event.position().toPoint())
+        text = self._symbol_tooltips.get(token)
         if text:
             QToolTip.showText(event.globalPosition().toPoint(), text, self)
             return
         QToolTip.hideText()
+
+    def _symbol_token_at_position(self, position: QPoint) -> str:
+        token = self._strict_token_at_position(position).lower()
+        return token if token in self._symbol_tooltips else ""
 
     def _token_at_position(self, position: QPoint) -> str:
         cursor = self.cursorForPosition(position)

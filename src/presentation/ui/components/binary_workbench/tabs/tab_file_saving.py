@@ -6,6 +6,7 @@ from src.core.binary_workbench.internal_file_region import define_internal_file_
 from src.core.binary_workbench.internal_versioned_binary_saver import (
     save_internal_versioned_binary,
 )
+from src.core.binary_workbench.row_structure import valid_offset_end
 from src.core.binary_workbench.file_ops import (
     build_version_rows_from_overlay,
     save_binary_as_assembly,
@@ -13,7 +14,6 @@ from src.core.binary_workbench.file_ops import (
 )
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
-    BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
 )
@@ -125,8 +125,8 @@ class TabFileSavingMixin:
                 **current.__dict__,
                 "rows": rows,
                 "original_rows": rows,
-                "file_size": len(rows) * ROW_BYTES,
-                "original_file_size": len(rows) * ROW_BYTES,
+                "file_size": valid_offset_end(rows),
+                "original_file_size": valid_offset_end(rows),
             }
         )
         self._replace_context(updated.tab_id, updated)
@@ -142,6 +142,8 @@ class TabFileSavingMixin:
         return "\n".join(row.instruction for row in current.rows)
 
     def _adopt_assembly_source(self, current: BinaryWorkbenchTabContextDTO, target: Path) -> None:
+        if current.kind == BINARY_WORKBENCH_TAB_KIND.SCRATCH:
+            self.mark_scratch_initial_version_pending(current.tab_id)
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
             current = page.current_context()
@@ -160,8 +162,8 @@ class TabFileSavingMixin:
                 "read_mode": "assembly",
                 "rows": rows,
                 "original_rows": rows,
-                "file_size": len(rows) * ROW_BYTES,
-                "original_file_size": len(rows) * ROW_BYTES,
+                "file_size": valid_offset_end(rows),
+                "original_file_size": valid_offset_end(rows),
                 "versions": versions,
                 "active_version_name": current.active_version_name or versions[0].name,
             }

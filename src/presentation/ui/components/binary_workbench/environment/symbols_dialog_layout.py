@@ -3,7 +3,6 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVB
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
-    configure_binary_workbench_combo,
     configure_binary_workbench_filter,
     configure_binary_workbench_line_edit,
 )
@@ -14,7 +13,6 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
     symbol_input,
-    symbol_kind_combo,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
 from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
@@ -82,20 +80,18 @@ class SymbolsDialogLayoutMixin:
             ENVIRONMENT_LAYOUT.ZERO,
         )
         row.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
-        self.kind = symbol_kind_combo(entry, "Variable", expanding=True)
         self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, entry, expanding=True)
         self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, entry, expanding=True)
-        configure_binary_workbench_combo(self.kind)
         configure_binary_workbench_line_edit(self.name)
         configure_binary_workbench_line_edit(self.value)
         set_python_identifier_validator(self.name)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "", entry)
         configure_binary_workbench_dialog_action(add)
         add.clicked.connect(self._append_from_entry)
-        row.addWidget(self.kind, 1)
-        row.addWidget(self.name, 1)
-        row.addWidget(self.value, 1)
-        row.addWidget(add, 1, Qt.AlignVCenter)
+        row.addWidget(self.name, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        row.addWidget(self.value, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        row.addWidget(add, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        row.addStretch(1)
         parent.addWidget(entry, 0)
 
     def _build_scroll_body(self, parent: QVBoxLayout) -> None:
@@ -112,7 +108,8 @@ class SymbolsDialogLayoutMixin:
         scroll_layout.setContentsMargins(
             ENVIRONMENT_LAYOUT.ZERO,
             ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
-            BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN,
+            BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN
+            + BINARY_WORKBENCH_LAYOUT.SYMBOL_REMOVE_BUTTON_SHIFT,
             ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
         )
         scroll_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.ROW_DELETE_COLUMN_SPACING)

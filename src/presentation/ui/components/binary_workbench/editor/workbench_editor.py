@@ -48,6 +48,7 @@ class WorkbenchEditor(
     focused = Signal()
     selectAllRequested = Signal()
     immediateSymbolRequested = Signal(str, str, int, int)
+    symbolEditRequested = Signal(str)
     labelActivated = Signal(int)
     jumpNavigationActivated = Signal(int, int)
     labelOpenTabRequested = Signal(str, int)
@@ -56,6 +57,8 @@ class WorkbenchEditor(
     selectionStarted = Signal(object)
     selectionAutoScrollAboutToStep = Signal(object)
     selectionAutoScrolled = Signal(object)
+    viewportChangeAboutToStart = Signal(object)
+    viewportChangeFinished = Signal(object)
     returnKeyPressed = Signal(object, object)
     protectedEditKeyPressed = Signal(object, object)
     navigationWarningRequested = Signal(str)
@@ -69,6 +72,7 @@ class WorkbenchEditor(
         self._completion_model = QStringListModel(self)
         self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": [], "command": []}
         self._symbol_tooltips: dict[str, str] = {}
+        self._pressed_symbol_token = ""
         self._label_offsets: dict[str, tuple[str, int]] = {}
         self._label_target_resolver = None
         self._jump_label_symbols: set[str] = set()
@@ -92,6 +96,7 @@ class WorkbenchEditor(
         self._completer.activated.connect(self._insert_completion)
         self._setup_completion_popup()
         self._selection_scroll_delta = 0
+        self._left_mouse_selecting = False
         self._return_key_handled = False
         self._protected_edit_key_handled = False
         self._selection_timer = QTimer(self)
@@ -162,13 +167,34 @@ class WorkbenchEditor(
         self._stop_selection_scroll()
 
     def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self._left_mouse_selecting = True
+            self._pressed_symbol_token = self._symbol_token_at_position(
+                event.position().toPoint()
+            )
         if self.handle_alt_click_multicursor(event):
+            self._pressed_symbol_token = ""
             self.selectionStarted.emit(self)
             event.accept()
             return
         self.clear_editor_occurrence_selection()
         self.selectionStarted.emit(self)
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        position = event.position().toPoint()
+        symbol = self._symbol_token_at_position(position)
+        edit_symbol = (
+            symbol
+            and symbol == self._pressed_symbol_token
+            and self._navigation_target_at_position(position) is None
+        )
+        super().mouseReleaseEvent(event)
+        if event.button() == Qt.LeftButton:
+            self._left_mouse_selecting = False
+            self._pressed_symbol_token = ""
+            if edit_symbol:
+                self.symbolEditRequested.emit(symbol.lstrip("_@"))
 
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
@@ -203,10 +229,6 @@ class WorkbenchEditor(
         if self.handle_editor_shortcut(event):
             event.accept()
             return
-        if self._is_instruction_editor() and _alt_shortcut_event(event):
-            self._completer.popup().hide()
-            event.ignore()
-            return
         if event.matches(QKeySequence.Copy):
             self.copyRequested.emit(self)
             event.accept()
@@ -224,6 +246,10 @@ class WorkbenchEditor(
             self.redo()
             event.accept()
             return
+        if event.matches(QKeySequence.SelectAll):
+            self.selectAllRequested.emit()
+            event.accept()
+            return
         if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab} and self._accept_current_completion():
             event.accept()
             return
@@ -233,6 +259,10 @@ class WorkbenchEditor(
             if self._return_key_handled:
                 event.accept()
                 return
+        if self._is_instruction_editor() and _alt_shortcut_event(event):
+            self._completer.popup().hide()
+            event.ignore()
+            return
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
             self._protected_edit_key_handled = False
             self.protectedEditKeyPressed.emit(self, event)
@@ -249,10 +279,6 @@ class WorkbenchEditor(
             self._normalize_instruction_after_comment_start(event.text())
             event.accept()
             return
-        if event.key() == Qt.Key_A and event.modifiers() & Qt.ControlModifier:
-            self.selectAllRequested.emit()
-            event.accept()
-            return
         if event.key() == Qt.Key_Tab:
             self.insertPlainText(" " * BINARY_WORKBENCH_LAYOUT.EDITOR_TAB_SPACES)
             event.accept()
@@ -266,8 +292,10 @@ class WorkbenchEditor(
         if key in {Qt.Key_PageUp, Qt.Key_PageDown}:
             page = max(ROW_BYTES, self._shared_scrollbar.pageStep())
             delta = page if key == Qt.Key_PageUp else -page
-            self._shared_scrollbar.setValue(self._shared_scrollbar.value() + delta)
-            QTimer.singleShot(0, lambda: self._move_cursor_to_edge(True))
+            if self._left_mouse_selecting:
+                self._extend_selection_viewport(delta)
+            else:
+                self._change_shared_viewport(delta)
             event.accept()
             return
         block = self.textCursor().blockNumber()
@@ -383,8 +411,39 @@ class WorkbenchEditor(
         delta = event.pixelDelta().y()
         if delta == 0:
             delta = (event.angleDelta().y() // BINARY_WORKBENCH_LAYOUT.WHEEL_SCROLL_DIVISOR) * ROW_BYTES
-        self._shared_scrollbar.setValue(self._shared_scrollbar.value() - delta)
+        movement = -delta
+        if self._left_mouse_selecting or bool(event.buttons() & Qt.LeftButton):
+            self._extend_selection_viewport(movement, event.position().toPoint())
+        else:
+            self._change_shared_viewport(movement)
         event.accept()
+
+    def _change_shared_viewport(self, delta: int) -> None:
+        cursor_state = self._cursor_viewport_state()
+        if cursor_state is None:
+            self.viewportChangeAboutToStart.emit(self)
+        previous = self._shared_scrollbar.value()
+        self._shared_scrollbar.setValue(previous + delta)
+        if self._shared_scrollbar.value() == previous:
+            if cursor_state is None:
+                self.viewportChangeFinished.emit(self)
+            return
+        if cursor_state is not None:
+            self._restore_cursor_viewport_state(*cursor_state)
+        self.viewportChangeFinished.emit(self)
+
+    def _cursor_viewport_state(self) -> tuple[int, int] | None:
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            return None
+        return cursor.blockNumber(), cursor.positionInBlock()
+
+    def _restore_cursor_viewport_state(self, block_number: int, position: int) -> None:
+        block_number = min(max(0, block_number), max(0, self.document().blockCount() - 1))
+        block = self.document().findBlockByNumber(block_number)
+        cursor = self.textCursor()
+        set_cursor_position(cursor, block.position() + min(position, len(block.text())))
+        self.setTextCursor(cursor)
 
     def leaveEvent(self, event) -> None:
         self.viewport().setCursor(Qt.IBeamCursor)
@@ -393,7 +452,10 @@ class WorkbenchEditor(
         super().leaveEvent(event)
 
     def eventFilter(self, watched, event) -> bool:
-        popup = self._completer.popup()
+        completer = getattr(self, "_completer", None)
+        if completer is None:
+            return super().eventFilter(watched, event)
+        popup = completer.popup()
         if (watched is popup or watched is popup.viewport()) and event.type() == QEvent.Type.KeyPress:
             if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab}:
                 self._accept_current_completion()

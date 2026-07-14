@@ -27,10 +27,8 @@ def default_module_directories(directory: Path) -> dict[str, str]:
     return {key: str(directory / folder) for key, folder in MODULE_FOLDERS.items()}
 
 
-def module_directories(manifest: dict[str, object], directory: Path) -> dict[str, str]:
-    raw = manifest.get("module_directories")
-    values = {**default_module_directories(directory), **(raw if isinstance(raw, dict) else {})}
-    return {key: str(values[key]) for key in MODULE_FOLDERS if key in values}
+def module_directories(_manifest: dict[str, object], directory: Path) -> dict[str, str]:
+    return default_module_directories(directory)
 
 
 def module_paths(modules: dict[str, object], directory: Path) -> dict[str, str]:
@@ -77,8 +75,8 @@ def manifest_payload(
 
 def tab_checksums(tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
     return checksums_for(
-        tab.variables,
-        tab.equates,
+        tab.symbols,
+        {},
         tab.lba_sector_size,
         tab.internal_files,
         tab.versions,

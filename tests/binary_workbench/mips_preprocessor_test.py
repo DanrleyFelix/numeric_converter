@@ -25,9 +25,31 @@ def test_mips_preprocessor_resolves_symbols_and_removes_noise():
         )
         == "addiu $s1, $zero, 20"
     )
-    assert raw_mips_instruction("j loop", 0x80010004, labels, variables, equates) == "j 0x80010010"
+    assert raw_mips_instruction("j loop", 0x80010004, labels, variables, equates) == "j 0xf810"
     assert raw_mips_instruction("nop", 0x80010008, labels, variables, equates) == "nop"
     assert raw_mips_instruction("li $v0, 1", 0x80010008, labels, variables, equates) == "addiu $v0, $zero, 1"
+
+
+def test_mips_preprocessor_replaces_only_complete_symbol_tokens():
+    symbols = {
+        "boost_equip": "0x10",
+        "boost_equip_2": "0x20",
+    }
+
+    assert preprocess_instruction(
+        "addiu $s0, $s0, @boost_equip_2",
+        0,
+        {},
+        symbols,
+        symbols,
+    ) == "addiu $s0, $s0, 0x20"
+    assert preprocess_instruction(
+        "addiu $s0, $s0, @boost_equip",
+        0,
+        {},
+        symbols,
+        symbols,
+    ) == "addiu $s0, $s0, 0x10"
 
 
 def test_mips_navigation_targets_require_jump_or_branch_operand():
@@ -39,6 +61,24 @@ def test_mips_navigation_targets_require_jump_or_branch_operand():
     assert codec.jump_navigation_target("beq $zero, $zero, loop", "loop", symbols) == 0x10
     assert codec.jump_navigation_target("bgez $s1, 0x00000020", "0x00000020", symbols) == 0x20
     assert codec.jump_navigation_target("beq $zero, loop, 0x00000020", "loop", symbols) is None
+
+
+def test_mips_jump_labels_are_adjusted_only_for_assembler_input():
+    labels = {"label_teste": "0x1D9200"}
+
+    assert preprocess_instruction("j label_teste", 0, labels, {}, {}) == "j 0x1e8a00"
+    assert preprocess_instruction("jal label_teste", 0, labels, {}, {}) == "jal 0x1e8a00"
+    assert raw_mips_instruction("j label_teste", 0, labels, {}, {}) == "j 0x1e8a00"
+    assert (
+        preprocess_instruction(
+            "beq $zero, $zero, label_teste",
+            0x1D91F0,
+            labels,
+            {},
+            {},
+        )
+        == "beq $zero, $zero, 0x0003"
+    )
 
 
 def test_mips_source_rows_encode_variables_and_equates_from_raw_instructions():

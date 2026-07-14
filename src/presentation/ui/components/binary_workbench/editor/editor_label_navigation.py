@@ -6,6 +6,12 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QToolTip
 
+from src.core.binary_workbench.mips_r3000a.codec import (
+    JUMP_NAVIGATION_MNEMONICS,
+    TWO_OPERAND_BRANCH_MNEMONICS,
+)
+from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES
+from src.core.binary_workbench.mips_r3000a.preprocessor import ZERO_BRANCH_PSEUDOS
 from src.modules.constants import HEX_DIGIT_PATTERN
 from src.modules.contracts import CPUArchCodec
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -23,6 +29,13 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
 REFERENCE_OFFSET_PREFIX = "&"
 JUMP_TARGET_TOKEN = re.compile(rf"&?(?:[@_]?[A-Za-z_][A-Za-z0-9_]*|[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+))")
 JUMP_MNEMONICS = {"j", "jump", "jal"}
+LABEL_NAVIGATION_MNEMONICS = {
+    *JUMP_NAVIGATION_MNEMONICS,
+    *TWO_OPERAND_BRANCH_MNEMONICS,
+    *BRANCH_OPCODES,
+    *ZERO_BRANCH_PSEUDOS,
+    "b",
+}
 BRANCH_IMMEDIATE_MIN = -0x8000
 BRANCH_IMMEDIATE_MAX = 0x7FFF
 DEFAULT_ROW_BYTES = 4
@@ -81,7 +94,11 @@ class EditorLabelNavigationMixin:
         token = self._strict_token_at_position(position, JUMP_TARGET_TOKEN)
         if not token or self._jump_codec is None:
             return None
+        if self._label_declaration_at_position(position):
+            return None
         mnemonic = self._mnemonic_at_position(position)
+        if token.lower() in self._jump_label_symbols and mnemonic not in LABEL_NAVIGATION_MNEMONICS:
+            return None
         if token.startswith(REFERENCE_OFFSET_PREFIX):
             target = self._reference_target(token, mnemonic)
         else:
@@ -184,6 +201,12 @@ class EditorLabelNavigationMixin:
         parts = code.replace(",", " ").split()
         return parts[0].lower() if parts else ""
 
+    def _label_declaration_at_position(self, position: QPoint) -> bool:
+        cursor = self.cursorForPosition(position)
+        code = cursor.block().text().split(";", 1)[0].split("#", 1)[0].split("//", 1)[0]
+        colon = code.find(":")
+        return colon >= 0 and cursor.positionInBlock() <= colon
+
     def _strict_token_at_position(
         self,
         position: QPoint,
@@ -210,11 +233,21 @@ class EditorLabelNavigationMixin:
             self.viewport().setCursor(Qt.PointingHandCursor)
             QToolTip.showText(self.viewport().mapToGlobal(position), details[1], self.viewport())
             return
+        symbol = self._symbol_token_at_position(position)
+        if symbol:
+            self.viewport().setCursor(Qt.PointingHandCursor)
+            QToolTip.showText(
+                self.viewport().mapToGlobal(position),
+                self._symbol_tooltips[symbol],
+                self.viewport(),
+            )
+            return
         QToolTip.hideText()
         self.viewport().setCursor(Qt.IBeamCursor)
 
     def mousePressEvent(self, event) -> None:
-        self._pressed_navigation_target = self._navigation_target_at_position(event.position().toPoint())
+        position = event.position().toPoint()
+        self._pressed_navigation_target = self._navigation_target_at_position(position)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:

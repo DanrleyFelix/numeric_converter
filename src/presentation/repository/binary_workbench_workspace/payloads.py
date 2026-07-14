@@ -33,6 +33,7 @@ from src.presentation.repository.binary_workbench_payload import (
 from src.core.binary_workbench.version_overlays import instruction_overlays_from_rows
 from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
+from src.core.binary_workbench.symbol_values import merged_symbol_values
 
 
 def checksum(payload: dict[str, Any]) -> str:
@@ -74,8 +75,19 @@ def source_matches(
     )
 
 
-def symbols_payload(name: str, variables: dict[str, str], equates: dict[str, str]) -> dict[str, object]:
-    return {"name": name, "variables": dict(variables), "equates": dict(equates)}
+def symbols_payload(
+    name: str,
+    symbols: dict[str, str],
+    legacy_equates: dict[str, str] | None = None,
+) -> dict[str, object]:
+    return {
+        "name": name,
+        "symbols": merged_symbol_values(
+            symbols if legacy_equates is None else None,
+            symbols if legacy_equates is not None else None,
+            legacy_equates,
+        ),
+    }
 
 
 def lba_payload(
@@ -114,9 +126,6 @@ def version_payload(version: BinaryWorkbenchVersionDTO) -> dict[str, object]:
         "instructions": instructions,
         "rows": [_row_payload(row) for row in version.rows],
     }
-    if version.symbols_loaded or version.variables or version.equates:
-        payload["variables"] = dict(version.variables)
-        payload["equates"] = dict(version.equates)
     return payload
 
 def encoding_tables_payload(
@@ -294,9 +303,6 @@ def versions_payload(
         rows = item.get("rows")
         if isinstance(rows, list) and rows:
             entry["rows"] = rows
-        for key in ("variables", "equates"):
-            if key in item:
-                entry[key] = item[key]
         payloads[version.name] = entry
     return {
         "active_version": active_version,
@@ -307,7 +313,12 @@ def versions_payload(
 def symbols_from_payload(payload: dict[str, object] | None) -> tuple[dict[str, str], dict[str, str]]:
     if not isinstance(payload, dict):
         return {}, {}
-    return normalize_string_map(payload.get("variables")), normalize_string_map(payload.get("equates"))
+    symbols = merged_symbol_values(
+        normalize_string_map(payload.get("symbols")),
+        normalize_string_map(payload.get("variables")),
+        normalize_string_map(payload.get("equates")),
+    )
+    return symbols, symbols
 
 
 def lba_from_payload(payload: dict[str, object] | None) -> tuple[int, list[BinaryWorkbenchInternalFileDTO]]:
@@ -340,15 +351,14 @@ def version_from_payload(
     if rows and _instructions_match_rows(instructions_by_line, rows):
         instructions_by_line = {}
     version_name = name if isinstance(name, str) and name else fallback_name
-    symbols_loaded = "variables" in payload or "equates" in payload
     return BinaryWorkbenchVersionDTO(
         name=version_name,
         rows=rows,
         instruction_overlays=overlays,
         instructions_by_line=instructions_by_line,
-        variables=normalize_string_map(payload.get("variables")),
-        equates=normalize_string_map(payload.get("equates")),
-        symbols_loaded=symbols_loaded,
+        variables={},
+        equates={},
+        symbols_loaded=False,
     )
 
 def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkbenchVersionDTO]:
@@ -369,8 +379,6 @@ def versions_from_payload(payload: dict[str, object] | None) -> list[BinaryWorkb
                 "name": name,
                 "instructions": instructions,
                 "rows": raw_version.get("rows"),
-                "variables": raw_version.get("variables"),
-                "equates": raw_version.get("equates"),
             },
             name,
         )
