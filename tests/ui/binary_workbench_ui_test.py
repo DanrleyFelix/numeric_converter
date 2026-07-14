@@ -8,7 +8,7 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QTextCursor, QWheelEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QShortcut, QTextCursor, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTextBrowser, QToolButton, QWidget
 
@@ -22,6 +22,7 @@ from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
 )
@@ -76,9 +77,11 @@ from src.presentation.ui.components.binary_workbench.preferences import (
 from src.presentation.ui.components.binary_workbench.search import (
     BinaryWorkbenchFindDialog,
     BinaryWorkbenchGoToDialog,
+    BinaryWorkbenchReplaceBytesDialog,
     BinaryWorkbenchSelectBlockDialog,
 )
 from src.presentation.repository.binary_workbench_payload import (
+    binary_workbench_state_from_payload,
     binary_workbench_state_to_payload,
 )
 
@@ -95,6 +98,15 @@ def _app() -> QApplication:
 def _window(root: Path | None = None):
     _app()
     return create_main_window(root or Path(tempfile.mkdtemp()))
+
+
+def test_main_window_registers_global_window_recovery_shortcut(tmp_path: Path):
+    window = _window(tmp_path)
+    shortcut = window.findChild(QShortcut, "window-recovery-shortcut")
+
+    assert shortcut is not None
+    assert shortcut.key().toString() == "Ctrl+Space"
+    assert shortcut.context() == Qt.ApplicationShortcut
 
 
 def test_binary_workbench_opens_multiple_file_tabs_with_independent_contexts(tmp_path: Path):
@@ -743,6 +755,28 @@ def test_binary_workbench_uses_separate_offset_columns_and_editable_panels(tmp_p
     assert headers == ["File", "Raw Instructions", "Bytes", "Instruction"]
     assert summary.text() == "Selected: none | Length: 0 bytes"
     assert body_scroll is not None
+
+
+def test_binary_workbench_column_titles_have_shared_left_margin(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    tool.tabs.set_current_reference_offsets(
+        ["File", "ram_offset"],
+        {"File": "0x00000000", "ram_offset": "0x80010000"},
+        {"File": True, "ram_offset": True},
+    )
+    labels = tool.findChildren(QLabel, "binary-workbench-column-label")
+
+    assert labels
+    assert "ram_offset" in {label.text() for label in labels}
+    assert all(
+        label.contentsMargins().left() == BINARY_WORKBENCH_LAYOUT.PANEL_LABEL_LEFT_MARGIN
+        for label in labels
+    )
 
 
 def test_binary_workbench_instruction_and_bytes_edit_roundtrip(tmp_path: Path):
@@ -1680,6 +1714,111 @@ def test_binary_workbench_select_block_defaults_to_typing_cursor_offset(tmp_path
     dialog.start.setText("0x20")
     dialog.length.setText("4")
     assert dialog.selected_range() == (0x20, 0x23)
+
+
+def test_binary_workbench_replace_bytes_dialog_uses_cursor_offset_and_limits():
+    from src.presentation.ui.components.binary_workbench.toolbar import BinaryWorkbenchToolbar
+
+    _app()
+    dialog = BinaryWorkbenchReplaceBytesDialog(start_offset=0x24)
+    toolbar = BinaryWorkbenchToolbar()
+    search_button = next(
+        button
+        for button in toolbar.findChildren(QToolButton)
+        if button.text().strip() == BINARY_WORKBENCH_TEXT.SEARCH
+    )
+
+    assert dialog.start.text() == "0x00000024"
+    assert toolbar.replace_bytes_action.shortcut().toString() == "Ctrl+R"
+    assert toolbar.replace_bytes_action in search_button.menu().actions()
+    dialog.end.setText("0x2B")
+    dialog.length.setText("8")
+    dialog.bytes_input.setPlainText("AA BB CC DD\n11 22 33 44")
+
+    request = dialog.replacement_request()
+    assert request is not None
+    assert request.start_offset == 0x24
+    assert request.data == bytes.fromhex("AA BB CC DD 11 22 33 44")
+
+
+def test_binary_workbench_replace_bytes_uses_seek_outside_viewport(tmp_path: Path):
+    binary_path = tmp_path / "replace.bin"
+    binary_path.write_bytes(bytes(0x400))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    replacement = bytes.fromhex("AA BB CC DD")
+
+    assert page.replacement_bytes_at(0x300, 4) == bytes(4)  # type: ignore[attr-defined]
+    assert page.replace_bytes_at(0x300, replacement) is True  # type: ignore[attr-defined]
+    assert page.replacement_bytes_at(0x300, 4) == replacement  # type: ignore[attr-defined]
+    assert tool.tabs.current_context().byte_overlays["0x00000300"] == "AA BB CC DD"
+
+
+def test_binary_workbench_replace_bytes_growth_requires_byte_shift_rule(tmp_path: Path):
+    binary_path = tmp_path / "replace-growth.bin"
+    binary_path.write_bytes(bytes(8))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    replacement = bytes.fromhex("AA BB CC DD 11 22")
+
+    assert page.replacement_bytes_at(6, len(replacement)) is None  # type: ignore[attr-defined]
+    assert page.replace_bytes_at(6, replacement) is False  # type: ignore[attr-defined]
+    assert page.current_context().file_size == 8  # type: ignore[attr-defined]
+
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))  # type: ignore[attr-defined]
+    assert page.replacement_bytes_at(6, len(replacement)) == bytes(6)  # type: ignore[attr-defined]
+    assert page.replace_bytes_at(6, replacement) is True  # type: ignore[attr-defined]
+
+    current = page.current_context()  # type: ignore[attr-defined]
+    assert current.file_size == 12
+    assert current.byte_overlays["0x00000006"] == "AA BB CC DD 11 22"
+    assert "0x00000008" in page.grid._offset_editors["File"].toPlainText()  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_replace_bytes_confirms_nonzero_targets(tmp_path: Path, monkeypatch):
+    from src.core.binary_workbench.byte_replacement import ReplaceBytesRequest
+    from src.presentation.ui.components.binary_workbench import window_search_actions
+
+    binary_path = tmp_path / "nonzero.bin"
+    binary_path.write_bytes(bytes.fromhex("01 00 00 00"))
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+    request = ReplaceBytesRequest(0, bytes.fromhex("AA"))
+
+    class AcceptedReplaceDialog:
+        DialogCode = QDialog.DialogCode
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exec(self):
+            return self.DialogCode.Accepted
+
+        def replacement_request(self):
+            return request
+
+    monkeypatch.setattr(window_search_actions, "BinaryWorkbenchReplaceBytesDialog", AcceptedReplaceDialog)
+    monkeypatch.setattr(window_search_actions, "confirm_nonzero_byte_replacement", lambda parent: False)
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    tool._open_replace_bytes()
+    assert tool.tabs.current_context().byte_overlays == {}
+
+    monkeypatch.setattr(window_search_actions, "confirm_nonzero_byte_replacement", lambda parent: True)
+    tool._open_replace_bytes()
+    assert tool.tabs.current_context().byte_overlays["0x00000000"] == "AA"
 
 
 def test_binary_workbench_binary_scrollbar_reaches_past_first_block(tmp_path: Path):
@@ -3968,6 +4107,112 @@ def test_binary_workbench_highlighter_requires_aligned_label_inside_current_file
     assert highlighter._invalid_jump_target_range("beq $zero, $zero, target") is not None
 
 
+def test_binary_workbench_highlighter_marks_misaligned_load_store_addresses():
+    _app()
+    editor = QPlainTextEdit()
+    highlighter = InstructionHighlighter(editor.document())
+    highlighter.set_symbols({}, {"word_address": "0x2($zero)"}, {})
+
+    for instruction in (
+        "lw $t0, 0x2($zero)",
+        "sw $t0, _word_address",
+        "lh $t0, 0x1($zero)",
+        "lhu $t0, -0x3($zero)",
+        "sh $t0, 3($zero)",
+    ):
+        assert highlighter._invalid_memory_alignment_range(instruction) is not None
+
+    for instruction in (
+        "lw $t0, 0x4($zero)",
+        "sw $t0, 0($zero)",
+        "lh $t0, 0x2($zero)",
+        "lbu $t0, 0x1($zero)",
+        "lwl $t0, 0x1($zero)",
+        "lw $t0, 0x2($sp)",
+    ):
+        assert highlighter._invalid_memory_alignment_range(instruction) is None
+
+
+def test_binary_workbench_highlighter_uses_effective_register_address_for_loads():
+    _app()
+    editor = QPlainTextEdit()
+    highlighter = InstructionHighlighter(editor.document())
+    editor.setPlainText(
+        "LUI t1, 0x801A\n"
+        "ORI t1, t1, 0xB363\n"
+        "LHU t2, 0x0(t1)"
+    )
+    highlighter.rehighlight()
+
+    register_values = highlighter._known_register_values_by_block[1]
+    assert register_values[9] == 0x801AB363
+    assert highlighter._invalid_memory_alignment_range(
+        "LHU t2, 0x0(t1)",
+        register_values,
+    ) == (8, 15)
+
+
+def test_binary_workbench_offset_placeholders_are_centered_in_every_offset_column():
+    from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
+    from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
+    from src.presentation.ui.components.binary_workbench.editor.grid_offsets import OffsetWorkbenchEditor
+
+    _app()
+    grid = BinaryWorkbenchGrid(PsxMipsR3000ACodec())
+    grid.load_rows(
+        [
+            BINARY_WORKBENCH_TEXT.FILE,
+            "RAM",
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+            BINARY_WORKBENCH_TEXT.BYTES,
+            BINARY_WORKBENCH_TEXT.INSTRUCTION,
+        ],
+        [
+            BinaryWorkbenchRowDTO(
+                offsets={BINARY_WORKBENCH_TEXT.FILE: "-", "RAM": "-"},
+                instruction="; comment",
+                bytes_text="",
+            ),
+            BinaryWorkbenchRowDTO(
+                offsets={BINARY_WORKBENCH_TEXT.FILE: "0x00000000", "RAM": "0x80000000"},
+                instruction="nop",
+                bytes_text="00 00 00 00",
+            ),
+        ],
+    )
+    grid.resize(600, 300)
+    grid.show()
+    _app().processEvents()
+
+    for editor in grid._offset_editors.values():
+        assert isinstance(editor, OffsetWorkbenchEditor)
+        placeholder = editor.document().findBlockByNumber(0)
+        assert placeholder.text() == "-"
+        assert abs(editor.centered_dash_x() - editor.viewport().width() // 2) <= editor.fontMetrics().horizontalAdvance("-")
+        source_x = editor.cursorRect(QTextCursor(placeholder)).x()
+        assert source_x < editor.centered_dash_x()
+        line = editor.cursorRect(QTextCursor(placeholder))
+        overlay = editor._dash_labels[0]
+        assert overlay.isVisible()
+        assert overlay.geometry().left() == 0
+        assert overlay.geometry().width() == editor.viewport().width()
+        assert overlay.geometry().top() == line.top()
+        assert overlay.geometry().height() == line.height()
+
+        image = editor.viewport().grab().toImage()
+        background = image.pixelColor(30, line.center().y()).rgb()
+        dash_width = editor.fontMetrics().horizontalAdvance("-") + 2
+
+        def painted_pixels(left: int) -> int:
+            return sum(
+                image.pixelColor(x, y).rgb() != background
+                for x in range(max(0, left), min(image.width(), left + dash_width))
+                for y in range(max(0, line.top()), min(image.height(), line.bottom() + 1))
+            )
+
+        assert painted_pixels(editor.centered_dash_x() - 1) > 0
+        assert painted_pixels(source_x - 1) == 0
+
 def test_binary_workbench_jump_highlighter_separates_labels_symbols_and_addresses():
     _app()
     editor = QPlainTextEdit()
@@ -4375,7 +4620,7 @@ def test_binary_workbench_every_third_version_update_refreshes_default_backup(tm
     assert "backup comment" in backup.instruction_overlays["0x00000000"]
 
 
-def test_binary_workbench_scratch_symbols_wait_for_first_version_update(tmp_path: Path):
+def test_binary_workbench_scratch_symbols_wait_for_first_version_update(tmp_path: Path, monkeypatch):
     window = _window(tmp_path)
     window._open_binary_workbench()
     tool = window._binary_workbench_window
@@ -4384,6 +4629,10 @@ def test_binary_workbench_scratch_symbols_wait_for_first_version_update(tmp_path
     tool.tabs.new_scratch_tab()
     scratch = tool.tabs.current_context()
     assert tool.tabs.scratch_initial_version_required(scratch)
+    warnings: list[str] = []
+    monkeypatch.setattr(tool, "_show_warning_status", warnings.append)
+    tool._open_local_symbols()
+    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_SYMBOLS_VERSION_REQUIRED]
 
     target = tmp_path / "saved_scratch.asm"
     assert tool.tabs.save_current_assembly_copy(target, adopt_source=True)
@@ -4397,6 +4646,44 @@ def test_binary_workbench_scratch_symbols_wait_for_first_version_update(tmp_path
     )
     tool.tabs.mark_initial_version_saved(assembly.tab_id)
     assert not tool.tabs.scratch_initial_version_required(tool.tabs.current_context())
+
+
+def test_binary_workbench_external_symbols_are_copied_after_initial_scratch_save(tmp_path: Path):
+    from src.presentation.repository.binary_workbench_workspace.constants import SYMBOLS
+
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+    external = tmp_path / "external_symbols.json"
+    external.write_text('{"name":"external","symbols":{"value":"0x20"}}', encoding="utf-8")
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    assert tool.tabs.save_current_assembly_copy(tmp_path / "scratch.asm", adopt_source=True)
+    current = tool.tabs.current_context()
+    assert tool.tabs.update_current_version(current.active_version_name, mark_dirty=False, reload_page=False)
+    tool.tabs.mark_initial_version_saved(current.tab_id)
+
+    tool.tabs.set_current_symbols({"value": "0x20"}, {}, current.labels)
+    tool.tabs.set_current_module_path(SYMBOLS, external)
+    current = tool.tabs.current_context()
+    assert tool.tabs.update_current_version(
+        current.active_version_name,
+        mark_dirty=False,
+        reload_page=False,
+    )
+    assert tool.tabs.save_current_workspace()
+    current = tool.tabs.current_context()
+    imported = Path(current.module_paths[SYMBOLS])
+
+    assert imported != external
+    assert imported.parent.name == "Symbols"
+    assert imported.is_file()
+    assert json.loads(imported.read_text(encoding="utf-8"))["symbols"] == {"value": "0x20"}
+    assert external.read_text(encoding="utf-8") == '{"name":"external","symbols":{"value":"0x20"}}'
+    tool._native_close_question = lambda: QMessageBox.StandardButton.Save
+    tool._request_tab_close(0)
+    assert tool.tabs.count() == 0
 
 
 def test_binary_workbench_uppercase_waits_for_next_line_without_moving_cursor(tmp_path: Path):
@@ -4783,6 +5070,37 @@ def test_binary_workbench_label_declaration_is_not_clickable_but_branch_operand_
     assert editor._jump_target_at_position(branch_point) == 0
 
 
+@pytest.mark.parametrize(
+    ("instruction", "labels"),
+    [
+        ("beq $zero, $zero, target", {"target": "0x2"}),
+        ("j 0xF802", {}),
+    ],
+)
+def test_binary_workbench_click_navigation_reports_misaligned_target(
+    instruction: str,
+    labels: dict[str, str],
+):
+    from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
+
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText(instruction)
+    editor.set_jump_navigation(
+        PsxMipsR3000ACodec(),
+        labels,
+        {},
+        {},
+    )
+    block = editor.document().firstBlock()
+    cursor = QTextCursor(block)
+    token = instruction.rsplit(maxsplit=1)[-1]
+    cursor.setPosition(block.position() + block.text().rfind(token) + 1)
+    point = editor.cursorRect(cursor).center()
+
+    assert editor._navigation_warning_at_position(point) == BINARY_WORKBENCH_TEXT.STATUS_TARGET_MISALIGNED
+
+
 def test_binary_workbench_new_label_updates_highlighter_and_branch_target_immediately(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -4967,6 +5285,34 @@ def test_binary_workbench_local_and_global_symbols_have_separate_ownership(
     payload = binary_workbench_state_to_payload(tool.export_state())
     assert payload["tabs"][0]["symbols"] == {"local_value": "0x10"}
     assert "global_value" not in payload["tabs"][0]["symbols"]
+    assert payload["global_symbols"] == {"global_value": "0x20"}
+
+    restored = binary_workbench_state_from_payload(payload)
+    assert restored.global_symbols == {"global_value": "0x20"}
+
+
+def test_binary_workbench_global_symbols_emit_and_persist_on_add_load_and_save(tmp_path: Path):
+    source = tmp_path / "globals.json"
+    source.write_text(
+        json.dumps({"name": "globals", "symbols": {"loaded": "0x20"}}),
+        encoding="utf-8",
+    )
+    target = tmp_path / "saved-globals.json"
+    dialog = BinaryWorkbenchSymbolsDialog({}, {}, {}, default_directory=str(tmp_path))
+    changes: list[dict[str, str]] = []
+    dialog.symbolsChanged.connect(lambda symbols: changes.append(dict(symbols)))
+
+    dialog.name.setText("created")
+    dialog.value.setText("0x10")
+    dialog._append_from_entry()
+    assert changes[-1] == {"created": "0x10"}
+
+    assert dialog.load_library_json(source) is True
+    assert changes[-1] == {"created": "0x10", "loaded": "0x20"}
+
+    assert dialog.save_library_json(target) is True
+    assert changes[-1] == {"created": "0x10", "loaded": "0x20"}
+    assert json.loads(target.read_text(encoding="utf-8"))["symbols"] == changes[-1]
 
 
 def _version_row_payload(offset: str, instruction: str, bytes_text: str) -> dict[str, object]:

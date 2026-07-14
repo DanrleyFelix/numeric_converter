@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from time import monotonic
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from src.presentation.ui.components import Body, Footer, KeyPanel, Toolbar
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_SHORTCUT
-from src.presentation.ui.main_window.constants import MAIN_WINDOW_MARGIN, MAIN_WINDOW_SIZE, MAIN_WINDOW_SPACING
+from src.presentation.ui.helpers.window_geometry import recover_window_on_available_screen
+from src.presentation.ui.main_window.constants import (
+    MAIN_WINDOW_MARGIN,
+    MAIN_WINDOW_SHORTCUT,
+    MAIN_WINDOW_SIZE,
+    MAIN_WINDOW_SPACING,
+)
 
 if TYPE_CHECKING:
     from src.presentation.ui.main_window.window import MainWindow
@@ -107,6 +114,50 @@ class MainWindowLayoutMixin:
                 (COMMAND_PANEL_SHORTCUT.LOGS, self._open_logs_window),
             )
         ]
+        self._window_recovery_shortcut = QShortcut(
+            QKeySequence(MAIN_WINDOW_SHORTCUT.RECOVER_WINDOW),
+            self,
+            activated=self._recover_active_window,
+        )
+        self._window_recovery_shortcut.setContext(Qt.ApplicationShortcut)
+        self._window_recovery_shortcut.setObjectName("window-recovery-shortcut")
+
+    def _recover_active_window(self: MainWindow) -> None:
+        app = QApplication.instance()
+        if app is None:
+            target = self
+        else:
+            target = (
+                app.activeModalWidget()
+                or app.activePopupWidget()
+                or app.activeWindow()
+                or self
+            )
+        now = monotonic()
+        repeated = (
+            getattr(self, "_window_recovery_target_id", None) == id(target)
+            and now - getattr(self, "_window_recovery_last_trigger", 0.0)
+            <= MAIN_WINDOW_SHORTCUT.RECOVER_WINDOW_REPEAT_SECONDS
+        )
+        anchor = self._window_recovery_anchor(target, app)
+        recover_window_on_available_screen(
+            target,
+            anchor,
+            alternate_screen=repeated,
+        )
+        self._window_recovery_target_id = id(target)
+        self._window_recovery_last_trigger = now
+        target.raise_()
+        target.activateWindow()
+
+    def _window_recovery_anchor(self: MainWindow, target: QWidget, app: QApplication | None) -> QWidget:
+        parent = target.parentWidget()
+        if parent is not None and parent.window() is not target:
+            return parent.window()
+        focus = app.focusWidget() if app is not None else None
+        if focus is not None and focus.window() is not target:
+            return focus.window()
+        return self
 
     def _on_key_panel_toggled(self: MainWindow, visible: bool) -> None:
         if visible and self.key_panel.isHidden():

@@ -11,7 +11,17 @@ from src.core.binary_workbench.mips_r3000a.codec import (
     TWO_OPERAND_BRANCH_MNEMONICS,
 )
 from src.core.binary_workbench.mips_r3000a.comments import comment_start
-from src.core.binary_workbench.mips_r3000a.constants import BRANCH_OPCODES, SPECIAL_BRANCH_RT
+from src.core.binary_workbench.mips_r3000a.constants import (
+    BRANCH_OPCODES,
+    MEMORY_OPERAND_ALIGNMENT,
+    SPECIAL_BRANCH_RT,
+)
+from src.core.binary_workbench.mips_r3000a.preprocessor import expand_short_instruction
+from src.core.binary_workbench.mips_r3000a.register_values import (
+    effective_memory_address,
+    known_register_values_after,
+    register_state,
+)
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.modules.constants import HEX_DIGIT_PATTERN
 from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
@@ -58,6 +68,7 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._jump_reference_offset = ""
         self._file_size = 0
         self._navigation_background_enabled = True
+        self._known_register_values_by_block: dict[int, dict[int, int]] = {}
 
     def set_symbols(
         self,
@@ -68,6 +79,7 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._labels = {name.lower(): value for name, value in labels.items()}
         self._variables = {f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}
         self._equates = {f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}
+        self._known_register_values_by_block.clear()
         self.rehighlight()
 
     def set_navigation_background_enabled(self, enabled: bool) -> None:
@@ -93,8 +105,15 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self.rehighlight()
 
     def highlightBlock(self, text: str) -> None:
+        block_number = self.currentBlock().blockNumber()
+        register_values = (
+            dict(self._known_register_values_by_block.get(block_number - 1, {0: 0}))
+            if block_number > 0
+            else {0: 0}
+        )
         if is_editor_command_line(text):
             self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("command")))
+            self._remember_register_values(block_number, register_values)
             return
         comment_start_index = comment_start(text)
         raw_code = text if comment_start_index < 0 else text[:comment_start_index]
@@ -141,6 +160,13 @@ class InstructionHighlighter(QSyntaxHighlighter):
         invalid_target = self._invalid_jump_target_range(raw_code) if self._navigation_background_enabled else None
         if invalid_target is not None:
             self.setFormat(invalid_target[0], invalid_target[1] - invalid_target[0], invalid_address_format())
+        invalid_memory = self._invalid_memory_alignment_range(raw_code, register_values)
+        if invalid_memory is not None:
+            self.setFormat(invalid_memory[0], invalid_memory[1] - invalid_memory[0], invalid_address_format())
+        self._remember_register_values(
+            block_number,
+            known_register_values_after(expand_short_instruction(code), register_values),
+        )
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
         for match in VARIABLE_TOKEN.finditer(code):
@@ -209,6 +235,47 @@ class InstructionHighlighter(QSyntaxHighlighter):
         ):
             return value - JUMP_NAVIGATION_BASE if value >= JUMP_NAVIGATION_BASE else None
         return value
+
+    def _invalid_memory_alignment_range(
+        self,
+        raw_code: str,
+        register_values: dict[int, int] | None = None,
+    ) -> tuple[int, int] | None:
+        code_start, code = code_without_label(raw_code)
+        tokens = [
+            (match.group(), code_start + match.start(), code_start + match.end())
+            for match in INSTRUCTION_TOKEN.finditer(code)
+        ]
+        if len(tokens) < 3:
+            return None
+        alignment = MEMORY_OPERAND_ALIGNMENT.get(tokens[0][0].lower())
+        if alignment is None:
+            return None
+        token, start, end = tokens[2]
+        address = self._memory_operand_address(token, register_values or {0: 0})
+        return (start, end) if address is not None and address % alignment != 0 else None
+
+    def _memory_operand_address(self, token: str, register_values: dict[int, int]) -> int | None:
+        expanded = self._symbol_value(token) or token
+        if "(" not in expanded:
+            return None
+        immediate = expanded.split("(", 1)[0].strip()
+        if immediate:
+            resolved = self._symbol_value(immediate)
+            if resolved is not None:
+                expanded = f"{resolved.split('(', 1)[0]}({expanded.split('(', 1)[1]}"
+        return effective_memory_address(expanded, register_values)
+
+    def _symbol_value(self, token: str) -> str | None:
+        normalized = token.lower()
+        for symbols in (self._labels, self._variables, self._equates):
+            if normalized in symbols:
+                return str(symbols[normalized])
+        return None
+
+    def _remember_register_values(self, block_number: int, values: dict[int, int]) -> None:
+        self._known_register_values_by_block[block_number] = values
+        self.setCurrentBlockState(register_state(values))
 
     def _target_value(self, token: str) -> int | None:
         normalized = token.lower()

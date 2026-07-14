@@ -44,6 +44,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.find_action = QAction(BINARY_WORKBENCH_TEXT.FIND, self)
         self.hazards_action = QAction(BINARY_WORKBENCH_TEXT.HAZARDS, self)
         self.select_block_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_BLOCK, self)
+        self.replace_bytes_action = QAction(BINARY_WORKBENCH_TEXT.REPLACE_BYTES, self)
         self.select_all_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_ALL, self)
         self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
         self.open_file_action.setShortcut(QKeySequence("Ctrl+O"))
@@ -58,6 +59,8 @@ class BinaryWorkbenchToolbar(QFrame):
         self.hazards_action.setShortcutVisibleInContextMenu(True)
         self.select_block_action.setShortcut(QKeySequence("Ctrl+E"))
         self.select_block_action.setShortcutContext(Qt.ApplicationShortcut)
+        self.replace_bytes_action.setShortcut(QKeySequence("Ctrl+R"))
+        self.replace_bytes_action.setShortcutContext(Qt.ApplicationShortcut)
         self.select_all_action.setShortcut(QKeySequence("Ctrl+A"))
 
         layout.addWidget(self._build_menu_button(BINARY_WORKBENCH_TEXT.FILE, Icons.file(), [
@@ -88,6 +91,7 @@ class BinaryWorkbenchToolbar(QFrame):
             self.find_action,
             self.hazards_action,
             self.select_block_action,
+            self.replace_bytes_action,
         ]))
         layout.addWidget(self._build_action_button(BINARY_WORKBENCH_TEXT.HELP, Icons.help(), self.help_action))
         layout.addStretch(1)

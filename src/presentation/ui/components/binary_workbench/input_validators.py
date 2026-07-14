@@ -15,6 +15,8 @@ PYTHON_IDENTIFIER_PATTERN = r"[A-Za-z_][A-Za-z0-9_]*"
 PYTHON_IDENTIFIER_EXPRESSION = QRegularExpression(f"^{PYTHON_IDENTIFIER_PATTERN}$")
 INTERNAL_FILE_NAME_PATTERN = r"[A-Za-z_][A-Za-z0-9_.]*"
 INTERNAL_FILE_NAME_EXPRESSION = QRegularExpression(f"^{INTERNAL_FILE_NAME_PATTERN}$")
+HEX_OFFSET_EXPRESSION = QRegularExpression(r"^(?:0[xX])?[0-9A-Fa-f]*$")
+INTEGER_OR_HEX_EXPRESSION = QRegularExpression(r"^(?:[0-9]*|0[xX][0-9A-Fa-f]*)$")
 
 
 class PythonIdentifierValidator(QValidator):
@@ -65,3 +67,15 @@ def set_hex_value_validator(editor: QLineEdit) -> None:
 
 def set_hex_bytes_validator(editor: QLineEdit) -> None:
     editor.setValidator(QRegularExpressionValidator(QRegularExpression(HEX_BYTES_PATTERN), editor))
+
+
+def set_hex_offset_validator(editor: QLineEdit) -> None:
+    """Allow an optional 0x prefix and hexadecimal offset digits."""
+
+    editor.setValidator(QRegularExpressionValidator(HEX_OFFSET_EXPRESSION, editor))
+
+
+def set_integer_or_hex_validator(editor: QLineEdit) -> None:
+    """Allow decimal integers or hexadecimal integers prefixed with 0x."""
+
+    editor.setValidator(QRegularExpressionValidator(INTEGER_OR_HEX_EXPRESSION, editor))

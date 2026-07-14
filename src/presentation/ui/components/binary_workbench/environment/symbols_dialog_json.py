@@ -27,6 +27,7 @@ class SymbolsDialogJsonMixin:
         library_name = target.stem
         symbols, _, _ = self.values()
         write_json(target, symbols_payload(library_name, symbols))
+        self.symbolsChanged.emit(symbols)
         self._save_requested = True
         self._saved_library_name = library_name
         self._saved_library_path = str(target)

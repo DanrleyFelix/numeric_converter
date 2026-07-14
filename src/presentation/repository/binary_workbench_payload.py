@@ -432,6 +432,7 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
     return BinaryWorkbenchStateDTO(
         tabs=tabs,
         active_tab_id=active_tab_id if isinstance(active_tab_id, str) else None,
+        global_symbols=normalize_string_map(raw.get("global_symbols")),
         share_view_preferences=bool(raw.get("share_view_preferences", False)),
         directories={
             **BinaryWorkbenchStateDTO().directories,
@@ -515,6 +516,7 @@ def binary_workbench_state_to_payload(
             for tab in tabs
         ],
         "active_tab_id": state.active_tab_id,
+        "global_symbols": dict(state.global_symbols),
         "share_view_preferences": state.share_view_preferences,
         "commands_by_arch": commands_by_arch,
         "encoding_tables": _encoding_tables_payload(encoding_tables),

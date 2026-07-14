@@ -151,6 +151,7 @@ class BinaryWorkbenchTabContextDTO:
 class BinaryWorkbenchStateDTO:
     tabs: list[BinaryWorkbenchTabContextDTO] = field(default_factory=list)
     active_tab_id: str | None = None
+    global_symbols: dict[str, str] = field(default_factory=dict)
     share_view_preferences: bool = False
     directories: dict[str, str] = field(default_factory=_default_binary_workbench_directories)
     commands_by_arch: dict[str, dict[str, list[str]]] = field(default_factory=dict)

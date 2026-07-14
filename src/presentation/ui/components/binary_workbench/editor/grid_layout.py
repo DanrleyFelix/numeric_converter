@@ -5,6 +5,9 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 from src.presentation.ui.components.binary_workbench.editor.highlighters import BytesHighlighter, InstructionHighlighter
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
+from src.presentation.ui.components.binary_workbench.editor.grid_offsets import (
+    OffsetWorkbenchEditor,
+)
 
 
 class GridLayoutMixin:
@@ -74,7 +77,14 @@ class GridLayoutMixin:
         self.decoded_text.copyRequested.connect(lambda source: source.copy())
         self.decoded_text.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
 
-    def _panel(self, label_text: str, object_name: str, read_only: bool, width: int | None = None) -> tuple[QFrame, WorkbenchEditor]:
+    def _panel(
+        self,
+        label_text: str,
+        object_name: str,
+        read_only: bool,
+        width: int | None = None,
+        editor_type: type[WorkbenchEditor] = WorkbenchEditor,
+    ) -> tuple[QFrame, WorkbenchEditor]:
         shell = QFrame(self)
         shell.setObjectName("binary-workbench-column-shell")
         shell.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
@@ -83,7 +93,8 @@ class GridLayoutMixin:
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.PANEL_LABEL_SPACING)
         label = QLabel(label_text, shell)
         label.setObjectName("binary-workbench-column-label")
-        editor = self._editor(object_name, read_only, width)
+        label.setContentsMargins(BINARY_WORKBENCH_LAYOUT.PANEL_LABEL_LEFT_MARGIN, 0, 0, 0)
+        editor = self._editor(object_name, read_only, width, editor_type)
         if width is not None:
             shell.setFixedWidth(width)
             shell.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -91,8 +102,14 @@ class GridLayoutMixin:
         layout.addWidget(editor, 1)
         return shell, editor
 
-    def _editor(self, object_name: str, read_only: bool, width: int | None = None) -> WorkbenchEditor:
-        editor = WorkbenchEditor(self)
+    def _editor(
+        self,
+        object_name: str,
+        read_only: bool,
+        width: int | None = None,
+        editor_type: type[WorkbenchEditor] = WorkbenchEditor,
+    ) -> WorkbenchEditor:
+        editor = editor_type(self)
         editor.setObjectName(object_name)
         editor.setReadOnly(read_only)
         editor.setLineWrapMode(QPlainTextEdit.NoWrap)

@@ -8,6 +8,7 @@ from src.core.binary_workbench.internal_file_patch import (
 )
 from src.core.binary_workbench.internal_file_region import define_internal_file_region
 from src.core.binary_workbench.internal_offset_mapper import InternalOffsetMapper
+from src.core.binary_workbench.symbol_values import merged_symbol_values
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchStateDTO,
@@ -82,6 +83,7 @@ class TabStateMixin:
             self._stale_context_pages.clear()
             self._workspace_tab_access.clear()
             self._state = restorable_state(state)
+            self._global_symbols = merged_symbol_values(self._state.global_symbols)
             self._state = BinaryWorkbenchStateDTO(
                 **{
                     **state_payload(self._state),

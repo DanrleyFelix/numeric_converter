@@ -27,6 +27,11 @@ SHORT_IMMEDIATE_MIN = -0x8000
 SHORT_IMMEDIATE_MAX = 0x7FFF
 MIPS_HALF_MASK = 0xFFFF
 MIPS_HALF_SHIFT = 16
+SHORT_DESTINATION_IMMEDIATE = {"addi", "addiu", "andi", "ori", "slti", "sltiu", "xori"}
+SHORT_DESTINATION_REGISTER = {
+    "add", "addu", "and", "nor", "or", "sll", "sllv", "slt", "sltu",
+    "sra", "srav", "srl", "srlv", "sub", "subu", "xor",
+}
 
 
 def preprocess_instruction(
@@ -37,6 +42,7 @@ def preprocess_instruction(
     equates: dict[str, str],
 ) -> str:
     code = strip_label(strip_comment(text)).strip()
+    code = expand_short_instruction(code)
     code = _replace_prefixed_symbols(code, "_", variables)
     code = _replace_prefixed_symbols(code, "@", equates)
     code = _replace_labels(code, labels, address)
@@ -46,6 +52,18 @@ def preprocess_instruction(
         code,
         lambda target: _format_branch_immediate((target - (address + 4)) >> 2),
     ).strip()
+
+
+def expand_short_instruction(text: str) -> str:
+    """Expand a two-operand destination form by repeating its destination."""
+
+    tokens = text.replace(",", " ").split()
+    if len(tokens) != 3:
+        return text
+    mnemonic = tokens[0].lower()
+    if mnemonic not in SHORT_DESTINATION_IMMEDIATE | SHORT_DESTINATION_REGISTER:
+        return text
+    return f"{tokens[0]} {tokens[1]}, {tokens[1]}, {tokens[2]}"
 
 
 def editor_mips_instruction(text: str, address: int) -> str:

@@ -118,6 +118,20 @@ def test_binary_workbench_context_roundtrip_excludes_program_and_preferences(tmp
     )
 
 
+def test_binary_workbench_global_symbols_roundtrip_as_session_state(tmp_path: Path):
+    repository = BinaryWorkbenchContextRepository(tmp_path)
+    state = BinaryWorkbenchStateDTO(
+        global_symbols={"shared_value": "0x20", "shared_address": "0x80010000"},
+    )
+
+    saved_path = repository.save(state)
+    payload = json.loads(saved_path.read_text(encoding="utf-8"))
+    loaded = repository.load(saved_path)
+
+    assert payload["global_symbols"] == state.global_symbols
+    assert loaded.global_symbols == state.global_symbols
+
+
 def test_binary_workbench_context_discards_legacy_blank_instruction_overlay():
     state = binary_workbench_state_from_payload(
         {

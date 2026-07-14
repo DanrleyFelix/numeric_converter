@@ -7,6 +7,8 @@ from src.presentation.ui.components.binary_workbench.search import (
     BinaryWorkbenchGoToDialog,
     BinaryWorkbenchHazardsWindow,
     BinaryWorkbenchSelectBlockDialog,
+    BinaryWorkbenchReplaceBytesDialog,
+    confirm_nonzero_byte_replacement,
 )
 
 
@@ -68,3 +70,43 @@ class BinaryWorkbenchWindowSearchMixin:
         selected = dialog.selected_range()
         if selected is not None:
             self.tabs.select_block(*selected)
+
+    def _open_replace_bytes(self) -> None:
+        dialog = BinaryWorkbenchReplaceBytesDialog(
+            self,
+            start_offset=self.tabs.current_cursor_offset(),
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        request = dialog.replacement_request()
+        if request is None:
+            self._show_status(
+                BINARY_WORKBENCH_TEXT.STATUS_REPLACE_BYTES_INVALID,
+                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+                error=True,
+            )
+            return
+        existing = self.tabs.replacement_bytes_at(request.start_offset, len(request.data))
+        if existing is None:
+            self._show_status(
+                BINARY_WORKBENCH_TEXT.STATUS_REPLACE_BYTES_OUT_OF_RANGE,
+                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+                error=True,
+            )
+            return
+        if any(existing) and not confirm_nonzero_byte_replacement(self):
+            return
+        if not self.tabs.replace_bytes_at(request.start_offset, request.data):
+            self._show_status(
+                BINARY_WORKBENCH_TEXT.STATUS_REPLACE_BYTES_OUT_OF_RANGE,
+                BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+                error=True,
+            )
+            return
+        self._show_status(
+            BINARY_WORKBENCH_TEXT.STATUS_REPLACE_BYTES_SUCCESS_TEMPLATE.format(
+                length=len(request.data),
+                offset=request.start_offset,
+            ),
+            BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS,
+        )

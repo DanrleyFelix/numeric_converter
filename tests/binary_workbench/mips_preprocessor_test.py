@@ -52,6 +52,19 @@ def test_mips_preprocessor_replaces_only_complete_symbol_tokens():
     ) == "addiu $s0, $s0, 0x10"
 
 
+def test_mips_preprocessor_expands_short_destination_forms_for_raw_output():
+    assert raw_mips_instruction("addiu $a0, 0x5", 0, {}, {}, {}) == "addiu $a0, $a0, 0x5"
+    assert raw_mips_instruction("and $s0, $a0", 4, {}, {}, {}) == "and $s0, $s0, $a0"
+
+    rows = build_rows_from_instructions(
+        ["addiu $a0, 0x5", "and $s0, $a0"],
+        ["File"],
+    )
+
+    assert [row.instruction for row in rows] == ["addiu $a0, 0x5", "and $s0, $a0"]
+    assert [row.bytes_text for row in rows] == ["05 00 84 24", "24 80 04 02"]
+
+
 def test_mips_navigation_targets_require_jump_or_branch_operand():
     codec = PsxMipsR3000ACodec()
     symbols = {"loop": "0x00000010"}

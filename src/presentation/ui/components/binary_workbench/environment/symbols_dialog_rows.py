@@ -46,6 +46,7 @@ class SymbolsDialogRowsMixin:
                 existing[key].setText(value)
             else:
                 self._append_row(name, value)
+        self.symbolsChanged.emit(self.values()[0])
 
     def _append_from_entry(self) -> None:
         self._merge_rows({self.name.text(): self.value.text()})
@@ -111,6 +112,7 @@ class SymbolsDialogRowsMixin:
         self._rows = [item for item in self._rows if item[2] is not row]
         row.deleteLater()
         remove_slot.deleteLater()
+        self.symbolsChanged.emit(self.values()[0])
 
     def _apply_filter(self) -> None:
         query = self.filter_input.text().strip().lower()

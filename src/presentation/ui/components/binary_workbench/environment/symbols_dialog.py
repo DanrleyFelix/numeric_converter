@@ -25,6 +25,7 @@ class BinaryWorkbenchSymbolsDialog(
 ):
     directoryChanged = Signal(str)
     goToRequested = Signal(int)
+    symbolsChanged = Signal(dict)
 
     def __init__(
         self,

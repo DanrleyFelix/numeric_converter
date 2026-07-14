@@ -12,6 +12,9 @@ from src.core.binary_workbench.selection_limits import (
 from src.modules.contracts import CPUArchCodec
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_byte_replacement import (
+    GridByteReplacementMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_commands import (
     GridCommandsMixin,
 )
@@ -57,6 +60,7 @@ class BinaryWorkbenchGrid(
     GridRawInstructionsMixin,
     GridEditRulesMixin,
     GridCommitMixin,
+    GridByteReplacementMixin,
     GridEditingMixin,
     GridSelectionMixin,
     GridVirtualSelectionMixin,

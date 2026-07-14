@@ -25,6 +25,7 @@ def restorable_state(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchStateDTO:
     return BinaryWorkbenchStateDTO(
         tabs=tabs,
         active_tab_id=active or (tabs[0].tab_id if tabs else None),
+        global_symbols=dict(state.global_symbols),
         share_view_preferences=state.share_view_preferences,
         directories=dict(state.directories),
         commands_by_arch={

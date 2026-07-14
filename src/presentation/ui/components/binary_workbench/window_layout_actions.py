@@ -34,6 +34,7 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.find_action.triggered.connect(self._open_find)
         self.toolbar.hazards_action.triggered.connect(self._open_hazards)
         self.toolbar.select_block_action.triggered.connect(self._open_select_block)
+        self.toolbar.replace_bytes_action.triggered.connect(self._open_replace_bytes)
         self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
         self.toolbar.help_action.triggered.connect(self.open_guide)
         self._return_jump_action = QAction("Return to Previous Jump", self)
@@ -44,6 +45,7 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.go_to_action,
             self.toolbar.find_action,
             self.toolbar.select_block_action,
+            self.toolbar.replace_bytes_action,
             self.toolbar.select_all_action,
             self.toolbar.open_file_action,
             self.toolbar.new_scratch_action,

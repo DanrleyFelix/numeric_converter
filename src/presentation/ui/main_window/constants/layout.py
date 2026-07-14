@@ -20,3 +20,8 @@ class MAIN_WINDOW_MARGIN:
 class MAIN_WINDOW_SPACING:
     CONTAINER: int = 16
     CENTRAL: int = 0
+
+
+class MAIN_WINDOW_SHORTCUT:
+    RECOVER_WINDOW: str = "Ctrl+Space"
+    RECOVER_WINDOW_REPEAT_SECONDS: float = 5.0

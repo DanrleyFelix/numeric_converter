@@ -123,7 +123,11 @@ class TabLibrariesMixin:
             for index, context in enumerate(self._state.tabs)
         ]
         self._state = BinaryWorkbenchStateDTO(
-            **{**state_payload(self._state), "tabs": tabs}
+            **{
+                **state_payload(self._state),
+                "tabs": tabs,
+                "global_symbols": dict(self._global_symbols),
+            }
         )
         if 0 <= self.currentIndex() < len(tabs):
             active = tabs[self.currentIndex()]

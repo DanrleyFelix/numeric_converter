@@ -169,6 +169,8 @@ class EditorLabelNavigationMixin:
         details = self._jump_target_details_at_position(position)
         if details is None:
             return ""
+        if details[0] % self._jump_navigation_row_bytes != 0:
+            return BINARY_WORKBENCH_TEXT.STATUS_TARGET_MISALIGNED
         if not self._branch_target_in_range(position, details[0]):
             return BINARY_WORKBENCH_TEXT.STATUS_BRANCH_OUT_OF_RANGE
         return ""

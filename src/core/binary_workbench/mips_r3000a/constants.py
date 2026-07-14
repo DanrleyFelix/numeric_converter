@@ -72,6 +72,13 @@ I_OPCODES: dict[str, int] = {
     "sw": 0x2B,
     "swr": 0x2E,
 }
+MEMORY_OPERAND_ALIGNMENT: dict[str, int] = {
+    "lh": 2,
+    "lhu": 2,
+    "sh": 2,
+    "lw": 4,
+    "sw": 4,
+}
 BRANCH_OPCODES: dict[str, int] = {
     "beq": 0x04,
     "bne": 0x05,

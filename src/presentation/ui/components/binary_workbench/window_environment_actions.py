@@ -117,6 +117,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         )
         dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.GLOBAL_SYMBOLS)
         dialog.goToRequested.connect(self.tabs.go_to_offset)
+        dialog.symbolsChanged.connect(self.tabs.set_global_symbols)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         symbols, _, _ = dialog.values()

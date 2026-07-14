@@ -32,6 +32,14 @@ class TabNavigationSearchMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.select_block(start_offset, end_offset)
 
+    def replacement_bytes_at(self, start_offset: int, size: int) -> bytes | None:
+        page = self.currentWidget()
+        return page.replacement_bytes_at(start_offset, size) if isinstance(page, BinaryWorkbenchEditorPage) else None
+
+    def replace_bytes_at(self, start_offset: int, data: bytes) -> bool:
+        page = self.currentWidget()
+        return page.replace_bytes_at(start_offset, data) if isinstance(page, BinaryWorkbenchEditorPage) else False
+
     def current_cursor_offset(self) -> int | None:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):

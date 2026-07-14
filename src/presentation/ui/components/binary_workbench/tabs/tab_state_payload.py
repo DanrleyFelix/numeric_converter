@@ -13,6 +13,7 @@ def state_payload(state: BinaryWorkbenchStateDTO) -> dict[str, object]:
     return {
         "tabs": state.tabs,
         "active_tab_id": state.active_tab_id,
+        "global_symbols": dict(state.global_symbols),
         "share_view_preferences": state.share_view_preferences,
         "directories": dict(state.directories),
         "commands_by_arch": {

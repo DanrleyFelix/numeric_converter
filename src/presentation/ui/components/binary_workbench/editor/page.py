@@ -24,6 +24,9 @@ from src.presentation.ui.components.binary_workbench.constants import (
 )
 from src.presentation.ui.components.binary_workbench.editor.page_defaults import default_editor_kind, offset_from_hex
 from src.presentation.ui.components.binary_workbench.editor.page_binary_loading import EditorPageBinaryLoadingMixin
+from src.presentation.ui.components.binary_workbench.editor.page_byte_replacement import (
+    EditorPageByteReplacementMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import EditorPageVirtualCopyMixin
 from src.presentation.ui.components.binary_workbench.editor.page_context_updates import EditorPageContextMixin
 from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
@@ -43,6 +46,7 @@ if TYPE_CHECKING:
 
 class BinaryWorkbenchEditorPage(
     EditorPageBinaryLoadingMixin,
+    EditorPageByteReplacementMixin,
     EditorPageVirtualCopyMixin,
     EditorPageContextMixin,
     EditorPageImmediateSymbolsMixin,

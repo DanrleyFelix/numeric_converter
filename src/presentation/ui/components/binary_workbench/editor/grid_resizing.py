@@ -1,6 +1,9 @@
 from PySide6.QtCore import QTimer
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.editor.grid_offsets import (
+    OffsetWorkbenchEditor,
+)
 
 
 class GridResizingMixin:
@@ -82,6 +85,7 @@ class GridResizingMixin:
                 "binary-workbench-offsets-panel",
                 True,
                 BINARY_WORKBENCH_LAYOUT.EDITOR_OFFSET_WIDTH,
+                OffsetWorkbenchEditor,
             )
             editor.copyRequested.connect(lambda source: source.copy())
             editor.selectionStarted.connect(self._clear_virtual_selection)

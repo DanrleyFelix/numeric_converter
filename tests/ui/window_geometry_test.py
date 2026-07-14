@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from src.presentation.ui.helpers.window_geometry import (
     clamp_rect_to_available_geometry,
     ensure_window_on_available_screen,
+    recover_window_on_available_screen,
 )
 
 
@@ -46,6 +47,26 @@ def test_window_is_resized_and_moved_into_a_screen_available_geometry():
     ensure_window_on_available_screen(window)
     app.processEvents()
 
+    assert any(
+        screen.availableGeometry().contains(window.frameGeometry())
+        for screen in QGuiApplication.screens()
+    )
+    window.close()
+
+
+def test_window_recovery_moves_without_changing_size():
+    app = _app()
+    window = QWidget()
+    window.resize(320, 240)
+    window.move(100_000, 100_000)
+    window.show()
+    app.processEvents()
+    size = window.size()
+
+    recover_window_on_available_screen(window)
+    app.processEvents()
+
+    assert window.size() == size
     assert any(
         screen.availableGeometry().contains(window.frameGeometry())
         for screen in QGuiApplication.screens()

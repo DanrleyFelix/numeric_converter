@@ -3,6 +3,8 @@ from src.presentation.ui.components.binary_workbench.search.dialogs import (
     BinaryWorkbenchGoToDialog,
     BinaryWorkbenchHazardsWindow,
     BinaryWorkbenchSelectBlockDialog,
+    BinaryWorkbenchReplaceBytesDialog,
+    confirm_nonzero_byte_replacement,
 )
 
 
@@ -11,4 +13,6 @@ __all__ = [
     "BinaryWorkbenchGoToDialog",
     "BinaryWorkbenchHazardsWindow",
     "BinaryWorkbenchSelectBlockDialog",
+    "BinaryWorkbenchReplaceBytesDialog",
+    "confirm_nonzero_byte_replacement",
 ]
