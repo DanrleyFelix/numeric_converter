@@ -197,7 +197,7 @@ class EditorLabelNavigationMixin:
 
     def _mnemonic_at_position(self, position: QPoint) -> str:
         block_text = self.cursorForPosition(position).block().text()
-        code = block_text.split(";", 1)[0].split("#", 1)[0].split("//", 1)[0]
+        code = block_text.split(";", 1)[0].split("#", 1)[0]
         if ":" in code:
             code = code.split(":", 1)[1]
         parts = code.replace(",", " ").split()
@@ -205,7 +205,7 @@ class EditorLabelNavigationMixin:
 
     def _label_declaration_at_position(self, position: QPoint) -> bool:
         cursor = self.cursorForPosition(position)
-        code = cursor.block().text().split(";", 1)[0].split("#", 1)[0].split("//", 1)[0]
+        code = cursor.block().text().split(";", 1)[0].split("#", 1)[0]
         colon = code.find(":")
         return colon >= 0 and cursor.positionInBlock() <= colon
 

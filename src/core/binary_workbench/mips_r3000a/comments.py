@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-COMMENT_MARKERS = (";", "//", "#")
+COMMENT_MARKERS = (";", "#")
 
 
 def comment_start(text: str) -> int:

@@ -35,7 +35,7 @@ class EditorGranularUndoMixin:
     def _handle_granular_delete(self, event: QKeyEvent) -> bool:
         if event.key() not in {Qt.Key_Backspace, Qt.Key_Delete}:
             return False
-        if event.modifiers() != Qt.NoModifier:
+        if event.modifiers() & TEXT_INPUT_BLOCKED_MODIFIERS:
             return False
         if is_bytes_editor(self) and _bytes_delete_should_preserve_line_breaks(self):
             replace_selection_preserving_line_breaks(self, self.textCursor())

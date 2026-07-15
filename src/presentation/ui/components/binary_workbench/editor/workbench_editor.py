@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QStringListModel, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QSignalBlocker, QStringListModel, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
@@ -294,31 +294,31 @@ class WorkbenchEditor(
         key = event.key()
         if key in {Qt.Key_PageUp, Qt.Key_PageDown}:
             page = max(ROW_BYTES, self._shared_scrollbar.pageStep())
-            delta = page if key == Qt.Key_PageUp else -page
+            delta = -page if key == Qt.Key_PageUp else page
             if self._left_mouse_selecting:
                 self._extend_selection_viewport(delta)
             else:
                 self._change_shared_viewport(delta)
             event.accept()
             return
-        block = self.textCursor().blockNumber()
-        last_block = max(0, self.document().blockCount() - 1)
-        if key == Qt.Key_Down and block >= last_block:
-            self._shared_scrollbar.setValue(self._shared_scrollbar.value() + ROW_BYTES)
-            QTimer.singleShot(0, lambda: self._move_cursor_to_edge(False))
-            event.accept()
-            return
-        if key == Qt.Key_Up and block <= 0:
-            self._shared_scrollbar.setValue(self._shared_scrollbar.value() - ROW_BYTES)
-            QTimer.singleShot(0, lambda: self._move_cursor_to_edge(True))
-            event.accept()
-            return
+        if (
+            self._large_binary_mode
+            and key in {Qt.Key_Up, Qt.Key_Down}
+            and event.modifiers() == Qt.NoModifier
+        ):
+            block = self.textCursor().blockNumber()
+            last_block = max(0, self.document().blockCount() - 1)
+            if (key == Qt.Key_Up and block == 0) or (key == Qt.Key_Down and block == last_block):
+                delta = -ROW_BYTES if key == Qt.Key_Up else ROW_BYTES
+                self._change_shared_viewport(delta)
+                event.accept()
+                return
         super().keyPressEvent(event)
         self._refresh_completions()
         self._normalize_instruction_after_comment_start(event.text())
 
     def _normalize_instruction_after_comment_start(self, text: str) -> None:
-        if text in {";", "#", "/"}:
+        if text in {";", "#"}:
             self._normalize_current_instruction_line()
 
     def _normalize_instruction_line_after_offset_change(self) -> None:
@@ -395,12 +395,6 @@ class WorkbenchEditor(
             event.count(),
         )
 
-    def _move_cursor_to_edge(self, top: bool) -> None:
-        cursor = self.textCursor()
-        block = self.document().firstBlock() if top else self.document().lastBlock()
-        set_cursor_position(cursor, block.position())
-        self.setTextCursor(cursor)
-
     def mark_return_key_handled(self) -> None:
         self._return_key_handled = True
 
@@ -422,7 +416,7 @@ class WorkbenchEditor(
         event.accept()
 
     def _change_shared_viewport(self, delta: int) -> None:
-        cursor_state = self._cursor_viewport_state()
+        cursor_state = self._cursor_viewport_state() if self._large_binary_mode else None
         if cursor_state is None:
             self.viewportChangeAboutToStart.emit(self)
         previous = self._shared_scrollbar.value()
@@ -446,7 +440,14 @@ class WorkbenchEditor(
         block = self.document().findBlockByNumber(block_number)
         cursor = self.textCursor()
         set_cursor_position(cursor, block.position() + min(position, len(block.text())))
+        scrollbar = self.verticalScrollBar()
+        scroll_value = scrollbar.value()
+        editor_blocker = QSignalBlocker(self)
+        scrollbar_blocker = QSignalBlocker(scrollbar)
         self.setTextCursor(cursor)
+        scrollbar.setValue(scroll_value)
+        del scrollbar_blocker
+        del editor_blocker
 
     def leaveEvent(self, event) -> None:
         self.viewport().setCursor(Qt.IBeamCursor)

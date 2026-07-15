@@ -1649,16 +1649,20 @@ def test_binary_workbench_down_arrow_loads_next_visible_window(tmp_path: Path):
     tool.open_file_path(assembly_path)
     page = tool.tabs.currentWidget()
     editor = page.grid.instructions  # type: ignore[attr-defined]
+    bottom_block = editor.cursorForPosition(
+        QPoint(4, editor.viewport().height() - 2)
+    ).block()
     cursor = editor.textCursor()
-    cursor.movePosition(cursor.MoveOperation.End)
+    cursor.setPosition(bottom_block.position())
     editor.setTextCursor(cursor)
+    before_block = cursor.blockNumber()
     before = page.grid.scrollbar.value()  # type: ignore[attr-defined]
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Down, Qt.KeyboardModifier.NoModifier)
     QApplication.sendEvent(editor, event)
     _app().processEvents()
 
     assert page.grid.scrollbar.value() > before  # type: ignore[attr-defined]
-    assert editor.textCursor().blockNumber() == editor.document().blockCount() - 1
+    assert editor.textCursor().blockNumber() == before_block + 1
 
 
 def test_binary_workbench_selection_counts_selected_bytes_exactly(tmp_path: Path):
@@ -2633,7 +2637,7 @@ def test_binary_workbench_mouse_wheel_preserves_virtual_selection(tmp_path: Path
     ]
 
 
-def test_binary_workbench_wheel_and_page_up_extend_held_mouse_selection(tmp_path: Path):
+def test_binary_workbench_wheel_and_page_down_extend_held_mouse_selection(tmp_path: Path):
     binary_path = tmp_path / "held_mouse_selection.bin"
     binary_path.write_bytes(bytes(range(256)) * 16)
     window = _window(tmp_path)
@@ -2668,7 +2672,7 @@ def test_binary_workbench_wheel_and_page_up_extend_held_mouse_selection(tmp_path
 
     QApplication.sendEvent(
         editor,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageUp, Qt.NoModifier),
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
     )
     _app().processEvents()
     editor._left_mouse_selecting = False
@@ -2781,15 +2785,15 @@ def test_binary_workbench_bytes_selection_expands_across_multiple_viewports(tmp_
     assert copied == source[0x20:0x308].hex().upper()
 
 
-def test_binary_workbench_page_keys_move_one_viewport_and_preserve_typing_cursor(tmp_path: Path):
-    binary_path = tmp_path / "page_navigation.bin"
-    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 2048)
+def test_binary_workbench_page_keys_use_standard_direction_and_preserve_typing_cursor(tmp_path: Path):
+    assembly_path = tmp_path / "page_navigation.asm"
+    assembly_path.write_text("\n".join("nop" for _ in range(2048)), encoding="utf-8")
     window = _window(tmp_path)
     window._open_binary_workbench()
     tool = window._binary_workbench_window
 
     assert tool is not None
-    tool.open_file_path(binary_path)
+    tool.open_file_path(assembly_path)
     grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
     editor = grid.instructions
     cursor = editor.textCursor()
@@ -2797,24 +2801,288 @@ def test_binary_workbench_page_keys_move_one_viewport_and_preserve_typing_cursor
     cursor.setPosition(block.position() + 1)
     editor.setTextCursor(cursor)
     page_size = grid.scrollbar.pageStep()
+    steps = 4
 
-    QApplication.sendEvent(
-        editor,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageUp, Qt.NoModifier),
-    )
-    _app().processEvents()
-    assert grid.scrollbar.value() == min(page_size, grid.scrollbar.maximum())
+    for _ in range(steps):
+        QApplication.sendEvent(
+            editor,
+            QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
+        )
+        _app().processEvents()
+    assert grid.scrollbar.value() == min(steps * page_size, grid.scrollbar.maximum())
     assert editor.textCursor().blockNumber() == 2
     assert editor.textCursor().positionInBlock() == 1
 
-    QApplication.sendEvent(
-        editor,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
-    )
-    _app().processEvents()
+    for _ in range(steps):
+        QApplication.sendEvent(
+            editor,
+            QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageUp, Qt.NoModifier),
+        )
+        _app().processEvents()
     assert grid.scrollbar.value() == 0
     assert editor.textCursor().blockNumber() == 2
     assert editor.textCursor().positionInBlock() == 1
+
+
+def test_binary_workbench_wheel_scroll_is_not_limited_by_typing_cursor(tmp_path: Path):
+    assembly_path = tmp_path / "wheel_navigation.asm"
+    assembly_path.write_text("\n".join("nop" for _ in range(512)), encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(assembly_path)
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    editor = grid.instructions
+    cursor = editor.textCursor()
+    cursor.setPosition(editor.document().findBlockByNumber(2).position() + 1)
+    editor.setTextCursor(cursor)
+    steps = 40
+
+    for index in range(steps):
+        editor.wheelEvent(
+            QWheelEvent(
+                QPointF(8, 8),
+                QPointF(8, 8),
+                QPoint(),
+                QPoint(0, -120),
+                Qt.NoButton,
+                Qt.NoModifier,
+                Qt.ScrollUpdate,
+                False,
+            )
+        )
+        _app().processEvents()
+        if index == 0:
+            wheel_step = grid.scrollbar.value()
+
+    assert grid.scrollbar.value() == min(
+        steps * wheel_step,
+        grid.scrollbar.maximum(),
+    )
+    assert editor.textCursor().blockNumber() == 2
+    assert editor.textCursor().positionInBlock() == 1
+
+
+def test_binary_workbench_virtual_columns_stay_synchronized_with_focused_editor(tmp_path: Path):
+    binary_path = tmp_path / "synchronized_viewports.bin"
+    binary_path.write_bytes(bytes(range(256)) * 32)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(binary_path)
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    assert grid._virtual
+
+    navigation_editors = [
+        *grid._offset_editors.values(),
+        grid.raw_instructions,
+        grid.bytes,
+        grid.instructions,
+    ]
+    for editor in navigation_editors:
+        editor.setFocus()
+        cursor = editor.textCursor()
+        last_block = editor.document().lastBlock()
+        cursor.setPosition(last_block.position() + len(last_block.text()))
+        editor.setTextCursor(cursor)
+        before = grid.scrollbar.value()
+
+        QApplication.sendEvent(
+            editor,
+            QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
+        )
+        _app().processEvents()
+        QTest.qWait(20)
+
+        assert grid.scrollbar.value() > before
+        assert grid._visible_start_offset == grid.scrollbar.value()
+        visible_editors = [
+            *grid._offset_editors.values(),
+            grid.raw_instructions,
+            grid.bytes,
+            grid.decoded_text,
+            grid.instructions,
+        ]
+        assert all(candidate.document().blockCount() == len(grid._rows) for candidate in visible_editors)
+        assert all(candidate.verticalScrollBar().value() == 0 for candidate in visible_editors)
+        assert all(candidate.firstVisibleBlock().blockNumber() == 0 for candidate in visible_editors)
+
+        if editor in {grid.bytes, grid.instructions}:
+            cursor = editor.textCursor()
+            last_block = editor.document().lastBlock()
+            cursor.setPosition(last_block.position())
+            editor.setTextCursor(cursor)
+            before_offset = grid._visible_start_offset
+            before_line = (before_offset // 4) + cursor.blockNumber()
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Down, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert grid._visible_start_offset == before_offset + 4
+            assert (grid._visible_start_offset // 4) + editor.textCursor().blockNumber() == before_line + 1
+            assert all(candidate.firstVisibleBlock().blockNumber() == 0 for candidate in visible_editors)
+
+            cursor = editor.textCursor()
+            cursor.setPosition(editor.document().firstBlock().position())
+            editor.setTextCursor(cursor)
+            before_offset = grid._visible_start_offset
+            before_line = before_offset // 4
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Up, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert grid._visible_start_offset == before_offset - 4
+            assert (grid._visible_start_offset // 4) + editor.textCursor().blockNumber() == before_line - 1
+            assert all(candidate.firstVisibleBlock().blockNumber() == 0 for candidate in visible_editors)
+
+
+def test_binary_workbench_assembly_columns_stay_synchronized_after_page_navigation(tmp_path: Path):
+    assembly_path = tmp_path / "synchronized_assembly.asm"
+    assembly_path.write_text(
+        "\n".join(
+            "; comment" if index % 9 == 0 else f"addiu $t0, $t0, 0x{index:X}"
+            for index in range(180)
+        ),
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_file_path(assembly_path)
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    assert not grid._virtual
+
+    visible_editors = [
+        *grid._offset_editors.values(),
+        grid.raw_instructions,
+        grid.bytes,
+        grid.decoded_text,
+        grid.instructions,
+    ]
+    navigation_editors = [
+        *grid._offset_editors.values(),
+        grid.raw_instructions,
+        grid.bytes,
+        grid.instructions,
+    ]
+    for editor in navigation_editors:
+        grid.set_visible_offset(0)
+        _app().processEvents()
+        editor.setFocus()
+        cursor = editor.textCursor()
+        block = editor.document().findBlockByNumber(2)
+        cursor.setPosition(block.position() + min(1, len(block.text())))
+        editor.setTextCursor(cursor)
+
+        for _ in range(2):
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
+            )
+            _app().processEvents()
+        QTest.qWait(20)
+
+        expected = grid._visible_block_position(grid.scrollbar.value() // 4)
+        assert grid.scrollbar.value() > 0
+        assert all(candidate.verticalScrollBar().value() == expected for candidate in visible_editors)
+        assert len({candidate.firstVisibleBlock().blockNumber() for candidate in visible_editors}) == 1
+
+        if editor in {grid.bytes, grid.instructions}:
+            middle_block = editor.firstVisibleBlock().next().next()
+            cursor = editor.textCursor()
+            cursor.setPosition(middle_block.position())
+            editor.setTextCursor(cursor)
+            before_arrow = grid.scrollbar.value()
+            before_block = cursor.blockNumber()
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Down, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert editor.textCursor().blockNumber() == before_block + 1
+            assert grid.scrollbar.value() == before_arrow
+
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Up, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert editor.textCursor().blockNumber() == before_block
+            assert grid.scrollbar.value() == before_arrow
+
+            bottom_block = editor.cursorForPosition(
+                QPoint(4, editor.viewport().height() - 2)
+            ).block()
+            cursor = editor.textCursor()
+            cursor.setPosition(bottom_block.position())
+            editor.setTextCursor(cursor)
+            before_arrow = grid.scrollbar.value()
+            before_block = cursor.blockNumber()
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Down, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert editor.textCursor().blockNumber() == before_block + 1
+            assert grid.scrollbar.value() > before_arrow
+            assert len({candidate.firstVisibleBlock().blockNumber() for candidate in visible_editors}) == 1
+
+            top_block = editor.firstVisibleBlock()
+            cursor = editor.textCursor()
+            cursor.setPosition(top_block.position())
+            editor.setTextCursor(cursor)
+            before_arrow = grid.scrollbar.value()
+            before_block = cursor.blockNumber()
+            QApplication.sendEvent(
+                editor,
+                QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Up, Qt.NoModifier),
+            )
+            _app().processEvents()
+            assert editor.textCursor().blockNumber() == before_block - 1
+            assert grid.scrollbar.value() < before_arrow
+            assert len({candidate.firstVisibleBlock().blockNumber() for candidate in visible_editors}) == 1
+
+        before_wheel = grid.scrollbar.value()
+        editor.wheelEvent(
+            QWheelEvent(
+                QPointF(8, 8),
+                QPointF(8, 8),
+                QPoint(),
+                QPoint(0, -120),
+                Qt.NoButton,
+                Qt.NoModifier,
+                Qt.ScrollUpdate,
+                False,
+            )
+        )
+        _app().processEvents()
+        QTest.qWait(20)
+        assert grid.scrollbar.value() > before_wheel
+        assert len({candidate.firstVisibleBlock().blockNumber() for candidate in visible_editors}) == 1
+
+
+def test_binary_workbench_shift_backspace_deletes_without_inserting_control_character():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("nop")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.End)
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.ShiftModifier, "\b"),
+    )
+
+    assert editor.toPlainText() == "no"
 
 
 def test_binary_workbench_page_navigation_preserves_virtual_undo_history(tmp_path: Path):
@@ -2843,12 +3111,12 @@ def test_binary_workbench_page_navigation_preserves_virtual_undo_history(tmp_pat
 
     QApplication.sendEvent(
         editor,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageUp, Qt.NoModifier),
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
     )
     _app().processEvents()
     QApplication.sendEvent(
         editor,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageUp, Qt.NoModifier),
     )
     _app().processEvents()
     assert editor.toPlainText().splitlines()[0] == "FF 00 00 00"

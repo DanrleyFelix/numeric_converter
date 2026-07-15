@@ -93,5 +93,6 @@ class GridResizingMixin:
             editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
             editor.viewportChangeAboutToStart.connect(self._capture_virtual_viewport_selection)
             editor.viewportChangeFinished.connect(self._finish_virtual_viewport_change)
+            editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
             self._offset_editors[name] = editor
             self.offsets_layout.addWidget(shell, 0)
