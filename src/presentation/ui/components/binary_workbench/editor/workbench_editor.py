@@ -38,6 +38,14 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
+_COMPLETION_NAVIGATION_KEYS = {
+    Qt.Key_Up,
+    Qt.Key_Down,
+    Qt.Key_Left,
+    Qt.Key_Right,
+}
+
+
 class WorkbenchEditor(
     EditorCompletionMixin,
     EditorImmediateMenuMixin,
@@ -236,7 +244,7 @@ class WorkbenchEditor(
         super().focusOutEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() in {Qt.Key_Up, Qt.Key_Down}:
+        if event.key() in _COMPLETION_NAVIGATION_KEYS:
             self._debounce_completions_after_navigation()
         if self.handle_immediate_symbol_shortcut(event.key(), event.modifiers()):
             event.accept()
@@ -476,7 +484,7 @@ class WorkbenchEditor(
             watched is self
             and popup.isVisible()
             and event.type() == QEvent.Type.KeyPress
-            and event.key() in {Qt.Key_Up, Qt.Key_Down}
+            and event.key() in _COMPLETION_NAVIGATION_KEYS
         ):
             popup.hide()
             self.keyPressEvent(event)

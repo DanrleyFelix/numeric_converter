@@ -4297,7 +4297,32 @@ def test_binary_workbench_arrow_navigation_hides_and_debounces_completion_popup(
     assert editor.textCursor().blockNumber() == 1
     assert editor._completer.popup().isVisible() is False
     assert editor._completion_navigation_timer.isActive() is True
-    assert editor._completion_navigation_timer.interval() == 1200
+    assert editor._completion_navigation_timer.interval() == 1500
+
+
+@pytest.mark.parametrize("key", [Qt.Key_Left, Qt.Key_Right])
+def test_binary_workbench_horizontal_navigation_debounces_completion_popup(key):
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.resize(320, 120)
+    editor.show()
+    editor.set_symbol_helpers({"target": "0x0"}, {}, {})
+    editor.setPlainText("tar")
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+    editor._completer.popup().show()
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier),
+    )
+    app.processEvents()
+
+    assert editor._completer.popup().isVisible() is False
+    assert editor._completion_navigation_timer.isActive() is True
+    assert editor._completion_navigation_timer.interval() == 1500
 
 
 def test_binary_workbench_symbol_completion_accepts_current_symbol():
