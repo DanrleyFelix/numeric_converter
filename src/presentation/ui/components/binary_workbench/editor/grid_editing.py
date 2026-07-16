@@ -7,7 +7,10 @@ from src.core.binary_workbench.mips_r3000a import (
 )
 from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
-from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
+from src.core.binary_workbench.symbolic_instructions import (
+    preserve_symbolic_rows,
+    preserved_source_annotation,
+)
 from src.core.binary_workbench.row_structure import structural_offset_delta
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
@@ -98,15 +101,7 @@ class GridEditingMixin:
             self._restore_editor_after_rejected_change(editing_bytes)
             return
         if editing_bytes:
-            updated = preserve_symbolic_rows(
-                updated,
-                self._rows,
-                self._labels,
-                self._variables,
-                self._equates,
-                self._codec,
-                self._symbol_offsets,
-            )
+            updated = self._preserve_bytes_rows(updated)
         offset_delta = structural_offset_delta(self._rows, updated)
         labels_changed = label_declarations_changed(self._rows, updated)
         incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
@@ -212,7 +207,43 @@ class GridEditingMixin:
         return self._rows_decoded_after_offset_rebuild(rows)
 
     def _bytes_fallback_instruction(self, row: BinaryWorkbenchRowDTO) -> str:
+        if annotation := preserved_source_annotation(row.instruction):
+            return annotation
         return row.instruction if self._locked_virtual_bytes_edit() else ""
+
+    def _previous_rows_for_bytes_preservation(
+        self,
+        updated: list[BinaryWorkbenchRowDTO],
+    ) -> list[BinaryWorkbenchRowDTO]:
+        annotation_structure_changed = len(updated) == len(self._rows) and any(
+            bool(previous.bytes_text) != bool(current.bytes_text)
+            and preserved_source_annotation(previous.instruction)
+            for previous, current in zip(self._rows, updated)
+        )
+        if not annotation_structure_changed:
+            return self._rows
+        return [
+            BinaryWorkbenchRowDTO(
+                offsets=current.offsets,
+                instruction=previous.instruction,
+                bytes_text=previous.bytes_text,
+            )
+            for previous, current in zip(self._rows, updated)
+        ]
+
+    def _preserve_bytes_rows(
+        self,
+        updated: list[BinaryWorkbenchRowDTO],
+    ) -> list[BinaryWorkbenchRowDTO]:
+        return preserve_symbolic_rows(
+            updated,
+            self._previous_rows_for_bytes_preservation(updated),
+            self._labels,
+            self._variables,
+            self._equates,
+            self._codec,
+            self._symbol_offsets,
+        )
 
     def _locked_virtual_bytes_edit(self) -> bool:
         return self._virtual and not self._edit_rules.allow_byte_shift and not self._free_offset_window()
@@ -554,8 +585,9 @@ class GridEditingMixin:
         raw = "".join(char for char in line if char in HEX_DIGITS)
         raw = raw[: ROW_BYTES * 2]
         raw = raw.upper() if self._uppercase_bytes else raw
-        normalized = normalize_bytes_text(raw, 1, False)
-        if 0 < len(raw) < ROW_BYTES * 2 and len(raw) % 2 == 0:
+        normalized = normalize_bytes_text(raw, self._group_bytes, False)
+        group_width = self._group_bytes * 2
+        if 0 < len(raw) < ROW_BYTES * 2 and len(raw) % group_width == 0:
             return f"{normalized} "
         return normalized
 

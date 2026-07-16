@@ -1993,6 +1993,183 @@ def test_binary_workbench_virtual_empty_bytes_line_blocks_backspace_shift(tmp_pa
     assert bytes_editor.textCursor().position() == 0
 
 
+def test_binary_workbench_bytes_delete_preserves_assembly_annotations(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    grid = page.grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("entry: nop ; keep\nnop\n; comment\nnop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    bytes_editor = grid.bytes
+    first = bytes_editor.document().findBlockByNumber(0)
+    cursor = QTextCursor(first)
+    cursor.setPosition(first.position())
+    cursor.setPosition(first.position() + len(first.text()), QTextCursor.KeepAnchor)
+    bytes_editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert grid.instructions.toPlainText().splitlines() == [
+        "entry: ; keep",
+        "nop",
+        "; comment",
+        "nop",
+    ]
+    assert len(bytes_editor.toPlainText().split("\n")) == 4
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    _app().processEvents()
+
+    assert bytes_editor.toPlainText().splitlines()[0] == "00 00 00 00"
+    assert grid.instructions.toPlainText().splitlines()[0] == "entry: nop ; keep"
+
+
+def test_binary_workbench_bytes_can_remove_empty_row_after_label(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    grid = page.grid  # type: ignore[attr-defined]
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))
+    grid.instructions.setPlainText("entry: nop\n\nnop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    bytes_editor = grid.bytes
+    empty = bytes_editor.document().findBlockByNumber(1)
+    cursor = QTextCursor(empty)
+    cursor.setPosition(empty.position())
+    bytes_editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert bytes_editor.document().blockCount() == 2
+    assert grid.instructions.toPlainText().splitlines()[0].startswith("entry:")
+
+
+def test_binary_workbench_bytes_cannot_remove_annotated_row_boundary(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))
+    grid.instructions.setPlainText("nop\nentry: nop ; keep")
+    _app().processEvents()
+    bytes_editor = grid.bytes
+    annotated = bytes_editor.document().findBlockByNumber(1)
+    cursor = QTextCursor(annotated)
+    cursor.setPosition(annotated.position())
+    bytes_editor.setTextCursor(cursor)
+    original_bytes = bytes_editor.toPlainText()
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    assert bytes_editor.toPlainText() == original_bytes
+    assert grid.instructions.toPlainText().splitlines()[1].startswith("entry:")
+
+
+def test_binary_workbench_typing_bytes_keeps_same_line_label_and_comment(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("entry: nop ; keep")
+    _app().processEvents()
+    bytes_editor = grid.bytes
+    bytes_editor.selectAll()
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+
+    for key, text in ((Qt.Key_1, "1"), (Qt.Key_2, "2"), (Qt.Key_3, "3"), (Qt.Key_4, "4")) * 2:
+        QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier, text))
+        _app().processEvents()
+
+    instruction = grid.instructions.toPlainText()
+    assert instruction.startswith("entry:")
+    assert instruction.endswith("; keep")
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier))
+    _app().processEvents()
+
+    assert grid.instructions.toPlainText().startswith("entry:")
+
+
+def test_binary_workbench_retyping_nibble_keeps_inline_label(tmp_path: Path):
+    assembly_path = tmp_path / "inline_label.asm"
+    assembly_path.write_text(
+        "spInit: addiu $sp, $sp, -0x60\n"
+        "sw $a0, 0x0($sp)\n"
+        "sw $a1, 0x4($sp)",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    bytes_editor = grid.bytes
+    first = bytes_editor.document().findBlockByNumber(0)
+    assert first.text() == "A0 FF BD 27"
+    cursor = QTextCursor(first)
+    cursor.setPosition(first.position() + len(first.text()))
+    bytes_editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier))
+    _app().processEvents()
+    assert grid.instructions.toPlainText().splitlines()[0] == "spInit:"
+    assert grid.export_rows()[0].instruction == "spInit:"
+    grid.flush_pending_rows_changed()
+    QTest.qWait(50)
+
+    QApplication.sendEvent(bytes_editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_7, Qt.NoModifier, "7"))
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    QTest.qWait(50)
+
+    assert bytes_editor.document().findBlockByNumber(0).text() == "A0 FF BD 27"
+    assert grid.export_rows()[0].instruction == "spInit: addiu $sp, $sp, -0x60"
+    assert grid.instructions.toPlainText().splitlines()[0] == "spInit: ADDIU $sp, $sp, -0x60"
+
+
+def test_binary_workbench_bytes_typing_uses_configured_group_spacing():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setObjectName("binary-workbench-bytes-panel")
+    editor.set_hex_input_mode(True, True, 2)
+
+    for key, text in (
+        (Qt.Key_A, "A"),
+        (Qt.Key_A, "A"),
+        (Qt.Key_B, "B"),
+        (Qt.Key_B, "B"),
+        (Qt.Key_C, "C"),
+        (Qt.Key_C, "C"),
+        (Qt.Key_D, "D"),
+        (Qt.Key_D, "D"),
+    ):
+        QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier, text))
+
+    assert editor.toPlainText() == "AABB CCDD"
+
+
 def test_binary_workbench_bytes_undo_keeps_multiple_nibble_steps(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()
@@ -4829,6 +5006,22 @@ def test_binary_workbench_bytes_formatter_has_separate_uppercase_preferences(tmp
     assert preferences.group_bytes == 2
     assert preferences.uppercase_bytes is False
     assert preferences.uppercase_instructions is False
+    editor = tool.tabs.currentWidget().grid.bytes  # type: ignore[attr-defined]
+    editor.clear()
+    editor.setFocus()
+    for key, text in (
+        (Qt.Key_A, "a"),
+        (Qt.Key_A, "a"),
+        (Qt.Key_B, "b"),
+        (Qt.Key_B, "b"),
+        (Qt.Key_C, "c"),
+        (Qt.Key_C, "c"),
+        (Qt.Key_D, "d"),
+        (Qt.Key_D, "d"),
+    ):
+        QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, key, Qt.NoModifier, text))
+
+    assert editor.toPlainText() == "aabb ccdd"
 
 
 def test_binary_workbench_native_close_dialog_maps_windows_buttons():

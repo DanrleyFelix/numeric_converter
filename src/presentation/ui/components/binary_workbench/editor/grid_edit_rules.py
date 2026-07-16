@@ -1,6 +1,7 @@
 ﻿from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 
+from src.core.binary_workbench.symbolic_instructions import preserved_source_annotation
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import set_cursor_position
@@ -118,6 +119,9 @@ class GridEditRulesMixin:
         editor.mark_return_key_handled()
 
     def _handle_editor_protected_edit_key(self, editor, event) -> None:
+        if self._protected_annotated_bytes_edit_key(editor, event):
+            self._handle_protected_bytes_edit_key(editor, event)
+            return
         if self._protected_bytes_edit_key(editor):
             self._handle_protected_bytes_edit_key(editor, event)
             return
@@ -171,6 +175,33 @@ class GridEditRulesMixin:
             and self._edit_rules.allow_editor_edit
             and not self._edit_rules.allow_byte_shift
             and not self._free_offset_window()
+        )
+
+    def _protected_annotated_bytes_edit_key(self, editor, event) -> bool:
+        if editor is not self.bytes or not self._edit_rules.allow_editor_edit:
+            return False
+        cursor = editor.textCursor()
+        if cursor.hasSelection():
+            document = editor.document()
+            start = cursor.selectionStart()
+            end = cursor.selectionEnd()
+            first = document.findBlock(start).blockNumber() + 1
+            last = document.findBlock(max(start, end - 1)).blockNumber()
+            return any(
+                start <= document.findBlockByNumber(row).position() - 1 < end
+                and self._row_has_source_annotation(row)
+                for row in range(first, last + 1)
+            )
+        row = cursor.blockNumber()
+        if event.key() == Qt.Key_Backspace and cursor.positionInBlock() == 0:
+            return self._row_has_source_annotation(row)
+        if event.key() == Qt.Key_Delete and cursor.positionInBlock() >= len(cursor.block().text()):
+            return self._row_has_source_annotation(row + 1)
+        return False
+
+    def _row_has_source_annotation(self, row: int) -> bool:
+        return 0 <= row < len(self._rows) and bool(
+            preserved_source_annotation(self._rows[row].instruction)
         )
 
     def _protected_instruction_edit_key(self, editor) -> bool:

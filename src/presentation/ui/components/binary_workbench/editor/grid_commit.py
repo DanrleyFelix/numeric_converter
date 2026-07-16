@@ -38,6 +38,8 @@ class GridCommitMixin:
         if not self._editor_change_allowed(editing_bytes) or not self._rows_change_allowed(rows, editing_bytes):
             self._restore_editor_after_rejected_change(editing_bytes)
             return
+        if editing_bytes:
+            rows = self._preserve_bytes_rows(rows)
         offset_delta = structural_offset_delta(self._rows, rows)
         labels_changed = label_declarations_changed(self._rows, rows)
         self._rows = rows

@@ -5,16 +5,27 @@ from src.core.binary_workbench.context_overlays import (
 )
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.mips_r3000a import PsxMipsR3000ACodec
-from src.core.binary_workbench.symbolic_instructions import preserve_symbolic_rows
+from src.core.binary_workbench.symbolic_instructions import (
+    preserve_symbolic_rows,
+    preserved_source_annotation,
+)
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     without_blank_instruction_overlays,
 )
+from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.modules.dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchVersionDTO
 
 
 def test_blank_instruction_overlay_does_not_create_nop_bytes():
     assert byte_overlays_from_instruction_overlays({"0x00000000": ""}, {}, {}) == {}
+
+
+def test_preserved_source_annotation_keeps_only_label_and_comment():
+    assert preserved_source_annotation("entry: nop") == "entry:"
+    assert preserved_source_annotation("nop ; keep") == "; keep"
+    assert preserved_source_annotation("entry: nop # keep") == "entry: # keep"
+    assert preserved_source_annotation("nop") == ""
 
 
 def test_instruction_overlay_bytes_use_raw_instruction_symbols():

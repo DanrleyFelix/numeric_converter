@@ -30,6 +30,8 @@ from src.presentation.ui.components.binary_workbench.editor.editor_shortcuts imp
     EditorShortcutMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
+    byte_cursor_position,
+    format_byte_groups,
     normalize_instruction_text,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
@@ -92,6 +94,7 @@ class WorkbenchEditor(
         self._jump_symbol_kinds: dict[str, str] = {}
         self._hex_input_enabled = False
         self._uppercase_hex_input = False
+        self._hex_group_size = 1
         self._uppercase_instruction_cursor = False
         self._last_instruction_cursor_block: int | None = None
         self._normalizing_instruction_line = False
@@ -152,12 +155,13 @@ class WorkbenchEditor(
     def set_shared_scrollbar(self, scrollbar: QScrollBar) -> None:
         self._shared_scrollbar = scrollbar
 
-    def set_hex_input_mode(self, enabled: bool, uppercase: bool) -> None:
+    def set_hex_input_mode(self, enabled: bool, uppercase: bool, group_size: int = 1) -> None:
         self._hex_input_enabled = enabled
         self._uppercase_hex_input = uppercase
+        self._hex_group_size = max(1, group_size)
 
     def set_uppercase_hex_input(self, enabled: bool) -> None:
-        self.set_hex_input_mode(True, enabled)
+        self.set_hex_input_mode(True, enabled, self._hex_group_size)
 
     def set_uppercase_instruction_hover(self, enabled: bool) -> None:
         self._uppercase_instruction_cursor = enabled
@@ -392,6 +396,32 @@ class WorkbenchEditor(
         finally:
             self._normalizing_instruction_line = False
             self._last_instruction_cursor_block = self.textCursor().blockNumber()
+
+    def normalize_granular_bytes_line(self, cursor: QTextCursor) -> None:
+        if not self._hex_input_enabled:
+            return
+        block = cursor.block()
+        text = block.text()
+        position_in_block = cursor.positionInBlock()
+        raw_index = sum(char in HEX_DIGITS for char in text[:position_in_block])
+        raw = "".join(char for char in text if char in HEX_DIGITS)[: ROW_BYTES * 2]
+        normalized = format_byte_groups(raw, self._hex_group_size)
+        group_width = self._hex_group_size * 2
+        trailing_group_space = (
+            0 < len(raw) < ROW_BYTES * 2
+            and len(raw) % group_width == 0
+        )
+        if trailing_group_space:
+            normalized = f"{normalized} "
+        if normalized == text:
+            return
+        normalizer = QTextCursor(block)
+        normalizer.select(QTextCursor.SelectionType.LineUnderCursor)
+        normalizer.insertText(normalized)
+        position = byte_cursor_position(normalized, raw_index)
+        if trailing_group_space and raw_index == len(raw):
+            position = len(normalized)
+        cursor.setPosition(block.position() + position)
 
     def _hex_text_event(self, event: QKeyEvent) -> QKeyEvent | None:
         text = event.text()

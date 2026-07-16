@@ -65,7 +65,12 @@ class EditorGranularUndoMixin:
             [(self.textCursor().selectionStart(), self.textCursor().selectionEnd())],
         ):
             return True
-        self._run_granular_edit(lambda cursor: cursor.insertText(text))
+        def operation(cursor: QTextCursor) -> None:
+            cursor.insertText(text)
+            if is_bytes_editor(self) and hasattr(self, "normalize_granular_bytes_line"):
+                self.normalize_granular_bytes_line(cursor)
+
+        self._run_granular_edit(operation)
         return True
 
     def _run_granular_edit(self, operation: Callable[[QTextCursor], None]) -> None:

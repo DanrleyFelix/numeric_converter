@@ -60,7 +60,7 @@ class GridRenderingMixin:
         )
         self._uppercase_bytes = uppercase_bytes
         self._uppercase_instructions = uppercase_instructions
-        self.bytes.set_hex_input_mode(True, self._uppercase_bytes)
+        self.bytes.set_hex_input_mode(True, self._uppercase_bytes, self._group_bytes)
         self.instructions.set_uppercase_instruction_hover(self._uppercase_instructions)
         self._virtual = virtual
         for editor in (*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions):

@@ -16,6 +16,17 @@ from src.core.binary_workbench.symbolic_replacements import (
     with_offset_symbols,
 )
 
+
+def preserved_source_annotation(instruction: str) -> str:
+    body, comment = _split_comment(instruction)
+    label, _ = _split_label(body)
+    declaration = f"{label}:" if label else ""
+    suffix = comment.lstrip()
+    if declaration and suffix:
+        return f"{declaration} {suffix}"
+    return declaration or suffix
+
+
 def preserve_symbolic_rows(
     rows: list[BinaryWorkbenchRowDTO],
     previous_rows: list[BinaryWorkbenchRowDTO],
@@ -29,19 +40,32 @@ def preserve_symbolic_rows(
     return [
         _preserve_symbolic_row(
             row,
-            previous_by_offset.get(file_offset(row)),
+            _previous_symbolic_row(index, row, previous_rows, previous_by_offset),
             labels,
             variables,
             equates,
             codec,
             symbol_offsets or {},
         )
-        for row in rows
+        for index, row in enumerate(rows)
     ]
 
 
 def file_offset(row: BinaryWorkbenchRowDTO) -> str:
     return row.offsets.get(FILE_OFFSET_COLUMN, DEFAULT_FILE_OFFSET)
+
+
+def _previous_symbolic_row(
+    index: int,
+    row: BinaryWorkbenchRowDTO,
+    previous_rows: list[BinaryWorkbenchRowDTO],
+    previous_by_offset: dict[str, BinaryWorkbenchRowDTO],
+) -> BinaryWorkbenchRowDTO | None:
+    if index < len(previous_rows):
+        previous = previous_rows[index]
+        if preserved_source_annotation(previous.instruction):
+            return previous
+    return previous_by_offset.get(file_offset(row))
 
 
 def _preserve_symbolic_row(
@@ -84,9 +108,11 @@ def symbolic_instruction(
 ) -> str:
     previous_body, comment = _split_comment(previous_instruction)
     label, previous_code = _split_label(previous_body)
-    code = _with_matching_symbols(instruction, previous_code, bytes_text, address, labels, variables, equates, codec)
+    current_body, _ = _split_comment(instruction)
+    _, current_code = _split_label(current_body)
+    code = _with_matching_symbols(current_code, previous_code, bytes_text, address, labels, variables, equates, codec)
     updated = f"{label}: {code}" if label else code
-    return f"{updated}{comment}"
+    return f"{updated} {comment.lstrip()}" if comment else updated
 
 
 def _with_matching_symbols(

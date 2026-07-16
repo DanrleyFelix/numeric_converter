@@ -45,7 +45,7 @@
             "module_checksums": {
                 "symbols": "50942ebb04d0bf9bfb3f91a7aa3ef6d376a0534000ceb23bded2f44f42e36968",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "2f57c52209bf0c78c39147559d220cac345bacd9523835a2c46cb0aaf3188273",
+                "versions": "94424fd64ab326f0c142a87febdd7d02e095bdf8057bd220db94d2918a4b80ea",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
             },
@@ -175,7 +175,7 @@
                     "offsets": {
                         "File": "-"
                     },
-                    "instruction": "spInit:",
+                    "instruction": "sp_init:",
                     "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -185,7 +185,7 @@
                     "offsets": {
                         "File": "0x00000000"
                     },
-                    "instruction": "ADDIU $sp, $sp, -0x60",
+                    "instruction": "addiu $sp, $sp, -0x60 ;sss",
                     "bytes_text": "A0 FF BD 27",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -455,7 +455,7 @@
                     "offsets": {
                         "File": "-"
                     },
-                    "instruction": ";lkkk",
+                    "instruction": "",
                     "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -465,7 +465,7 @@
                     "offsets": {
                         "File": "-"
                     },
-                    "instruction": "spRestore:",
+                    "instruction": "",
                     "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -475,7 +475,7 @@
                     "offsets": {
                         "File": "0x0000006C"
                     },
-                    "instruction": "LW $a0, 0x0($sp)",
+                    "instruction": "spRestore: LW $a0, 0x0($sp)",
                     "bytes_text": "00 00 A4 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""

@@ -10,6 +10,7 @@ PAGE = HelpPageDefinition(
         <ul>
             <li><b>Editor Assembly</b>: the main assembly editing area. Labels, symbols and commands are meant to be typed here.</li>
             <li><b>Bytes</b>: the byte view for the same rows. It is useful when checking encoded instructions or editing raw values.</li>
+            <li>Backspace or Delete in Bytes can clear an instruction, but never removes a row whose matching Editor Assembly line contains a valid label or <code>;</code>/<code>#</code> comment. Adjacent rows remain freely editable unless they contain their own annotation. Remove labels and comments in Editor Assembly.</li>
             <li><b>Raw Instructions</b>: shows the preprocessed instruction text that the assembler receives.</li>
             <li><b>File Offset</b>: shows where the row lives in the opened file.</li>
         </ul>
