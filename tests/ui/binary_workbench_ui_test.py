@@ -656,6 +656,20 @@ def test_binary_workbench_footer_status_uses_body_aligned_label(tmp_path: Path):
     assert tool.statusBar().isHidden()
 
 
+def test_binary_workbench_file_action_without_tab_shows_yellow_feedback(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    assert tool.tabs.count() == 0
+
+    tool.toolbar.labels_action.trigger()
+
+    assert tool.footer_status.property("statusKind") == "warning"
+    assert tool.footer_status.text() == BINARY_WORKBENCH_TEXT.STATUS_FILE_REQUIRED
+
+
 def test_binary_workbench_restores_workspace_contexts_when_sources_exist(tmp_path: Path):
     binary_path = tmp_path / "restored.bin"
     binary_path.write_bytes(b"\xAA\xBB")
@@ -4261,6 +4275,31 @@ def test_binary_workbench_symbol_completion_popup_selects_first_match():
     assert popup.width() >= BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MIN_WIDTH
 
 
+def test_binary_workbench_arrow_navigation_hides_and_debounces_completion_popup():
+    app = _app()
+    editor = WorkbenchEditor()
+    editor.resize(320, 120)
+    editor.show()
+    editor.set_symbol_helpers({"target": "0x0"}, {}, {})
+    editor.setPlainText("tar\nnop")
+    cursor = editor.textCursor()
+    cursor.setPosition(3)
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+    editor._completer.popup().show()
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Down, Qt.NoModifier),
+    )
+    app.processEvents()
+
+    assert editor.textCursor().blockNumber() == 1
+    assert editor._completer.popup().isVisible() is False
+    assert editor._completion_navigation_timer.isActive() is True
+    assert editor._completion_navigation_timer.interval() == 1200
+
+
 def test_binary_workbench_symbol_completion_accepts_current_symbol():
     _app()
     editor = WorkbenchEditor()
@@ -5092,6 +5131,30 @@ def test_binary_workbench_update_version_does_not_reload_current_binary_page(tmp
     assert active.rows or active.instruction_overlays or active.instructions_by_line
 
 
+def test_binary_workbench_alt_s_persists_skipped_binary_lines(tmp_path: Path):
+    binary_path = tmp_path / "skipped-line.bin"
+    binary_path.write_bytes(bytes.fromhex("00 00 00 00") * 8)
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_binary_path(binary_path)
+    page = tool.tabs.currentWidget()
+    lines = page.grid.instructions.toPlainText().splitlines()  # type: ignore[attr-defined]
+    lines.insert(1, "")
+    page.grid.instructions.setPlainText("\n".join(lines))  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    tool._update_version()
+    current = tool.tabs.current_context()
+    active = next(version for version in current.versions if version.name == current.active_version_name)
+    payload = json.loads(Path(current.module_paths["versions"]).read_text(encoding="utf-8"))
+
+    assert active.instructions_by_line[1] == ""
+    assert payload["versions"][active.name]["1"] == ""
+
+
 def test_binary_workbench_update_version_does_not_reload_current_assembly_page(tmp_path: Path):
     assembly_path = tmp_path / "no_reload.asm"
     assembly_path.write_text("addiu $a0, $zero, 0x11\nnop\n", encoding="utf-8")
@@ -5117,6 +5180,33 @@ def test_binary_workbench_update_version_does_not_reload_current_assembly_page(t
 
     assert page.grid.instructions.toPlainText().splitlines()[0] == "nop"  # type: ignore[attr-defined]
     assert active.rows or active.instruction_overlays or active.instructions_by_line
+
+
+def test_binary_workbench_saved_assembly_version_closes_without_original_file_prompt(
+    tmp_path: Path,
+    monkeypatch,
+):
+    assembly_path = tmp_path / "versioned-close.asm"
+    assembly_path.write_text("nop\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("nop\n\nnop")  # type: ignore[attr-defined]
+    _app().processEvents()
+    tool._update_version()
+    monkeypatch.setattr(
+        tool,
+        "_native_close_question",
+        lambda: pytest.fail("A saved active version must close without prompting."),
+    )
+
+    tool._request_tab_close(0)
+
+    assert tool.tabs.count() == 0
 
 def test_binary_workbench_instruction_block_paste_replaces_mouse_selected_lines():
     app = _app()
@@ -5290,6 +5380,59 @@ def test_binary_workbench_label_fold_hides_complete_rows_without_deleting_them(t
     page.grid.toggle_label_fold("start")  # type: ignore[attr-defined]
     assert all(editor.document().findBlockByNumber(1).isVisible() for editor in editors)
     assert all(editor.document().findBlockByNumber(2).isVisible() for editor in editors)
+
+
+def test_binary_workbench_collapsed_label_projects_offset_and_uses_visible_scroll_rows(
+    tmp_path: Path,
+):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    body = ["nop"] * 40
+    page.grid.instructions.setPlainText(  # type: ignore[attr-defined]
+        "\n".join(["routine:", "jr $ra", "; delay slot", "nop", *body, "next: nop"])
+    )
+    _app().processEvents()
+    page.grid.flush_pending_rows_changed()  # type: ignore[attr-defined]
+    scrollbar = page.grid.scrollbar  # type: ignore[attr-defined]
+    expanded_maximum = scrollbar.maximum()
+    file_offsets = page.grid._offset_editors["File"]  # type: ignore[attr-defined]
+
+    assert file_offsets.document().findBlockByNumber(0).text() == "-"
+
+    page.grid.toggle_label_fold("routine")  # type: ignore[attr-defined]
+
+    assert file_offsets.document().findBlockByNumber(0).text() == "0x00000000"
+    assert page.grid.instructions.document().findBlockByNumber(3).isVisible() is False  # type: ignore[attr-defined]
+    assert scrollbar.maximum() < expanded_maximum
+
+    QApplication.sendEvent(
+        page.grid.instructions,  # type: ignore[attr-defined]
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_PageDown, Qt.NoModifier),
+    )
+
+    expected_page = min(scrollbar.pageStep(), scrollbar.maximum())
+    assert scrollbar.value() == expected_page
+    assert all(
+        editor.verticalScrollBar().value() == expected_page // 4
+        for editor in (
+            *page.grid._offset_editors.values(),  # type: ignore[attr-defined]
+            page.grid.raw_instructions,  # type: ignore[attr-defined]
+            page.grid.bytes,  # type: ignore[attr-defined]
+            page.grid.decoded_text,  # type: ignore[attr-defined]
+            page.grid.instructions,  # type: ignore[attr-defined]
+        )
+        if editor.isVisible()
+    )
+
+    page.grid.toggle_label_fold("routine")  # type: ignore[attr-defined]
+
+    assert file_offsets.document().findBlockByNumber(0).text() == "-"
+    assert page.grid.instructions.document().findBlockByNumber(3).isVisible() is True  # type: ignore[attr-defined]
 
 
 def test_binary_workbench_branch_navigation_expands_target_label(tmp_path: Path):

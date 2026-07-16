@@ -156,6 +156,11 @@ class TabStateMixin:
             )
         if context.kind == "binary":
             return self.has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
+        if (
+            context.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            and context.active_version_name
+        ):
+            return self.has_unsaved_version_edits(context) or self._has_workspace_module_changes(context)
         return self._controller.rows_have_unsaved_edits(
             context.rows,
             context.original_rows,

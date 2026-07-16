@@ -6,7 +6,10 @@ from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QSc
 
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.modules.constants import HEX_DIGITS
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TIMING,
+)
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
 from src.presentation.ui.components.binary_workbench.editor.editor_granular_undo import (
     EditorGranularUndoMixin,
@@ -101,6 +104,12 @@ class WorkbenchEditor(
         self._protected_edit_key_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
+        self._completion_navigation_timer = QTimer(self)
+        self._completion_navigation_timer.setSingleShot(True)
+        self._completion_navigation_timer.setInterval(
+            BINARY_WORKBENCH_TIMING.EDITOR_COMPLETION_NAVIGATION_DEBOUNCE_MS
+        )
+        self._completion_navigation_timer.timeout.connect(self._refresh_completions)
         self._setup_label_folding()
         self.setup_editor_shortcuts()
         self.cursorPositionChanged.connect(self._normalize_instruction_line_after_offset_change)
@@ -119,6 +128,7 @@ class WorkbenchEditor(
         popup.installEventFilter(self)
         popup.viewport().installEventFilter(self)
         self._completer.setPopup(popup)
+        self.installEventFilter(self)
 
     def setExtraSelections(self, selections) -> None:
         self._editor_extra_selections = list(selections)
@@ -226,6 +236,8 @@ class WorkbenchEditor(
         super().focusOutEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() in {Qt.Key_Up, Qt.Key_Down}:
+            self._debounce_completions_after_navigation()
         if self.handle_immediate_symbol_shortcut(event.key(), event.modifiers()):
             event.accept()
             return
@@ -460,6 +472,16 @@ class WorkbenchEditor(
         if completer is None:
             return super().eventFilter(watched, event)
         popup = completer.popup()
+        if (
+            watched is self
+            and popup.isVisible()
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() in {Qt.Key_Up, Qt.Key_Down}
+        ):
+            popup.hide()
+            self.keyPressEvent(event)
+            event.accept()
+            return True
         if (watched is popup or watched is popup.viewport()) and event.type() == QEvent.Type.KeyPress:
             if event.key() in {Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab}:
                 self._accept_current_completion()

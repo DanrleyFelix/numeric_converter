@@ -26,10 +26,14 @@ def label_fold_regions(rows: list[BinaryWorkbenchRowDTO]) -> list[LabelFoldRegio
     regions: list[LabelFoldRegion] = []
     for label_row, row in enumerate(rows):
         label, code = _label_and_code(row.instruction)
-        if not label or _is_return_instruction(code):
+        if not label:
             continue
         first_hidden = label_row + 1
-        last_hidden = _region_end(rows, first_hidden)
+        last_hidden = (
+            _delay_slot_end(rows, label_row)
+            if _is_return_instruction(code)
+            else _region_end(rows, first_hidden)
+        )
         if first_hidden <= last_hidden:
             regions.append(
                 LabelFoldRegion(label, label_row, first_hidden, last_hidden)
@@ -45,6 +49,18 @@ def _region_end(rows: list[BinaryWorkbenchRowDTO], start: int) -> int:
         if label:
             return index - 1
         if _is_return_instruction(code):
+            return _delay_slot_end(rows, index)
+    return len(rows) - 1
+
+
+def _delay_slot_end(rows: list[BinaryWorkbenchRowDTO], return_row: int) -> int:
+    """Include the next executable source line without ever hiding a label."""
+
+    for index in range(return_row + 1, len(rows)):
+        label, code = _label_and_code(rows[index].instruction)
+        if label:
+            return return_row
+        if code:
             return index
     return len(rows) - 1
 

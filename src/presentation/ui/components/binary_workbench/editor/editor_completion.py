@@ -32,7 +32,11 @@ class EditorCompletionMixin:
         }
 
     def _refresh_completions(self) -> None:
-        if getattr(self, "_completion_popup_suppressed", False):
+        if (
+            getattr(self, "_completion_popup_suppressed", False)
+            or getattr(self, "_completion_navigation_timer", None) is not None
+            and self._completion_navigation_timer.isActive()
+        ):
             self.hide_completion_popup()
             return
         prefix = self._current_completion_prefix()
@@ -54,6 +58,10 @@ class EditorCompletionMixin:
         rect.setWidth(self._completion_popup_width())
         self._completer.complete(rect)
         fit_completer_popup_height(self._completer)
+
+    def _debounce_completions_after_navigation(self) -> None:
+        self.hide_completion_popup()
+        self._completion_navigation_timer.start()
 
     def _current_completion_prefix(self) -> str:
         cursor = self.textCursor()

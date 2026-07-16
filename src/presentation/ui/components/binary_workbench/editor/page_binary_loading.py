@@ -220,7 +220,7 @@ def _visible_line_comments(rows: list) -> dict[int, str]:
     return {
         line_base + index: row.instruction
         for index, row in enumerate(rows)
-        if row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) == "-" and row.instruction.strip()
+        if row.offsets.get(BINARY_WORKBENCH_TEXT.FILE) == "-"
     }
 
 

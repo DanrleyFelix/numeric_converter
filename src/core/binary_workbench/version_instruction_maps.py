@@ -29,8 +29,8 @@ def version_instruction_maps(
     for index, row in enumerate(rows):
         offset_text = row.offsets.get(FILE_OFFSET, EMPTY_OFFSET)
         if offset_text == EMPTY_OFFSET:
-            if row.instruction:
-                lines[line_base + index] = row.instruction
+            # The key itself preserves an intentionally skipped source line.
+            lines[line_base + index] = row.instruction
             continue
         visible_offsets.add(offset_text)
         instruction = _version_offset_instruction(

@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from src.modules.binary_workbench_use_cases import (
     binary_version_has_unsaved_edits,
     rows_have_meaningful_edits,
@@ -68,3 +70,28 @@ def test_rows_ignore_whitespace_only_lines_but_keep_real_characters():
     assert rows_have_meaningful_edits(rows, original) is False
     rows.append(BinaryWorkbenchRowDTO(instruction="; comment", bytes_text=""))
     assert rows_have_meaningful_edits(rows, original) is True
+
+
+def test_saved_assembly_version_compares_complete_source_rows():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            offsets={"File": "0x00000000"},
+            instruction="nop",
+            bytes_text="00 00 00 00",
+        ),
+        BinaryWorkbenchRowDTO(offsets={"File": "-"}, instruction="", bytes_text=""),
+    ]
+    context = BinaryWorkbenchTabContextDTO(
+        tab_id="assembly",
+        kind="assembly",
+        display_name="source.asm",
+        active_version_name="v1",
+        versions=[BinaryWorkbenchVersionDTO("v1", rows=list(rows))],
+        rows=list(rows),
+    )
+
+    assert binary_version_has_unsaved_edits(context) is False
+
+    context = replace(context, rows=[rows[0]])
+
+    assert binary_version_has_unsaved_edits(context) is True

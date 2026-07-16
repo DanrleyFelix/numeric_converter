@@ -228,7 +228,13 @@ class GridRenderingMixin:
         for name, editor in self._offset_editors.items():
             self._set_editor_text(
                 editor,
-                [self._display_offset(editor, row.offsets.get(name, "")) for row in self._rows],
+                [
+                    self._display_offset(
+                        editor,
+                        self._folded_offset_text(index, name, row.offsets.get(name, "")),
+                    )
+                    for index, row in enumerate(self._rows)
+                ],
             )
 
     def _display_offset(self, editor: QPlainTextEdit, text: str) -> str:
@@ -247,7 +253,7 @@ class GridRenderingMixin:
 
     def _scroll_static_document(self, value: int) -> None:
         offset = self._aligned_scroll_offset(value)
-        row_index = self._visible_block_position(offset // ROW_BYTES)
+        row_index = offset // ROW_BYTES
         self._visible_start_offset = offset
         self._last_visible_offset = offset
         editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions]

@@ -13,6 +13,7 @@
         "Internal Files requires an open binary file with an LBA File System configured."
     )
     STATUS_BINARY_REQUIRED: str = "Open a binary tab before using this action."
+    STATUS_FILE_REQUIRED: str = "Open a file before using this action."
     STATUS_VERSION_REQUIRED: str = "Use or load a version before saving a new binary file."
     STATUS_WORKSPACE_SOURCE_REQUIRED: str = "Save this scratch code before using Versions or Environment data."
     STATUS_SYMBOLS_VERSION_REQUIRED: str = "Save the current version with Alt+S before opening Local Symbols."

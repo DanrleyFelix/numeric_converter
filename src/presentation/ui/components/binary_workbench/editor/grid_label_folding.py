@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtGui import QTextCursor
 
 from src.core.binary_workbench.label_folding import label_fold_regions
+from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 
 class GridLabelFoldingMixin:
@@ -22,11 +23,12 @@ class GridLabelFoldingMixin:
 
         if not self._label_folding_enabled:
             return
+        anchor_row = self._scroll_anchor_source_row()
         if label in self._collapsed_labels:
             self._collapsed_labels.remove(label)
         else:
             self._collapsed_labels.add(label)
-        self._refresh_label_folding()
+        self._refresh_label_folding(anchor_row)
         self._schedule_layout_refresh()
 
     def expand_label_for_offset(self, offset: int) -> bool:
@@ -49,7 +51,7 @@ class GridLabelFoldingMixin:
         self._schedule_layout_refresh()
         return True
 
-    def _refresh_label_folding(self) -> None:
+    def _refresh_label_folding(self, anchor_row: int | None = None) -> None:
         """Recalculate regions and apply one visibility mask to all columns."""
 
         regions = label_fold_regions(self._rows) if self._label_folding_enabled else []
@@ -68,10 +70,21 @@ class GridLabelFoldingMixin:
             if region.label in self._collapsed_labels
             for row in range(region.first_hidden_row, region.last_hidden_row + 1)
         }
+        self._render_offsets()
         for editor in self._fold_editors():
             self._apply_hidden_rows(editor, hidden_rows)
         if not self._virtual:
-            self._scroll_static_document(self.scrollbar.value())
+            if anchor_row in hidden_rows:
+                region = next(
+                    (item for item in regions if item.contains(anchor_row)),
+                    None,
+                )
+                anchor_row = region.label_row if region is not None else None
+            if anchor_row is not None:
+                self._visible_start_offset = (
+                    self._visible_position_for_source_row(anchor_row) * ROW_BYTES
+                )
+            self._configure_scrollbar()
 
     def _fold_editors(self):
         """Return every editor whose blocks represent complete grid rows."""
@@ -121,12 +134,60 @@ class GridLabelFoldingMixin:
         except ValueError:
             return None
 
-    def _visible_block_position(self, row_index: int) -> int:
-        """Map a logical row index to the visible document line index."""
+    def _scrollable_total_size(self) -> int:
+        """Return viewport size units without counting folded source rows."""
+
+        if self._virtual or not self._label_folding_enabled:
+            return self._total_size
+        document = self.instructions.document()
+        return sum(
+            ROW_BYTES
+            for index in range(document.blockCount())
+            if document.findBlockByNumber(index).isVisible()
+        )
+
+    def _scroll_anchor_source_row(self) -> int | None:
+        """Resolve the current visual top line back to its source row."""
+
+        document = self.instructions.document()
+        visible_target = self.scrollbar.value() // ROW_BYTES
+        visible_index = 0
+        for source_row in range(document.blockCount()):
+            if not document.findBlockByNumber(source_row).isVisible():
+                continue
+            if visible_index == visible_target:
+                return source_row
+            visible_index += 1
+        return None
+
+    def _visible_position_for_source_row(self, source_row: int) -> int:
+        """Map a source row to its ordinal among currently visible rows."""
 
         document = self.instructions.document()
         return sum(
             1
-            for index in range(min(row_index, document.blockCount()))
+            for index in range(min(source_row, document.blockCount()))
             if document.findBlockByNumber(index).isVisible()
         )
+
+    def _folded_offset_text(self, row_index: int, column: str, text: str) -> str:
+        """Project the first body offset onto a standalone collapsed label."""
+
+        if text != "-":
+            return text
+        region = next(
+            (
+                item
+                for item in self._label_fold_regions
+                if item.label_row == row_index
+                and item.label in self._collapsed_labels
+            ),
+            None,
+        )
+        if region is None:
+            return text
+        for index in range(region.first_hidden_row, region.last_hidden_row + 1):
+            candidate = self._rows[index].offsets.get(column, "-")
+            if candidate != "-":
+                return candidate
+        return text

@@ -13,34 +13,37 @@ class BinaryWorkbenchWindowLayoutMixin:
     def _connect_actions(self) -> None:
         self.toolbar.open_file_action.triggered.connect(self._open_any_file)
         self.toolbar.new_scratch_action.triggered.connect(self.tabs.new_scratch_tab)
-        self.toolbar.open_internal_action.triggered.connect(self._open_internal_file)
+        self._connect_file_action(self.toolbar.open_internal_action, self._open_internal_file)
         self.tabs.currentChanged.connect(self._sync_internal_file_action)
         self.tabs.stateChanged.connect(self._sync_internal_file_action)
-        self.toolbar.version_action.triggered.connect(self._open_version_actions)
-        self.toolbar.save_version_action.triggered.connect(self._update_version)
-        self.toolbar.save_binary_file_action.triggered.connect(self._save_current_tab)
-        self.toolbar.lba_filesystem_action.triggered.connect(self._open_lba_filesystem)
-        self.toolbar.offset_regions_action.triggered.connect(self._open_offset_regions)
-        self.toolbar.encoding_tables_action.triggered.connect(self._open_encoding_tables)
-        self.toolbar.commands_action.triggered.connect(self._open_commands)
-        self.toolbar.local_symbols_action.triggered.connect(self._open_local_symbols)
-        self.toolbar.global_symbols_action.triggered.connect(self._open_global_symbols)
-        self.toolbar.labels_action.triggered.connect(self._open_labels)
-        self.toolbar.bytes_formatter_action.triggered.connect(self._open_bytes_formatter)
-        self.toolbar.reference_offsets_action.triggered.connect(self._open_reference_offsets)
-        self.toolbar.view_action.triggered.connect(self._open_view)
-        self.toolbar.rules_action.triggered.connect(self._open_rules)
-        self.toolbar.go_to_action.triggered.connect(self._open_go_to)
-        self.toolbar.find_action.triggered.connect(self._open_find)
-        self.toolbar.hazards_action.triggered.connect(self._open_hazards)
-        self.toolbar.select_block_action.triggered.connect(self._open_select_block)
-        self.toolbar.replace_bytes_action.triggered.connect(self._open_replace_bytes)
-        self.toolbar.select_all_action.triggered.connect(self.tabs.select_all_content)
+        self._connect_file_action(self.toolbar.version_action, self._open_version_actions)
+        self._connect_file_action(self.toolbar.save_version_action, self._update_version)
+        self._connect_file_action(self.toolbar.save_binary_file_action, self._save_current_tab)
+        self._connect_file_action(self.toolbar.lba_filesystem_action, self._open_lba_filesystem)
+        self._connect_file_action(self.toolbar.offset_regions_action, self._open_offset_regions)
+        self._connect_file_action(self.toolbar.encoding_tables_action, self._open_encoding_tables)
+        self._connect_file_action(self.toolbar.commands_action, self._open_commands)
+        self._connect_file_action(self.toolbar.local_symbols_action, self._open_local_symbols)
+        self._connect_file_action(self.toolbar.global_symbols_action, self._open_global_symbols)
+        self._connect_file_action(self.toolbar.labels_action, self._open_labels)
+        self._connect_file_action(self.toolbar.bytes_formatter_action, self._open_bytes_formatter)
+        self._connect_file_action(self.toolbar.reference_offsets_action, self._open_reference_offsets)
+        self._connect_file_action(self.toolbar.view_action, self._open_view)
+        self._connect_file_action(self.toolbar.rules_action, self._open_rules)
+        self._connect_file_action(self.toolbar.go_to_action, self._open_go_to)
+        self._connect_file_action(self.toolbar.find_action, self._open_find)
+        self._connect_file_action(self.toolbar.hazards_action, self._open_hazards)
+        self._connect_file_action(self.toolbar.select_block_action, self._open_select_block)
+        self._connect_file_action(self.toolbar.replace_bytes_action, self._open_replace_bytes)
+        self._connect_file_action(self.toolbar.select_all_action, self.tabs.select_all_content)
         self.toolbar.help_action.triggered.connect(self.open_guide)
         self._return_jump_action = QAction("Return to Previous Jump", self)
         self._return_jump_action.setShortcut(QKeySequence("Alt+G"))
         self._return_jump_action.setShortcutContext(Qt.WindowShortcut)
-        self._return_jump_action.triggered.connect(self.tabs.return_to_previous_jump_offset)
+        self._connect_file_action(
+            self._return_jump_action,
+            self.tabs.return_to_previous_jump_offset,
+        )
         self.addActions([
             self.toolbar.go_to_action,
             self.toolbar.find_action,
@@ -59,6 +62,17 @@ class BinaryWorkbenchWindowLayoutMixin:
         for action in self._placeholder_actions():
             action.triggered.connect(lambda _, name=action.text(): self._show_status(BINARY_WORKBENCH_TEXT.STATUS_PLACEHOLDER_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS))
         self._sync_internal_file_action()
+
+    def _connect_file_action(self, action: QAction, callback) -> None:
+        action.triggered.connect(
+            lambda _checked=False, target=callback: self._run_file_action(target)
+        )
+
+    def _run_file_action(self, callback) -> None:
+        if self.tabs.current_context() is None:
+            self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_FILE_REQUIRED)
+            return
+        callback()
 
     def _sync_internal_file_action(self, *_args) -> None:
         self.toolbar.open_internal_action.setEnabled(True)

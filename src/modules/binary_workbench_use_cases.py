@@ -7,7 +7,10 @@ from src.core.binary_workbench.version_overlays import without_blank_instruction
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 from src.modules.application_dtos import ProgramContextDTO
-from src.modules.binary_workbench_constants import BINARY_WORKBENCH_BYTE_GROUP_OPTIONS
+from src.modules.binary_workbench_constants import (
+    BINARY_WORKBENCH_BYTE_GROUP_OPTIONS,
+    BINARY_WORKBENCH_TAB_KIND,
+)
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
@@ -97,6 +100,8 @@ def binary_version_has_unsaved_edits(
     )
     if version is None:
         return bool(byte_overlays or instruction_overlays)
+    if context.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY:
+        return context.rows != version.rows
     saved_bytes, saved_instructions = _meaningful_overlays(
         overlay_from_version_rows(version.rows),
         version.instruction_overlays,
@@ -115,7 +120,7 @@ def binary_version_has_unsaved_edits(
         context.variables != version.variables
         or context.equates != version.equates
     )
-    return (
+    return bool(
         current_instructions != saved_instructions
         or current_lines != version.instructions_by_line
         or byte_overlays != saved_bytes
