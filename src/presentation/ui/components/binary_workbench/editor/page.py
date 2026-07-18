@@ -237,6 +237,11 @@ class BinaryWorkbenchEditorPage(
         self.grid.set_edit_rules(_edit_rules_for_context(self._context, preferences))
         self.grid.set_selection_limit_bytes(preferences.selection_limit_bytes)
 
+    def set_responsive_bytes_hidden(self, hidden: bool) -> None:
+        """Apply the Binary Workbench window-width rule to this page's grid."""
+
+        self.grid.set_responsive_bytes_hidden(hidden)
+
     def set_cpu_arch(self, value: str) -> None:
         self._update_context({"cpu_arch": value})
 

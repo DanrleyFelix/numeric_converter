@@ -40,7 +40,7 @@ class GridRenderingMixin:
             BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
         }
         offsets = [name for name in columns if name not in content_columns]
-        self._columns = list(columns)
+        self._configured_columns = list(columns)
         self._visible_offset_columns = offsets
         self._reference_offset_bases = {BINARY_WORKBENCH_TEXT.FILE: "0x00000000", **dict(reference_offset_bases or {})}
         self._jump_reference_offset = jump_reference_offset if jump_reference_offset in self._reference_offset_bases else ""
@@ -48,7 +48,7 @@ class GridRenderingMixin:
         visible = set(columns)
         self.offsets_host.setVisible(bool(offsets))
         self.raw_shell.setVisible(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS in visible)
-        self.bytes_shell.setVisible(BINARY_WORKBENCH_TEXT.BYTES in visible)
+        self._apply_bytes_visibility()
         self.decoded_shell.setVisible(BINARY_WORKBENCH_TEXT.DECODED_TEXT in visible)
         self.instructions_shell.setVisible(True)
         if self._last_editor_kind not in visible:

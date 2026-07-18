@@ -73,6 +73,7 @@ class WorkbenchEditor(
     viewportChangeAboutToStart = Signal(object)
     viewportChangeFinished = Signal(object)
     returnKeyPressed = Signal(object, object)
+    editAboutToStart = Signal(object, object)
     protectedEditKeyPressed = Signal(object, object)
     navigationWarningRequested = Signal(str)
     labelFoldToggled = Signal(str)
@@ -250,6 +251,8 @@ class WorkbenchEditor(
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in _COMPLETION_NAVIGATION_KEYS:
             self._debounce_completions_after_navigation()
+        if _may_edit_document(event):
+            self.editAboutToStart.emit(self, event)
         if self.handle_immediate_symbol_shortcut(event.key(), event.modifiers()):
             event.accept()
             return
@@ -530,6 +533,24 @@ class WorkbenchEditor(
                 event.accept()
                 return True
         return super().eventFilter(watched, event)
+
+
+def _may_edit_document(event: QKeyEvent) -> bool:
+    """Return whether a key event can mutate the editor document."""
+
+    if event.key() in {
+        Qt.Key_Return,
+        Qt.Key_Enter,
+        Qt.Key_Tab,
+        Qt.Key_Backspace,
+        Qt.Key_Delete,
+    }:
+        return True
+    if event.matches(QKeySequence.Cut) or event.matches(QKeySequence.Paste):
+        return True
+    if not event.text():
+        return False
+    return not bool(event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
 
 
 def _alt_shortcut_event(event: QKeyEvent) -> bool:

@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
 from PySide6.QtWidgets import QLabel, QMainWindow
 
 from src.modules.application_dtos import ProgramContextDTO
@@ -92,8 +92,10 @@ class BinaryWorkbenchWindow(
         self.tabs.preferencesChanged.connect(self.preferencesChanged.emit)
         self.tabs.programContextChanged.connect(self.programContextChanged.emit)
         self.tabs.closeRequested.connect(self._request_tab_close)
+        self.tabs.currentChanged.connect(lambda _: self._apply_responsive_layout())
         self._connect_actions()
         self._build_ui()
+        self._apply_responsive_layout()
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_IDLE)
 
     def export_state(self) -> BinaryWorkbenchStateDTO:
@@ -145,6 +147,22 @@ class BinaryWorkbenchWindow(
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Update width-dependent editor columns while preserving preferences."""
+
+        super().resizeEvent(event)
+        self._apply_responsive_layout()
+
+    def _apply_responsive_layout(self) -> None:
+        """Hide Bytes at narrow widths on the currently visible editor page."""
+
+        page = self.tabs.currentWidget()
+        if page is None or not hasattr(page, "set_responsive_bytes_hidden"):
+            return
+        page.set_responsive_bytes_hidden(
+            self.width() < BINARY_WORKBENCH_LAYOUT.RESPONSIVE_BYTES_HIDE_WIDTH
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.tabs.flush_open_workspaces()

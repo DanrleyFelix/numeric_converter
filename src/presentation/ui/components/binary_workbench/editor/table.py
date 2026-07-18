@@ -89,6 +89,7 @@ class BinaryWorkbenchGrid(
         self.setObjectName("binary-workbench-editor-shell")
         self._codec = codec
         self._columns: list[str] = []
+        self._configured_columns: list[str] = []
         self._rows: list[BinaryWorkbenchRowDTO] = []
         self._all_rows: list[BinaryWorkbenchRowDTO] = []
         self._offset_editors: dict[str, WorkbenchEditor] = {}

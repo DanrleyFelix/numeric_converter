@@ -109,18 +109,68 @@ class GridLabelFoldingMixin:
             block = block.next()
         document.markContentsDirty(0, document.characterCount())
         editor.viewport().update()
-        if editor is self.instructions and editor.textCursor().blockNumber() in hidden_rows:
+        if editor is self.instructions and (
+            editor.textCursor().blockNumber() in hidden_rows
+            or self._collapsed_label_cursor_region(editor) is not None
+        ):
             self._move_instruction_cursor_to_visible_label(hidden_rows)
 
     def _move_instruction_cursor_to_visible_label(self, hidden_rows: set[int]) -> None:
-        """Move an instruction cursor out of a block that has just been hidden."""
+        """Place a cursor touching folded content at the label declaration end."""
 
         current = self.instructions.textCursor().blockNumber()
-        region = next((item for item in self._label_fold_regions if item.contains(current)), None)
+        region = next(
+            (
+                item
+                for item in self._label_fold_regions
+                if item.label in self._collapsed_labels
+                and (item.label_row == current or item.contains(current))
+            ),
+            None,
+        )
         if region is None:
             return
-        cursor = QTextCursor(self.instructions.document().findBlockByNumber(region.label_row))
+        block = self.instructions.document().findBlockByNumber(region.label_row)
+        cursor = QTextCursor(block)
+        cursor.setPosition(block.position() + len(block.text()))
         self.instructions.setTextCursor(cursor)
+
+    def expand_collapsed_label_at_cursor(
+        self,
+        editor,
+        move_cursor_to_end: bool = False,
+    ) -> bool:
+        """Expand the folded label currently being edited, if any."""
+
+        if editor is not self.instructions or editor.isReadOnly():
+            return False
+        region = self._collapsed_label_cursor_region(editor)
+        if region is None:
+            return False
+        if move_cursor_to_end:
+            block = editor.document().findBlockByNumber(region.label_row)
+            cursor = QTextCursor(block)
+            cursor.setPosition(block.position() + len(block.text()))
+            editor.setTextCursor(cursor)
+        self._collapsed_labels.remove(region.label)
+        self._refresh_label_folding()
+        self._schedule_layout_refresh()
+        return True
+
+    def _collapsed_label_cursor_region(self, editor):
+        """Return the collapsed label region under the instruction cursor."""
+
+        if editor is not self.instructions:
+            return None
+        row = editor.textCursor().blockNumber()
+        return next(
+            (
+                region
+                for region in self._label_fold_regions
+                if region.label_row == row and region.label in self._collapsed_labels
+            ),
+            None,
+        )
 
     def _label_offset(self, label: str) -> int | None:
         """Resolve a label name to its current file offset."""

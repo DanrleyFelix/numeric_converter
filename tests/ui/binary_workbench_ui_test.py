@@ -5600,6 +5600,202 @@ def test_binary_workbench_label_fold_hides_complete_rows_without_deleting_them(t
     assert all(editor.document().findBlockByNumber(2).isVisible() for editor in editors)
 
 
+def test_binary_workbench_responsive_window_hides_bytes_below_800px(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    page = tool.tabs.currentWidget()
+    page.grid._configured_columns = [  # type: ignore[attr-defined]
+        BINARY_WORKBENCH_TEXT.FILE,
+        BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+        BINARY_WORKBENCH_TEXT.BYTES,
+        BINARY_WORKBENCH_TEXT.INSTRUCTION,
+    ]
+    page.grid._apply_bytes_visibility()  # type: ignore[attr-defined]
+    _app().processEvents()
+    assert BINARY_WORKBENCH_TEXT.BYTES in page.grid._configured_columns  # type: ignore[attr-defined]
+
+    assert tool.minimumHeight() == BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT
+    assert page.grid.raw_shell.width() == BINARY_WORKBENCH_LAYOUT.EDITOR_RAW_INSTRUCTION_WIDTH  # type: ignore[attr-defined]
+
+    tool.resize(799, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
+    _app().processEvents()
+    assert page.grid.bytes_shell.isVisible() is False  # type: ignore[attr-defined]
+
+    tool.resize(800, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
+    _app().processEvents()
+    assert page.grid.bytes_shell.isVisible() is True  # type: ignore[attr-defined]
+
+    page.grid._configured_columns.remove(BINARY_WORKBENCH_TEXT.BYTES)  # type: ignore[attr-defined]
+    page.grid._apply_bytes_visibility()  # type: ignore[attr-defined]
+    assert page.grid.bytes_shell.isVisible() is False  # type: ignore[attr-defined]
+
+    tool.resize(900, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
+    _app().processEvents()
+    assert page.grid.bytes_shell.isVisible() is False  # type: ignore[attr-defined]
+
+    page.grid._configured_columns.append(BINARY_WORKBENCH_TEXT.BYTES)  # type: ignore[attr-defined]
+    page.grid._apply_bytes_visibility()  # type: ignore[attr-defined]
+    assert page.grid.bytes_shell.isVisible() is True  # type: ignore[attr-defined]
+
+
+def test_binary_workbench_fold_moves_cursor_after_hidden_label_body(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop\nnext: nop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    cursor = grid.instructions.textCursor()
+    cursor.setPosition(grid.instructions.document().findBlockByNumber(1).position())
+    grid.instructions.setTextCursor(cursor)
+
+    grid.toggle_label_fold("start")
+
+    assert grid.instructions.document().findBlockByNumber(1).isVisible() is False
+    cursor = grid.instructions.textCursor()
+    label = grid.instructions.document().findBlockByNumber(0)
+    assert cursor.blockNumber() == 0
+    assert cursor.position() == label.position() + len(label.text())
+
+
+def test_binary_workbench_enter_on_collapsed_label_expands_and_inserts_after_label(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop\nnext: nop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    grid.toggle_label_fold("start")
+    cursor = grid.instructions.textCursor()
+    cursor.setPosition(grid.instructions.document().findBlockByNumber(0).position())
+    grid.instructions.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.instructions,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier),
+    )
+    _app().processEvents()
+
+    lines = grid.instructions.toPlainText().split("\n")
+    assert lines == ["start:", "", "nop", "next: nop"]
+    assert grid.instructions.textCursor().blockNumber() == 1
+    assert grid.instructions.document().findBlockByNumber(2).isVisible() is True
+
+
+def test_binary_workbench_shift_enter_on_collapsed_label_expands_and_inserts_after_label(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop\nnext: nop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    grid.toggle_label_fold("start")
+    cursor = grid.instructions.textCursor()
+    cursor.setPosition(grid.instructions.document().findBlockByNumber(0).position())
+    grid.instructions.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.instructions,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.ShiftModifier),
+    )
+    _app().processEvents()
+
+    lines = grid.instructions.toPlainText().split("\n")
+    assert lines == ["start:", "; ", "nop", "next: nop"]
+    assert grid.instructions.textCursor().blockNumber() == 1
+    assert grid.instructions.document().findBlockByNumber(2).isVisible() is True
+
+
+def test_binary_workbench_alt_enter_on_collapsed_label_expands_and_inserts_after_label(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop\nnext: nop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    grid.toggle_label_fold("start")
+    cursor = grid.instructions.textCursor()
+    cursor.setPosition(grid.instructions.document().findBlockByNumber(0).position())
+    grid.instructions.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.instructions,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.AltModifier),
+    )
+    _app().processEvents()
+
+    lines = grid.instructions.toPlainText().split("\n")
+    assert lines == ["start:", "nop", "", "nop", "next: nop"]
+    assert grid.instructions.document().findBlockByNumber(1).isVisible() is True
+
+
+def test_binary_workbench_edit_on_collapsed_label_expands_before_typing(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop\nnext: nop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+    grid.toggle_label_fold("start")
+    cursor = grid.instructions.textCursor()
+    cursor.setPosition(grid.instructions.document().findBlockByNumber(0).position() + len("start:"))
+    grid.instructions.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.instructions,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_X, Qt.NoModifier, "x"),
+    )
+    _app().processEvents()
+
+    assert grid.instructions.toPlainText() == "start:x\nnop\nnext: nop"
+    assert grid.instructions.document().findBlockByNumber(1).isVisible() is True
+
+
+def test_binary_workbench_collapsed_label_at_end_keeps_cursor_on_label_line(tmp_path: Path):
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.new_scratch_tab()
+    grid = tool.tabs.currentWidget().grid  # type: ignore[attr-defined]
+    grid.instructions.setPlainText("start:\nnop")
+    _app().processEvents()
+    grid.flush_pending_rows_changed()
+
+    grid.toggle_label_fold("start")
+
+    cursor = grid.instructions.textCursor()
+    label = grid.instructions.document().findBlockByNumber(0)
+    assert grid.instructions.toPlainText() == "start:\nnop"
+    assert cursor.blockNumber() == 0
+    assert cursor.position() == label.position() + len(label.text())
+
+
 def test_binary_workbench_collapsed_label_projects_offset_and_uses_visible_scroll_rows(
     tmp_path: Path,
 ):

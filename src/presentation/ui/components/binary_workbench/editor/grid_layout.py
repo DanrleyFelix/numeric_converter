@@ -12,6 +12,7 @@ from src.presentation.ui.components.binary_workbench.editor.grid_offsets import 
 
 class GridLayoutMixin:
     def _build_ui(self) -> None:
+        self._responsive_bytes_hidden = False
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(BINARY_WORKBENCH_LAYOUT.EDITOR_SPACING)
@@ -73,6 +74,7 @@ class GridLayoutMixin:
             editor.viewportChangeFinished.connect(self._finish_virtual_viewport_change)
             editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
             editor.returnKeyPressed.connect(self._handle_editor_return_key)
+            editor.editAboutToStart.connect(self._expand_label_before_edit)
             editor.protectedEditKeyPressed.connect(self._handle_editor_protected_edit_key)
         self.decoded_text.copyRequested.connect(lambda source: source.copy())
         self.decoded_text.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
@@ -124,6 +126,25 @@ class GridLayoutMixin:
         if width is not None:
             editor.setFixedWidth(width)
         return editor
+
+    def set_responsive_bytes_hidden(self, hidden: bool) -> None:
+        """Hide Bytes responsively without changing the user's column preference."""
+
+        self._responsive_bytes_hidden = hidden
+        self._apply_bytes_visibility()
+
+    def _apply_bytes_visibility(self) -> None:
+        """Apply the configured Bytes column visibility and window-width override."""
+
+        configured = BINARY_WORKBENCH_TEXT.BYTES in getattr(self, "_configured_columns", [])
+        self.bytes_shell.setVisible(configured and not self._responsive_bytes_hidden)
+
+    def _expand_label_before_edit(self, editor, event) -> None:
+        """Expand a folded label before an edit can change its declaration row."""
+
+        if editor is self.instructions:
+            move_to_end = event.key() in {Qt.Key_Return, Qt.Key_Enter}
+            self.expand_collapsed_label_at_cursor(editor, move_to_end)
 
     def _configure_scrollbar(self) -> None:
         was_updating = self._updating

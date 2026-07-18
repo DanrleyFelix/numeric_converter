@@ -93,6 +93,8 @@ class GridEditRulesMixin:
         return max(self._original_boundary(), self._total_size + offset_delta)
 
     def _handle_editor_return_key(self, editor, event) -> None:
+        if editor is self.instructions:
+            self.expand_collapsed_label_at_cursor(editor, True)
         if self._alt_return_event(event):
             if self._alt_return_should_insert_nop(editor):
                 self._insert_nop_line(editor)
