@@ -6,6 +6,8 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.toolbar_constants import TOOLBAR_LAYOUT, TOOLBAR_SIZE
+from src.presentation.ui.components.debugger.actions import DebuggerActions
+from src.presentation.ui.components.debugger.constants.texts import DEBUGGER_TITLE
 from src.presentation.ui.design.icons import Icons
 
 
@@ -47,6 +49,7 @@ class BinaryWorkbenchToolbar(QFrame):
         self.replace_bytes_action = QAction(BINARY_WORKBENCH_TEXT.REPLACE_BYTES, self)
         self.select_all_action = QAction(BINARY_WORKBENCH_TEXT.SELECT_ALL, self)
         self.help_action = QAction(BINARY_WORKBENCH_TEXT.HELP, self)
+        self.debugger_actions = DebuggerActions(self)
         self.open_file_action.setShortcut(QKeySequence("Ctrl+O"))
         self.new_scratch_action.setShortcut(QKeySequence("Ctrl+N"))
         self.open_internal_action.setShortcut(QKeySequence("Alt+I"))
@@ -93,6 +96,11 @@ class BinaryWorkbenchToolbar(QFrame):
             self.select_block_action,
             self.replace_bytes_action,
         ]))
+        layout.addWidget(self._build_menu_button(
+            DEBUGGER_TITLE,
+            Icons.tools(),
+            list(self.debugger_actions.all()),
+        ))
         layout.addWidget(self._build_action_button(BINARY_WORKBENCH_TEXT.HELP, Icons.help(), self.help_action))
         layout.addStretch(1)
 

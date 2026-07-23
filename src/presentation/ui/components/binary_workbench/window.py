@@ -19,6 +19,9 @@ from src.presentation.ui.components.binary_workbench.toolbar import BinaryWorkbe
 from src.presentation.ui.components.binary_workbench.window_close_flow import (
     BinaryWorkbenchWindowCloseMixin,
 )
+from src.presentation.ui.components.binary_workbench.debugger.window_actions import (
+    BinaryWorkbenchDebuggerMixin,
+)
 from src.presentation.ui.components.binary_workbench.window_environment_actions import (
     BinaryWorkbenchWindowEnvironmentMixin,
 )
@@ -46,6 +49,7 @@ from src.presentation.ui.helpers.window_geometry import ensure_window_on_availab
 
 
 class BinaryWorkbenchWindow(
+    BinaryWorkbenchDebuggerMixin,
     BinaryWorkbenchWindowLayoutMixin,
     BinaryWorkbenchWindowFileActionsMixin,
     BinaryWorkbenchWindowEnvironmentMixin,
@@ -82,6 +86,7 @@ class BinaryWorkbenchWindow(
             preferences,
             program_context,
         )
+        self._initialize_debugger_support()
         self.footer_status = QLabel(BINARY_WORKBENCH_TEXT.STATUS_IDLE, self)
         self.footer_status.setObjectName("binary-workbench-footer-status")
         self.statusBar().hide()
@@ -165,6 +170,9 @@ class BinaryWorkbenchWindow(
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if not self._close_debugger_windows():
+            event.ignore()
+            return
         self.tabs.flush_open_workspaces()
         self.tabs.flush_search_cache()
         self.sizePersistRequested.emit(self.width(), self.height())

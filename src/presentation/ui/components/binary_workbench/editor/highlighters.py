@@ -17,6 +17,10 @@ from src.core.binary_workbench.mips_r3000a.constants import (
     SPECIAL_BRANCH_RT,
 )
 from src.core.binary_workbench.mips_r3000a.preprocessor import expand_short_instruction
+from src.core.debugger.directives.validation.diagnostics import (
+    debugger_directive_diagnostics,
+    debugger_directive_symbols,
+)
 from src.core.binary_workbench.mips_r3000a.register_values import (
     effective_memory_address,
     known_register_values_after,
@@ -27,6 +31,11 @@ from src.modules.constants import HEX_DIGIT_PATTERN
 from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
     psx_mips_highlight_color,
     psx_mips_required_highlight_color,
+)
+from src.presentation.ui.components.binary_workbench.editor.debugger.highlighting import (
+    DEBUGGER_DIRECTIVE_ERRORS_PROPERTY,
+    highlight_debugger_directive,
+    is_debugger_directive_line,
 )
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     BYTE_TOKEN,
@@ -69,6 +78,10 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._file_size = 0
         self._navigation_background_enabled = True
         self._known_register_values_by_block: dict[int, dict[int, int]] = {}
+        self._debugger_directive_errors: dict[int, str] = {}
+        self._has_debugger_directives = False
+        self.document().contentsChange.connect(self._refresh_directives_after_edit)
+        self.rehighlight()
 
     def set_symbols(
         self,
@@ -85,6 +98,40 @@ class InstructionHighlighter(QSyntaxHighlighter):
     def set_navigation_background_enabled(self, enabled: bool) -> None:
         self._navigation_background_enabled = enabled
         self.rehighlight()
+
+    def rehighlight(self) -> None:
+        """Refresh directive diagnostics before applying document formats."""
+
+        lines = self.document().toPlainText().split("\n")
+        self._has_debugger_directives = any(
+            is_debugger_directive_line(line) for line in lines
+        )
+        symbols = debugger_directive_symbols(self._labels, self._variables, self._equates)
+        self._debugger_directive_errors = debugger_directive_diagnostics(
+            lines,
+            symbols,
+            lambda code: bool(code_without_label(code)[1].strip())
+            and not invalid_instruction(code_without_label(code)[1]),
+        )
+        self.document().setProperty(
+            DEBUGGER_DIRECTIVE_ERRORS_PROPERTY,
+            dict(self._debugger_directive_errors),
+        )
+        super().rehighlight()
+
+    def _refresh_directives_after_edit(
+        self,
+        position: int,
+        _removed: int,
+        _added: int,
+    ) -> None:
+        """Refresh cross-line diagnostics only for documents using directives."""
+
+        block = self.document().findBlock(position)
+        if self._has_debugger_directives or (
+            block.isValid() and is_debugger_directive_line(block.text())
+        ):
+            self.rehighlight()
 
     def set_jump_reference_offsets(
         self,
@@ -111,6 +158,14 @@ class InstructionHighlighter(QSyntaxHighlighter):
             if block_number > 0
             else {0: 0}
         )
+        if is_debugger_directive_line(text):
+            highlight_debugger_directive(
+                self,
+                text,
+                self._debugger_directive_errors.get(block_number, ""),
+            )
+            self._remember_register_values(block_number, register_values)
+            return
         if is_editor_command_line(text):
             self.setFormat(0, len(text), text_format(psx_mips_required_highlight_color("command")))
             self._remember_register_values(block_number, register_values)

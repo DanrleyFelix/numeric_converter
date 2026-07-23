@@ -1,0 +1,111 @@
+QMainWindow#debugger-window,
+QWidget#debugger-shell {
+    background-color: $bg-main;
+    color: $text-main;
+}
+
+QMainWindow#debugger-window QTableWidget,
+QMainWindow#debugger-window QPlainTextEdit,
+QMainWindow#debugger-window QLineEdit {
+    background-color: $bg-panel;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $radius-0;
+    selection-background-color: $bg-toolbar-button-hover;
+    selection-color: $text-main;
+}
+
+QMainWindow#debugger-window QTableWidget {
+    gridline-color: $border-workspace-row;
+    padding-right: $space-10;
+}
+
+QMainWindow#debugger-window QPlainTextEdit {
+    padding-right: $space-10;
+}
+
+QMainWindow#debugger-window QTableWidget QWidget#qt_scrollarea_viewport,
+QMainWindow#debugger-window QHeaderView {
+    background-color: $bg-panel;
+}
+
+QMainWindow#debugger-window QScrollBar:horizontal {
+    height: $space-0;
+}
+
+QTableWidget#debugger-instructions,
+QTableWidget#debugger-registers,
+QTableWidget#debugger-instructions::item,
+QTableWidget#debugger-registers::item,
+QMainWindow#debugger-window QAbstractItemView,
+QMainWindow#debugger-window QTabBar {
+    outline: none;
+}
+
+QTableWidget#debugger-instructions::item,
+QTableWidget#debugger-registers::item {
+    padding: $space-6;
+}
+
+QMainWindow#debugger-window QHeaderView::section {
+    background-color: $bg-workspace-header;
+    color: $text-workspace-header;
+    border: none;
+    border-right: 1px solid $border-workspace-header;
+    border-bottom: 1px solid $border-workspace-header;
+    padding: $space-8;
+}
+
+QMainWindow#debugger-window QTabWidget::pane {
+    background-color: $bg-panel;
+    border: 1px solid $border;
+    border-radius: $radius-0;
+}
+
+QTabWidget#debugger-lower-tabs QTableWidget::item {
+    padding: $space-8;
+}
+
+QMainWindow#debugger-window QTabBar::tab {
+    background-color: $bg-control-checked;
+    color: $text-muted;
+    border: 1px solid $border;
+    border-bottom: none;
+    border-radius: $radius-0;
+    padding: $space-8 $space-12;
+    top: $space-2;
+}
+
+QMainWindow#debugger-window QTabBar::tab:selected {
+    background-color: $bg-toolbar;
+    color: $text-main;
+    border-bottom-color: $bg-panel;
+}
+
+QLineEdit#debugger-breakpoint-input {
+    padding: $space-8;
+    border-bottom: none;
+    outline: none;
+}
+
+QLineEdit#debugger-tab-filter {
+    padding-left: $space-8;
+    padding-right: $space-8;
+    outline: none;
+}
+
+QLabel#debugger-memory-selection {
+    background-color: $bg-panel;
+    color: $text-main;
+    padding-top: $space-10;
+    padding-bottom: $space-10;
+}
+
+QMainWindow#debugger-window QSplitter::handle {
+    background-color: $bg-main;
+}
+
+QMainWindow#debugger-window QPushButton,
+QMainWindow#debugger-window QCheckBox {
+    color: $text-main;
+}

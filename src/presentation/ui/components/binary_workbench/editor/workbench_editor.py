@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TIMING,
 )
 from src.presentation.ui.components.binary_workbench.editor.editor_completion import EditorCompletionMixin
+from src.core.debugger.directives.constants import DEBUGGER_DIRECTIVE_NAMES
 from src.presentation.ui.components.binary_workbench.editor.editor_granular_undo import (
     EditorGranularUndoMixin,
 )
@@ -84,7 +85,13 @@ class WorkbenchEditor(
         self.viewport().setMouseTracking(True)
         self._shared_scrollbar: QScrollBar | None = None
         self._completion_model = QStringListModel(self)
-        self._completion_items: dict[str, list[str]] = {"label": [], "variable": [], "equate": [], "command": []}
+        self._completion_items: dict[str, list[str]] = {
+            "label": [],
+            "variable": [],
+            "equate": [],
+            "command": [],
+            "directive": list(DEBUGGER_DIRECTIVE_NAMES),
+        }
         self._symbol_tooltips: dict[str, str] = {}
         self._pressed_symbol_token = ""
         self._label_offsets: dict[str, tuple[str, int]] = {}

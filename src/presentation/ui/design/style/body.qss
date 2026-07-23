@@ -11,3 +11,4 @@ QFrame#body {
 @import "components/help_window.qss";
 @import "components/workspace_table.qss";
 @import "components/key_panel.qss";
+@import "components/debugger.qss";

@@ -3,7 +3,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.core.binary_workbench.mips_r3000a import build_scratch_rows
+from src.core.binary_workbench.mips_r3000a.source_line_rows import empty_source_row
 from src.core.binary_workbench.row_structure import valid_offset_end
+from src.core.debugger.directives.constants import PSX_SCRATCH_HEADER
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
     BINARY_WORKBENCH_DEFAULT_VERSION_NAME,
@@ -111,7 +113,10 @@ def create_assembly_tab(
 
 
 def create_scratch_tab(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchTabContextDTO:
-    rows = build_scratch_rows(list(DEFAULT_REFS), dict(DEFAULT_REF_BASES))
+    rows = [
+        empty_source_row(line, list(DEFAULT_REFS))
+        for line in PSX_SCRATCH_HEADER
+    ] + build_scratch_rows(list(DEFAULT_REFS), dict(DEFAULT_REF_BASES))
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
         kind=BINARY_WORKBENCH_TAB_KIND.SCRATCH,

@@ -58,3 +58,11 @@ PSX_MIPS_HIGHLIGHTER = {
     "invalid_instruction": "#CD1C1C",
     "comment": "#7F879B",
 }
+
+DEBUGGER_DIRECTIVE_HIGHLIGHTER = {
+    "command": "#C792EA",
+    "file": "#E5C07B",
+    "hex": "#98C379",
+    "marker": PSX_MIPS_HIGHLIGHTER["comment"],
+    "invalid": PSX_MIPS_HIGHLIGHTER["invalid_instruction"],
+}

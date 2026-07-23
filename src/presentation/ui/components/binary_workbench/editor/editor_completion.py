@@ -1,3 +1,5 @@
+import re
+
 from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
@@ -8,6 +10,9 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     COMPLETION_TOKEN,
     tooltip_values,
+)
+from src.presentation.ui.components.binary_workbench.editor.debugger.highlighting import (
+    DEBUGGER_DIRECTIVE_ERRORS_PROPERTY,
 )
 from src.presentation.ui.helpers.completer_popup import fit_completer_popup_height
 
@@ -67,6 +72,12 @@ class EditorCompletionMixin:
         cursor = self.textCursor()
         block = cursor.block().text()
         column = cursor.positionInBlock()
+        directive_prefix = block[:column].lstrip()
+        if directive_prefix.startswith("*") and re.fullmatch(
+            r"\*\s*[A-Za-z_]*",
+            directive_prefix,
+        ):
+            return directive_prefix
         for match in COMPLETION_TOKEN.finditer(block):
             if match.start() <= column <= match.end():
                 return block[match.start() : column]
@@ -74,6 +85,15 @@ class EditorCompletionMixin:
 
     def _candidates_for_prefix(self, prefix: str) -> list[str]:
         normalized = prefix.lower()
+        if normalized.startswith("*"):
+            command = normalized[1:].strip()
+            return [
+                f"* {name}"
+                for name in _partial_prefix_matches(
+                    self._completion_items["directive"],
+                    command,
+                )
+            ]
         if normalized.startswith("/"):
             return _partial_prefix_matches(self._completion_items["command"], normalized)
         if normalized.startswith("_"):
@@ -133,6 +153,12 @@ class EditorCompletionMixin:
         self.ensureCursorVisible()
 
     def _show_symbol_tooltip(self, event) -> None:
+        cursor = self.cursorForPosition(event.position().toPoint())
+        errors = self.document().property(DEBUGGER_DIRECTIVE_ERRORS_PROPERTY)
+        message = errors.get(cursor.blockNumber(), "") if isinstance(errors, dict) else ""
+        if message:
+            QToolTip.showText(event.globalPosition().toPoint(), message, self)
+            return
         token = self._symbol_token_at_position(event.position().toPoint())
         text = self._symbol_tooltips.get(token)
         if text:

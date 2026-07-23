@@ -11,6 +11,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 
 class BinaryWorkbenchWindowLayoutMixin:
     def _connect_actions(self) -> None:
+        self._connect_debugger_actions()
         self.toolbar.open_file_action.triggered.connect(self._open_any_file)
         self.toolbar.new_scratch_action.triggered.connect(self.tabs.new_scratch_tab)
         self._connect_file_action(self.toolbar.open_internal_action, self._open_internal_file)
@@ -78,6 +79,9 @@ class BinaryWorkbenchWindowLayoutMixin:
         self.toolbar.open_internal_action.setEnabled(True)
 
     def _build_ui(self) -> None:
+        self.footer_status.setTextInteractionFlags(
+            Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard
+        )
         shell = QWidget()
         shell.setObjectName("binary-workbench-shell")
         layout = QVBoxLayout(shell)

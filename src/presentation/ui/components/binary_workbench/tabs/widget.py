@@ -48,6 +48,9 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_workspace import (
 from src.presentation.ui.components.binary_workbench.tabs.tab_workspace_memory import (
     TabWorkspaceMemoryMixin,
 )
+from src.presentation.ui.components.binary_workbench.tabs.debugger.source_provider import (
+    TabDebuggerSourceMixin,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
@@ -55,6 +58,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
 
 
 class BinaryWorkbenchTabs(
+    TabDebuggerSourceMixin,
     TabWorkspaceMemoryMixin,
     TabStateMixin,
     TabPageManagementMixin,

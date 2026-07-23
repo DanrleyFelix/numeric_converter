@@ -7,3 +7,4 @@ PySide6_Essentials==6.10.1
 QtAwesome==1.4.0
 QtPy==2.4.3
 shiboken6==6.10.1
+unicorn==2.1.4
