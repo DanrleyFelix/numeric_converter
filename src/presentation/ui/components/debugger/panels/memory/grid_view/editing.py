@@ -43,10 +43,17 @@ class DebuggerMemoryEditingMixin:
             item.setSelected(True)
         self._show_selection(value, value)
 
-    def set_follow_access(self, enabled: bool) -> None:
-        """Enable or disable following the latest memory read/write."""
+    def set_follow_writes(self, enabled: bool) -> None:
+        """Enable or disable following the latest memory write."""
 
-        self._follow_access = enabled
+        self._follow_writes = enabled
+        if self._debugger.state != DebuggerSessionState.RUNNING:
+            self.refresh()
+
+    def set_follow_reads(self, enabled: bool) -> None:
+        """Enable or disable following the latest memory read."""
+
+        self._follow_reads = enabled
         if self._debugger.state != DebuggerSessionState.RUNNING:
             self.refresh()
 

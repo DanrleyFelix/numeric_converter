@@ -89,8 +89,12 @@ def instruction_cell_color(column: int, value: str) -> str | None:
             return psx_mips_required_highlight_color("variable")
         if value.startswith("IGNORED"):
             return THEME_TOKENS["text-warning"]
+        if value == "BREAK":
+            return THEME_TOKENS["text-debug-write"]
+        if value == "BREAKPOINT":
+            return THEME_TOKENS["text-warning"]
         if value == "READY":
             return THEME_TOKENS["text-success"]
-        if value == "Error":
+        if value == "ERROR":
             return THEME_TOKENS["text-danger"]
     return None

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QAction, QColor
+from PySide6.QtGui import QColor, QResizeEvent
 from PySide6.QtWidgets import (
-    QApplication,
     QAbstractItemView,
     QHeaderView,
-    QMenu,
     QTableWidget,
     QTableWidgetItem,
 )
@@ -15,13 +13,15 @@ from src.core.debugger.contracts.base import BWDebugger
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.constants.texts import INSTRUCTION_HEADERS
 from src.presentation.ui.components.debugger.panels.instruction.highlighting import (
-    bytes_cell_delegate,
-    instruction_cell_color,
-    instruction_cell_delegate,
+    bytes_cell_delegate, instruction_cell_color, instruction_cell_delegate,
 )
-from src.presentation.ui.components.debugger.panels.instruction.status import (
-    instruction_status,
+from src.presentation.ui.components.debugger.panels.instruction.context.menu import (
+    show_instruction_menu,
 )
+from src.presentation.ui.components.debugger.panels.instruction.layout.sizing import (
+    resize_instruction_columns,
+)
+from src.presentation.ui.components.debugger.panels.instruction.status import instruction_status
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 
@@ -29,6 +29,7 @@ class DebuggerInstructionPanel(QTableWidget):
     """Display mapped instructions and current execution status."""
 
     breakpointToggled = Signal(object)
+    breakpointRemoved = Signal(object)
     ignoredToggled = Signal(object)
 
     def __init__(self, parent=None) -> None:
@@ -100,23 +101,14 @@ class DebuggerInstructionPanel(QTableWidget):
 
     def _resize_columns(self) -> None:
         """Resize flexible columns without accumulating width on refresh."""
-        for column, adjustment in enumerate(DEBUGGER_LAYOUT.INSTRUCTION_COLUMN_ADJUSTMENTS):
-            if column in {
-                DEBUGGER_LAYOUT.RAW_INSTRUCTION_COLUMN,
-                DEBUGGER_LAYOUT.INSTRUCTION_STATUS_COLUMN,
-            }:
-                continue
-            self.resizeColumnToContents(column)
-            if adjustment:
-                self.setColumnWidth(column, max(40, self.columnWidth(column) + adjustment))
-        self.setColumnWidth(
-            DEBUGGER_LAYOUT.RAW_INSTRUCTION_COLUMN,
-            DEBUGGER_LAYOUT.RAW_INSTRUCTION_WIDTH,
-        )
-        self.setColumnWidth(
-            DEBUGGER_LAYOUT.INSTRUCTION_STATUS_COLUMN,
-            DEBUGGER_LAYOUT.INSTRUCTION_STATUS_WIDTH,
-        )
+
+        resize_instruction_columns(self)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Keep instruction columns attached to the vertical scrollbar."""
+
+        super().resizeEvent(event)
+        self._resize_columns()
 
     def navigate_to(self, address: int) -> None:
         """Select and center one exact instruction address when loaded."""
@@ -142,19 +134,6 @@ class DebuggerInstructionPanel(QTableWidget):
             self._toggle_breakpoint_row(row)
 
     def _open_context_menu(self, position) -> None:
-        """Offer address copy and explicit IGNORED toggling."""
+        """Open the standard instruction-row context actions."""
 
-        item = self.itemAt(position)
-        if item is None:
-            return
-        address = int(item.data(Qt.UserRole), 0)
-        menu = QMenu(self)
-        menu.setObjectName("binary-workbench-editor-context-menu")
-        copy = QAction("Copy Address", menu)
-        copy.triggered.connect(
-            lambda: QApplication.clipboard().setText(f"0x{address:08X}")
-        )
-        ignore = QAction("Toggle IGNORED", menu)
-        ignore.triggered.connect(lambda: self.ignoredToggled.emit(address))
-        menu.addActions((copy, ignore))
-        menu.exec(self.viewport().mapToGlobal(position))
+        show_instruction_menu(self, position)

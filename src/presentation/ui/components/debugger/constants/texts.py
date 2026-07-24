@@ -28,18 +28,22 @@ LOWER_TAB_NAMES = (
     "Debug Log",
 )
 ZONE_HEADERS = ("Start", "End", "Size", "Origin", "Status", "Loaded Bytes")
-BREAKPOINT_HEADERS = ("Address", "Instruction", "Status")
+BREAKPOINT_HEADERS = ("Address", "Name", "Instruction", "Status")
 MEMORY_ADDRESS_FILTER = "Search Address"
+BREAKPOINT_FILTER = "Search Breakpoint"
 LOG_FILTER = "Search Log"
 BREAKPOINT_ADDRESS_PLACEHOLDER = (
     "Enter a breakpoint address and press ENTER"
 )
-FOLLOW_ACCESS_TEXT = "Follow W/R"
 MEMORY_SELECTION_TEMPLATE = (
-    "Selected block: 0x{start:08X} - 0x{end:08X} | "
+    "Block: 0x{start:08X} - 0x{end:08X} | "
     "Bytes: {size} (0x{size:X})"
 )
-MEMORY_SELECTION_EMPTY = "Selected block: - | Bytes: 0 (0x0)"
+MEMORY_SELECTION_EMPTY = "Block: - | Bytes: 0 (0x0)"
+MEMORY_OUT_OF_RANGE = "Out Of Range"
+FOLLOW_LABEL = "Follow:"
+FOLLOW_WRITE_LABEL = "W"
+FOLLOW_READ_LABEL = "R"
 CONFIG_TITLE = "Debugger Config"
 CONFIG_INTERVAL_PLACEHOLDER = "Interval (ms)"
 CONFIG_CONFIRM = "Confirm"

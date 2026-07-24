@@ -8,6 +8,10 @@ from src.presentation.ui.components.binary_workbench.input_validators import (
     set_decimal_integer_validator,
     set_hex_offset_validator,
 )
+from src.presentation.ui.components.debugger.panels.table.editing import (
+    fill_cell_editor,
+    prepare_cell_editor,
+)
 
 
 class RegisterValueDelegate(QStyledItemDelegate):
@@ -22,9 +26,14 @@ class RegisterValueDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index) -> QLineEdit:
         """Return a line editor reusing the established numeric validators."""
 
-        editor = QLineEdit(parent)
+        editor = prepare_cell_editor(QLineEdit(parent))
         if self._value_type == "decimal":
             set_decimal_integer_validator(editor)
         else:
             set_hex_offset_validator(editor)
         return editor
+
+    def updateEditorGeometry(self, editor, option, _index) -> None:
+        """Keep the register editor equal to its complete cell."""
+
+        fill_cell_editor(editor, option)

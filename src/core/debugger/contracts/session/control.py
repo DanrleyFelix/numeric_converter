@@ -15,7 +15,9 @@ class BWDebuggerControl(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_breakpoint(self, address: int, enabled: bool = True) -> DebuggerBreakpoint:
+    def add_breakpoint(
+        self, address: int, enabled: bool = True, name: str = ""
+    ) -> DebuggerBreakpoint:
         """Add non-invasive breakpoint metadata for one address."""
 
         raise NotImplementedError
@@ -29,6 +31,12 @@ class BWDebuggerControl(ABC):
     @abstractmethod
     def set_breakpoint_enabled(self, address: int, enabled: bool) -> None:
         """Enable or disable retained breakpoint metadata."""
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_breakpoint_name(self, address: int, name: str) -> None:
+        """Assign a symbolic display name to retained breakpoint metadata."""
 
         raise NotImplementedError
 

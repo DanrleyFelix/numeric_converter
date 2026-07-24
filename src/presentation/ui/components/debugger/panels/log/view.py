@@ -21,6 +21,7 @@ from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 HEX_VALUE = re.compile(r"0x[0-9A-Fa-f]+")
 ACCESS_WORD = re.compile(r"\b(?:Write|Read)\b")
+EVENT_WORD = re.compile(r"\b(?:Breakpoint|Ignored|Import)\b", re.IGNORECASE)
 
 
 class DebuggerLogHighlighter(QSyntaxHighlighter):
@@ -36,6 +37,11 @@ class DebuggerLogHighlighter(QSyntaxHighlighter):
     ACCESS_COLORS = {
         "Write": THEME_TOKENS["text-debug-write"],
         "Read": THEME_TOKENS["text-debug-read"],
+    }
+    EVENT_COLORS = {
+        "breakpoint": THEME_TOKENS["text-debug-write"],
+        "ignored": THEME_TOKENS["text-warning"],
+        "import": psx_mips_highlight_color("registers", "$sp"),
     }
 
     def highlightBlock(self, text: str) -> None:
@@ -54,6 +60,12 @@ class DebuggerLogHighlighter(QSyntaxHighlighter):
                 match.start(),
                 match.end() - match.start(),
                 self.ACCESS_COLORS[match.group()],
+            )
+        for match in EVENT_WORD.finditer(text):
+            self._format(
+                match.start(),
+                match.end() - match.start(),
+                self.EVENT_COLORS[match.group().casefold()],
             )
 
     def _format(self, start: int, length: int, color: str | None) -> None:
@@ -101,7 +113,8 @@ class DebuggerLogView(QWidget):
             return
         lines = []
         for event in events:
-            address = f" [0x{event.address:08X}]" if event.address is not None else ""
+            show_address = event.address is not None and event.level not in {"Memory", "Info"}
+            address = f" [0x{event.address:08X}]" if show_address else ""
             line = f"{event.level}{address}: {event.message}"
             if not self._filter or self._filter in line.casefold():
                 lines.append(line)

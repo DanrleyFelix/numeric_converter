@@ -20,6 +20,14 @@ from PySide6.QtWidgets import (
 from src.presentation.ui.components.binary_workbench.editor.highlighters import (
     BytesHighlighter,
 )
+from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
+from src.presentation.ui.components.debugger.panels.table.columns import (
+    CompensatedColumnLayout,
+)
+from src.presentation.ui.components.debugger.panels.table.editing import (
+    fill_cell_editor,
+    prepare_cell_editor,
+)
 
 
 class HexBytesDelegate(QStyledItemDelegate):
@@ -28,11 +36,16 @@ class HexBytesDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         """Create a hexadecimal and whitespace-only line editor."""
 
-        editor = QLineEdit(parent)
+        editor = prepare_cell_editor(QLineEdit(parent))
         expression = QRegularExpression(r"[0-9A-Fa-f ]{0,11}")
         editor.setValidator(QRegularExpressionValidator(expression, editor))
         editor.textEdited.connect(lambda: self._advance_when_complete(editor))
         return editor
+
+    def updateEditorGeometry(self, editor, option, _index) -> None:
+        """Keep the active memory editor equal to its complete cell."""
+
+        fill_cell_editor(editor, option)
 
     def _advance_when_complete(self, editor: QLineEdit) -> None:
         """Commit four entered bytes and move to the next table cell."""
@@ -81,6 +94,22 @@ class DebuggerMemoryTable(QTableWidget):
     """Reuse table selection while providing deterministic clipboard output."""
 
     pasteRequested = Signal(str, object)
+
+    def configure_column_layout(self) -> None:
+        """Enable bounded interactive resizing for all memory columns."""
+
+        self._columns = CompensatedColumnLayout(
+            self,
+            DEBUGGER_LAYOUT.MEMORY_COLUMN_MINIMUMS,
+            DEBUGGER_LAYOUT.MEMORY_COLUMN_MAXIMUMS,
+            DEBUGGER_LAYOUT.MEMORY_GROWTH_COLUMNS,
+            DEBUGGER_LAYOUT.MEMORY_COMPENSATION_COLUMNS,
+        )
+
+    def resize_columns(self) -> None:
+        """Distribute all usable width after the address and ten-pixel gap."""
+
+        self._columns.fit()
 
     def keyPressEvent(self, event) -> None:
         """Copy selected memory cells or delegate all other key handling."""

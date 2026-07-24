@@ -64,7 +64,7 @@ class DebuggerBreakpoint:
     origin: str = ""
     instruction: str = ""
     valid: bool = True
-
+    name: str = ""
 
 @dataclass(frozen=True)
 class DebuggerInstruction:

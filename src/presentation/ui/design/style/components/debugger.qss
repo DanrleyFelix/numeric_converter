@@ -33,6 +33,10 @@ QMainWindow#debugger-window QScrollBar:horizontal {
     height: $space-0;
 }
 
+QMainWindow#debugger-window QScrollBar:vertical {
+    margin-right: $space-10;
+}
+
 QTableWidget#debugger-instructions,
 QTableWidget#debugger-registers,
 QTableWidget#debugger-instructions::item,
@@ -56,10 +60,22 @@ QMainWindow#debugger-window QHeaderView::section {
     padding: $space-8;
 }
 
-QMainWindow#debugger-window QTabWidget::pane {
+QMainWindow#debugger-window QTabWidget#debugger-lower-tabs::pane {
     background-color: $bg-panel;
     border: 1px solid $border;
     border-radius: $radius-0;
+}
+
+QMainWindow#debugger-window QTabWidget#debugger-lower-tabs,
+QWidget#debugger-tab-filter-container {
+    background-color: $bg-panel;
+}
+
+QMainWindow#debugger-window QTableWidget#debugger-stack-table,
+QMainWindow#debugger-window QTableWidget#debugger-memory-table,
+QMainWindow#debugger-window QTableWidget#debugger-breakpoints-table,
+QMainWindow#debugger-window QPlainTextEdit#debugger-log {
+    border: none;
 }
 
 QTabWidget#debugger-lower-tabs QTableWidget::item {
@@ -73,7 +89,6 @@ QMainWindow#debugger-window QTabBar::tab {
     border-bottom: none;
     border-radius: $radius-0;
     padding: $space-8 $space-12;
-    top: $space-2;
 }
 
 QMainWindow#debugger-window QTabBar::tab:selected {
@@ -82,16 +97,30 @@ QMainWindow#debugger-window QTabBar::tab:selected {
     border-bottom-color: $bg-panel;
 }
 
-QLineEdit#debugger-breakpoint-input {
+QMainWindow#debugger-window QLineEdit#debugger-breakpoint-input {
     padding: $space-8;
-    border-bottom: none;
+    border: none;
+    border-right: 1px solid $border;
     outline: none;
 }
 
-QLineEdit#debugger-tab-filter {
-    padding-left: $space-8;
-    padding-right: $space-8;
+QMainWindow#debugger-window QLineEdit#debugger-breakpoint-search {
+    padding: $space-8;
+    border: none;
     outline: none;
+}
+
+QMainWindow#debugger-window QLineEdit#debugger-tab-filter {
+    padding-left: $space-8;
+    padding-right: $space-12;
+    border: 1px solid $border;
+    border-bottom: none;
+    border-radius: $radius-0;
+    outline: none;
+}
+
+QWidget#debugger-breakpoint-entry {
+    background-color: $bg-panel;
 }
 
 QLabel#debugger-memory-selection {
@@ -99,6 +128,36 @@ QLabel#debugger-memory-selection {
     color: $text-main;
     padding-top: $space-10;
     padding-bottom: $space-10;
+}
+
+QWidget#debugger-memory-footer {
+    background-color: $bg-panel;
+}
+
+QWidget#debugger-memory-summary {
+    background-color: $bg-panel;
+    border: none;
+}
+
+QMainWindow#debugger-window QLineEdit#debugger-memory-search {
+    border: none;
+    border-left: 1px solid $border;
+    border-radius: $radius-0;
+    padding: $space-8 $space-12 $space-8 $space-8;
+    outline: none;
+}
+
+QWidget#debugger-memory-divider,
+QWidget#debugger-breakpoint-divider {
+    background-color: $border;
+}
+
+QMainWindow#debugger-window QLineEdit#debugger-cell-editor {
+    border: none;
+    border-radius: $radius-0;
+    margin: $space-0;
+    padding: $space-8;
+    outline: none;
 }
 
 QMainWindow#debugger-window QSplitter::handle {

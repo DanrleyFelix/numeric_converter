@@ -47,6 +47,7 @@ def build_debugger_shell(
     horizontal.setHandleWidth(DEBUGGER_LAYOUT.PANEL_GAP)
     horizontal.addWidget(vertical)
     horizontal.addWidget(registers)
+    horizontal.setCollapsible(1, True)
     horizontal.setSizes(list(DEBUGGER_LAYOUT.INSTRUCTION_REGISTER_SIZES))
     shell = QWidget(parent)
     shell.setObjectName("debugger-shell")

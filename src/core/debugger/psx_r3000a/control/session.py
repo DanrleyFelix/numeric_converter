@@ -10,7 +10,9 @@ from src.core.debugger.models.session import (
 class PsxSessionControlMixin:
     """Manage architecture-neutral breakpoint and ignored metadata."""
 
-    def add_breakpoint(self, address: int, enabled: bool = True) -> DebuggerBreakpoint:
+    def add_breakpoint(
+        self, address: int, enabled: bool = True, name: str = ""
+    ) -> DebuggerBreakpoint:
         """Create or replace a breakpoint without changing emulated bytes."""
 
         instruction = self._instruction_at(address)
@@ -21,6 +23,7 @@ class PsxSessionControlMixin:
             instruction.origin if instruction else "",
             instruction.raw_instruction if instruction else "",
             valid,
+            name,
         )
         self._breakpoints[address] = breakpoint
         self._events.append(DebuggerEvent("Info", f"Breakpoint added at 0x{address:08X}.", address))
@@ -46,6 +49,22 @@ class PsxSessionControlMixin:
             current.origin,
             current.instruction,
             current.valid,
+            current.name,
+        )
+
+    def set_breakpoint_name(self, address: int, name: str) -> None:
+        """Update only the symbolic name retained for one breakpoint."""
+
+        current = self._breakpoints.get(address)
+        if current is None:
+            return
+        self._breakpoints[address] = DebuggerBreakpoint(
+            current.address,
+            current.enabled,
+            current.origin,
+            current.instruction,
+            current.valid,
+            name,
         )
 
     def remove_breakpoint(self, address: int) -> None:

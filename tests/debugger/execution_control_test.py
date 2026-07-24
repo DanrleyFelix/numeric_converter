@@ -30,6 +30,17 @@ def test_run_stops_before_an_enabled_breakpoint():
     assert debugger.registers.read("t1") == 2
 
 
+def test_breakpoint_name_survives_state_changes_and_restart():
+    """Retain one validated display name with breakpoint metadata."""
+
+    debugger = configured_debugger("nop", "nop")
+    debugger.add_breakpoint(BASE + 4, name="loop_exit")
+    debugger.set_breakpoint_enabled(BASE + 4, False)
+    assert debugger.breakpoints[0].name == "loop_exit"
+    debugger.restart()
+    assert debugger.breakpoints[0].name == "loop_exit"
+
+
 def test_execution_interval_is_retained_and_applied():
     """Expose configured pacing while preserving zero as the fastest mode."""
 

@@ -44,6 +44,7 @@ class DebuggerRegisterPanel(QTableWidget):
         self.setItemDelegateForColumn(1, RegisterValueDelegate("hexadecimal", self))
         self.setItemDelegateForColumn(2, RegisterValueDelegate("decimal", self))
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setMinimumWidth(0)
         self.setMaximumWidth(DEBUGGER_LAYOUT.REGISTER_PANEL_MAX_WIDTH)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -81,7 +82,7 @@ class DebuggerRegisterPanel(QTableWidget):
                     if column not in {1, 2} or not editable:
                         flags &= ~Qt.ItemIsEditable
                     item.setFlags(flags)
-                    item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                    item.setTextAlignment(Qt.AlignCenter)
                     color = register_cell_color(column, text)
                     if color:
                         item.setForeground(QColor(color))
@@ -99,15 +100,13 @@ class DebuggerRegisterPanel(QTableWidget):
         self._resize_columns()
 
     def _resize_columns(self) -> None:
-        """Keep every register column inside its declared width limits."""
+        """Keep Reg fixed and distribute remaining width across value columns."""
 
-        limits = DEBUGGER_LAYOUT.REGISTER_COLUMN_LIMITS
-        widths = [minimum for minimum, _maximum in limits]
-        remaining = max(0, self.viewport().width() - sum(widths))
-        for column in (2, 1, 0):
-            growth = min(remaining, limits[column][1] - widths[column])
-            widths[column] += growth
-            remaining -= growth
+        widths = list(DEBUGGER_LAYOUT.REGISTER_COLUMN_WIDTHS)
+        available = self.viewport().width() - DEBUGGER_LAYOUT.TABLE_SCROLLBAR_GAP
+        remaining = max(0, available - sum(widths))
+        widths[1] += remaining // 3
+        widths[2] += remaining - remaining // 3
         for column, width in enumerate(widths):
             self.setColumnWidth(column, width)
 

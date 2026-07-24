@@ -2,10 +2,14 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QHeaderView, QTableWidgetItem
+from PySide6.QtWidgets import QTableWidgetItem
 
+from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
+    psx_mips_required_highlight_color,
+)
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.constants.texts import (
+    MEMORY_OUT_OF_RANGE,
     MEMORY_SELECTION_EMPTY,
     MEMORY_SELECTION_TEMPLATE,
 )
@@ -33,9 +37,8 @@ class DebuggerMemoryRenderingMixin:
         )
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        table.configure_column_layout()
         for column in range(1, len(headers)):
-            table.horizontalHeader().setSectionResizeMode(column, QHeaderView.Stretch)
             table.horizontalHeaderItem(column).setForeground(
                 QColor(THEME_TOKENS["text-warning"])
             )
@@ -55,7 +58,7 @@ class DebuggerMemoryRenderingMixin:
     def refresh(self) -> None:
         """Render memory from the current address or latest followed access."""
 
-        access = self._latest_access() if self._follow_access else None
+        access = self._latest_access()
         if access is not None:
             self._start = self._aligned_start(access.address)
         self._refreshing = True
@@ -66,6 +69,7 @@ class DebuggerMemoryRenderingMixin:
                 self._render_row(row, address)
         finally:
             self._refreshing = False
+        self.table.resize_columns()
         if access is not None:
             size = max(1, int(access.details.get("size", 1)))
             self._show_selection(access.address, access.address + size - 1)
@@ -76,6 +80,9 @@ class DebuggerMemoryRenderingMixin:
         address_item = QTableWidgetItem(f"0x{address:08X}")
         address_item.setFlags(address_item.flags() & ~Qt.ItemIsEditable)
         address_item.setTextAlignment(Qt.AlignCenter)
+        address_item.setForeground(
+            QColor(psx_mips_required_highlight_color("hex"))
+        )
         self.table.setItem(row, 0, address_item)
         for column in range(1, DEBUGGER_LAYOUT.MEMORY_BYTE_COLUMNS + 1):
             cell_address = address + (column - 1) * DEBUGGER_LAYOUT.MEMORY_BYTES_PER_CELL
@@ -85,8 +92,11 @@ class DebuggerMemoryRenderingMixin:
                 )
                 item = QTableWidgetItem(memory_cell_text(data))
             else:
-                item = QTableWidgetItem("Out of range")
+                item = QTableWidgetItem(MEMORY_OUT_OF_RANGE)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setForeground(
+                    QColor(THEME_TOKENS["text-debug-out-of-range"])
+                )
             item.setData(Qt.UserRole, cell_address)
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, column, item)
@@ -112,14 +122,24 @@ class DebuggerMemoryRenderingMixin:
         )
 
     def _latest_access(self):
-        """Return the newest logged runtime read or write event."""
+        """Return the newest enabled runtime read or write event."""
 
+        operations = tuple(
+            name
+            for name, enabled in (
+                ("Write ", self._follow_writes),
+                ("Read ", self._follow_reads),
+            )
+            if enabled
+        )
+        if not operations:
+            return None
         return next(
             (
                 event
                 for event in reversed(self._debugger.events)
                 if event.level == "Memory"
-                and event.message.startswith(("Read ", "Write "))
+                and event.message.startswith(operations)
             ),
             None,
         )

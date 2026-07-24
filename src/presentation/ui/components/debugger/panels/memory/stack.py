@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem
+from PySide6.QtGui import QColor, QResizeEvent
+from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 
 from src.core.debugger.contracts.base import BWDebugger
 from src.core.debugger.memory.image import DebuggerMemoryImage
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
+from src.presentation.ui.components.debugger.panels.table.columns import (
+    CompensatedColumnLayout,
+)
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 
@@ -21,9 +24,17 @@ class DebuggerStackView(QTableWidget):
         self._image = image
         self._snapshot: dict[int, bytes] = {}
         self.setObjectName("debugger-stack-table")
-        self.setColumnCount(3)
-        self.setHorizontalHeaderLabels(("Offset", "Address", "Value"))
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.setColumnCount(4)
+        self.setHorizontalHeaderLabels(
+            ("Offset", "Address", "Value (Hex)", "Value (Dec)")
+        )
+        self._columns = CompensatedColumnLayout(
+            self,
+            DEBUGGER_LAYOUT.STACK_COLUMN_MINIMUMS,
+            DEBUGGER_LAYOUT.STACK_COLUMN_MAXIMUMS,
+            DEBUGGER_LAYOUT.STACK_GROWTH_COLUMNS,
+            DEBUGGER_LAYOUT.STACK_COMPENSATION_COLUMNS,
+        )
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.verticalHeader().hide()
         self.verticalHeader().setDefaultSectionSize(
@@ -49,6 +60,7 @@ class DebuggerStackView(QTableWidget):
                 f"{offset:+d}",
                 f"0x{address:08X}",
                 f"0x{int.from_bytes(data, 'little'):08X}" if data else "-",
+                str(int.from_bytes(data, "little")) if data else "-",
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
@@ -58,10 +70,18 @@ class DebuggerStackView(QTableWidget):
                     item.setBackground(QColor(THEME_TOKENS["bg-state-success-soft"]))
                 self.setItem(row, column, item)
         self._snapshot = current
-        for column, adjustment in enumerate(DEBUGGER_LAYOUT.STACK_COLUMN_ADJUSTMENTS):
-            self.resizeColumnToContents(column)
-            if adjustment:
-                self.setColumnWidth(column, self.columnWidth(column) + adjustment)
+        self._resize_columns()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Keep the table filled while prioritizing decimal and hex values."""
+
+        super().resizeEvent(event)
+        self._resize_columns()
+
+    def _resize_columns(self) -> None:
+        """Apply column minimums and distribute all remaining viewport width."""
+
+        self._columns.fit()
 
     def _word(self, address: int) -> bytes:
         """Read one complete stack word or return an out-of-range marker."""

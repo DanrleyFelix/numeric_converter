@@ -53,6 +53,7 @@ class DebuggerWindow(DebuggerWindowControlMixin, QMainWindow):
         self.setCentralWidget(shell)
         self.addActions(list(actions.all()))
         self.panels.instructions.breakpointToggled.connect(self._toggle_breakpoint)
+        self.panels.instructions.breakpointRemoved.connect(self._remove_breakpoint)
         self.panels.instructions.ignoredToggled.connect(self._toggle_ignored)
         self.panels.lower.navigateRequested.connect(self.panels.instructions.navigate_to)
         self.panels.lower.memory.errorRaised.connect(self.statusError.emit)
@@ -82,6 +83,12 @@ class DebuggerWindow(DebuggerWindowControlMixin, QMainWindow):
     def _toggle_ignored(self, address: int) -> None:
         """Toggle an explicit IGNORED instruction and refresh its status."""
         self.debugger.toggle_ignored_instruction(address)
+        self.refresh()
+
+    def _remove_breakpoint(self, address: int) -> None:
+        """Remove breakpoint metadata requested by the instruction menu."""
+
+        self.debugger.remove_breakpoint(address)
         self.refresh()
 
     def closeEvent(self, event: QCloseEvent) -> None:
