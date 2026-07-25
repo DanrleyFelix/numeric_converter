@@ -21,6 +21,9 @@ from src.presentation.ui.components.binary_workbench.editor.highlighters import 
     BytesHighlighter,
 )
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
+from src.presentation.ui.components.debugger.panels.memory.grid.header import (
+    DebuggerMemoryHeader,
+)
 from src.presentation.ui.components.debugger.panels.table.columns import (
     CompensatedColumnLayout,
 )
@@ -94,6 +97,12 @@ class DebuggerMemoryTable(QTableWidget):
     """Reuse table selection while providing deterministic clipboard output."""
 
     pasteRequested = Signal(str, object)
+
+    def __init__(self, parent=None) -> None:
+        """Create the table with its HxD-style offset header."""
+
+        super().__init__(parent)
+        self.setHorizontalHeader(DebuggerMemoryHeader(self))
 
     def configure_column_layout(self) -> None:
         """Enable bounded interactive resizing for all memory columns."""

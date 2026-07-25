@@ -38,10 +38,6 @@ class DebuggerMemoryRenderingMixin:
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
         table.configure_column_layout()
-        for column in range(1, len(headers)):
-            table.horizontalHeaderItem(column).setForeground(
-                QColor(THEME_TOKENS["text-warning"])
-            )
         table.setSelectionMode(DebuggerMemoryTable.ExtendedSelection)
         table.setSelectionBehavior(DebuggerMemoryTable.SelectItems)
         table.setItemDelegate(HexBytesDelegate(table))
@@ -54,25 +50,6 @@ class DebuggerMemoryRenderingMixin:
         table.itemSelectionChanged.connect(self._selection_changed)
         table.pasteRequested.connect(self._paste)
         return table
-
-    def refresh(self) -> None:
-        """Render memory from the current address or latest followed access."""
-
-        access = self._latest_access()
-        if access is not None:
-            self._start = self._aligned_start(access.address)
-        self._refreshing = True
-        try:
-            self.table.setRowCount(DEBUGGER_LAYOUT.MEMORY_ROWS)
-            for row in range(DEBUGGER_LAYOUT.MEMORY_ROWS):
-                address = self._start + row * DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW
-                self._render_row(row, address)
-        finally:
-            self._refreshing = False
-        self.table.resize_columns()
-        if access is not None:
-            size = max(1, int(access.details.get("size", 1)))
-            self._show_selection(access.address, access.address + size - 1)
 
     def _render_row(self, row: int, address: int) -> None:
         """Render one address and four independent byte cells."""
@@ -143,9 +120,3 @@ class DebuggerMemoryRenderingMixin:
             ),
             None,
         )
-
-    @staticmethod
-    def _aligned_start(address: int) -> int:
-        """Align one address to a sixteen-byte display row."""
-
-        return address - address % DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW

@@ -141,13 +141,29 @@ def test_cell_editors_fill_cells_and_log_icon_keeps_exact_margin():
     tabs.setCurrentWidget(tabs.memory)
     QApplication.processEvents()
     margins = tabs.filter.follow.layout().contentsMargins()
-    read_position = tabs.filter.follow_read.mapTo(tabs.filter, QPoint())
-    assert margins.top() == DEBUGGER_LAYOUT.MEMORY_FOLLOW_VERTICAL_MARGIN
+    assert margins.top() == DEBUGGER_LAYOUT.MEMORY_FOLLOW_TOP_MARGIN
+    assert margins.bottom() == DEBUGGER_LAYOUT.MEMORY_FOLLOW_BOTTOM_MARGIN
     assert margins.right() == DEBUGGER_LAYOUT.MEMORY_FOLLOW_RIGHT_MARGIN
-    assert (
-        tabs.filter.width() - read_position.x() - tabs.filter.follow_read.width()
-        == DEBUGGER_LAYOUT.MEMORY_FOLLOW_RIGHT_MARGIN
-    )
+    for width in (720, 900, 1400):
+        tabs.setCurrentWidget(tabs.log)
+        tabs.resize(width, 420)
+        tabs.setCurrentWidget(tabs.memory)
+        tabs.memory.refresh()
+        QApplication.processEvents()
+        read_position = tabs.filter.follow_read.mapTo(tabs.filter, QPoint())
+        assert (
+            tabs.filter.width()
+            - read_position.x()
+            - tabs.filter.follow_read.width()
+            == DEBUGGER_LAYOUT.MEMORY_FOLLOW_RIGHT_MARGIN
+        )
+        assert (
+            tabs.filter.height()
+            - read_position.y()
+            - tabs.filter.follow_read.height()
+            == DEBUGGER_LAYOUT.MEMORY_FOLLOW_BOTTOM_MARGIN
+        )
+    assert tabs.filter.follow.objectName() == "debugger-memory-follow"
 
     tabs.setCurrentWidget(tabs.log)
     QApplication.processEvents()

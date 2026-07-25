@@ -16,6 +16,10 @@ from src.presentation.ui.components.binary_workbench.editor.highlighter_colors i
     psx_mips_highlight_color,
     psx_mips_required_highlight_color,
 )
+from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
+from src.presentation.ui.components.debugger.panels.log.rendering import (
+    debugger_event_lines,
+)
 from src.presentation.ui.design.icons import Icons
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
@@ -91,6 +95,9 @@ class DebuggerLogView(QWidget):
         self.output = QPlainTextEdit(self)
         self.output.setObjectName("debugger-log")
         self.output.setReadOnly(True)
+        self.output.document().setMaximumBlockCount(
+            DEBUGGER_LAYOUT.LOG_MAX_LINES
+        )
         self.output.setContextMenuPolicy(Qt.CustomContextMenu)
         self.output.customContextMenuRequested.connect(self._context_menu)
         self._clear_action = QAction(Icons.remove(), "Clear Log", self.output)
@@ -111,15 +118,19 @@ class DebuggerLogView(QWidget):
         events = self._debugger.events
         if len(events) == self._rendered_count:
             return
-        lines = []
-        for event in events:
-            show_address = event.address is not None and event.level not in {"Memory", "Info"}
-            address = f" [0x{event.address:08X}]" if show_address else ""
-            line = f"{event.level}{address}: {event.message}"
-            if not self._filter or self._filter in line.casefold():
-                lines.append(line)
-        self.output.setPlainText("\n".join(lines))
-        self._rendered_count = len(events)
+        count = len(events)
+        rebuild = self._rendered_count < 0 or count < self._rendered_count
+        start = (
+            max(0, count - DEBUGGER_LAYOUT.LOG_MAX_LINES)
+            if rebuild
+            else max(self._rendered_count, count - DEBUGGER_LAYOUT.LOG_MAX_LINES)
+        )
+        lines = debugger_event_lines(events[start:], self._filter)
+        if rebuild:
+            self.output.setPlainText("\n".join(lines))
+        elif lines:
+            self.output.appendPlainText("\n".join(lines))
+        self._rendered_count = count
         scrollbar = self.output.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 

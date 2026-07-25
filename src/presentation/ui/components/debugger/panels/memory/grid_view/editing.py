@@ -8,6 +8,7 @@ from src.core.debugger.models.session import (
     DebuggerErrorCode,
     DebuggerSessionState,
 )
+from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.panels.memory.code.disassembly import (
     refresh_memory_disassembly,
 )
@@ -34,11 +35,21 @@ class DebuggerMemoryEditingMixin:
             )
             self.errorRaised.emit(error.message)
             return
-        self._start = self._aligned_start(value)
+        row = self._image.row_index(value, DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW)
+        if row is None:
+            return
+        row_address = self._image.row_address(
+            row, DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW
+        )
+        if row_address is None:
+            return
+        self._start = row_address
         self.refresh()
         self.table.clearSelection()
-        offset = value - self._start
-        item = self.table.item(offset // 16, offset % 16 // 4 + 1)
+        column = (
+            (value - row_address) // DEBUGGER_LAYOUT.MEMORY_BYTES_PER_CELL
+        ) + 1
+        item = self.table.item(row, column)
         if item is not None:
             item.setSelected(True)
         self._show_selection(value, value)

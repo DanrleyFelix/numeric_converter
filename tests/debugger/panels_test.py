@@ -1,10 +1,11 @@
 import os
+from dataclasses import replace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QHelpEvent, QKeyEvent, QTextDocument, QValidator
-from PySide6.QtWidgets import QApplication, QToolButton
+from PySide6.QtWidgets import QApplication, QPushButton, QToolButton
 
 from src.presentation.ui.components.binary_workbench.editor.highlighters import (
     BytesHighlighter,
@@ -26,7 +27,13 @@ from src.presentation.ui.components.debugger.panels.instruction.highlighting imp
     SyntaxCellDelegate,
 )
 from src.presentation.ui.components.debugger.panels.instructions import DebuggerInstructionPanel
-from src.presentation.ui.components.debugger.panels.log.view import DebuggerLogHighlighter
+from src.presentation.ui.components.debugger.panels.log.view import (
+    DebuggerLogHighlighter,
+    DebuggerLogView,
+)
+from src.presentation.ui.components.debugger.panels.memory.grid.header import (
+    DebuggerMemoryHeader,
+)
 from src.presentation.ui.components.debugger.panels.memory.view import DebuggerMemoryView
 from src.presentation.ui.components.debugger.panels.registers import DebuggerRegisterPanel
 from src.presentation.ui.components.debugger.panels.session.breakpoint.presentation import (
@@ -172,6 +179,26 @@ def test_debug_log_highlights_execution_and_every_hexadecimal_value():
     assert "#F0C75E" in colors
 
 
+def test_debug_log_keeps_search_and_incremental_updates_at_line_limit():
+    """Bound the document at 100,000 lines while retaining filter and tail updates."""
+
+    _app()
+    debugger = configured_debugger("nop")
+    debugger._events = [
+        DebuggerEvent("Info", f"entry {index}")
+        for index in range(DEBUGGER_LAYOUT.LOG_MAX_LINES + 5)
+    ]
+    view = DebuggerLogView(debugger)
+
+    assert view.output.document().blockCount() == DEBUGGER_LAYOUT.LOG_MAX_LINES
+    view.set_filter("entry 99999")
+    assert "entry 99999" in view.output.toPlainText()
+    debugger._events.append(DebuggerEvent("Info", "tail marker"))
+    view.set_filter("")
+    assert view.output.toPlainText().endswith("Info: tail marker")
+    assert view.output.document().blockCount() == DEBUGGER_LAYOUT.LOG_MAX_LINES
+
+
 def test_memory_grid_uses_four_bounded_cells_and_selected_block_summary():
     """Keep each editable memory cell fixed to four bytes without displacement."""
 
@@ -184,6 +211,15 @@ def test_memory_grid_uses_four_bounded_cells_and_selected_block_summary():
 
     assert view.table.columnCount() == 5
     assert view.table.horizontalHeaderItem(1).text() == "00 01 02 03"
+    assert isinstance(view.table.horizontalHeader(), DebuggerMemoryHeader)
+    assert (
+        view.table.horizontalHeader().section_text_color(1).name().upper()
+        == "#F0C75E"
+    )
+    assert (
+        view.table.horizontalHeader().section_text_color(0).name().upper()
+        == "#EAEAF5"
+    )
     assert view.selection.text().startswith("Block:")
     assert view.search.placeholderText() == "Search Address"
     assert view.search.minimumWidth() == DEBUGGER_LAYOUT.MEMORY_SEARCH_MIN_WIDTH
@@ -205,13 +241,50 @@ def test_memory_grid_uses_four_bounded_cells_and_selected_block_summary():
     assert f"0x{BASE + 1:08X} - 0x{BASE + 1:08X}" in view.selection.text()
     assert "Bytes: 1 (0x1)" in view.selection.text()
     view.navigate(f"{debugger._image.end:X}")
-    out_of_range = next(
-        item
-        for row in range(view.table.rowCount())
-        for column in range(1, view.table.columnCount())
-        if (item := view.table.item(row, column)).text() == "Out Of Range"
+    QApplication.processEvents()
+    last_row = debugger._image.row_index(
+        debugger._image.end, DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW
     )
-    assert out_of_range.foreground().color().name().upper() == "#DC143C"
+    assert last_row is not None
+    assert view.table.rowCount() == debugger._image.row_count(
+        DEBUGGER_LAYOUT.MEMORY_BYTES_PER_ROW
+    )
+    assert (
+        view.table.verticalScrollBar().value()
+        == view.table.verticalScrollBar().maximum()
+    )
+    assert view.table.item(last_row, 0).text() == "0x00001FF0"
+    assert view.table.item(last_row, 4).data(Qt.UserRole) == debugger._image.end - 3
+
+
+def test_memory_grid_virtualizes_the_complete_configured_range():
+    """Reach the final row of a PSX-sized range while rendering one small window."""
+
+    _app()
+    debugger = configured_debugger("nop")
+    image = replace(debugger._image, start=0x80000000, end=0x801DFFFF)
+    debugger.read_memory = lambda _address, size: bytes(size)
+    view = DebuggerMemoryView(debugger, image)
+    view.resize(900, 1200)
+    view.show()
+    QApplication.processEvents()
+
+    assert view.table.rowCount() == 0x1E000
+    assert len(view._rendered_rows) <= max(
+        DEBUGGER_LAYOUT.MEMORY_ROWS,
+        view.table.verticalScrollBar().pageStep(),
+    )
+    view.navigate("0x801DFFFF")
+    QApplication.processEvents()
+    assert (
+        view.table.verticalScrollBar().value()
+        == view.table.verticalScrollBar().maximum()
+    )
+    assert view.table.item(view.table.rowCount() - 1, 0).text() == "0x801DFFF0"
+    assert len(view._rendered_rows) <= max(
+        DEBUGGER_LAYOUT.MEMORY_ROWS,
+        view.table.verticalScrollBar().pageStep(),
+    )
 
 
 def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
@@ -234,6 +307,8 @@ def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
     assert tabs.stack.columnCount() == 4
     assert tabs.stack.horizontalHeaderItem(2).text() == "Value (Hex)"
     assert tabs.stack.horizontalHeaderItem(3).text() == "Value (Dec)"
+    assert tabs.stack.item(0, 1).foreground().color().name().upper() == "#62C6A1"
+    assert tabs.stack.item(0, 2).foreground().color().name().upper() == "#62C6A1"
     tabs.stack.resize(900, 300)
     tabs.stack._resize_columns()
     assert all(
@@ -294,8 +369,13 @@ def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
     tabs.resize(900, 300)
     QApplication.processEvents()
     assert tabs.filter.search.placeholderText() == "Search Log"
+    assert tabs.filter.search.width() == DEBUGGER_LAYOUT.FILTER_WIDTH
     assert tabs.filter.height() == tabs.tabBar().height()
     assert tabs.filter.search.height() == tabs.tabBar().height()
+    assert (
+        tabs.log.output.document().maximumBlockCount()
+        == DEBUGGER_LAYOUT.LOG_MAX_LINES
+    )
     assert tabs.log._clear_action.shortcut().toString() == "Ctrl+L"
     tabs.log._clear_action.trigger()
     assert debugger.events == ()
@@ -327,6 +407,14 @@ def test_debugger_toolbar_has_config_without_redundant_tooltips():
     )
     dialog = DebuggerConfigDialog()
     assert dialog.interval.placeholderText() == "Interval (ms)"
+    assert dialog.interval.width() == DEBUGGER_LAYOUT.CONFIG_FIELD_WIDTH
+    confirm = next(
+        button
+        for button in dialog.findChildren(QPushButton)
+        if button.text() == "Confirm"
+    )
+    assert confirm.width() == DEBUGGER_LAYOUT.CONFIG_CONFIRM_WIDTH
+    assert dialog.layout().spacing() == DEBUGGER_LAYOUT.CONFIG_VERTICAL_SPACING
     assert dialog.interval.validator().validate("2000", 4)[0] == QValidator.Acceptable
     assert dialog.interval.validator().validate("60001", 5)[0] != QValidator.Acceptable
 

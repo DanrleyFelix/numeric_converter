@@ -18,6 +18,9 @@ from src.presentation.ui.components.debugger.panels.memory.grid_view.editing imp
 from src.presentation.ui.components.debugger.panels.memory.grid_view.rendering import (
     DebuggerMemoryRenderingMixin,
 )
+from src.presentation.ui.components.debugger.panels.memory.viewport.scrolling import (
+    DebuggerMemoryScrollingMixin,
+)
 from src.presentation.ui.components.debugger.panels.tabs.filter_bar import (
     DebouncedSearchEdit,
 )
@@ -25,6 +28,7 @@ from src.presentation.ui.components.debugger.panels.tabs.filter_bar import (
 
 class DebuggerMemoryView(
     DebuggerMemoryEditingMixin,
+    DebuggerMemoryScrollingMixin,
     DebuggerMemoryRenderingMixin,
     QWidget,
 ):
@@ -44,9 +48,10 @@ class DebuggerMemoryView(
         self._follow_reads = False
         self._refreshing = False
         self.table = self._create_table()
+        self._setup_memory_scrolling()
         self._resize_timer = QTimer(self)
         self._resize_timer.setSingleShot(True)
-        self._resize_timer.timeout.connect(self.table.resize_columns)
+        self._resize_timer.timeout.connect(self.refresh)
         self.selection = QLabel(MEMORY_SELECTION_EMPTY, self)
         self.selection.setObjectName("debugger-memory-selection")
         self.search = DebouncedSearchEdit(MEMORY_ADDRESS_FILTER, self)
@@ -80,7 +85,7 @@ class DebuggerMemoryView(
         self.refresh()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        """Resize the byte columns once from the stable parent geometry."""
+        """Refresh rows and columns once from the stable parent geometry."""
 
         super().resizeEvent(event)
         self._resize_timer.start(0)

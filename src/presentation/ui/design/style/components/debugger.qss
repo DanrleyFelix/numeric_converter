@@ -134,6 +134,10 @@ QWidget#debugger-memory-footer {
     background-color: $bg-panel;
 }
 
+QWidget#debugger-memory-follow QLabel {
+    font-size: $fs-c-md;
+}
+
 QWidget#debugger-memory-summary {
     background-color: $bg-panel;
     border: none;

@@ -48,11 +48,13 @@ class DebuggerConfigDialog(QDialog):
         )
         confirm = QPushButton(CONFIG_CONFIRM, self)
         configure_binary_workbench_dialog_action(confirm)
+        confirm.setFixedWidth(DEBUGGER_LAYOUT.CONFIG_CONFIRM_WIDTH)
         confirm.clicked.connect(self._accept_valid)
         self.interval.returnPressed.connect(self._accept_valid)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(*(DEBUGGER_LAYOUT.OUTER_MARGIN,) * 4)
-        layout.addWidget(self.interval)
+        layout.setSpacing(DEBUGGER_LAYOUT.CONFIG_VERTICAL_SPACING)
+        layout.addWidget(self.interval, 0, Qt.AlignCenter)
         layout.addWidget(confirm, 0, Qt.AlignCenter)
 
     def interval_ms(self) -> int | None:

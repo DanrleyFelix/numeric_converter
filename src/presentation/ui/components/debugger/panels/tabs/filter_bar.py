@@ -85,15 +85,18 @@ class DebuggerTabFilter(QWidget):
         self.setObjectName("debugger-tab-filter-container")
         self.search = DebouncedSearchEdit("", self)
         self.search.setObjectName("debugger-tab-filter")
+        self.search.setFixedWidth(DEBUGGER_LAYOUT.FILTER_WIDTH)
         self.search.filterApplied.connect(self.filterApplied.emit)
         self.follow = QWidget(self)
+        self.follow.setObjectName("debugger-memory-follow")
         follow_layout = QHBoxLayout(self.follow)
         follow_layout.setContentsMargins(
             0,
-            DEBUGGER_LAYOUT.MEMORY_FOLLOW_VERTICAL_MARGIN,
+            DEBUGGER_LAYOUT.MEMORY_FOLLOW_TOP_MARGIN,
             DEBUGGER_LAYOUT.MEMORY_FOLLOW_RIGHT_MARGIN,
-            DEBUGGER_LAYOUT.MEMORY_FOLLOW_VERTICAL_MARGIN,
+            DEBUGGER_LAYOUT.MEMORY_FOLLOW_BOTTOM_MARGIN,
         )
+        follow_layout.setAlignment(Qt.AlignBottom)
         follow_layout.setSpacing(DEBUGGER_LAYOUT.TOOLBAR_SPACING)
         follow_layout.addStretch()
         follow_layout.addWidget(QLabel(FOLLOW_LABEL, self.follow))

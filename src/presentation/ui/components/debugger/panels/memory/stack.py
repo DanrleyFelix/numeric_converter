@@ -6,6 +6,9 @@ from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 
 from src.core.debugger.contracts.base import BWDebugger
 from src.core.debugger.memory.image import DebuggerMemoryImage
+from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
+    psx_mips_required_highlight_color,
+)
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.panels.table.columns import (
     CompensatedColumnLayout,
@@ -66,6 +69,10 @@ class DebuggerStackView(QTableWidget):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 item.setTextAlignment(Qt.AlignCenter)
+                if column in (1, 2):
+                    item.setForeground(
+                        QColor(psx_mips_required_highlight_color("hex"))
+                    )
                 if changed:
                     item.setBackground(QColor(THEME_TOKENS["bg-state-success-soft"]))
                 self.setItem(row, column, item)

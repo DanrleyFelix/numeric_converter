@@ -81,3 +81,53 @@ class DebuggerMemoryImage:
         if self.stack_start is not None and self.stack_end is not None:
             ranges.append((self.stack_start, self.stack_end))
         return tuple(ranges)
+
+    def row_ranges(self, row_size: int) -> tuple[tuple[int, int], ...]:
+        """Return merged mapped ranges aligned to complete display rows."""
+
+        if row_size <= 0:
+            raise ValueError("Row size must be positive.")
+        aligned = sorted(
+            (
+                start - start % row_size,
+                end - end % row_size,
+            )
+            for start, end in self.ranges
+        )
+        merged: list[tuple[int, int]] = []
+        for start, end in aligned:
+            if merged and start <= merged[-1][1] + row_size:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+        return tuple(merged)
+
+    def row_count(self, row_size: int) -> int:
+        """Return the number of aligned rows across every mapped range."""
+
+        return sum(
+            ((end - start) // row_size) + 1
+            for start, end in self.row_ranges(row_size)
+        )
+
+    def row_address(self, row: int, row_size: int) -> int | None:
+        """Resolve one virtual display row to its mapped start address."""
+
+        remaining = row
+        for start, end in self.row_ranges(row_size):
+            count = ((end - start) // row_size) + 1
+            if 0 <= remaining < count:
+                return start + remaining * row_size
+            remaining -= count
+        return None
+
+    def row_index(self, address: int, row_size: int) -> int | None:
+        """Resolve one mapped address to its concatenated display row."""
+
+        aligned = address - address % row_size
+        consumed = 0
+        for start, end in self.row_ranges(row_size):
+            if start <= aligned <= end:
+                return consumed + ((aligned - start) // row_size)
+            consumed += ((end - start) // row_size) + 1
+        return None
