@@ -30,6 +30,12 @@ def _column_gap(table) -> int:
     )
 
 
+def _mapped_rect(widget, parent) -> QRect:
+    """Return one widget rectangle expressed in parent coordinates."""
+
+    return QRect(widget.mapTo(parent, QPoint()), widget.size())
+
+
 def _show_tabs(width: int = 900) -> DebuggerLowerTabs:
     """Create visible lower tabs at a stable test geometry."""
 
@@ -171,3 +177,48 @@ def test_cell_editors_fill_cells_and_log_icon_keeps_exact_margin():
     icon = search._search_icon
     assert search.width() - icon.geometry().right() - 1 == DEBUGGER_LAYOUT.LOG_FILTER_ICON_MARGIN
     assert search.textMargins().right() > icon.width() + DEBUGGER_LAYOUT.LOG_FILTER_ICON_MARGIN
+
+
+def test_context_controls_stay_anchored_without_post_tab_switch_jump():
+    """Keep Follow and Search Log stable before and after layout event processing."""
+
+    app = _app()
+    tabs = _show_tabs()
+    inactive = (tabs.stack, tabs.breakpoints, tabs.log)
+    for width in (900, 1100, 1400):
+        tabs.resize(width, 420)
+        app.processEvents()
+        tabs.setCurrentWidget(tabs.memory)
+        app.processEvents()
+        follow_rect = _mapped_rect(tabs.filter.follow_read, tabs)
+        filter_rect = _mapped_rect(tabs.filter, tabs)
+        assert (
+            filter_rect.y()
+            + filter_rect.height()
+            - follow_rect.y()
+            - follow_rect.height()
+            == DEBUGGER_LAYOUT.MEMORY_FOLLOW_BOTTOM_MARGIN
+        )
+        assert (
+            tabs.width() - follow_rect.x() - follow_rect.width()
+            == DEBUGGER_LAYOUT.MEMORY_FOLLOW_RIGHT_MARGIN
+        )
+        for widget in inactive:
+            tabs.setCurrentWidget(widget)
+            tabs.setCurrentWidget(tabs.memory)
+            assert _mapped_rect(tabs.filter.follow_read, tabs) == follow_rect
+            app.processEvents()
+            assert _mapped_rect(tabs.filter.follow_read, tabs) == follow_rect
+
+        tabs.setCurrentWidget(tabs.log)
+        search_rect = _mapped_rect(tabs.filter.search, tabs)
+        assert search_rect.width() == DEBUGGER_LAYOUT.FILTER_WIDTH
+        assert search_rect.x() + search_rect.width() == tabs.width()
+        app.processEvents()
+        assert _mapped_rect(tabs.filter.search, tabs) == search_rect
+        for widget in (tabs.stack, tabs.memory, tabs.breakpoints):
+            tabs.setCurrentWidget(widget)
+            tabs.setCurrentWidget(tabs.log)
+            assert _mapped_rect(tabs.filter.search, tabs) == search_rect
+            app.processEvents()
+            assert _mapped_rect(tabs.filter.search, tabs) == search_rect

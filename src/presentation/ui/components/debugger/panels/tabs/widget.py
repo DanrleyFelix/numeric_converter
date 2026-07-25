@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QTimer, Qt, Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QTabWidget
 
 from src.core.debugger.contracts.base import BWDebugger
@@ -42,14 +42,10 @@ class DebuggerLowerTabs(QTabWidget):
         ):
             self.addTab(widget, name)
         self.filter = DebuggerTabFilter(self)
-        self.setCornerWidget(self.filter, Qt.TopRightCorner)
         self.filter.filterApplied.connect(self._apply_filter)
         self.filter.followWritesChanged.connect(self.memory.set_follow_writes)
         self.filter.followReadsChanged.connect(self.memory.set_follow_reads)
         self.currentChanged.connect(self._tab_changed)
-        self._corner_timer = QTimer(self)
-        self._corner_timer.setSingleShot(True)
-        self._corner_timer.timeout.connect(self._position_corner)
         self._breakpoint_fit_timer = QTimer(self)
         self._breakpoint_fit_timer.setSingleShot(True)
         self._breakpoint_fit_timer.timeout.connect(self.breakpoints.fit_columns)
@@ -74,20 +70,17 @@ class DebuggerLowerTabs(QTabWidget):
 
         tabs_width = self.tabBar().sizeHint().width()
         self.breakpoints.set_entry_width(tabs_width)
-        self.filter.setFixedHeight(self.tabBar().height())
-        self.filter.search.setFixedHeight(self.tabBar().height())
-        self._corner_timer.start(0)
-
-    def _position_corner(self) -> None:
-        """Remove QTabWidget's extra gap before the contextual controls."""
-
-        tabs_width = self.tabBar().sizeHint().width()
+        tab_height = self.tabBar().height()
+        corner_width = max(1, self.width() - tabs_width)
+        self.filter.setFixedSize(corner_width, tab_height)
+        self.filter.search.setFixedHeight(tab_height)
         self.filter.setGeometry(
             tabs_width,
             self.tabBar().geometry().top(),
-            max(1, self.width() - tabs_width),
-            self.tabBar().height(),
+            corner_width,
+            tab_height,
         )
+        self.filter.raise_()
 
     def _tab_changed(self, _index: int) -> None:
         """Update filter behavior and clear filters from inactive views."""

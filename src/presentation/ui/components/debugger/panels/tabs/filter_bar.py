@@ -111,6 +111,7 @@ class DebuggerTabFilter(QWidget):
         layout.setSpacing(0)
         layout.addWidget(self.search)
         layout.addWidget(self.follow, 1)
+        layout.setAlignment(self.search, Qt.AlignRight | Qt.AlignVCenter)
 
     def set_mode(self, placeholder: str, follow_visible: bool = False) -> None:
         """Reset the field and expose controls appropriate for one tab."""
@@ -123,6 +124,8 @@ class DebuggerTabFilter(QWidget):
         self.search.setVisible(bool(placeholder))
         self.follow.setVisible(follow_visible)
         self.setVisible(bool(placeholder) or follow_visible)
+        self.layout().invalidate()
+        self.layout().activate()
 
     def _follow_checkbox(self, callback) -> QCheckBox:
         """Create one pointer-only W/R checkbox with its compact label."""
