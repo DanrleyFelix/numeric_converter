@@ -38,22 +38,29 @@ capabilities, technical structure and release/build notes.
 
 ## What's New in v3.0
 
-- The Binary Workbench debugger adds controlled execution, runtime register and
-  memory inspection, stack visualization, typed breakpoints and filtered logs.
-- Local Symbols remain owned by a tab and shared by its versions, while Global
-  Symbols are available across tabs. Both scopes now feed the same autocomplete,
-  highlighting, preprocessing, assembly and offset-calculation pipeline.
-- Editor symbols are interactive: click to change a symbol, click a jump target
-  to navigate, or use `Ctrl+Click` on a jump symbol to edit it.
-- `Replace Bytes` (`Ctrl+R`) replaces ranges by real file offset, confirms
-  overwrites of non-zero data and respects the Allow byte shifting rule when a
-  replacement grows the file.
-- PSX MIPS input accepts inferred-register short forms such as
-  `addiu $a0, 0x5` and `and $s0, $a0`; Raw Instructions keeps the expanded form.
-- Label folding, branch/jump target handling and viewport-independent selection
-  were refined for large assembly and binary editing sessions.
-- `Ctrl+Space` recovers an offscreen dialog or window. Repeating it within five
-  seconds moves and centers the same window on the other monitor.
+- Binary Workbench now includes a PSX MIPS debugger with Run, Pause, Stop,
+  Restart, Step, Step Over and Config actions, each exposed through the debugger
+  toolbar and its corresponding `F5` through `F11` shortcut.
+- Editor Assembly supports debugger directives such as
+  `virtual_memory_range`, `import`, `define` and `ignore`. They configure the
+  isolated runtime address space, load code and data, initialize registers and
+  mark addresses that the debugger should ignore.
+- The debugger window combines an instruction panel, editable hexadecimal and
+  decimal registers, and a runtime panel with Stack View, Memory View,
+  Breakpoints and Debug Log. Memory View can follow writes, reads or both.
+- Debugger Config controls the automatic instruction interval in milliseconds
+  and which Execution, Memory, Info, Warning and Error events appear in Debug
+  Log. Log search, syntax highlighting and bounded high-volume rendering are
+  included.
+- Breakpoints can stop on execution, memory reads, memory writes or register
+  conditions. Address types can be combined, while register breakpoints accept
+  comparison and logical expressions and can be created from the register
+  panel.
+- Binary Workbench label folding received synchronization fixes for three or
+  more labels and any combination of visible columns. Expanding the final label
+  no longer truncates scrolling, deleting a label expands the label that
+  receives its instructions, and edits inside collapsed content expand the
+  affected label automatically.
 
 ## Numeric WorkBench
 
