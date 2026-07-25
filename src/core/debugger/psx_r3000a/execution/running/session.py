@@ -39,6 +39,7 @@ class PsxRunSessionMixin:
 
         if self._state not in {DebuggerSessionState.READY, DebuggerSessionState.PAUSED}:
             raise self._state_error("run")
+        self._clear_breakpoint_hits()
         resume_breakpoint = (
             self._state == DebuggerSessionState.PAUSED
             and self._active_breakpoint(self.pc) is not None
@@ -67,6 +68,7 @@ class PsxRunSessionMixin:
 
         if self._state not in {DebuggerSessionState.READY, DebuggerSessionState.PAUSED}:
             raise self._state_error("step over")
+        self._clear_breakpoint_hits()
         data = self.read_memory(self.pc, self.step_rules.instruction_size)
         flow = decode_control_flow(data, self.pc, self._registers.snapshot())
         if flow is None or not flow.is_call:
@@ -92,9 +94,7 @@ class PsxRunSessionMixin:
                 return
             breakpoint = self._active_breakpoint(self.pc)
             if breakpoint is not None and not (index == 0 and bypass_first_breakpoint):
-                self._events.append(
-                    DebuggerEvent("Info", f"Breakpoint reached at 0x{self.pc:08X}.", self.pc)
-                )
+                self._mark_breakpoint_hit(breakpoint.identifier, self.pc)
                 self._state = DebuggerSessionState.PAUSED
                 return
             if return_address is not None and index and self.pc == return_address:
@@ -105,6 +105,9 @@ class PsxRunSessionMixin:
             except DebuggerError as error:
                 self._fail(error)
                 raise
+            if self._breakpoint_hit_during_step:
+                self._state = DebuggerSessionState.PAUSED
+                return
             if self._finish_at_program_end():
                 return
             if self._wait_execution_interval():

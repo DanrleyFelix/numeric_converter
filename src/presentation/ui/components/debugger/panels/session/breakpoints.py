@@ -24,7 +24,13 @@ from src.presentation.ui.components.debugger.panels.session.breakpoint.context_m
 )
 from src.presentation.ui.components.debugger.panels.session.breakpoint.presentation import (
     BreakpointNameDelegate,
+    BreakpointTypeDelegate,
     render_breakpoint_rows,
+)
+from src.presentation.ui.components.debugger.panels.session.breakpoint.table.editing import (
+    add_address_breakpoint,
+    navigate_breakpoint_row,
+    update_breakpoint_cell,
 )
 from src.presentation.ui.components.debugger.panels.table.columns import (
     CompensatedColumnLayout,
@@ -71,6 +77,9 @@ class DebuggerBreakpointsView(QWidget):
             DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN, BreakpointNameDelegate(self.table)
         )
         self.table.setItemDelegateForColumn(
+            DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN, BreakpointTypeDelegate(self.table)
+        )
+        self.table.setItemDelegateForColumn(
             DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN,
             instruction_cell_delegate(self.table),
         )
@@ -82,7 +91,7 @@ class DebuggerBreakpointsView(QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._context_menu)
         self.table.cellDoubleClicked.connect(self._navigate_row)
-        self.table.itemChanged.connect(self._rename)
+        self.table.itemChanged.connect(self._change)
         entry = QWidget(self)
         entry.setObjectName("debugger-breakpoint-entry")
         entry_layout = QHBoxLayout(entry)
@@ -131,23 +140,12 @@ class DebuggerBreakpointsView(QWidget):
     def _add(self) -> None:
         """Add the entered address when Enter is pressed."""
 
-        if not self.address.hasAcceptableInput():
-            return
-        try:
-            text = self.address.text().strip()
-            address = int(text, 0 if text.lower().startswith("0x") else 16)
-        except ValueError:
-            return
-        self._debugger.add_breakpoint(address)
-        self.address.clear()
-        self.refresh()
+        add_address_breakpoint(self)
 
-    def _rename(self, item) -> None:
-        """Persist valid edits made to the breakpoint Name column."""
+    def _change(self, item) -> None:
+        """Persist supported edits made to breakpoint metadata cells."""
 
-        if self._refreshing or item.column() != DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN:
-            return
-        self._debugger.set_breakpoint_name(int(item.data(Qt.UserRole)), item.text())
+        update_breakpoint_cell(self, item)
 
     def _context_menu(self, position) -> None:
         """Offer standard styled breakpoint operations."""
@@ -157,4 +155,4 @@ class DebuggerBreakpointsView(QWidget):
     def _navigate_row(self, row: int, _column: int) -> None:
         """Navigate to a double-clicked breakpoint without integer narrowing."""
 
-        self.navigateRequested.emit(self.table.item(row, 0).data(Qt.UserRole))
+        navigate_breakpoint_row(self, row)

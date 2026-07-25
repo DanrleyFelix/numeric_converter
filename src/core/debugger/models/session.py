@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from src.core.debugger.models.breakpoint import DebuggerBreakpoint
+
 
 class DebuggerSessionState(str, Enum):
     """Represent the externally observable lifecycle of one debugger session."""
@@ -54,17 +56,6 @@ class DebuggerStepRules:
     delay_slots: int = 0
     call_mnemonics: tuple[str, ...] = ()
 
-
-@dataclass(frozen=True)
-class DebuggerBreakpoint:
-    """Represent a non-invasive execution breakpoint."""
-
-    address: int
-    enabled: bool = True
-    origin: str = ""
-    instruction: str = ""
-    valid: bool = True
-    name: str = ""
 
 @dataclass(frozen=True)
 class DebuggerInstruction:

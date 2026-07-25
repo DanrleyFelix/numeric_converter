@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from src.core.debugger.backends.unicorn_psx import UnicornPSXR3000ABackend
+from src.core.debugger.breakpoints.conditions import register_aliases
 from src.core.debugger.memory.image import DebuggerMemoryImage
 from src.core.debugger.models.session import (
     DebuggerBreakpoint,
@@ -27,6 +28,10 @@ class PsxExecutionStateMixin(PsxSessionControlMixin, PsxObservationMixin):
         self._backend: UnicornPSXR3000ABackend | None = None
         self._image: DebuggerMemoryImage | None = None
         self._breakpoints: dict[int, DebuggerBreakpoint] = {}
+        self._next_breakpoint_identifier = -1
+        self._pending_breakpoint_identifier: int | None = None
+        self._breakpoint_hit_during_step = False
+        self._register_aliases = register_aliases(self._registers.descriptors)
         self._ignored_instructions: set[int] = set()
         self._pause_requested = False
         self._stop_requested = False
@@ -98,7 +103,10 @@ class PsxExecutionStateMixin(PsxSessionControlMixin, PsxObservationMixin):
     def breakpoints(self) -> tuple[DebuggerBreakpoint, ...]:
         """Return breakpoint metadata ordered by address."""
 
-        return tuple(self._breakpoints[key] for key in sorted(self._breakpoints))
+        return tuple(sorted(
+            self._breakpoints.values(),
+            key=lambda item: (item.address is None, item.address or 0, item.identifier),
+        ))
 
     @property
     def statistics(self) -> DebuggerStatistics:

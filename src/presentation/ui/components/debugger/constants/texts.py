@@ -28,7 +28,7 @@ LOWER_TAB_NAMES = (
     "Debug Log",
 )
 ZONE_HEADERS = ("Start", "End", "Size", "Origin", "Status", "Loaded Bytes")
-BREAKPOINT_HEADERS = ("Address", "Name", "Instruction", "Status")
+BREAKPOINT_HEADERS = ("Type", "WHERE", "Name", "Instruction", "Status")
 MEMORY_ADDRESS_FILTER = "Search Address"
 BREAKPOINT_FILTER = "Search Breakpoint"
 LOG_FILTER = "Search Log"
@@ -47,3 +47,5 @@ FOLLOW_READ_LABEL = "R"
 CONFIG_TITLE = "Debugger Config"
 CONFIG_INTERVAL_PLACEHOLDER = "Interval (ms)"
 CONFIG_CONFIRM = "Confirm"
+REGISTER_BREAKPOINT_TITLE = "Register Breakpoint"
+REGISTER_BREAKPOINT_PLACEHOLDER = "${register} == 0x0"

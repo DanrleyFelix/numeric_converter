@@ -16,9 +16,24 @@ class BWDebuggerControl(ABC):
 
     @abstractmethod
     def add_breakpoint(
-        self, address: int, enabled: bool = True, name: str = ""
+        self,
+        address: int,
+        enabled: bool = True,
+        name: str = "",
+        breakpoint_type: str = "execution",
     ) -> DebuggerBreakpoint:
-        """Add non-invasive breakpoint metadata for one address."""
+        """Add typed non-invasive breakpoint metadata for one address."""
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_register_breakpoint(
+        self,
+        condition: str,
+        enabled: bool = True,
+        name: str = "",
+    ) -> DebuggerBreakpoint:
+        """Add a standalone conditional register breakpoint."""
 
         raise NotImplementedError
 
@@ -29,19 +44,25 @@ class BWDebuggerControl(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_breakpoint_enabled(self, address: int, enabled: bool) -> None:
+    def set_breakpoint_enabled(self, identifier: int, enabled: bool) -> None:
         """Enable or disable retained breakpoint metadata."""
 
         raise NotImplementedError
 
     @abstractmethod
-    def set_breakpoint_name(self, address: int, name: str) -> None:
+    def set_breakpoint_name(self, identifier: int, name: str) -> None:
         """Assign a symbolic display name to retained breakpoint metadata."""
 
         raise NotImplementedError
 
     @abstractmethod
-    def remove_breakpoint(self, address: int) -> None:
+    def set_breakpoint_type(self, identifier: int, expression: str) -> None:
+        """Apply one valid type combination to retained breakpoint metadata."""
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def remove_breakpoint(self, identifier: int) -> None:
         """Remove breakpoint metadata without changing virtual memory."""
 
         raise NotImplementedError

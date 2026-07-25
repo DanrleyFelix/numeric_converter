@@ -16,10 +16,12 @@ class PsxObservationMixin:
         if observation.kind == "read":
             _increment(self._statistics.reads, observation.address)
             self._memory_event("Memory", "Read", observation)
+            self._queue_access_breakpoint("read", observation)
             return
         if observation.kind == "write":
             _increment(self._statistics.writes, observation.address)
             self._memory_event("Memory", "Write", observation)
+            self._queue_access_breakpoint("write", observation)
             return
         if observation.kind == "alignment":
             self._memory_event("Alignment Memory Error", "Unaligned access", observation)
@@ -43,6 +45,21 @@ class PsxObservationMixin:
         }
         message = f"{operation} at 0x{observation.address:08X} ({observation.size} bytes)."
         self._events.append(DebuggerEvent(level, message, observation.address, details))
+
+    def _queue_access_breakpoint(
+        self,
+        operation: str,
+        observation: BackendObservation,
+    ) -> None:
+        """Queue a matching read/write breakpoint for post-step pausing."""
+
+        breakpoint = self._active_memory_breakpoint(
+            operation,
+            observation.address,
+            observation.size,
+        )
+        if breakpoint is not None:
+            self._queue_memory_breakpoint(breakpoint)
 
 
 def _increment(values: dict[int, int], address: int) -> None:

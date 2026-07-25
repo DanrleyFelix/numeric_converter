@@ -338,19 +338,27 @@ def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
     )
     tabs.breakpoints.address.setText("80000000")
     tabs.breakpoints.address.returnPressed.emit()
-    assert tabs.breakpoints.table.columnCount() == 4
-    assert tabs.breakpoints.table.horizontalHeaderItem(1).text() == "Name"
-    assert tabs.breakpoints.table.columnWidth(1) >= 180
+    assert tabs.breakpoints.table.columnCount() == 5
+    assert tabs.breakpoints.table.horizontalHeaderItem(0).text() == "Type"
+    assert tabs.breakpoints.table.horizontalHeaderItem(1).text() == "WHERE"
+    assert tabs.breakpoints.table.horizontalHeaderItem(2).text() == "Name"
+    assert tabs.breakpoints.table.item(0, 0).text() == "execution"
+    assert tabs.breakpoints.table.item(0, 1).text() == "addr == 0x80000000"
+    assert tabs.breakpoints.table.columnWidth(2) >= 180
     assert (
         _content_to_scrollbar_gap(tabs.breakpoints.table)
         == DEBUGGER_LAYOUT.TABLE_SCROLLBAR_GAP
     )
-    name_delegate = tabs.breakpoints.table.itemDelegateForColumn(1)
+    name_delegate = tabs.breakpoints.table.itemDelegateForColumn(
+        DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN
+    )
     assert isinstance(name_delegate, BreakpointNameDelegate)
     name_editor = name_delegate.createEditor(tabs.breakpoints.table, None, None)
     assert name_editor.validator().validate("1invalid", 8)[0] == QValidator.Invalid
     assert name_editor.validator().validate("entry_point", 11)[0] == QValidator.Acceptable
-    tabs.breakpoints.table.item(0, 1).setText("entry_point")
+    tabs.breakpoints.table.item(
+        0, DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN
+    ).setText("entry_point")
     assert debugger.breakpoints[0].name == "entry_point"
     tabs.breakpoints.set_filter("entry")
     assert not tabs.breakpoints.table.isRowHidden(0)
@@ -358,7 +366,9 @@ def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
     assert tabs.breakpoints.table.isRowHidden(0)
     tabs.breakpoints.set_filter("0x8000")
     assert not tabs.breakpoints.table.isRowHidden(0)
-    delegate = tabs.breakpoints.table.itemDelegateForColumn(2)
+    delegate = tabs.breakpoints.table.itemDelegateForColumn(
+        DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN
+    )
     assert isinstance(delegate, SyntaxCellDelegate)
     assert delegate._highlighter_type is InstructionHighlighter
     navigated = []

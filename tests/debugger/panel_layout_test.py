@@ -139,7 +139,9 @@ def test_cell_editors_fill_cells_and_log_icon_keeps_exact_margin():
 
     tabs.breakpoints._debugger.add_breakpoint(BASE)
     tabs.breakpoints.refresh()
-    name_delegate = tabs.breakpoints.table.itemDelegateForColumn(1)
+    name_delegate = tabs.breakpoints.table.itemDelegateForColumn(
+        DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN
+    )
     name_editor = name_delegate.createEditor(tabs.breakpoints.table, option, None)
     name_delegate.updateEditorGeometry(name_editor, option, None)
     assert name_editor.geometry() == option.rect

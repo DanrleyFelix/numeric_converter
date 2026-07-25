@@ -8,11 +8,18 @@ from src.core.debugger.models.session import (
     DebuggerStatistics,
 )
 from src.core.debugger.psx_r3000a.control.flow import decode_control_flow
+from src.core.debugger.psx_r3000a.execution.breakpoint.session import (
+    PsxExecutionBreakpointMixin,
+)
 from src.core.debugger.psx_r3000a.execution.running.session import PsxRunSessionMixin
 from src.core.debugger.psx_r3000a.execution.state import PsxExecutionStateMixin
 
 
-class PsxExecutionSessionMixin(PsxRunSessionMixin, PsxExecutionStateMixin):
+class PsxExecutionSessionMixin(
+    PsxExecutionBreakpointMixin,
+    PsxRunSessionMixin,
+    PsxExecutionStateMixin,
+):
     """Implement PSX inspection and step operations against Unicorn."""
 
     def read_memory(self, address: int, size: int) -> bytes:
@@ -34,6 +41,7 @@ class PsxExecutionSessionMixin(PsxRunSessionMixin, PsxExecutionStateMixin):
 
         if self._state not in {DebuggerSessionState.READY, DebuggerSessionState.PAUSED}:
             raise self._state_error("step")
+        self._clear_breakpoint_hits()
         try:
             self._execute_current()
         except DebuggerError as error:
@@ -48,6 +56,7 @@ class PsxExecutionSessionMixin(PsxRunSessionMixin, PsxExecutionStateMixin):
 
         self._pause_requested = False
         self._stop_requested = True
+        self._clear_breakpoint_hits()
         if self._backend is not None:
             self._backend.stop()
             self._backend.reset()
@@ -73,16 +82,24 @@ class PsxExecutionSessionMixin(PsxRunSessionMixin, PsxExecutionStateMixin):
         if address in self._ignored_instructions:
             self._skip_as_nop(address, address, "instruction")
             return
-        flow = decode_control_flow(data, address, self._registers.snapshot())
+        register_values = self._registers.snapshot()
+        flow = decode_control_flow(data, address, register_values)
         ignored_addresses = self._image.ignored_addresses if self._image else frozenset()
         if flow is not None and flow.destination in ignored_addresses:
             self._skip_as_nop(address, flow.destination, flow.mnemonic)
             return
-        backend.write_registers(self._registers.snapshot())
+        self._prepare_breakpoint_step()
+        backend.write_registers(register_values)
         backend.step()
-        self._registers.reset(backend.read_registers())
+        updated_registers = backend.read_registers()
+        self._registers.reset(updated_registers)
         raw_instruction = instruction.raw_instruction if instruction else "Instruction executed"
         self._events.append(DebuggerEvent("Execution", raw_instruction, address))
+        self._complete_breakpoint_step(
+            address,
+            register_values,
+            updated_registers,
+        )
 
     def _finish_at_program_end(self) -> bool:
         """Stop cleanly when execution advances past the final loaded instruction."""

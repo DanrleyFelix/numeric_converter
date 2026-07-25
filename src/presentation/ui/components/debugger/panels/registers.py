@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QColor, QKeyEvent, QKeySequence, QResizeEvent
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QColor, QKeyEvent, QKeySequence, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QAbstractItemView,
     QHeaderView,
-    QMenu,
     QTableWidget,
     QTableWidgetItem,
 )
@@ -15,20 +14,23 @@ from src.core.debugger.contracts.base import BWDebugger
 from src.core.debugger.models.session import DebuggerSessionState
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.constants.texts import REGISTER_HEADERS
+from src.presentation.ui.components.debugger.panels.register.breakpoint.menu import (
+    create_register_breakpoint_action,
+    show_register_menu,
+)
 from src.presentation.ui.components.debugger.panels.register.editing import (
     RegisterValueDelegate,
 )
 from src.presentation.ui.components.debugger.panels.register.highlighting import (
     register_cell_color,
 )
-from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
-    use_white_menu_icons,
-)
 from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 
 
 class DebuggerRegisterPanel(QTableWidget):
     """Display, compare and edit registers exposed by `BWDebuggerRegs`."""
+
+    breakpointAdded = Signal()
 
     def __init__(self, debugger: BWDebugger, parent=None) -> None:
         """Create a register table bound to one debugger session."""
@@ -51,6 +53,8 @@ class DebuggerRegisterPanel(QTableWidget):
         self.setCursor(Qt.PointingHandCursor)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._open_context_menu)
+        self._add_breakpoint_action = create_register_breakpoint_action(self)
+        self.addAction(self._add_breakpoint_action)
         self.itemChanged.connect(self._edit_register)
         self.verticalHeader().hide()
         self.verticalHeader().setDefaultSectionSize(DEBUGGER_LAYOUT.REGISTER_ROW_HEIGHT)
@@ -139,15 +143,6 @@ class DebuggerRegisterPanel(QTableWidget):
         super().keyPressEvent(event)
 
     def _open_context_menu(self, position) -> None:
-        """Offer copying for the register value under the pointer."""
+        """Offer standard Copy and Add Breakpoint register actions."""
 
-        item = self.itemAt(position)
-        if item is None:
-            return
-        menu = QMenu(self)
-        menu.setObjectName("binary-workbench-editor-context-menu")
-        copy_action = QAction("Copy", menu)
-        copy_action.triggered.connect(lambda: QApplication.clipboard().setText(item.text()))
-        menu.addAction(copy_action)
-        use_white_menu_icons(menu)
-        menu.exec(self.viewport().mapToGlobal(position))
+        show_register_menu(self, position)

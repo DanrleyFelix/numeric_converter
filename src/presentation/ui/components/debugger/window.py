@@ -55,6 +55,7 @@ class DebuggerWindow(DebuggerWindowControlMixin, QMainWindow):
         self.panels.instructions.breakpointToggled.connect(self._toggle_breakpoint)
         self.panels.instructions.breakpointRemoved.connect(self._remove_breakpoint)
         self.panels.instructions.ignoredToggled.connect(self._toggle_ignored)
+        self.panels.registers.breakpointAdded.connect(self.refresh)
         self.panels.lower.navigateRequested.connect(self.panels.instructions.navigate_to)
         self.panels.lower.memory.errorRaised.connect(self.statusError.emit)
         self._refresh_timer = QTimer(self)
