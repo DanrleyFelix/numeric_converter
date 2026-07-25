@@ -2,6 +2,7 @@ from build.pyinstaller_inputs import (
     EXCLUDED_BINARY_NAMES,
     EXCLUDED_MODULES,
     HIDDEN_IMPORTS,
+    collect_packaged_binaries,
     collect_packaged_data,
     filter_packaged_entries,
 )
@@ -21,6 +22,16 @@ def test_collect_packaged_data_includes_project_resources():
     assert "src/presentation/ui/design/style" in mapped_targets
     assert "assets/fonts" in mapped_targets
     assert "src/presentation/ui/design/style/components" in style_component_targets
+
+
+def test_collect_packaged_binaries_includes_unicorn_native_library():
+    binary_entries = collect_packaged_binaries()
+
+    assert any(
+        "unicorn" in source.lower()
+        and target.replace("\\", "/") == "unicorn/lib"
+        for source, target in binary_entries
+    )
 
 
 def test_filter_packaged_entries_removes_excluded_binary_names():

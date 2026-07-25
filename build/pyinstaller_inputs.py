@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 from typing import Iterable
 
+from PyInstaller.utils.hooks import collect_dynamic_libs
+
 from src.presentation.ui.design.icon_specs import FONT_AWESOME_SOLID_FILENAME
 
 PACKAGED_DIRECTORIES = (
@@ -168,6 +170,8 @@ EXCLUDED_PATH_FRAGMENTS = (
 
 
 def collect_packaged_data(project_root: Path) -> list[tuple[str, str]]:
+    """Collect project resources that must remain addressable at runtime."""
+
     data_entries: list[tuple[str, str]] = []
     for source_root, target_root in PACKAGED_DIRECTORIES:
         absolute_root = project_root / source_root
@@ -178,7 +182,15 @@ def collect_packaged_data(project_root: Path) -> list[tuple[str, str]]:
     return data_entries
 
 
+def collect_packaged_binaries() -> list[tuple[str, str]]:
+    """Collect native libraries required by packaged runtime dependencies."""
+
+    return collect_dynamic_libs("unicorn")
+
+
 def filter_packaged_entries(entries: Iterable[tuple]) -> list[tuple]:
+    """Remove explicitly excluded modules and binaries from bundle entries."""
+
     filtered_entries: list[tuple] = []
     for entry in entries:
         serialized = " ".join(str(part) for part in entry)

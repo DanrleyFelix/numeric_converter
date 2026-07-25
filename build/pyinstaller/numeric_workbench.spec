@@ -5,6 +5,7 @@ from sys import platform as sys_platform
 from build.pyinstaller_inputs import (
     EXCLUDED_MODULES,
     HIDDEN_IMPORTS,
+    collect_packaged_binaries,
     collect_packaged_data,
     filter_packaged_entries,
 )
@@ -16,7 +17,7 @@ datas = collect_packaged_data(project_root)
 analysis = Analysis(
     [str(project_root / "main.py")],
     pathex=[str(project_root)],
-    binaries=[],
+    binaries=collect_packaged_binaries(),
     datas=datas,
     hiddenimports=list(HIDDEN_IMPORTS),
     hookspath=[],
