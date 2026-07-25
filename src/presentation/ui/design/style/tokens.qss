@@ -68,6 +68,7 @@ $text-danger:             #FF8B96;
 $text-debug-write:        #F4A261;
 $text-debug-read:         #C9A27E;
 $text-debug-out-of-range: #DC143C;
+$text-debug-completed:    #ADFF2F;
 $help-text-main:          #D1D7E4;
 $help-text-title:         #EAEAF5;
 $help-text-subtitle:      #B8BECC;

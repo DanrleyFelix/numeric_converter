@@ -47,5 +47,7 @@ FOLLOW_READ_LABEL = "R"
 CONFIG_TITLE = "Debugger Config"
 CONFIG_INTERVAL_PLACEHOLDER = "Interval (ms)"
 CONFIG_CONFIRM = "Confirm"
+CONFIG_LOG_LABEL = "Show in Debug Log"
+CONFIG_LOG_LEVELS = ("Execution", "Memory", "Info", "Warning", "Error")
 REGISTER_BREAKPOINT_TITLE = "Register Breakpoint"
 REGISTER_BREAKPOINT_PLACEHOLDER = "${register} == 0x0"

@@ -36,8 +36,10 @@ capabilities, technical structure and release/build notes.
   labels, internal files, offset regions, decoded text and search/navigation.
 - Builds portable bundles for Windows, Linux and macOS through PyInstaller.
 
-## What's New in v2.2
+## What's New in v3.0
 
+- The Binary Workbench debugger adds controlled execution, runtime register and
+  memory inspection, stack visualization, typed breakpoints and filtered logs.
 - Local Symbols remain owned by a tab and shared by its versions, while Global
   Symbols are available across tabs. Both scopes now feed the same autocomplete,
   highlighting, preprocessing, assembly and offset-calculation pipeline.
@@ -376,10 +378,10 @@ dist/macos
 Artifact names follow this format:
 
 ```text
-numeric-workbench-v2.2-<os>-<architecture>
+numeric-workbench-v3.0-<os>-<architecture>
 ```
 
-v2.2 ships portable bundles only. Native installers are intentionally out of
+v3.0 ships portable bundles only. Native installers are intentionally out of
 scope for this release.
 
 The PyInstaller config keeps the bundle smaller by excluding unused Qt stacks
@@ -418,8 +420,8 @@ context to reproduce the issue. This is especially important for Binary
 Workbench because real binary editing workflows expose edge cases that are hard
 to predict from isolated tests.
 
-The project will need refactoring and better organization after the v2.2
-feature cycle. The UI layer grew quickly and now contains responsibilities that
+The v3.0 feature cycle reinforces the need for continued refactoring and better
+organization. The UI layer grew quickly and now contains responsibilities that
 should move toward controllers, presenters or core services. QSS files also need
 cleanup, several UI files are spread without their own focused subfolders, and
 some shared constants are duplicated across nearby systems. Future maintenance

@@ -17,6 +17,9 @@ from src.presentation.ui.components.binary_workbench.editor.highlighter_colors i
     psx_mips_required_highlight_color,
 )
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
+from src.presentation.ui.components.debugger.constants.texts import (
+    CONFIG_LOG_LEVELS,
+)
 from src.presentation.ui.components.debugger.panels.log.rendering import (
     debugger_event_lines,
 )
@@ -26,6 +29,7 @@ from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 HEX_VALUE = re.compile(r"0x[0-9A-Fa-f]+")
 ACCESS_WORD = re.compile(r"\b(?:Write|Read)\b")
 EVENT_WORD = re.compile(r"\b(?:Breakpoint|Ignored|Import)\b", re.IGNORECASE)
+COMPLETED_WORD = re.compile(r"\bcompleted\b", re.IGNORECASE)
 
 
 class DebuggerLogHighlighter(QSyntaxHighlighter):
@@ -72,6 +76,12 @@ class DebuggerLogHighlighter(QSyntaxHighlighter):
                 match.end() - match.start(),
                 self.EVENT_COLORS[match.group().casefold()],
             )
+        for match in COMPLETED_WORD.finditer(text):
+            self._format(
+                match.start(),
+                match.end() - match.start(),
+                THEME_TOKENS["text-debug-completed"],
+            )
 
     def _format(self, start: int, length: int, color: str | None) -> None:
         """Apply one foreground color when its token is available."""
@@ -92,6 +102,7 @@ class DebuggerLogView(QWidget):
         super().__init__(parent)
         self._debugger = debugger
         self._filter = ""
+        self._enabled_levels = frozenset(CONFIG_LOG_LEVELS)
         self._rendered_count = -1
         self.output = QPlainTextEdit(self)
         self.output.setObjectName("debugger-log")
@@ -126,7 +137,11 @@ class DebuggerLogView(QWidget):
             if rebuild
             else max(self._rendered_count, count - DEBUGGER_LAYOUT.LOG_MAX_LINES)
         )
-        lines = debugger_event_lines(events[start:], self._filter)
+        lines = debugger_event_lines(
+            events[start:],
+            self._filter,
+            self._enabled_levels,
+        )
         if rebuild:
             self.output.setPlainText("\n".join(lines))
         elif lines:
@@ -139,6 +154,19 @@ class DebuggerLogView(QWidget):
         """Filter log lines case-insensitively by typed characters."""
 
         self._filter = text.strip().casefold()
+        self._rendered_count = -1
+        self.refresh()
+
+    @property
+    def enabled_levels(self) -> frozenset[str]:
+        """Return the categories currently visible in the Debug Log."""
+
+        return self._enabled_levels
+
+    def set_enabled_levels(self, levels: frozenset[str]) -> None:
+        """Apply category visibility without deleting retained events."""
+
+        self._enabled_levels = frozenset(levels)
         self._rendered_count = -1
         self.refresh()
 

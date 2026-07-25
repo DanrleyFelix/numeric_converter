@@ -152,7 +152,7 @@ def test_type_column_uses_compact_options_and_persists_canonical_order():
 
 
 def test_instruction_context_menu_assigns_an_icon_to_every_action():
-    """Keep every Panel 1 context action aligned through standard menu icons."""
+    """Keep every debugger context action aligned through standard menu icons."""
 
     _app()
     menu = QMenu()
@@ -163,6 +163,11 @@ def test_instruction_context_menu_assigns_an_icon_to_every_action():
             "Remove Breakpoint",
             "Copy Address",
             "Toggle IGNORED",
+            "Enable",
+            "Disable",
+            "Remove",
+            "Copy WHERE",
+            "Go to Instruction",
         )
     )
     use_white_menu_icons(menu)

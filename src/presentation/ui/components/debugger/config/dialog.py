@@ -2,7 +2,7 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator, QValidator
-from PySide6.QtWidgets import QDialog, QLineEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
 
 from src.core.debugger.execution.constants import (
     MAX_EXECUTION_INTERVAL_MS,
@@ -16,14 +16,23 @@ from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LA
 from src.presentation.ui.components.debugger.constants.texts import (
     CONFIG_CONFIRM,
     CONFIG_INTERVAL_PLACEHOLDER,
+    CONFIG_LOG_LABEL,
+    CONFIG_LOG_LEVELS,
     CONFIG_TITLE,
+)
+from src.presentation.ui.components.debugger.config.log_options import (
+    DebuggerLogOptions,
 )
 
 
 class DebuggerConfigDialog(QDialog):
     """Collect one automatic-instruction interval in milliseconds."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(
+        self,
+        parent=None,
+        enabled_log_levels: frozenset[str] | None = None,
+    ) -> None:
         """Create a fixed-size dialog aligned with project controls."""
 
         super().__init__(parent)
@@ -31,8 +40,10 @@ class DebuggerConfigDialog(QDialog):
         self.setWindowTitle(CONFIG_TITLE)
         self.setFixedSize(
             DEBUGGER_LAYOUT.CONFIG_DIALOG_WIDTH,
-            DEBUGGER_LAYOUT.CONFIG_DIALOG_HEIGHT,
+            DEBUGGER_LAYOUT.CONFIG_LOG_DIALOG_HEIGHT,
         )
+        log_label = QLabel(CONFIG_LOG_LABEL, self)
+        self.log_options = DebuggerLogOptions(enabled_log_levels, self)
         self.interval = QLineEdit(self)
         self.interval.setObjectName("binary-workbench-dialog-input")
         self.interval.setPlaceholderText(CONFIG_INTERVAL_PLACEHOLDER)
@@ -54,6 +65,8 @@ class DebuggerConfigDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(*(DEBUGGER_LAYOUT.OUTER_MARGIN,) * 4)
         layout.setSpacing(DEBUGGER_LAYOUT.CONFIG_VERTICAL_SPACING)
+        layout.addWidget(log_label, 0, Qt.AlignLeft)
+        layout.addWidget(self.log_options, 0, Qt.AlignCenter)
         layout.addWidget(self.interval, 0, Qt.AlignCenter)
         layout.addWidget(confirm, 0, Qt.AlignCenter)
 
@@ -62,6 +75,11 @@ class DebuggerConfigDialog(QDialog):
 
         text = self.interval.text().strip()
         return int(text) if text else None
+
+    def enabled_log_levels(self) -> frozenset[str]:
+        """Return the Debug Log categories selected for display."""
+
+        return self.log_options.selected_levels()
 
     def _accept_valid(self) -> None:
         """Accept only a complete interval inside the supported range."""
@@ -74,10 +92,23 @@ class DebuggerConfigDialog(QDialog):
             self.accept()
 
 
-def ask_execution_interval(parent=None) -> int | None:
-    """Show the execution configuration and return its accepted value."""
+def ask_debugger_config(
+    parent=None,
+    enabled_log_levels: frozenset[str] | None = None,
+) -> tuple[int, frozenset[str]] | None:
+    """Return the accepted interval and visible Debug Log categories."""
 
-    dialog = DebuggerConfigDialog(parent)
+    dialog = DebuggerConfigDialog(parent, enabled_log_levels)
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return None
-    return dialog.interval_ms()
+    interval = dialog.interval_ms()
+    if interval is None:
+        return None
+    return interval, dialog.enabled_log_levels()
+
+
+def ask_execution_interval(parent=None) -> int | None:
+    """Preserve the interval-only helper used by existing integrations."""
+
+    config = ask_debugger_config(parent, frozenset(CONFIG_LOG_LEVELS))
+    return config[0] if config is not None else None

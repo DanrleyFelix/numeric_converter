@@ -5,7 +5,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QHelpEvent, QKeyEvent, QTextDocument, QValidator
-from PySide6.QtWidgets import QApplication, QPushButton, QToolButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
 
 from src.presentation.ui.components.binary_workbench.editor.highlighters import (
     BytesHighlighter,
@@ -160,6 +160,7 @@ def test_debug_log_highlights_execution_and_every_hexadecimal_value():
         "Execution [0x80000000]: Write 0x801FFF90\n"
         "Memory [0x801FFF90]: Read memory\n"
         "Info: Breakpoint Ignored Import\n"
+        "Info: Execution completed\n"
         "Syntax Error: WHERE invalid at column 3"
     )
     highlighter = DebuggerLogHighlighter(document)
@@ -179,6 +180,7 @@ def test_debug_log_highlights_execution_and_every_hexadecimal_value():
     assert "#C9A27E" in colors
     assert "#F0C75E" in colors
     assert "#DC143C" in colors
+    assert "#ADFF2F" in colors
 
 
 def test_debug_log_keeps_search_and_incremental_updates_at_line_limit():
@@ -199,6 +201,16 @@ def test_debug_log_keeps_search_and_incremental_updates_at_line_limit():
     view.set_filter("")
     assert view.output.toPlainText().endswith("Info: tail marker")
     assert view.output.document().blockCount() == DEBUGGER_LAYOUT.LOG_MAX_LINES
+    debugger._events.extend(
+        (
+            DebuggerEvent("Execution", "execution marker"),
+            DebuggerEvent("Memory", "memory marker"),
+        )
+    )
+    view.set_enabled_levels(frozenset(("Execution",)))
+    assert "execution marker" in view.output.toPlainText()
+    assert "memory marker" not in view.output.toPlainText()
+    assert "tail marker" not in view.output.toPlainText()
 
 
 def test_memory_grid_uses_four_bounded_cells_and_selected_block_summary():
@@ -419,6 +431,18 @@ def test_debugger_toolbar_has_config_without_redundant_tooltips():
     )
     dialog = DebuggerConfigDialog()
     assert dialog.interval.placeholderText() == "Interval (ms)"
+    assert any(
+        label.text() == "Show in Debug Log"
+        for label in dialog.findChildren(QLabel)
+    )
+    assert set(dialog.log_options.boxes) == {
+        "Execution",
+        "Memory",
+        "Info",
+        "Warning",
+        "Error",
+    }
+    assert all(box.isChecked() for box in dialog.log_options.boxes.values())
     assert dialog.interval.width() == DEBUGGER_LAYOUT.CONFIG_FIELD_WIDTH
     confirm = next(
         button

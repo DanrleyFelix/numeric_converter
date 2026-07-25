@@ -2,7 +2,7 @@
 
 from src.core.debugger.models.session import DebuggerError, DebuggerSessionState
 from src.presentation.ui.components.debugger.config.dialog import (
-    ask_execution_interval,
+    ask_debugger_config,
 )
 from src.presentation.ui.components.debugger.constants.texts import (
     DEBUGGER_WORKER_STOP_ERROR,
@@ -112,6 +112,12 @@ class DebuggerWindowControlMixin:
     def _config(self) -> None:
         """Apply a confirmed automatic execution interval."""
 
-        interval = ask_execution_interval(self)
-        if interval is not None:
+        config = ask_debugger_config(
+            self,
+            self.panels.lower.log.enabled_levels,
+        )
+        if config is not None:
+            interval, enabled_levels = config
             self.debugger.set_execution_interval(interval)
+            self.panels.lower.log.set_enabled_levels(enabled_levels)
+            self.refresh()

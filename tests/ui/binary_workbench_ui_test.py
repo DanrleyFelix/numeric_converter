@@ -147,6 +147,8 @@ def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
     ]
     assert nav_titles == [
         "Main Window",
+        "Debugger Directives",
+        "Debugger Window",
         "File",
         "Versions",
         "Internal Files",
@@ -165,6 +167,20 @@ def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
     text = shortcuts_browser.toPlainText()
     for value in ("Ctrl+O", "Alt+V", "Ctrl+F", "Alt+H", "Alt+K", "Ctrl+Y"):
         assert value in text
+    tool._help_window.navigation.setCurrentRow(
+        nav_titles.index("Debugger Directives")
+    )
+    directives = tool._help_window.pages.currentWidget().findChild(
+        QTextBrowser, "help-page"
+    ).toPlainText()
+    assert "virtual_memory_range" in directives
+    assert "virtual memory" in directives.casefold()
+    tool._help_window.navigation.setCurrentRow(nav_titles.index("Debugger Window"))
+    debugger_guide = tool._help_window.pages.currentWidget().findChild(
+        QTextBrowser, "help-page"
+    ).toPlainText()
+    for value in ("Run (F5)", "Config (F11)", "Interval (ms)", "Follow W"):
+        assert value in debugger_guide
 
 
 def test_binary_workbench_open_file_reuses_existing_external_tab(tmp_path: Path):

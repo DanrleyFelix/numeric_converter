@@ -16,6 +16,11 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Remove Breakpoint": "\uf2ed",
     "Copy Address": "\uf0c5",
     "Toggle IGNORED": "\uf070",
+    "Enable": "\uf058",
+    "Disable": "\uf05e",
+    "Remove": "\uf2ed",
+    "Copy WHERE": "\uf0c5",
+    "Go to Instruction": "\uf35a",
 }
 
 CONTEXT_MENU_SHORTCUTS = {

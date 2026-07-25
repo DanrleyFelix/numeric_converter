@@ -1,5 +1,7 @@
 from src.presentation.ui.components.help_window.pages.binary_workbench.environment import PAGE as ENVIRONMENT_PAGE
 from src.presentation.ui.components.help_window.pages.binary_workbench.editor_helpers import PAGE as EDITOR_HELPERS_PAGE
+from src.presentation.ui.components.help_window.pages.binary_workbench.debugger_directives import PAGE as DEBUGGER_DIRECTIVES_PAGE
+from src.presentation.ui.components.help_window.pages.binary_workbench.debugger_window import PAGE as DEBUGGER_WINDOW_PAGE
 from src.presentation.ui.components.help_window.pages.binary_workbench.file import PAGE as FILE_PAGE
 from src.presentation.ui.components.help_window.pages.binary_workbench.internal_files import PAGE as INTERNAL_FILES_PAGE
 from src.presentation.ui.components.help_window.pages.binary_workbench.main_window import PAGE as MAIN_WINDOW_PAGE
@@ -11,6 +13,8 @@ from src.presentation.ui.components.help_window.pages.binary_workbench.versions 
 
 BINARY_WORKBENCH_HELP_PAGES = [
     MAIN_WINDOW_PAGE,
+    DEBUGGER_DIRECTIVES_PAGE,
+    DEBUGGER_WINDOW_PAGE,
     FILE_PAGE,
     VERSIONS_PAGE,
     INTERNAL_FILES_PAGE,
