@@ -62,6 +62,12 @@ class BWDebuggerControl(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def set_breakpoint_where(self, identifier: int, expression: str) -> None:
+        """Update and validate the effective breakpoint condition."""
+
+        raise NotImplementedError
+
+    @abstractmethod
     def remove_breakpoint(self, identifier: int) -> None:
         """Remove breakpoint metadata without changing virtual memory."""
 

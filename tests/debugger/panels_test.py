@@ -159,7 +159,8 @@ def test_debug_log_highlights_execution_and_every_hexadecimal_value():
     document = QTextDocument(
         "Execution [0x80000000]: Write 0x801FFF90\n"
         "Memory [0x801FFF90]: Read memory\n"
-        "Info: Breakpoint Ignored Import"
+        "Info: Breakpoint Ignored Import\n"
+        "Syntax Error: WHERE invalid at column 3"
     )
     highlighter = DebuggerLogHighlighter(document)
     highlighter.rehighlight()
@@ -177,6 +178,7 @@ def test_debug_log_highlights_execution_and_every_hexadecimal_value():
     assert "#F4A261" in colors
     assert "#C9A27E" in colors
     assert "#F0C75E" in colors
+    assert "#DC143C" in colors
 
 
 def test_debug_log_keeps_search_and_incremental_updates_at_line_limit():
@@ -342,9 +344,9 @@ def test_lower_tabs_remove_zones_filter_contextually_and_keep_psx_addresses():
     assert tabs.breakpoints.table.horizontalHeaderItem(0).text() == "Type"
     assert tabs.breakpoints.table.horizontalHeaderItem(1).text() == "WHERE"
     assert tabs.breakpoints.table.horizontalHeaderItem(2).text() == "Name"
-    assert tabs.breakpoints.table.item(0, 0).text() == "execution"
-    assert tabs.breakpoints.table.item(0, 1).text() == "addr == 0x80000000"
-    assert tabs.breakpoints.table.columnWidth(2) >= 180
+    assert tabs.breakpoints.table.item(0, 0).text() == "exec"
+    assert tabs.breakpoints.table.item(0, 1).text() == "0x80000000"
+    assert tabs.breakpoints.table.columnWidth(2) <= 170
     assert (
         _content_to_scrollbar_gap(tabs.breakpoints.table)
         == DEBUGGER_LAYOUT.TABLE_SCROLLBAR_GAP

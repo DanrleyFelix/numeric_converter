@@ -119,7 +119,16 @@ def test_manual_header_resize_is_compensated_and_bounded():
             table.columnWidth(index) for index in range(table.columnCount())
         ) == total
         table.horizontalHeader().resizeSection(column, 1)
-        assert table.columnWidth(column) == minimums[column]
+        effective_minimum = max(
+            minimums[column],
+            total
+            - sum(
+                maximum
+                for index, maximum in enumerate(maximums)
+                if index != column
+            ),
+        )
+        assert table.columnWidth(column) == effective_minimum
         table.horizontalHeader().resizeSection(column, maximums[column] + 500)
         assert minimums[column] <= table.columnWidth(column) <= maximums[column]
         _assert_table_geometry(table)

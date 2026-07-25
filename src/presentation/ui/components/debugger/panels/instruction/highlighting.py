@@ -1,7 +1,14 @@
 """Debugger instruction-table rendering derived from established highlighters."""
 
 from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QPainter, QTextCharFormat, QTextCursor, QTextDocument
+from PySide6.QtGui import (
+    QColor,
+    QPainter,
+    QPalette,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+)
 from PySide6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 from src.presentation.ui.components.binary_workbench.editor.highlighters import (
@@ -44,7 +51,7 @@ class SyntaxCellDelegate(QStyledItemDelegate):
         text_option.setAlignment(cell.displayAlignment)
         document.setDefaultTextOption(text_option)
         default_format = QTextCharFormat()
-        default_format.setForeground(QColor(THEME_TOKENS["text-main"]))
+        default_format.setForeground(cell.palette.color(QPalette.Text))
         cursor = QTextCursor(document)
         cursor.select(QTextCursor.Document)
         cursor.mergeCharFormat(default_format)

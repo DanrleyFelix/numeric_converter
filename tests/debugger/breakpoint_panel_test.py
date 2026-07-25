@@ -3,7 +3,8 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtGui import QValidator
+from PySide6.QtWidgets import QApplication, QFrame, QPushButton
 
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.panels.register.breakpoint.dialog import (
@@ -37,6 +38,7 @@ def test_register_panel_action_and_condition_dialog_create_register_breakpoint()
     registers.refresh()
     assert registers._add_breakpoint_action.text() == "Add Breakpoint"
     assert registers._add_breakpoint_action.shortcut().toString() == "Alt+B"
+    assert not registers._add_breakpoint_action.icon().isNull()
 
     dialog = DebuggerRegisterBreakpointDialog(debugger, "s2")
     assert dialog.condition.width() == DEBUGGER_LAYOUT.CONFIG_FIELD_WIDTH
@@ -68,15 +70,26 @@ def test_register_breakpoint_row_reveals_instruction_only_after_hit():
 
     assert table.horizontalHeaderItem(0).text() == "Type"
     assert table.horizontalHeaderItem(1).text() == "WHERE"
-    assert table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN).text() == "register"
+    assert table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN).text() == "reg"
     assert table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN).text() == "$s2 == 0x2"
     instruction = table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN)
     assert instruction.text() == "-"
     assert instruction.textAlignment() == Qt.AlignCenter
-    assert not (
+    assert (
         table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN).flags()
         & Qt.ItemIsEditable
     )
+    assert (
+        table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN).flags()
+        & Qt.ItemIsEditable
+    )
+    where_delegate = table.itemDelegateForColumn(
+        DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN
+    )
+    where_index = table.model().index(
+        0, DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN
+    )
+    assert where_delegate.createEditor(table, None, where_index).validator() is None
 
     debugger.run(limit=10)
     tabs.breakpoints.refresh()
@@ -91,8 +104,8 @@ def test_register_breakpoint_row_reveals_instruction_only_after_hit():
     )
 
 
-def test_type_column_edits_address_combinations_without_all_or_register():
-    """Offer only address combinations and persist their canonical order."""
+def test_type_column_uses_compact_options_and_persists_canonical_order():
+    """Offer compact combinations including reg and persist canonical order."""
 
     _app()
     debugger = configured_debugger("nop")
@@ -103,19 +116,33 @@ def test_type_column_edits_address_combinations_without_all_or_register():
         DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN
     )
     editor = delegate.createEditor(table, None, None)
+    assert editor.view().frameShape() == QFrame.NoFrame
     choices = tuple(editor.itemText(index) for index in range(editor.count()))
     assert "all" not in choices
     assert "register" not in choices
-    assert "write || read || execution" in choices
+    assert "reg" in choices
+    assert "w | r | exec" in choices
     assert (
-        DEBUGGER_LAYOUT.BREAKPOINT_COLUMN_MINIMUMS[
+        DEBUGGER_LAYOUT.BREAKPOINT_COLUMN_MAXIMUMS[
             DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN
         ]
-        == 50
+        == 220
     )
+    assert DEBUGGER_LAYOUT.BREAKPOINT_COLUMN_MAXIMUMS[
+        DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN
+    ] == 170
+    assert table.columnWidth(DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN) == 100
+    where_delegate = table.itemDelegateForColumn(
+        DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN
+    )
+    where_index = table.model().index(
+        0, DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN
+    )
+    address_editor = where_delegate.createEditor(table, None, where_index)
+    assert address_editor.validator().validate("GG", 2)[0] == QValidator.Invalid
 
     table.item(0, DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN).setText(
-        "read || write"
+        "r | w"
     )
 
     assert debugger.breakpoints[0].breakpoint_type == "write || read"

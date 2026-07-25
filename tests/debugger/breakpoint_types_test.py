@@ -4,7 +4,10 @@ from src.core.debugger.breakpoints.conditions import (
     parse_register_condition,
     register_aliases,
 )
-from src.core.debugger.breakpoints.types import normalize_breakpoint_type
+from src.core.debugger.breakpoints.types import (
+    breakpoint_type_display,
+    normalize_breakpoint_type,
+)
 from src.core.debugger.models.session import DebuggerSessionState
 from helpers import BASE, END, configured_debugger
 
@@ -13,12 +16,17 @@ def test_breakpoint_types_normalize_combinations_and_reject_register_mixing():
     """Accept address combinations without introducing a synthetic all type."""
 
     assert normalize_breakpoint_type("execution") == "execution"
+    assert normalize_breakpoint_type("exec") == "execution"
+    assert normalize_breakpoint_type("w | r") == "write || read"
     assert normalize_breakpoint_type("execution || write") == "write || execution"
+    assert normalize_breakpoint_type("write or exec") == "write || execution"
     assert (
         normalize_breakpoint_type("write || read || execution")
         == "write || read || execution"
     )
     assert normalize_breakpoint_type("register") == "register"
+    assert normalize_breakpoint_type("reg") == "register"
+    assert breakpoint_type_display("write || execution") == "w | exec"
     for invalid in ("all", "register || read", "write ||", "write || write"):
         with pytest.raises(ValueError):
             normalize_breakpoint_type(invalid)
@@ -41,6 +49,19 @@ def test_register_condition_parser_supports_comparisons_and_logical_groups():
     assert parse_register_condition("$v0 == 0", aliases).evaluate(
         debugger.registers.snapshot()
     )
+    cross_register = parse_register_condition(
+        "$a3 >= 0x2 or $t3 == 0x0",
+        aliases,
+    )
+    assert cross_register.evaluate(debugger.registers.snapshot())
+    assert parse_register_condition(
+        "$a3 == 0 && $t3 == 0",
+        aliases,
+    ).evaluate(debugger.registers.snapshot())
+    assert parse_register_condition(
+        "$a3 == 0 and $t3 == 0",
+        aliases,
+    ).evaluate(debugger.registers.snapshot())
 
 
 @pytest.mark.parametrize(
@@ -95,7 +116,7 @@ def test_combined_access_breakpoint_and_default_execution_behavior():
     execution = configured_debugger("nop", "nop")
     breakpoint = execution.toggle_breakpoint(BASE + 4)
     assert breakpoint.breakpoint_type == "execution"
-    assert breakpoint.where == f"addr == 0x{BASE + 4:08X}"
+    assert breakpoint.where == f"0x{BASE + 4:08X}"
     execution.run(limit=10)
     assert execution.pc == BASE + 4
 
@@ -126,3 +147,25 @@ def test_register_breakpoint_rejects_unknown_registers():
     with pytest.raises(ValueError):
         debugger.add_register_breakpoint("$missing == 1")
     assert debugger.breakpoints == ()
+
+
+def test_where_edits_revalidate_without_turning_syntax_errors_into_failures():
+    """Apply valid edits and retain invalid WHERE input as inactive metadata."""
+
+    debugger = configured_debugger("nop", "nop")
+    breakpoint = debugger.add_breakpoint(BASE)
+    debugger.set_breakpoint_where(breakpoint.identifier, f"0x{BASE + 4:X}")
+    moved = debugger.breakpoints[0]
+    assert moved.address == BASE + 4
+    assert moved.where == f"0x{BASE + 4:08X}"
+
+    debugger.set_breakpoint_type(moved.identifier, "reg")
+    converted = debugger.breakpoints[0]
+    assert converted.breakpoint_type == "register"
+    assert not converted.valid
+    assert debugger.events[-1].level == "Syntax Error"
+    assert "column 1" in debugger.events[-1].message
+
+    debugger.set_breakpoint_where(converted.identifier, "$s2 == 0x2")
+    assert debugger.breakpoints[0].valid
+    assert debugger.state == DebuggerSessionState.READY

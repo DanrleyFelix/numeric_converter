@@ -10,12 +10,13 @@ from src.presentation.ui.components.binary_workbench.editor.context_menu_icons i
 from src.presentation.ui.components.debugger.panels.register.breakpoint.dialog import (
     DebuggerRegisterBreakpointDialog,
 )
+from src.presentation.ui.design.icons import Icons
 
 
 def create_register_breakpoint_action(panel) -> QAction:
     """Create the reusable Add Breakpoint action with its local shortcut."""
 
-    action = QAction("Add Breakpoint", panel)
+    action = QAction(Icons.expand_circle(), "Add Breakpoint", panel)
     action.setShortcut(QKeySequence("Alt+B"))
     action.setShortcutContext(Qt.WidgetWithChildrenShortcut)
     action.setShortcutVisibleInContextMenu(True)

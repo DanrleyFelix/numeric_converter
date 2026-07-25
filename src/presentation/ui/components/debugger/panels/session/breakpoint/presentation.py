@@ -4,7 +4,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
+    QFrame,
     QLineEdit,
+    QListView,
     QStyledItemDelegate,
     QTableWidgetItem,
 )
@@ -12,9 +14,7 @@ from PySide6.QtWidgets import (
 from src.core.debugger.breakpoints.types import (
     ADDRESS_BREAKPOINT_TYPE_CHOICES,
     REGISTER_BREAKPOINT_TYPE,
-)
-from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
-    psx_mips_required_highlight_color,
+    breakpoint_type_display,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_python_identifier_validator,
@@ -44,20 +44,25 @@ class BreakpointNameDelegate(QStyledItemDelegate):
 
 
 class BreakpointTypeDelegate(QStyledItemDelegate):
-    """Edit address breakpoint types through supported combinations only."""
+    """Edit breakpoint types through the compact supported combinations."""
 
     def createEditor(self, parent, option, index):
-        """Create a pointer-enabled selector containing no synthetic `all` type."""
+        """Create the project-standard compact Type selector."""
 
         editor = QComboBox(parent)
+        editor.setObjectName("debugger-breakpoint-type-editor")
         editor.setCursor(Qt.PointingHandCursor)
+        choices = QListView(editor)
+        choices.setObjectName("debugger-breakpoint-type-list")
+        choices.setFrameShape(QFrame.NoFrame)
+        editor.setView(choices)
         editor.addItems(ADDRESS_BREAKPOINT_TYPE_CHOICES)
         return editor
 
     def setEditorData(self, editor, index) -> None:
         """Select the breakpoint type currently stored by the model."""
 
-        editor.setCurrentText(str(index.data() or "execution"))
+        editor.setCurrentText(str(index.data() or "exec"))
 
     def setModelData(self, editor, model, index) -> None:
         """Commit the selected canonical type expression."""
@@ -65,9 +70,11 @@ class BreakpointTypeDelegate(QStyledItemDelegate):
         model.setData(index, editor.currentText())
 
     def updateEditorGeometry(self, editor, option, _index) -> None:
-        """Keep the type selector equal to its complete cell."""
+        """Increase selector height without changing its font size."""
 
-        fill_cell_editor(editor, option)
+        delta = DEBUGGER_LAYOUT.BREAKPOINT_TYPE_EDITOR_HEIGHT_DELTA
+        geometry = option.rect.adjusted(0, -(delta // 2), 0, delta // 2)
+        editor.setGeometry(geometry)
 
 
 def render_breakpoint_rows(view) -> None:
@@ -86,7 +93,7 @@ def render_breakpoint_rows(view) -> None:
                 else breakpoint.instruction
             )
             values = (
-                breakpoint.breakpoint_type,
+                breakpoint_type_display(breakpoint.breakpoint_type),
                 breakpoint.where,
                 breakpoint.name,
                 instruction,
@@ -94,9 +101,10 @@ def render_breakpoint_rows(view) -> None:
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
-                editable = column == DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN or (
-                    column == DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN
-                    and breakpoint.address is not None
+                editable = column in (
+                    DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN,
+                    DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN,
+                    DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN,
                 )
                 if not editable:
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
@@ -104,10 +112,10 @@ def render_breakpoint_rows(view) -> None:
                 item.setData(Qt.UserRole + 1, breakpoint.address)
                 item.setTextAlignment(Qt.AlignCenter)
                 if (
-                    column == DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN
-                    and breakpoint.address is not None
+                    column == DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN
+                    and value == "-"
                 ):
-                    item.setForeground(QColor(psx_mips_required_highlight_color("hex")))
+                    item.setForeground(QColor(THEME_TOKENS["text-muted"]))
                 elif column == DEBUGGER_LAYOUT.BREAKPOINT_STATUS_COLUMN:
                     item.setForeground(QColor(breakpoint_status_color(status)))
                 view.table.setItem(row, column, item)

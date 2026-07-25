@@ -164,6 +164,64 @@ QMainWindow#debugger-window QLineEdit#debugger-cell-editor {
     outline: none;
 }
 
+QMainWindow#debugger-window QComboBox#debugger-breakpoint-type-editor {
+    background-color: $bg-input;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $radius-0;
+    padding: $space-8;
+}
+
+QMainWindow#debugger-window QComboBox#debugger-breakpoint-type-editor::drop-down {
+    background-color: transparent;
+    border: none;
+    width: $space-0;
+}
+
+QMainWindow#debugger-window QComboBox#debugger-breakpoint-type-editor::down-arrow {
+    image: none;
+    width: $space-0;
+    height: $space-0;
+}
+
+QListView#debugger-breakpoint-type-list {
+    background-color: $bg-input;
+    color: $text-main;
+    border: 1px solid $border;
+    border-radius: $radius-0;
+    outline: none;
+    padding: $space-0;
+    show-decoration-selected: 0;
+}
+
+QListView#debugger-breakpoint-type-list::item {
+    background-color: transparent;
+    border: none;
+    border-radius: $radius-0;
+    outline: none;
+    padding: $space-8;
+}
+
+QListView#debugger-breakpoint-type-list::item:selected {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+    color: $text-main;
+    outline: none;
+}
+
+QListView#debugger-breakpoint-type-list::item:hover,
+QListView#debugger-breakpoint-type-list::item:selected:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+    color: $text-main;
+    outline: none;
+}
+
+QListView#debugger-breakpoint-type-list:focus {
+    border: 1px solid $border;
+    outline: none;
+}
+
 QMainWindow#debugger-window QSplitter::handle {
     background-color: $bg-main;
 }

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 from src.core.debugger.breakpoints.conditions import parse_register_condition
 from src.core.debugger.breakpoints.types import (
     DEFAULT_BREAKPOINT_TYPE,
@@ -12,12 +10,18 @@ from src.core.debugger.breakpoints.types import (
     normalize_breakpoint_type,
 )
 from src.core.debugger.models.session import DebuggerBreakpoint, DebuggerEvent
+from src.core.debugger.psx_r3000a.control.breakpoint.editing.session import (
+    PsxBreakpointEditingMixin,
+)
 from src.core.debugger.psx_r3000a.control.breakpoint.matching import (
     PsxBreakpointMatchingMixin,
 )
 
 
-class PsxBreakpointControlMixin(PsxBreakpointMatchingMixin):
+class PsxBreakpointControlMixin(
+    PsxBreakpointEditingMixin,
+    PsxBreakpointMatchingMixin,
+):
     """Create and update execution, access and register breakpoints."""
 
     def add_breakpoint(
@@ -47,7 +51,7 @@ class PsxBreakpointControlMixin(PsxBreakpointMatchingMixin):
             valid=valid,
             name=name,
             breakpoint_type=normalized,
-            where=f"addr == 0x{address:08X}",
+            where=f"0x{address:08X}",
             identifier=address,
         )
         self._breakpoints[address] = breakpoint
@@ -86,59 +90,24 @@ class PsxBreakpointControlMixin(PsxBreakpointMatchingMixin):
     def toggle_breakpoint(self, address: int) -> DebuggerBreakpoint:
         """Toggle one default execution breakpoint by instruction address."""
 
-        if address in self._breakpoints:
-            self.remove_breakpoint(address)
+        existing = next(
+            (
+                item
+                for item in self._breakpoints.values()
+                if item.address == address
+            ),
+            None,
+        )
+        if existing is not None:
+            self.remove_breakpoint(existing.identifier)
             return DebuggerBreakpoint(
                 address,
                 False,
                 valid=False,
-                where=f"addr == 0x{address:08X}",
+                where=f"0x{address:08X}",
                 identifier=address,
             )
         return self.add_breakpoint(address)
-
-    def set_breakpoint_enabled(self, identifier: int, enabled: bool) -> None:
-        """Preserve breakpoint metadata while changing its active state."""
-
-        current = self._breakpoint_for(identifier)
-        if current is None and identifier >= 0:
-            current = self.add_breakpoint(identifier, enabled)
-        if current is not None:
-            self._breakpoints[current.identifier] = replace(
-                current, enabled=enabled
-            )
-
-    def set_breakpoint_name(self, identifier: int, name: str) -> None:
-        """Update only the symbolic name retained for one breakpoint."""
-
-        current = self._breakpoint_for(identifier)
-        if current is not None:
-            self._breakpoints[current.identifier] = replace(current, name=name)
-
-    def set_breakpoint_type(self, identifier: int, expression: str) -> None:
-        """Apply a valid address type combination without converting its kind."""
-
-        current = self._breakpoint_for(identifier)
-        if current is None:
-            return
-        normalized = normalize_breakpoint_type(expression)
-        is_register = normalized == REGISTER_BREAKPOINT_TYPE
-        if is_register != (current.address is None):
-            raise ValueError("Register breakpoints cannot change category.")
-        valid = current.valid
-        if current.address is not None:
-            tokens = breakpoint_type_tokens(normalized)
-            instruction = self._instruction_at(current.address)
-            valid = bool(self._image and self._image.contains(current.address))
-            valid = valid and (
-                tokens != frozenset({DEFAULT_BREAKPOINT_TYPE})
-                or instruction is not None
-            )
-        self._breakpoints[current.identifier] = replace(
-            current,
-            breakpoint_type=normalized,
-            valid=valid,
-        )
 
     def remove_breakpoint(self, identifier: int) -> None:
         """Remove one breakpoint without modifying virtual memory."""

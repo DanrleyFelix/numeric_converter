@@ -32,6 +32,9 @@ from src.presentation.ui.components.debugger.panels.session.breakpoint.table.edi
     navigate_breakpoint_row,
     update_breakpoint_cell,
 )
+from src.presentation.ui.components.debugger.panels.session.breakpoint.table.where import (
+    BreakpointWhereDelegate,
+)
 from src.presentation.ui.components.debugger.panels.table.columns import (
     CompensatedColumnLayout,
 )
@@ -78,6 +81,10 @@ class DebuggerBreakpointsView(QWidget):
         )
         self.table.setItemDelegateForColumn(
             DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN, BreakpointTypeDelegate(self.table)
+        )
+        self.table.setItemDelegateForColumn(
+            DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN,
+            BreakpointWhereDelegate(self.table),
         )
         self.table.setItemDelegateForColumn(
             DEBUGGER_LAYOUT.BREAKPOINT_INSTRUCTION_COLUMN,

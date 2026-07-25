@@ -13,7 +13,14 @@ class PsxBreakpointMatchingMixin:
     def _active_breakpoint(self, address: int) -> DebuggerBreakpoint | None:
         """Return an enabled execution breakpoint at one instruction address."""
 
-        item = self._breakpoints.get(address)
+        item = next(
+            (
+                breakpoint
+                for breakpoint in self._breakpoints.values()
+                if breakpoint.address == address
+            ),
+            None,
+        )
         active = item and DEFAULT_BREAKPOINT_TYPE in breakpoint_type_tokens(
             item.breakpoint_type
         )

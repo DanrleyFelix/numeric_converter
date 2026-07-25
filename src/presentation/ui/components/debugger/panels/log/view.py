@@ -37,6 +37,7 @@ class DebuggerLogHighlighter(QSyntaxHighlighter):
         "Info": THEME_TOKENS["text-success"],
         "Execution": psx_mips_highlight_color("registers", "$t0"),
         "Memory": psx_mips_highlight_color("registers", "$sp"),
+        "Syntax Error": THEME_TOKENS["text-debug-out-of-range"],
     }
     ACCESS_COLORS = {
         "Write": THEME_TOKENS["text-debug-write"],
@@ -51,7 +52,7 @@ class DebuggerLogHighlighter(QSyntaxHighlighter):
     def highlightBlock(self, text: str) -> None:
         """Highlight every supported token in one log line."""
 
-        level = text.split(":", 1)[0].split(" ", 1)[0]
+        level = text.split(":", 1)[0].split(" [", 1)[0]
         self._format(0, len(level), self.LEVEL_COLORS.get(level))
         for match in HEX_VALUE.finditer(text):
             self._format(

@@ -21,7 +21,7 @@ def add_address_breakpoint(view) -> None:
 
 
 def update_breakpoint_cell(view, item) -> None:
-    """Persist editable Name and Type cells through the debugger contract."""
+    """Persist editable breakpoint cells through the debugger contract."""
 
     if view._refreshing:
         return
@@ -29,10 +29,9 @@ def update_breakpoint_cell(view, item) -> None:
     if item.column() == DEBUGGER_LAYOUT.BREAKPOINT_NAME_COLUMN:
         view._debugger.set_breakpoint_name(identifier, item.text())
     elif item.column() == DEBUGGER_LAYOUT.BREAKPOINT_TYPE_COLUMN:
-        try:
-            view._debugger.set_breakpoint_type(identifier, item.text())
-        except ValueError:
-            pass
+        view._debugger.set_breakpoint_type(identifier, item.text())
+    elif item.column() == DEBUGGER_LAYOUT.BREAKPOINT_WHERE_COLUMN:
+        view._debugger.set_breakpoint_where(identifier, item.text())
     else:
         return
     view.refresh()
