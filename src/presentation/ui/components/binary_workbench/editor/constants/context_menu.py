@@ -12,6 +12,10 @@ CONTEXT_MENU_ICON_GLYPHS = {
     "Open Label in New Tab": "\uf35d",
     "Add Command": "\uf0fe",
     "Binary Workbench": "\uf126",
+    "Toggle Breakpoint": "\uf055",
+    "Remove Breakpoint": "\uf2ed",
+    "Copy Address": "\uf0c5",
+    "Toggle IGNORED": "\uf070",
 }
 
 CONTEXT_MENU_SHORTCUTS = {

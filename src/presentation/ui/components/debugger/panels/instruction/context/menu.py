@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QApplication, QMenu
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
     use_white_menu_icons,
 )
-from src.presentation.ui.design.icons import Icons
 
 
 def show_instruction_menu(panel, position) -> None:
@@ -19,7 +18,7 @@ def show_instruction_menu(panel, position) -> None:
     address = int(item.data(Qt.UserRole), 0)
     menu = QMenu(panel)
     menu.setObjectName("binary-workbench-editor-context-menu")
-    toggle = QAction(Icons.expand_circle(), "Toggle Breakpoint", menu)
+    toggle = QAction("Toggle Breakpoint", menu)
     toggle.triggered.connect(lambda: panel.breakpointToggled.emit(address))
     remove = QAction("Remove Breakpoint", menu)
     remove.triggered.connect(lambda: panel.breakpointRemoved.emit(address))

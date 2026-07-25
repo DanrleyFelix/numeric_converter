@@ -4,8 +4,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import QApplication, QFrame, QPushButton
+from PySide6.QtWidgets import QApplication, QFrame, QMenu, QPushButton
 
+from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
+    use_white_menu_icons,
+)
 from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LAYOUT
 from src.presentation.ui.components.debugger.panels.register.breakpoint.dialog import (
     DebuggerRegisterBreakpointDialog,
@@ -146,3 +149,21 @@ def test_type_column_uses_compact_options_and_persists_canonical_order():
     )
 
     assert debugger.breakpoints[0].breakpoint_type == "write || read"
+
+
+def test_instruction_context_menu_assigns_an_icon_to_every_action():
+    """Keep every Panel 1 context action aligned through standard menu icons."""
+
+    _app()
+    menu = QMenu()
+    actions = tuple(
+        menu.addAction(text)
+        for text in (
+            "Toggle Breakpoint",
+            "Remove Breakpoint",
+            "Copy Address",
+            "Toggle IGNORED",
+        )
+    )
+    use_white_menu_icons(menu)
+    assert all(not action.icon().isNull() for action in actions)
