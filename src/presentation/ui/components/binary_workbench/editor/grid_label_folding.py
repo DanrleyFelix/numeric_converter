@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtGui import QTextCursor
 
-from src.core.binary_workbench.label_folding import label_fold_regions
+from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
 
@@ -54,8 +54,10 @@ class GridLabelFoldingMixin:
     def _refresh_label_folding(self, anchor_row: int | None = None) -> None:
         """Recalculate regions and apply one visibility mask to all columns."""
 
+        previous_regions = self._label_fold_regions
         regions = label_fold_regions(self._rows) if self._label_folding_enabled else []
         self._label_fold_regions = regions
+        self._expand_owners_of_removed_labels(previous_regions, regions)
         valid_labels = {region.label for region in regions}
         self._collapsed_labels.intersection_update(valid_labels)
         self.instructions.set_label_fold_regions(
@@ -70,9 +72,14 @@ class GridLabelFoldingMixin:
             if region.label in self._collapsed_labels
             for row in range(region.first_hidden_row, region.last_hidden_row + 1)
         }
-        self._render_offsets()
-        for editor in self._fold_editors():
-            self._apply_hidden_rows(editor, hidden_rows)
+        was_syncing = self._syncing_editor_scrollbars
+        self._syncing_editor_scrollbars = True
+        try:
+            self._render_offsets()
+            for editor in self._fold_editors():
+                self._apply_hidden_rows(editor, hidden_rows)
+        finally:
+            self._syncing_editor_scrollbars = was_syncing
         if not self._virtual:
             if anchor_row in hidden_rows:
                 region = next(
@@ -147,7 +154,10 @@ class GridLabelFoldingMixin:
         region = self._collapsed_label_cursor_region(editor)
         if region is None:
             return False
-        if move_cursor_to_end:
+        if (
+            move_cursor_to_end
+            and editor.textCursor().blockNumber() == region.label_row
+        ):
             block = editor.document().findBlockByNumber(region.label_row)
             cursor = QTextCursor(block)
             cursor.setPosition(block.position() + len(block.text()))
@@ -157,8 +167,31 @@ class GridLabelFoldingMixin:
         self._schedule_layout_refresh()
         return True
 
+    def _expand_owners_of_removed_labels(
+        self,
+        previous: list[LabelFoldRegion],
+        current: list[LabelFoldRegion],
+    ) -> None:
+        """Reveal a preceding label when it inherits a removed label's rows."""
+
+        current_labels = {region.label for region in current}
+        for removed in previous:
+            if removed.label in current_labels:
+                continue
+            owner = next(
+                (
+                    region
+                    for region in reversed(current)
+                    if region.label_row < removed.label_row
+                    and region.contains(removed.label_row)
+                ),
+                None,
+            )
+            if owner is not None:
+                self._collapsed_labels.discard(owner.label)
+
     def _collapsed_label_cursor_region(self, editor):
-        """Return the collapsed label region under the instruction cursor."""
+        """Return the collapsed region containing the instruction cursor."""
 
         if editor is not self.instructions:
             return None
@@ -167,7 +200,8 @@ class GridLabelFoldingMixin:
             (
                 region
                 for region in self._label_fold_regions
-                if region.label_row == row and region.label in self._collapsed_labels
+                if (region.label_row == row or region.contains(row))
+                and region.label in self._collapsed_labels
             ),
             None,
         )
@@ -196,6 +230,29 @@ class GridLabelFoldingMixin:
             if document.findBlockByNumber(index).isVisible()
         )
 
+    def _folded_scrollbar_maximum(self, maximum: int) -> int:
+        """Clamp shared scrolling to the reachable range of visible columns."""
+
+        if self._virtual or not self._collapsed_labels:
+            return maximum
+        limits = [
+            editor.verticalScrollBar().maximum() * ROW_BYTES
+            for editor in self._fold_editors()
+            if self._scroll_editor_enabled(editor)
+        ]
+        return min([maximum, *limits]) if limits else maximum
+
+    def _ensure_static_editor_scroll_range(self, maximum: int) -> None:
+        """Restore editor ranges left stale after expanding folded blocks."""
+
+        if self._virtual:
+            return
+        target = self._visible_block_position(maximum // ROW_BYTES)
+        for editor in self._fold_editors():
+            if self._scroll_editor_enabled(editor):
+                scrollbar = editor.verticalScrollBar()
+                scrollbar.setMaximum(max(scrollbar.maximum(), target))
+
     def _scroll_anchor_source_row(self) -> int | None:
         """Resolve the current visual top line back to its source row."""
 
@@ -219,6 +276,12 @@ class GridLabelFoldingMixin:
             for index in range(min(source_row, document.blockCount()))
             if document.findBlockByNumber(index).isVisible()
         )
+
+    def _visible_block_position(self, visible_row: int) -> int:
+        """Clamp a shared visual-row position for the editor scrollbars."""
+
+        last_visible = max(0, (self._scrollable_total_size() // ROW_BYTES) - 1)
+        return min(max(0, visible_row), last_visible)
 
     def _folded_offset_text(self, row_index: int, column: str, text: str) -> str:
         """Project the first body offset onto a standalone collapsed label."""

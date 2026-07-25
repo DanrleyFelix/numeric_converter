@@ -3159,10 +3159,14 @@ def test_binary_workbench_assembly_columns_stay_synchronized_after_page_navigati
         grid.instructions,
     ]
     navigation_editors = [
-        *grid._offset_editors.values(),
-        grid.raw_instructions,
-        grid.bytes,
-        grid.instructions,
+        editor
+        for editor in (
+            *grid._offset_editors.values(),
+            grid.raw_instructions,
+            grid.bytes,
+            grid.instructions,
+        )
+        if editor.isVisible()
     ]
     for editor in navigation_editors:
         grid.set_visible_offset(0)

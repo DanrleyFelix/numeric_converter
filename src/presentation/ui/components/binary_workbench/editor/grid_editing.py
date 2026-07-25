@@ -131,6 +131,7 @@ class GridEditingMixin:
             target = self.instructions if editing_bytes else self.bytes
             values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
             self._set_editor_text(target, values)
+            self._render_decoded_text()
             self._render_raw_instructions()
         if offset_delta or labels_changed:
             self._refresh_jump_navigation()

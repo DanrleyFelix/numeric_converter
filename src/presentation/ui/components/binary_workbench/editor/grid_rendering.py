@@ -216,13 +216,24 @@ class GridRenderingMixin:
     def _render(self) -> None:
         self._resize_editors()
         self._set_editor_text(self.bytes, [self._display_bytes_text(row.bytes_text) for row in self._rows])
-        self._set_editor_text(self.decoded_text, [decode_hex_bytes(row.bytes_text, self._decoded_text_values) for row in self._rows])
+        self._render_decoded_text()
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
         self._instruction_highlighter.rehighlight()
         self._render_raw_instructions()
         self._render_offsets()
         self._refresh_label_folding()
         self._emit_selection_summary()
+
+    def _render_decoded_text(self) -> None:
+        """Rebuild decoded rows from the same row snapshot as every column."""
+
+        self._set_editor_text(
+            self.decoded_text,
+            [
+                decode_hex_bytes(row.bytes_text, self._decoded_text_values)
+                for row in self._rows
+            ],
+        )
 
     def _render_offsets(self) -> None:
         for name, editor in self._offset_editors.items():
@@ -253,7 +264,7 @@ class GridRenderingMixin:
 
     def _scroll_static_document(self, value: int) -> None:
         offset = self._aligned_scroll_offset(value)
-        row_index = offset // ROW_BYTES
+        row_index = self._visible_block_position(offset // ROW_BYTES)
         self._visible_start_offset = offset
         self._last_visible_offset = offset
         editors = [*self._offset_editors.values(), self.raw_instructions, self.bytes, self.decoded_text, self.instructions]

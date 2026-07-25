@@ -72,12 +72,22 @@ class GridLayoutMixin:
             editor.selectionAutoScrolled.connect(self._restore_virtual_selection)
             editor.viewportChangeAboutToStart.connect(self._capture_virtual_viewport_selection)
             editor.viewportChangeFinished.connect(self._finish_virtual_viewport_change)
-            editor.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
+            editor.verticalScrollBar().valueChanged.connect(
+                lambda value, source=editor: self._on_editor_scrollbar_changed(
+                    source,
+                    value,
+                )
+            )
             editor.returnKeyPressed.connect(self._handle_editor_return_key)
             editor.editAboutToStart.connect(self._expand_label_before_edit)
             editor.protectedEditKeyPressed.connect(self._handle_editor_protected_edit_key)
         self.decoded_text.copyRequested.connect(lambda source: source.copy())
-        self.decoded_text.verticalScrollBar().valueChanged.connect(self._on_editor_scrollbar_changed)
+        self.decoded_text.verticalScrollBar().valueChanged.connect(
+            lambda value: self._on_editor_scrollbar_changed(
+                self.decoded_text,
+                value,
+            )
+        )
 
     def _panel(
         self,
@@ -151,9 +161,11 @@ class GridLayoutMixin:
         self._updating = True
         try:
             maximum = max(0, self._scrollable_total_size() - self.visible_size())
+            maximum = self._folded_scrollbar_maximum(maximum)
             target = min(max(0, self._aligned_scroll_offset(self._visible_start_offset)), maximum)
             self._visible_start_offset = target
             self.scrollbar.setRange(0, maximum)
+            self._ensure_static_editor_scroll_range(maximum)
             self.scrollbar.setSingleStep(ROW_BYTES)
             self.scrollbar.setPageStep(max(ROW_BYTES, self.visible_size()))
             self.scrollbar.setValue(target)
@@ -162,7 +174,25 @@ class GridLayoutMixin:
         finally:
             self._updating = was_updating
 
-    def _on_editor_scrollbar_changed(self, value: int) -> None:
-        if self._virtual or self._updating or self._syncing_editor_scrollbars:
+    def _on_editor_scrollbar_changed(self, editor, value: int) -> None:
+        if (
+            self._virtual
+            or self._updating
+            or self._syncing_editor_scrollbars
+            or not self._scroll_editor_enabled(editor)
+        ):
             return
         self.scrollbar.setValue(value * ROW_BYTES)
+
+    def _scroll_editor_enabled(self, editor) -> bool:
+        """Return whether an editor belongs to a currently enabled column."""
+
+        if editor in self._offset_editors.values():
+            return not self.offsets_host.isHidden()
+        shells = {
+            self.raw_instructions: self.raw_shell,
+            self.bytes: self.bytes_shell,
+            self.decoded_text: self.decoded_shell,
+            self.instructions: self.instructions_shell,
+        }
+        return not shells[editor].isHidden()
