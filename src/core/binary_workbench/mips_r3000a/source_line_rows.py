@@ -10,6 +10,7 @@ from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruct
 from src.core.binary_workbench.mips_r3000a.pseudo_instructions import (
     expand_pseudo_instructions,
 )
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 
 def build_source_line_rows(
     lines: list[str],
@@ -73,12 +74,20 @@ def _build_rows(
 ) -> list[BinaryWorkbenchRowDTO] | None:
     rows: list[BinaryWorkbenchRowDTO] = []
     offset = start_offset
+    resolver = MipsSymbolResolver(labels, variables, equates)
     for line in lines:
         code = instruction_code(line)
         if not code:
             rows.append(empty_source_row(line, offset_names))
             continue
-        raw_instruction = raw_mips_instruction(line, offset, labels, variables, equates)
+        raw_instruction = raw_mips_instruction(
+            line,
+            offset,
+            labels,
+            variables,
+            equates,
+            resolver,
+        )
         data = codec.assemble(raw_instruction, offset) if raw_instruction else None
         if data is None:
             if reject_invalid:

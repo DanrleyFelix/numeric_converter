@@ -3,6 +3,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint
+from PySide6.QtGui import QShortcut
 from PySide6.QtWidgets import QApplication
 
 from src.core.binary_workbench.mips_r3000a import build_rows_from_instructions
@@ -10,6 +11,7 @@ from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchRowDTO,
+    BinaryWorkbenchStateDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
@@ -23,6 +25,7 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
 from src.presentation.ui.components.binary_workbench.editor.table import (
     BinaryWorkbenchGrid,
 )
+from src.presentation.ui.components.binary_workbench.window import BinaryWorkbenchWindow
 
 _APP = None
 
@@ -56,7 +59,7 @@ def _grid(lines: list[str]) -> BinaryWorkbenchGrid:
     return grid
 
 
-def test_labels_refresh_only_when_final_valid_offset_changes(monkeypatch):
+def test_labels_refresh_only_when_file_offset_layout_changes(monkeypatch):
     grid = _grid([
         "entry: nop",
         "target: nop",
@@ -146,3 +149,42 @@ def test_clicked_branch_resolves_current_label_row_instead_of_stale_snapshot():
 
     assert grid.instructions._jump_symbols["test"] == "0x00000004"
     assert grid.instructions._standard_target(QPoint(), "test") == 0x00000000
+
+
+def test_equal_size_multi_line_edit_refreshes_labels_and_branch_displacement():
+    """Refresh moved labels even when the final executable size is unchanged."""
+
+    grid = _grid([
+        "nop",
+        "target: invalid",
+        "nop",
+        "beq $zero, $zero, target",
+    ])
+
+    grid.instructions.setPlainText(
+        "invalid\n"
+        "target: nop\n"
+        "nop\n"
+        "beq $zero, $zero, target"
+    )
+    _app().processEvents()
+
+    assert grid.current_labels() == {"target": "0x00000000"}
+    assert grid.export_rows()[-1].bytes_text == "FD FF 00 10"
+
+
+def test_f1_shortcut_forces_active_grid_recalculation(monkeypatch):
+    """Expose the safety refresh through one window-level F1 shortcut."""
+
+    window = BinaryWorkbenchWindow(BinaryWorkbenchStateDTO())
+    window.new_scratch_tab()
+    grid = window.tabs.currentWidget().grid
+    calls: list[bool] = []
+    monkeypatch.setattr(grid, "recalculate_labels_and_branches", lambda: calls.append(True))
+
+    shortcut = window.findChild(QShortcut, "binary-workbench-recalculate-shortcut")
+    assert shortcut is not None
+    assert shortcut.key().toString() == "F1"
+    shortcut.activated.emit()
+
+    assert calls == [True]

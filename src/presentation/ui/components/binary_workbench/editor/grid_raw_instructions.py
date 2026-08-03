@@ -17,9 +17,10 @@ class GridRawInstructionsMixin:
     def _render_raw_instructions(self) -> None:
         lines = self._raw_instruction_lines()
         self._set_editor_text(self.raw_instructions, lines)
-        self._raw_instruction_highlighter.rehighlight()
         self.raw_instructions.set_hazard_extra_selections([])
         self._apply_instruction_hazards(validate_mips_hazards([row.instruction for row in self._rows]))
+        if self._label_folding_enabled:
+            self._apply_hidden_rows(self.raw_instructions, self._folded_hidden_rows())
 
     def _raw_instruction_lines(self) -> list[str]:
         lines: list[str] = []

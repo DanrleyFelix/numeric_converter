@@ -11,7 +11,10 @@ from src.core.binary_workbench.symbolic_instructions import (
     preserve_symbolic_rows,
     preserved_source_annotation,
 )
-from src.core.binary_workbench.row_structure import structural_offset_delta
+from src.core.binary_workbench.row_structure import (
+    file_offset_layout_changed,
+    structural_offset_delta,
+)
 from src.core.binary_workbench.virtual_instruction_reconcile import (
     reconcile_locked_virtual_instructions,
 )
@@ -55,6 +58,7 @@ class GridEditingMixin:
             return
         self._syncing_editor_change = True
         try:
+            self._cancel_incremental_instruction_update()
             if not self._bytes_user_edit_in_progress():
                 self._normalize_bytes_editor_text()
             self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
@@ -71,26 +75,50 @@ class GridEditingMixin:
             return
         self._syncing_editor_change = True
         try:
-            self._sync_user_rows(
-                self._normalized_instruction_lines(),
-                BINARY_WORKBENCH_TEXT.INSTRUCTION,
-            )
+            lines = self._normalized_instruction_lines()
+            if not self._instructions_user_edit_in_progress():
+                self._sync_user_rows(lines, BINARY_WORKBENCH_TEXT.INSTRUCTION)
+                return
+            self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
+            self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
+            self._edit_origin_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
+            self._handle_instruction_change(lines)
         finally:
+            self._edit_origin_kind = None
             self._syncing_editor_change = False
 
     def edit_origin_kind(self) -> str | None:
         return self._edit_origin_kind
 
-    def _sync_user_rows(self, lines: list[str], origin: str) -> None:
+    def _sync_user_rows(
+        self,
+        lines: list[str],
+        origin: str,
+        force_recalculation: bool = False,
+    ) -> None:
         self._set_last_editor(origin)
         self._dirty_editor_kind = origin
         self._edit_origin_kind = origin
         try:
-            self._sync_rows(lines, origin == BINARY_WORKBENCH_TEXT.BYTES)
+            self._sync_rows(
+                lines,
+                origin == BINARY_WORKBENCH_TEXT.BYTES,
+                force_recalculation,
+            )
         finally:
             self._edit_origin_kind = None
 
-    def _sync_rows(self, lines: list[str], editing_bytes: bool) -> None:
+    def recalculate_labels_and_branches(self) -> None:
+        """Refresh the active source region and its shared label snapshot."""
+
+        self._recalculate_instruction_view(self._normalized_instruction_lines())
+
+    def _sync_rows(
+        self,
+        lines: list[str],
+        editing_bytes: bool,
+        force_recalculation: bool = False,
+    ) -> None:
         if self._updating:
             return
         updated = self._byte_rows_from_lines(lines) if editing_bytes else self._instruction_rows_from_lines(lines)
@@ -103,13 +131,19 @@ class GridEditingMixin:
         if editing_bytes:
             updated = self._preserve_bytes_rows(updated)
         offset_delta = structural_offset_delta(self._rows, updated)
-        labels_changed = label_declarations_changed(self._rows, updated)
+        label_structure_changed = label_declarations_changed(self._rows, updated)
+        offset_layout_changed = file_offset_layout_changed(self._rows, updated)
+        labels = labels_from_rows(updated) if (
+            offset_layout_changed or label_structure_changed or force_recalculation
+        ) else self._labels
+        labels_changed = labels != self._labels
         incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
         self._rows = updated
-        if offset_delta or labels_changed:
-            labels = labels_from_rows(updated)
-            if labels != self._labels:
-                self._set_editing_labels(labels)
+        if not editing_bytes:
+            self._last_assembly_refresh_window = None
+            self._assembly_refresh_warning_emitted = False
+        if labels_changed or force_recalculation:
+            self._set_editing_labels(labels)
         if not self._virtual:
             self._all_rows = list(updated) if (
                 not editing_bytes and self._preserve_instruction_offsets()
@@ -133,7 +167,7 @@ class GridEditingMixin:
             self._set_editor_text(target, values)
             self._render_decoded_text()
             self._render_raw_instructions()
-        if offset_delta or labels_changed:
+        if offset_delta or label_structure_changed or labels_changed or force_recalculation:
             self._refresh_jump_navigation()
             self._refresh_label_folding()
         if not self._virtual:
@@ -149,7 +183,11 @@ class GridEditingMixin:
             for name, base in self._offset_bases().items()
         }
 
-    def _set_editing_labels(self, labels: dict[str, str]) -> None:
+    def _set_editing_labels(
+        self,
+        labels: dict[str, str],
+        block_range: tuple[int, int] | None = None,
+    ) -> None:
         was_updating = self._updating
         self._updating = True
         self._labels = labels
@@ -159,8 +197,25 @@ class GridEditingMixin:
             self._equates,
             labels,
         )
-        self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
-        self._raw_instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+        if block_range is None:
+            self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+            self._raw_instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+        else:
+            first, last = block_range
+            self._instruction_highlighter.set_symbols_for_blocks(
+                labels,
+                self._variables,
+                self._equates,
+                first,
+                last,
+            )
+            self._raw_instruction_highlighter.set_symbols_for_blocks(
+                labels,
+                self._variables,
+                self._equates,
+                first,
+                last,
+            )
         self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
         self._refresh_jump_navigation()
         self._updating = was_updating

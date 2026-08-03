@@ -30,6 +30,18 @@ def structural_offset_delta(
     return valid_offset_end(current) - valid_offset_end(previous)
 
 
+def file_offset_layout_changed(
+    previous: list[BinaryWorkbenchRowDTO],
+    current: list[BinaryWorkbenchRowDTO],
+) -> bool:
+    """Return whether any source row moved into or out of a file offset."""
+
+    return len(previous) != len(current) or any(
+        before.offsets.get(FILE_OFFSET) != after.offsets.get(FILE_OFFSET)
+        for before, after in zip(previous, current)
+    )
+
+
 def first_valid_label_offset(
     rows: list[BinaryWorkbenchRowDTO],
     label: str,

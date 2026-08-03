@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QSyntaxHighlighter,
+    QTextBlockUserData,
+    QTextCharFormat,
+)
 
 from src.core.binary_workbench.editor.commands.registry import is_editor_command_line
 from src.core.binary_workbench.mips_r3000a.codec import (
@@ -39,6 +46,7 @@ from src.presentation.ui.components.binary_workbench.editor.debugger.highlightin
 )
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     BYTE_TOKEN,
+    COMPLETION_TOKEN,
     DECIMAL_TOKEN,
     EQUATE_TOKEN,
     HEX_TOKEN,
@@ -49,10 +57,21 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     safe_int,
     text_format,
 )
+from src.presentation.ui.components.binary_workbench.constant_groups.timing import (
+    BINARY_WORKBENCH_TIMING,
+)
 
 REFERENCE_OFFSET_PREFIX = "&"
 JUMP_TARGET_TOKEN = re.compile(rf"&?(?:[@_]?[A-Za-z_][A-Za-z0-9_]*|[-+]?(?:0x{HEX_DIGIT_PATTERN}+|\d+))")
 INSTRUCTION_TOKEN = re.compile(r"[^,\s]+")
+
+
+class _RegisterValuesBlockData(QTextBlockUserData):
+    """Keep inferred register values attached to their actual text block."""
+
+    def __init__(self, values: dict[int, int]) -> None:
+        super().__init__()
+        self.values = dict(values)
 
 
 class BytesHighlighter(QSyntaxHighlighter):
@@ -80,6 +99,14 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._known_register_values_by_block: dict[int, dict[int, int]] = {}
         self._debugger_directive_errors: dict[int, str] = {}
         self._has_debugger_directives = False
+        self._debugger_directive_blocks: set[int] = set()
+        self._directive_document_block_count = self.document().blockCount()
+        self._directive_refresh_timer = QTimer(self)
+        self._directive_refresh_timer.setSingleShot(True)
+        self._directive_refresh_timer.setInterval(
+            BINARY_WORKBENCH_TIMING.INCREMENTAL_PROPAGATION_MS
+        )
+        self._directive_refresh_timer.timeout.connect(self.rehighlight)
         self.document().contentsChange.connect(self._refresh_directives_after_edit)
         self.rehighlight()
 
@@ -95,6 +122,30 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._known_register_values_by_block.clear()
         self.rehighlight()
 
+    def set_symbols_for_blocks(
+        self,
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+        first_block: int,
+        last_block: int,
+    ) -> None:
+        """Update symbol formats only inside one bounded source window."""
+
+        self._labels = {name.lower(): value for name, value in labels.items()}
+        self._variables = {
+            f"_{name.lstrip('_')}".lower(): value
+            for name, value in variables.items()
+        }
+        self._equates = {
+            f"@{name.lstrip('@')}".lower(): value
+            for name, value in equates.items()
+        }
+        for index in range(max(0, first_block), max(first_block, last_block)):
+            block = self.document().findBlockByNumber(index)
+            if block.isValid():
+                self.rehighlightBlock(block)
+
     def set_navigation_background_enabled(self, enabled: bool) -> None:
         self._navigation_background_enabled = enabled
         self.rehighlight()
@@ -102,10 +153,17 @@ class InstructionHighlighter(QSyntaxHighlighter):
     def rehighlight(self) -> None:
         """Refresh directive diagnostics before applying document formats."""
 
+        self._directive_refresh_timer.stop()
         lines = self.document().toPlainText().split("\n")
         self._has_debugger_directives = any(
             is_debugger_directive_line(line) for line in lines
         )
+        self._debugger_directive_blocks = {
+            index
+            for index, line in enumerate(lines)
+            if is_debugger_directive_line(line)
+        }
+        self._directive_document_block_count = self.document().blockCount()
         symbols = debugger_directive_symbols(self._labels, self._variables, self._equates)
         self._debugger_directive_errors = debugger_directive_diagnostics(
             lines,
@@ -128,10 +186,16 @@ class InstructionHighlighter(QSyntaxHighlighter):
         """Refresh cross-line diagnostics only for documents using directives."""
 
         block = self.document().findBlock(position)
-        if self._has_debugger_directives or (
-            block.isValid() and is_debugger_directive_line(block.text())
-        ):
-            self.rehighlight()
+        block_number = block.blockNumber() if block.isValid() else -1
+        structure_changed = (
+            self.document().blockCount() != self._directive_document_block_count
+        )
+        touches_directive = (
+            block_number in self._debugger_directive_blocks
+            or (block.isValid() and is_debugger_directive_line(block.text()))
+        )
+        if touches_directive or (structure_changed and self._has_debugger_directives):
+            self._directive_refresh_timer.start()
 
     def set_jump_reference_offsets(
         self,
@@ -153,9 +217,10 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text: str) -> None:
         block_number = self.currentBlock().blockNumber()
+        previous_data = self.currentBlock().previous().userData()
         register_values = (
-            dict(self._known_register_values_by_block.get(block_number - 1, {0: 0}))
-            if block_number > 0
+            dict(previous_data.values)
+            if isinstance(previous_data, _RegisterValuesBlockData)
             else {0: 0}
         )
         if is_debugger_directive_line(text):
@@ -238,11 +303,12 @@ class InstructionHighlighter(QSyntaxHighlighter):
                     match.end() - match.start(),
                     text_format(psx_mips_required_highlight_color("equate")),
                 )
-        for name in self._labels:
-            for match in re.finditer(rf"\b{re.escape(name)}\b", original, flags=re.IGNORECASE):
-                style = text_format(psx_mips_required_highlight_color("label"))
-                style.setFontWeight(QFont.Bold)
-                self.setFormat(match.start(), match.end() - match.start(), style)
+        for match in COMPLETION_TOKEN.finditer(original):
+            if match.group().casefold() not in self._labels:
+                continue
+            style = text_format(psx_mips_required_highlight_color("label"))
+            style.setFontWeight(QFont.Bold)
+            self.setFormat(match.start(), match.end() - match.start(), style)
 
     def _invalid_jump_target_range(self, raw_code: str) -> tuple[int, int] | None:
         code_start, code = code_without_label(raw_code)
@@ -333,6 +399,7 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
     def _remember_register_values(self, block_number: int, values: dict[int, int]) -> None:
         self._known_register_values_by_block[block_number] = values
+        self.setCurrentBlockUserData(_RegisterValuesBlockData(values))
         self.setCurrentBlockState(register_state(values))
 
     def _target_value(self, token: str) -> int | None:

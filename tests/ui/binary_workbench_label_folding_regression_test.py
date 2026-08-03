@@ -4,6 +4,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent, QTextCursor
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from src.core.binary_workbench.mips_r3000a import build_rows_from_instructions
@@ -129,7 +130,7 @@ def test_deleting_label_expands_previous_owner_of_merged_rows():
         grid.instructions,
         QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Delete, Qt.NoModifier),
     )
-    _app().processEvents()
+    QTest.qWait(120)
 
     assert "middle:" not in grid.instructions.toPlainText().splitlines()
     assert len({editor.document().blockCount() for editor in _editors(grid)}) == 1
@@ -159,3 +160,33 @@ def test_editing_hidden_label_body_expands_its_owner():
     assert grid.instructions.document().findBlockByNumber(1).text() == "nopx"
     assert "top" not in grid._collapsed_labels
     assert grid.instructions.document().findBlockByNumber(1).isVisible()
+
+
+def test_raw_instruction_rerender_preserves_folds_with_invalid_jump():
+    """Keep Raw Instructions folded when an invalid source row triggers repaint."""
+
+    grid = _grid([
+        "first:",
+        "nop",
+        "second:",
+        "nop",
+        "third:",
+        "j @return",
+    ])
+    grid.toggle_label_fold("first")
+    grid.toggle_label_fold("second")
+
+    grid._render_raw_instructions()
+    _app().processEvents()
+
+    raw_visibility = [
+        grid.raw_instructions.document().findBlockByNumber(row).isVisible()
+        for row in range(len(grid._rows))
+    ]
+    instruction_visibility = [
+        grid.instructions.document().findBlockByNumber(row).isVisible()
+        for row in range(len(grid._rows))
+    ]
+    assert raw_visibility == instruction_visibility
+    assert raw_visibility[1] is False
+    assert raw_visibility[3] is False

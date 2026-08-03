@@ -10,6 +10,9 @@ from src.presentation.ui.components.binary_workbench.editor.bytes_input import (
     bytes_insert_allowed,
     is_bytes_editor,
 )
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 from src.presentation.ui.components.binary_workbench.editor.protected_edit import (
     replace_selection_preserving_line_breaks,
 )
@@ -74,6 +77,8 @@ class EditorGranularUndoMixin:
         return True
 
     def _run_granular_edit(self, operation: Callable[[QTextCursor], None]) -> None:
+        """Run one edit block while preserving its resulting cursor range."""
+
         if hasattr(self, "clear_editor_occurrence_selection"):
             self.clear_editor_occurrence_selection()
         cursor = self.textCursor()
@@ -81,12 +86,17 @@ class EditorGranularUndoMixin:
         cursor.beginEditBlock()
         try:
             operation(cursor)
+            position = cursor.position()
+            anchor = cursor.anchor()
             if hasattr(self, "normalize_granular_instruction_line"):
                 self.normalize_granular_instruction_line()
         finally:
             cursor.endEditBlock()
             self._granular_editing = False
-        self.setTextCursor(cursor)
+        restored = QTextCursor(self.document())
+        set_cursor_position(restored, anchor)
+        set_cursor_position(restored, position, QTextCursor.KeepAnchor)
+        self.setTextCursor(restored)
 
 
 def _bytes_delete_should_preserve_line_breaks(editor) -> bool:

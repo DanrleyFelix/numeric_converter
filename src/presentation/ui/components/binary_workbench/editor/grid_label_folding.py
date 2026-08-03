@@ -28,7 +28,7 @@ class GridLabelFoldingMixin:
             self._collapsed_labels.remove(label)
         else:
             self._collapsed_labels.add(label)
-        self._refresh_label_folding(anchor_row)
+        self._apply_label_visibility(anchor_row)
         self._schedule_layout_refresh()
 
     def expand_label_for_offset(self, offset: int) -> bool:
@@ -47,7 +47,7 @@ class GridLabelFoldingMixin:
         if not expanded:
             return False
         self._collapsed_labels.difference_update(expanded)
-        self._refresh_label_folding()
+        self._apply_label_visibility()
         self._schedule_layout_refresh()
         return True
 
@@ -60,18 +60,19 @@ class GridLabelFoldingMixin:
         self._expand_owners_of_removed_labels(previous_regions, regions)
         valid_labels = {region.label for region in regions}
         self._collapsed_labels.intersection_update(valid_labels)
+        self._apply_label_visibility(anchor_row)
+
+    def _apply_label_visibility(self, anchor_row: int | None = None) -> None:
+        """Apply cached fold regions without preprocessing source labels."""
+
+        regions = self._label_fold_regions
         self.instructions.set_label_fold_regions(
             {
                 region.label_row: (region.label, region.label in self._collapsed_labels)
                 for region in regions
             }
         )
-        hidden_rows = {
-            row
-            for region in regions
-            if region.label in self._collapsed_labels
-            for row in range(region.first_hidden_row, region.last_hidden_row + 1)
-        }
+        hidden_rows = self._folded_hidden_rows()
         was_syncing = self._syncing_editor_scrollbars
         self._syncing_editor_scrollbars = True
         try:
@@ -92,6 +93,16 @@ class GridLabelFoldingMixin:
                     self._visible_position_for_source_row(anchor_row) * ROW_BYTES
                 )
             self._configure_scrollbar()
+
+    def _folded_hidden_rows(self) -> set[int]:
+        """Return the current source-row mask shared by every grid column."""
+
+        return {
+            row
+            for region in self._label_fold_regions
+            if region.label in self._collapsed_labels
+            for row in range(region.first_hidden_row, region.last_hidden_row + 1)
+        }
 
     def _fold_editors(self):
         """Return every editor whose blocks represent complete grid rows."""
@@ -163,7 +174,7 @@ class GridLabelFoldingMixin:
             cursor.setPosition(block.position() + len(block.text()))
             editor.setTextCursor(cursor)
         self._collapsed_labels.remove(region.label)
-        self._refresh_label_folding()
+        self._apply_label_visibility()
         self._schedule_layout_refresh()
         return True
 

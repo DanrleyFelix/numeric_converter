@@ -1,4 +1,7 @@
-from src.core.binary_workbench.row_structure import structural_offset_delta
+from src.core.binary_workbench.row_structure import (
+    file_offset_layout_changed,
+    structural_offset_delta,
+)
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
@@ -41,15 +44,18 @@ class GridCommitMixin:
         if editing_bytes:
             rows = self._preserve_bytes_rows(rows)
         offset_delta = structural_offset_delta(self._rows, rows)
-        labels_changed = label_declarations_changed(self._rows, rows)
+        label_structure_changed = label_declarations_changed(self._rows, rows)
+        offset_layout_changed = file_offset_layout_changed(self._rows, rows)
+        labels = labels_from_rows(rows) if (
+            offset_layout_changed or label_structure_changed
+        ) else self._labels
+        labels_changed = labels != self._labels
         self._rows = rows
-        if offset_delta or labels_changed:
-            labels = labels_from_rows(rows)
-            if labels != self._labels:
-                self._set_editing_labels(labels)
+        if labels_changed:
+            self._set_editing_labels(labels)
         self._commit_rows_to_context(rows)
         self._render_raw_instructions()
-        if offset_delta or labels_changed:
+        if offset_delta or label_structure_changed or labels_changed:
             self._refresh_jump_navigation()
             self._refresh_label_folding()
         self._dirty_editor_kind = None

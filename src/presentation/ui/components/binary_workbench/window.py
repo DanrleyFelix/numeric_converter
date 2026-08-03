@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QResizeEvent, QShortcut
 from PySide6.QtWidgets import QLabel, QMainWindow
 
 from src.modules.application_dtos import ProgramContextDTO
@@ -86,6 +86,9 @@ class BinaryWorkbenchWindow(
             preferences,
             program_context,
         )
+        self._recalculate_shortcut = QShortcut(QKeySequence("F1"), self)
+        self._recalculate_shortcut.setObjectName("binary-workbench-recalculate-shortcut")
+        self._recalculate_shortcut.activated.connect(self._recalculate_current_source)
         self._initialize_debugger_support()
         self.footer_status = QLabel(BINARY_WORKBENCH_TEXT.STATUS_IDLE, self)
         self.footer_status.setObjectName("binary-workbench-footer-status")
@@ -141,6 +144,14 @@ class BinaryWorkbenchWindow(
         ensure_window_on_available_screen(self._help_window, self)
         self._help_window.raise_()
         self._help_window.activateWindow()
+
+    def _recalculate_current_source(self) -> None:
+        """Refresh labels and branches around the active editor viewport."""
+
+        page = self.tabs.currentWidget()
+        grid = getattr(page, "grid", None)
+        if grid is not None:
+            grid.recalculate_labels_and_branches()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if (

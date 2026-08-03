@@ -374,6 +374,8 @@ class WorkbenchEditor(
         if normalized == text:
             return
         current = self.textCursor()
+        current_position = current.position()
+        current_anchor = current.anchor()
         cursor = QTextCursor(block)
         self._normalizing_instruction_line = True
         try:
@@ -381,7 +383,10 @@ class WorkbenchEditor(
             cursor.select(QTextCursor.SelectionType.LineUnderCursor)
             cursor.insertText(normalized)
             cursor.endEditBlock()
-            self.setTextCursor(current)
+            restored = QTextCursor(self.document())
+            set_cursor_position(restored, current_anchor)
+            set_cursor_position(restored, current_position, QTextCursor.KeepAnchor)
+            self.setTextCursor(restored)
         finally:
             self._normalizing_instruction_line = False
             self._last_instruction_cursor_block = self.textCursor().blockNumber()

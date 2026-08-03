@@ -1,3 +1,4 @@
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit
 
 from src.modules.binary_workbench_constants import (
@@ -9,6 +10,9 @@ from src.presentation.ui.components.binary_workbench.constants import BINARY_WOR
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     normalize_bytes_text,
     normalize_instruction_text,
+)
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
 )
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
 from src.core.binary_workbench.row_structure import (
@@ -31,6 +35,8 @@ class GridRenderingMixin:
         reference_offset_bases: dict[str, str] | None = None,
         jump_reference_offset: str = "",
     ) -> None:
+        self._cancel_incremental_instruction_update()
+        self._setup_refresh_window()
         self._reset_virtual_undo_cache()
         self._clear_virtual_selection()
         content_columns = {
@@ -256,6 +262,7 @@ class GridRenderingMixin:
             return
         if not self._virtual:
             self._scroll_static_document(value)
+            self._warn_if_assembly_refresh_needed()
             return
         offset = self._aligned_scroll_offset(value)
         direction = 1 if offset >= self._last_visible_offset else -1
@@ -277,10 +284,15 @@ class GridRenderingMixin:
 
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
         text = "\n".join(lines)
-        if editor.toPlainText() == text:
+        current_text = editor.toPlainText()
+        if current_text == text:
             if self._virtual:
                 editor.verticalScrollBar().setValue(0)
             self._remember_editor_text_signature(editor)
+            return
+        current_lines = current_text.split("\n")
+        if len(current_lines) == len(lines):
+            self._replace_changed_editor_lines(editor, current_lines, lines)
             return
         was_updating = self._updating
         self._updating = True
@@ -291,6 +303,67 @@ class GridRenderingMixin:
                 editor.verticalScrollBar().setValue(0)
             else:
                 editor.verticalScrollBar().setValue(min(scroll_value, editor.verticalScrollBar().maximum()))
+            self._remember_editor_text_signature(editor)
+        finally:
+            self._updating = was_updating
+
+    def _replace_changed_editor_lines(
+        self,
+        editor: QPlainTextEdit,
+        current: list[str],
+        updated: list[str],
+    ) -> None:
+        """Patch same-sized documents without rebuilding unaffected blocks."""
+
+        was_updating = self._updating
+        self._updating = True
+        active = editor.textCursor()
+        position, anchor = active.position(), active.anchor()
+        scroll_value = editor.verticalScrollBar().value()
+        try:
+            for index, (before, after) in enumerate(zip(current, updated)):
+                if before == after:
+                    continue
+                block = editor.document().findBlockByNumber(index)
+                cursor = QTextCursor(block)
+                cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+                cursor.insertText(after)
+            restored = QTextCursor(editor.document())
+            set_cursor_position(restored, anchor)
+            set_cursor_position(restored, position, QTextCursor.KeepAnchor)
+            editor.setTextCursor(restored)
+            editor.verticalScrollBar().setValue(
+                min(scroll_value, editor.verticalScrollBar().maximum())
+            )
+            self._remember_editor_text_signature(editor)
+        finally:
+            self._updating = was_updating
+
+    def _set_editor_line(
+        self,
+        editor: QPlainTextEdit,
+        index: int,
+        text: str,
+    ) -> None:
+        """Replace one derived row without rebuilding the editor document."""
+
+        block = editor.document().findBlockByNumber(index)
+        if not block.isValid() or block.text() == text:
+            return
+        was_updating = self._updating
+        self._updating = True
+        active = editor.textCursor()
+        position, anchor = active.position(), active.anchor()
+        scroll_value = editor.verticalScrollBar().value()
+        try:
+            cursor = QTextCursor(block)
+            cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+            cursor.insertText(text)
+            restored = QTextCursor(editor.document())
+            set_cursor_position(restored, anchor)
+            set_cursor_position(restored, position, QTextCursor.KeepAnchor)
+            editor.setTextCursor(restored)
+            editor.verticalScrollBar().setValue(scroll_value)
             self._remember_editor_text_signature(editor)
         finally:
             self._updating = was_updating

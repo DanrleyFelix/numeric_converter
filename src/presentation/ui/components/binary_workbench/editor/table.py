@@ -22,6 +22,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_edit_rules impo
     GridEditRulesMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.grid_editing import GridEditingMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_incremental_editing import (
+    GridIncrementalEditingMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_layout import GridLayoutMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_label_folding import (
     GridLabelFoldingMixin,
@@ -31,6 +34,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_rendering impor
 from src.presentation.ui.components.binary_workbench.editor.grid_resizing import GridResizingMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_raw_instructions import (
     GridRawInstructionsMixin,
+)
+from src.presentation.ui.components.binary_workbench.editor.grid_refresh_window import (
+    GridRefreshWindowMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.grid_selection import GridSelectionMixin
 from src.presentation.ui.components.binary_workbench.editor.grid_selection_ranges import (
@@ -61,6 +67,8 @@ class BinaryWorkbenchGrid(
     GridEditRulesMixin,
     GridCommitMixin,
     GridByteReplacementMixin,
+    GridIncrementalEditingMixin,
+    GridRefreshWindowMixin,
     GridEditingMixin,
     GridSelectionMixin,
     GridVirtualSelectionMixin,
@@ -135,18 +143,19 @@ class BinaryWorkbenchGrid(
         self._rows_changed_emit_timer = QTimer(self)
         self._rows_changed_emit_timer.setSingleShot(True)
         self._rows_changed_emit_timer.timeout.connect(self.flush_pending_rows_changed)
+        self._setup_incremental_editing()
+        self._setup_refresh_window()
         self._build_ui()
         self._refresh_command_completions()
 
     def _emit_rows_changed(self, rows: list[BinaryWorkbenchRowDTO], deferred: bool = False) -> None:
-        snapshot = list(rows)
         if not deferred:
             self._pending_rows_changed = None
             self._pending_rows_changed_origin = None
             self._rows_changed_emit_timer.stop()
-            self.rowsChanged.emit(snapshot)
+            self.rowsChanged.emit(list(rows))
             return
-        self._pending_rows_changed = snapshot
+        self._pending_rows_changed = rows
         self._pending_rows_changed_origin = self._edit_origin_kind
         self._rows_changed_emit_timer.start(ROWS_CHANGED_DEBOUNCE_MS)
 
@@ -161,7 +170,7 @@ class BinaryWorkbenchGrid(
         previous_origin = self._edit_origin_kind
         self._edit_origin_kind = origin
         try:
-            self.rowsChanged.emit(rows)
+            self.rowsChanged.emit(list(rows))
         finally:
             self._edit_origin_kind = previous_origin
 

@@ -35,6 +35,9 @@
     STATUS_OFFSET_OUT_OF_RANGE: str = "Jump/branch target is outside the current file."
     STATUS_TARGET_MISALIGNED: str = "Jump/branch target is not aligned to 4 bytes."
     STATUS_BRANCH_OUT_OF_RANGE: str = "Branch target is outside the supported 16-bit relative range."
+    STATUS_ASSEMBLY_REFRESH_REQUIRED: str = (
+        "Viewport moved beyond the last 4 KB refresh. Press F1 to render this region again."
+    )
     STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"

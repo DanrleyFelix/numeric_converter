@@ -1,11 +1,8 @@
 ﻿from __future__ import annotations
 
-import re
-
 from src.core.binary_workbench.mips_r3000a.constants import (
     BRANCH_OPCODES,
     I_OPCODES,
-    JUMP_FILE_OFFSET_BASE,
     J_OPCODES,
     R_CODE_FUNCTS,
     R_FUNCTS,
@@ -14,6 +11,7 @@ from src.core.binary_workbench.mips_r3000a.constants import (
 )
 from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.binary_workbench.mips_r3000a.operands import number, signed16
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 
 WORD_DIRECTIVES = {"word", ".word"}
 CORE_NO_OPERAND_MNEMONICS = {"nop"}
@@ -40,12 +38,16 @@ def preprocess_instruction(
     labels: dict[str, str],
     variables: dict[str, str],
     equates: dict[str, str],
+    resolver: MipsSymbolResolver | None = None,
 ) -> str:
     code = strip_label(strip_comment(text)).strip()
     code = expand_short_instruction(code)
-    code = _replace_prefixed_symbols(code, "_", variables)
-    code = _replace_prefixed_symbols(code, "@", equates)
-    code = _replace_labels(code, labels, address)
+    mnemonic = _instruction_mnemonic(code)
+    code = (resolver or MipsSymbolResolver(labels, variables, equates)).replace(
+        code,
+        address,
+        mnemonic,
+    )
     code = _replace_load_immediate_pseudo(code)
     code = _replace_zero_branch_pseudo(code)
     return _replace_branch_number(
@@ -83,8 +85,16 @@ def raw_mips_instruction(
     labels: dict[str, str],
     variables: dict[str, str],
     equates: dict[str, str],
+    resolver: MipsSymbolResolver | None = None,
 ) -> str:
-    code = preprocess_instruction(text, address, labels, variables, equates)
+    code = preprocess_instruction(
+        text,
+        address,
+        labels,
+        variables,
+        equates,
+        resolver,
+    )
     return code.lower() if is_core_mips_instruction(code) else ""
 
 
@@ -101,38 +111,9 @@ def is_core_mips_instruction(text: str) -> bool:
     return parts[0].lower() in _core_mnemonics()
 
 
-def _replace_prefixed_symbols(text: str, prefix: str, values: dict[str, str]) -> str:
-    result = text
-    for name, value in values.items():
-        symbol = f"{prefix}{name.lstrip(prefix)}"
-        pattern = rf"(?<![A-Za-z0-9_]){re.escape(symbol)}(?![A-Za-z0-9_])"
-        result = re.sub(pattern, value, result, flags=re.IGNORECASE)
-    return result
-
-
-def _replace_labels(text: str, labels: dict[str, str], fallback: int) -> str:
-    result = text
-    mnemonic = _instruction_mnemonic(text)
-    for name, value in labels.items():
-        label_offset = _safe_int(value, fallback)
-        target = (
-            label_offset + JUMP_FILE_OFFSET_BASE
-            if mnemonic in J_OPCODES
-            else _label_target(label_offset, fallback)
-        )
-        result = re.sub(rf"\b{re.escape(name)}\b", f"0x{target:x}", result, flags=re.IGNORECASE)
-    return result
-
-
 def _instruction_mnemonic(text: str) -> str:
     parts = text.replace(",", " ").split()
     return parts[0].lower() if parts else ""
-
-
-def _label_target(value: int, address: int) -> int:
-    if value < 0x10000 <= address:
-        return (address & ~0xFFFF) + value
-    return value
 
 
 def _replace_load_immediate_pseudo(text: str) -> str:
@@ -158,13 +139,6 @@ def _replace_zero_branch_pseudo(text: str) -> str:
     if mnemonic not in ZERO_BRANCH_PSEUDOS:
         return text
     return f"{ZERO_BRANCH_PSEUDOS[mnemonic]} {tokens[1]}, $zero, {tokens[2]}"
-
-
-def _safe_int(value: str, fallback: int) -> int:
-    try:
-        return int(value, 0)
-    except ValueError:
-        return fallback
 
 
 def _replace_branch_number(text: str, formatter) -> str:
