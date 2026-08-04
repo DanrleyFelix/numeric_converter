@@ -1,9 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QFrame,
     QHBoxLayout,
-    QHeaderView,
     QSizePolicy,
     QVBoxLayout,
 )
@@ -20,15 +18,14 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
 )
-from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_delegate import (
-    SymbolCellDelegate,
-)
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
     symbol_input,
 )
-from src.presentation.ui.components.binary_workbench.environment.symbols_table_view import (
-    SymbolsTableView,
+from src.presentation.ui.components.binary_workbench.environment_table.view import (
+    EnvironmentCellDelegate,
+    EnvironmentTableView,
+    configure_environment_table,
 )
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_python_identifier_validator,
@@ -111,39 +108,20 @@ class SymbolsDialogLayoutMixin:
     def _build_table(self, parent: QVBoxLayout) -> None:
         """Create the model/view table without permanent cell editors."""
 
-        self.table = SymbolsTableView(self.shell)
-        self.table.setObjectName("binary-workbench-symbols-table")
+        self.table = EnvironmentTableView(self.shell)
         self.table.setModel(self.symbols_proxy)
-        self.table.setItemDelegate(SymbolCellDelegate(self.symbols_model.NAME_COLUMN, self.table))
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.table.setEditTriggers(
-            QAbstractItemView.EditTrigger.DoubleClicked
-            | QAbstractItemView.EditTrigger.SelectedClicked
-            | QAbstractItemView.EditTrigger.EditKeyPressed
+        self.table.setItemDelegate(
+            EnvironmentCellDelegate(
+                {self.symbols_model.NAME_COLUMN: set_python_identifier_validator},
+                self.table,
+            )
+        )
+        configure_environment_table(
+            self.table,
+            "binary-workbench-symbols-table",
+            extended_selection=True,
         )
         self.table.setAlternatingRowColors(False)
-        self.table.setShowGrid(True)
-        self.table.setSortingEnabled(True)
-        self.table.sortByColumn(-1, Qt.SortOrder.AscendingOrder)
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
-        scrollbar = self.table.verticalScrollBar()
-        scrollbar.setObjectName("binary-workbench-symbols-scrollbar")
-        scrollbar.style().unpolish(scrollbar)
-        scrollbar.style().polish(scrollbar)
-        self.table.setViewportMargins(
-            ENVIRONMENT_LAYOUT.ZERO,
-            ENVIRONMENT_LAYOUT.ZERO,
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
-            ENVIRONMENT_LAYOUT.ZERO,
-        )
-        self.table.verticalHeader().hide()
-        self.table.verticalHeader().setDefaultSectionSize(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-        header = self.table.horizontalHeader()
-        header.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        header.setHighlightSections(False)
         self.table.selectionModel().selectionChanged.connect(self._update_action_state)
         self.symbols_proxy.rowsRemoved.connect(self._update_action_state)
         self.symbols_proxy.layoutChanged.connect(self._update_action_state)

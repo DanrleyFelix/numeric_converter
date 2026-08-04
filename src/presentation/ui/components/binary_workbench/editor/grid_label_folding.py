@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtGui import QTextCursor
 
+from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
 from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
@@ -15,6 +16,7 @@ class GridLabelFoldingMixin:
         self._label_folding_enabled = enabled
         if not enabled:
             self._collapsed_labels.clear()
+            self._directives_collapsed = False
         self.instructions.set_label_folding_enabled(enabled)
         self._refresh_label_folding()
 
@@ -28,6 +30,16 @@ class GridLabelFoldingMixin:
             self._collapsed_labels.remove(label)
         else:
             self._collapsed_labels.add(label)
+        self._apply_label_visibility(anchor_row)
+        self._schedule_layout_refresh()
+
+    def toggle_directive_fold(self) -> None:
+        """Collapse or expand every leading debugger directive as a visual group."""
+
+        if not self._label_folding_enabled or self._directive_fold_region is None:
+            return
+        anchor_row = self._scroll_anchor_source_row()
+        self._directives_collapsed = not self._directives_collapsed
         self._apply_label_visibility(anchor_row)
         self._schedule_layout_refresh()
 
@@ -57,6 +69,13 @@ class GridLabelFoldingMixin:
         previous_regions = self._label_fold_regions
         regions = label_fold_regions(self._rows) if self._label_folding_enabled else []
         self._label_fold_regions = regions
+        self._directive_fold_region = (
+            debugger_directive_fold_region(self._rows)
+            if self._label_folding_enabled
+            else None
+        )
+        if self._directive_fold_region is None:
+            self._directives_collapsed = False
         self._expand_owners_of_removed_labels(previous_regions, regions)
         valid_labels = {region.label for region in regions}
         self._collapsed_labels.intersection_update(valid_labels)
@@ -72,6 +91,12 @@ class GridLabelFoldingMixin:
                 for region in regions
             }
         )
+        directive = self._directive_fold_region
+        self.instructions.set_directive_fold_region(
+            (directive.header_row, self._directives_collapsed)
+            if directive is not None
+            else None
+        )
         hidden_rows = self._folded_hidden_rows()
         was_syncing = self._syncing_editor_scrollbars
         self._syncing_editor_scrollbars = True
@@ -83,11 +108,15 @@ class GridLabelFoldingMixin:
             self._syncing_editor_scrollbars = was_syncing
         if not self._virtual:
             if anchor_row in hidden_rows:
-                region = next(
-                    (item for item in regions if item.contains(anchor_row)),
-                    None,
-                )
-                anchor_row = region.label_row if region is not None else None
+                directive = self._directive_fold_region
+                if directive is not None and directive.contains(anchor_row):
+                    anchor_row = directive.header_row
+                else:
+                    region = next(
+                        (item for item in regions if item.contains(anchor_row)),
+                        None,
+                    )
+                    anchor_row = region.label_row if region is not None else None
             if anchor_row is not None:
                 self._visible_start_offset = (
                     self._visible_position_for_source_row(anchor_row) * ROW_BYTES
@@ -97,12 +126,20 @@ class GridLabelFoldingMixin:
     def _folded_hidden_rows(self) -> set[int]:
         """Return the current source-row mask shared by every grid column."""
 
-        return {
+        hidden = {
             row
             for region in self._label_fold_regions
             if region.label in self._collapsed_labels
             for row in range(region.first_hidden_row, region.last_hidden_row + 1)
         }
+        if self._directives_collapsed and self._directive_fold_region is not None:
+            hidden.update(
+                range(
+                    self._directive_fold_region.first_hidden_row,
+                    self._directive_fold_region.last_hidden_row + 1,
+                )
+            )
+        return hidden
 
     def _fold_editors(self):
         """Return every editor whose blocks represent complete grid rows."""
@@ -126,6 +163,9 @@ class GridLabelFoldingMixin:
             block.setLineCount(1 if visible else 0)
             block = block.next()
         document.markContentsDirty(0, document.characterCount())
+        refresh_dashes = getattr(editor, "refresh_dash_overlays", None)
+        if refresh_dashes is not None:
+            refresh_dashes()
         editor.viewport().update()
         if editor is self.instructions and (
             editor.textCursor().blockNumber() in hidden_rows
@@ -137,6 +177,11 @@ class GridLabelFoldingMixin:
         """Place a cursor touching folded content at the label declaration end."""
 
         current = self.instructions.textCursor().blockNumber()
+        directive = self._directive_fold_region
+        if self._directives_collapsed and directive is not None and directive.contains(current):
+            block = self.instructions.document().findBlockByNumber(directive.header_row)
+            self.instructions.setTextCursor(QTextCursor(block))
+            return
         region = next(
             (
                 item
@@ -162,6 +207,11 @@ class GridLabelFoldingMixin:
 
         if editor is not self.instructions or editor.isReadOnly():
             return False
+        if self._collapsed_directive_cursor_region(editor) is not None:
+            self._directives_collapsed = False
+            self._apply_label_visibility()
+            self._schedule_layout_refresh()
+            return True
         region = self._collapsed_label_cursor_region(editor)
         if region is None:
             return False
@@ -217,6 +267,14 @@ class GridLabelFoldingMixin:
             None,
         )
 
+    def _collapsed_directive_cursor_region(self, editor):
+        """Return the collapsed directive group touched by the source cursor."""
+
+        if editor is not self.instructions or not self._directives_collapsed:
+            return None
+        region = self._directive_fold_region
+        return region if region is not None and region.contains(editor.textCursor().blockNumber()) else None
+
     def _label_offset(self, label: str) -> int | None:
         """Resolve a label name to its current file offset."""
 
@@ -244,7 +302,7 @@ class GridLabelFoldingMixin:
     def _folded_scrollbar_maximum(self, maximum: int) -> int:
         """Clamp shared scrolling to the reachable range of visible columns."""
 
-        if self._virtual or not self._collapsed_labels:
+        if self._virtual or not (self._collapsed_labels or self._directives_collapsed):
             return maximum
         limits = [
             editor.verticalScrollBar().maximum() * ROW_BYTES

@@ -229,8 +229,8 @@ def test_transient_cell_delegate_reuses_name_validator_only():
     assert value_editor.validator() is None
     assert name_editor.alignment() == Qt.AlignmentFlag.AlignCenter
     assert value_editor.alignment() == Qt.AlignmentFlag.AlignCenter
-    assert name_editor.objectName() == "binary-workbench-symbol-cell-editor"
-    assert value_editor.objectName() == "binary-workbench-symbol-cell-editor"
+    assert name_editor.objectName() == "binary-workbench-environment-cell-editor"
+    assert value_editor.objectName() == "binary-workbench-environment-cell-editor"
     assert (
         dialog.table.horizontalHeader().height()
         == BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT
@@ -335,4 +335,7 @@ def test_offsets_dialog_replaces_old_context_with_non_navigable_stale_state():
     assert dialog.offsets.count() == 1
     assert item.text() == BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_STALE
     assert not item.flags() & Qt.ItemFlag.ItemIsEnabled
+    assert dialog.offsets.spacing() == 0
+    assert dialog.offsets.uniformItemSizes() is True
+    assert item.sizeHint().height() == dialog.offsets.fontMetrics().height() * 2
     assert navigated == []

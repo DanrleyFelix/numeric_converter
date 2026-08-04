@@ -120,6 +120,8 @@ class BinaryWorkbenchGrid(
         self._label_folding_enabled = False
         self._label_fold_regions = []
         self._collapsed_labels: set[str] = set()
+        self._directive_fold_region = None
+        self._directives_collapsed = False
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
         self._symbol_offsets: dict[str, list[str]] = {}

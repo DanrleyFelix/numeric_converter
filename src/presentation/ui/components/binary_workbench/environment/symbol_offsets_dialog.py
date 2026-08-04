@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -33,12 +33,8 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
         self.offsets.setObjectName("binary-workbench-symbol-offsets")
         self.offsets.setFocusPolicy(Qt.NoFocus)
         self.offsets.setMouseTracking(True)
-        self.offsets.setViewportMargins(
-            ENVIRONMENT_LAYOUT.ZERO,
-            ENVIRONMENT_LAYOUT.ZERO,
-            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
-            ENVIRONMENT_LAYOUT.ZERO,
-        )
+        self.offsets.setSpacing(0)
+        self.offsets.setUniformItemSizes(True)
         self._set_offsets(offsets)
         self.offsets.itemClicked.connect(self._go_to_offset)
         layout.addWidget(self.offsets)
@@ -58,16 +54,24 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
 
         self.offsets.clear()
         self.offsets.setCursor(Qt.ArrowCursor)
-        self.offsets.addItem(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_STALE)
-        self.offsets.item(0).setFlags(Qt.NoItemFlags)
+        self._append_item(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_STALE, enabled=False)
 
     def _set_offsets(self, offsets: list[str]) -> None:
         """Populate either navigable offsets or the established empty state."""
 
         if offsets:
             self.offsets.setCursor(Qt.PointingHandCursor)
-            self.offsets.addItems(offsets)
+            for offset in offsets:
+                self._append_item(offset)
             return
         self.offsets.setCursor(Qt.ArrowCursor)
-        self.offsets.addItem(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_EMPTY)
-        self.offsets.item(0).setFlags(Qt.NoItemFlags)
+        self._append_item(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_EMPTY, enabled=False)
+
+    def _append_item(self, text: str, *, enabled: bool = True) -> None:
+        """Append one full-width row whose height is twice the active font."""
+
+        item = QListWidgetItem(text)
+        item.setSizeHint(QSize(0, self.offsets.fontMetrics().height() * 2))
+        if not enabled:
+            item.setFlags(Qt.NoItemFlags)
+        self.offsets.addItem(item)

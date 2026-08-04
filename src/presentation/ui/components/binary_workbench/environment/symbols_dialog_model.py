@@ -69,11 +69,7 @@ class SymbolsTableModel(QAbstractTableModel):
         """Allow selecting and temporarily editing every valid cell."""
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
-        return (
-            Qt.ItemFlag.ItemIsEnabled
-            | Qt.ItemFlag.ItemIsSelectable
-            | Qt.ItemFlag.ItemIsEditable
-        )
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):
         """Return the two visible column headers."""
@@ -98,10 +94,7 @@ class SymbolsTableModel(QAbstractTableModel):
 
     def row_for_id(self, symbol_id: int) -> int:
         """Resolve a stable symbol identity back to its current source row."""
-        return next(
-            (row for row, record in enumerate(self._records) if record.symbol_id == symbol_id),
-            -1,
-        )
+        return next((row for row, record in enumerate(self._records) if record.symbol_id == symbol_id), -1)
 
     def merge_symbols(self, symbols: dict[str, str]) -> int | None:
         """Merge a batch with grouped updates and one insertion range."""
@@ -138,6 +131,13 @@ class SymbolsTableModel(QAbstractTableModel):
         self.endRemoveRows()
         return True
 
+    def remove_symbols(self, symbol_ids: set[int]) -> bool:
+        """Remove every selected symbol through its stable identity."""
+        removed = False
+        for symbol_id in tuple(symbol_ids):
+            removed = self.remove_symbol(symbol_id) or removed
+        return removed
+
     def _new_record(self, name: str, value: str) -> SymbolRecord:
         """Allocate the next dialog-local stable identity."""
         record = SymbolRecord(self._next_symbol_id, name, value)
@@ -154,9 +154,7 @@ class SymbolsTableModel(QAbstractTableModel):
             if row == previous + 1:
                 previous = row
                 continue
+            roles = [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole]
             self.dataChanged.emit(
-                self.index(start, self.VALUE_COLUMN),
-                self.index(previous, self.VALUE_COLUMN),
-                [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole],
-            )
+                self.index(start, self.VALUE_COLUMN), self.index(previous, self.VALUE_COLUMN), roles)
             start = previous = row

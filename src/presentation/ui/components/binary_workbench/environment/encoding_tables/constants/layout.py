@@ -9,9 +9,3 @@ class ENCODING_TABLES_SPACING:
 
 class ENCODING_TABLES_TIMING:
     CONFLICT_MS: int = 3000
-
-class BODY_MARGINS:
-    LEFT: int = 10
-    TOP: int = 10
-    RIGHT: int = 10
-    BOTTOM: int = 10

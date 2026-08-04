@@ -1,212 +1,137 @@
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLineEdit, QPlainTextEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchOffsetRegionDTO
-from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_dialog_action,
-    configure_binary_workbench_input,
-    configure_binary_workbench_line_edit,
-)
-from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_DIALOG_LAYOUT,
-    BINARY_WORKBENCH_LAYOUT,
-    BINARY_WORKBENCH_TEXT,
-)
-from src.presentation.ui.components.binary_workbench.dialog_context_menu import (
-    configure_dialog_text_context_menu,
-)
-from src.presentation.ui.components.binary_workbench.environment.offset_regions.constants import (
-    OFFSET_REGIONS_SIZE,
-    OFFSET_REGIONS_SPACING,
-)
-from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_widgets import (
-    LbaRemoveRowButton,
-    lba_button,
-    lba_input,
-)
-from src.presentation.ui.components.binary_workbench.input_validators import set_hex_value_validator
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
+from src.presentation.ui.components.binary_workbench.environment.offset_regions.details_dialog import OffsetRegionDetailsDialog
 
 
 @dataclass
-class _OffsetRow:
-    name: QLineEdit
-    offset: QLineEdit
+class OffsetRegionState:
+    """Keep lazy details metadata independently of table cell widgets."""
+
     details: str
     details_loaded: bool
     source_name: str | None
     source_offset: int | None
-    widget: QWidget
-    remove_slot: QWidget
 
 
 class OffsetRegionsRowsMixin:
+    """Manage offset records and lazy details through stable model identities."""
+
     def mappings(self) -> list[BinaryWorkbenchOffsetRegionDTO]:
-        regions: list[BinaryWorkbenchOffsetRegionDTO] = []
-        for row in self._rows:
+        """Export valid regions using the established DTO fields."""
+
+        regions = []
+        for record in self.regions_model.records():
+            state = record.payload
             try:
-                offset = int(row.offset.text().strip(), 16)
+                offset = int(record.cells[1].strip(), 16)
             except ValueError:
                 continue
-            if row.name.text().strip() and offset >= 0:
-                details = row.details if row.details_loaded else ""
-                regions.append(BinaryWorkbenchOffsetRegionDTO(
-                    row.name.text().strip(),
-                    offset,
-                    details,
-                    row.details_loaded,
-                    row.source_name,
-                    row.source_offset,
-                ))
+            if record.cells[0].strip() and isinstance(state, OffsetRegionState):
+                details = state.details if state.details_loaded else ""
+                regions.append(BinaryWorkbenchOffsetRegionDTO(record.cells[0].strip(), offset, details, state.details_loaded, state.source_name, state.source_offset))
         return regions
 
-    def _append_from_entry(self) -> None:
-        self._append_row(self.name.text(), self.offset.text(), "")
-        self.name.clear()
-        self.offset.clear()
+    def _replace_regions(self, regions: list[BinaryWorkbenchOffsetRegionDTO]) -> None:
+        """Replace a loaded collection with one model reset."""
+
+        rows = []
+        for region in regions:
+            state = OffsetRegionState(region.details, region.details_loaded, region.details_source_name, region.details_source_offset)
+            extra = region.details if region.details_loaded else ""
+            rows.append(([region.name, f"{region.offset:X}"], state, extra))
+        self.regions_model.replace(rows)
         self._apply_filter()
 
-    def _clear_rows(self) -> None:
-        for row in self._rows:
-            row.widget.deleteLater()
-            row.remove_slot.deleteLater()
-        self._rows.clear()
+    def _append_from_entry(self) -> None:
+        """Append one region from the fixed entry controls."""
 
-    def _append_row(
-        self,
-        name: str,
-        offset: str,
-        details: str,
-        details_loaded: bool = True,
-        source_name: str | None = None,
-        source_offset: int | None = None,
-    ) -> None:
-        widget = QWidget(self.body)
-        widget.setObjectName("workspace-row")
-        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
-        layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
-        name_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_NAME, widget, name, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        offset_edit = lba_input(BINARY_WORKBENCH_TEXT.OFFSET_VALUE, widget, offset, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        set_hex_value_validator(offset_edit)
-        configure_binary_workbench_input(name_edit, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        configure_binary_workbench_input(offset_edit, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        configure_binary_workbench_line_edit(name_edit, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        configure_binary_workbench_line_edit(offset_edit, OFFSET_REGIONS_SIZE.FIELD_WIDTH)
-        details_button = lba_button(BINARY_WORKBENCH_TEXT.DETAILS, "", widget)
-        go_to = lba_button(BINARY_WORKBENCH_TEXT.GO_TO, "", widget)
-        for button in (details_button, go_to):
-            configure_binary_workbench_dialog_action(button)
-        remove_slot = _remove_slot(self.remove_body)
-        remove = LbaRemoveRowButton(remove_slot)
-        remove.setFixedSize(
-            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
-            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
-        )
-        row = _OffsetRow(name_edit, offset_edit, details, details_loaded, source_name, source_offset, widget, remove_slot)
-        name_edit.textChanged.connect(self._apply_filter)
-        offset_edit.textChanged.connect(self._apply_filter)
-        details_button.clicked.connect(lambda: self._edit_details(row))
-        go_to.clicked.connect(lambda: self._go_to_offset(offset_edit.text()))
-        remove.clicked.connect(lambda: self._remove_row(row))
-        layout.addWidget(name_edit)
-        layout.addWidget(offset_edit)
-        layout.addWidget(details_button, 0, Qt.AlignVCenter)
-        layout.addWidget(go_to, 0, Qt.AlignVCenter)
-        remove_slot.layout().addWidget(remove, 0, Qt.AlignCenter)
-        self._rows.append(row)
-        self.body_layout.addWidget(widget)
-        self.remove_layout.addWidget(remove_slot)
+        state = OffsetRegionState("", True, None, None)
+        record_id = self.regions_model.append([self.name.text(), self.offset.text()], state)
+        self.name.clear()
+        self.offset.clear()
+        self._select_record(record_id)
 
-    def _edit_details(self, row: _OffsetRow) -> None:
-        details = self._row_details(row)
-        dialog = OffsetRegionDetailsDialog(details, self)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            row.details = dialog.details()
-            row.details_loaded = True
-            self._apply_filter()
+    def _selected_record(self):
+        """Return one record only when exactly one row is selected."""
 
-    def _row_details(self, row: _OffsetRow) -> str:
-        if row.details_loaded:
-            return row.details
+        records = self._selected_records()
+        return records[0] if len(records) == 1 else None
+
+    def _selected_records(self):
+        """Return all source records selected through Ctrl or Shift."""
+
+        records = []
+        for index in self.table.selectionModel().selectedRows():
+            record = self.regions_model.record_at(self.regions_proxy.mapToSource(index).row())
+            if record is not None:
+                records.append(record)
+        return records
+
+    def _select_record(self, record_id: int) -> None:
+        row = self.regions_model.row_for_id(record_id)
+        index = self.regions_proxy.mapFromSource(self.regions_model.index(row, 0))
+        if index.isValid():
+            self.table.selectRow(index.row())
+
+    def _remove_selected(self) -> None:
+        """Remove every selected region by stable record identity."""
+
+        records = self._selected_records()
+        self.regions_model.remove_many({record.record_id for record in records})
+        self._update_action_state()
+
+    def _apply_filter(self) -> None:
+        """Filter visible fields and already-loaded details."""
+
+        self.regions_proxy.set_query(self.filter_input.text())
+        self._update_action_state()
+
+    def _go_to_selected(self) -> None:
+        """Navigate to the selected hexadecimal offset."""
+
+        record = self._selected_record()
+        if record is None:
+            return
         try:
-            offset = int(row.offset.text().strip(), 16)
-        except ValueError:
-            return ""
-        source_name = row.source_name or row.name.text().strip()
-        source_offset = row.source_offset if row.source_offset is not None else offset
-        loader = getattr(self, "_details_loader", None)
-        row.details = loader(source_name, source_offset) if loader is not None else row.details
-        row.details_loaded = True
-        return row.details
-
-    def _go_to_offset(self, value: str) -> None:
-        try:
-            self.goToRequested.emit(int(value.strip(), 16))
+            self.goToRequested.emit(int(record.cells[1].strip(), 16))
         except ValueError:
             return
 
-    def _remove_row(self, row: _OffsetRow) -> None:
-        self._rows.remove(row)
-        row.widget.deleteLater()
-        row.remove_slot.deleteLater()
+    def _edit_selected_details(self) -> None:
+        """Load and edit details only for the selected region."""
 
-    def _apply_filter(self) -> None:
-        query = self.filter_input.text().strip().casefold()
-        for row in self._rows:
-            details = row.details if row.details_loaded else ""
-            haystack = f"{row.name.text()} {row.offset.text()} {details}".casefold()
-            visible = not query or query in haystack
-            row.widget.setVisible(visible)
-            row.remove_slot.setVisible(visible)
+        record = self._selected_record()
+        if record is None or not isinstance(record.payload, OffsetRegionState):
+            return
+        state = record.payload
+        details = self._load_details(record.cells, state)
+        dialog = OffsetRegionDetailsDialog(details, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            state.details = dialog.details()
+            state.details_loaded = True
+            record.search_extra = state.details
+            self.regions_model.notify_record(record.record_id)
+            self._apply_filter()
 
+    def _load_details(self, cells: list[str], state: OffsetRegionState) -> str:
+        if state.details_loaded:
+            return state.details
+        try:
+            offset = int(cells[1].strip(), 16)
+        except ValueError:
+            return ""
+        loader = getattr(self, "_details_loader", None)
+        source_name = state.source_name or cells[0].strip()
+        source_offset = state.source_offset if state.source_offset is not None else offset
+        state.details = loader(source_name, source_offset) if loader is not None else state.details
+        state.details_loaded = True
+        return state.details
 
-class OffsetRegionDetailsDialog(QDialog):
-    def __init__(self, details: str, parent=None) -> None:
-        super().__init__(parent)
-        self.setObjectName("preferences-dialog")
-        self.setWindowTitle(BINARY_WORKBENCH_TEXT.DETAILS)
-        self.setFixedSize(
-            OFFSET_REGIONS_SIZE.DETAILS_DIALOG_WIDTH,
-            OFFSET_REGIONS_SIZE.DETAILS_DIALOG_HEIGHT,
-        )
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
-        layout.setSpacing(OFFSET_REGIONS_SPACING.DETAILS_DIALOG)
-        self.editor = QPlainTextEdit(self)
-        configure_dialog_text_context_menu(self.editor)
-        self.editor.setPlainText(details)
-        layout.addWidget(self.editor, 1)
-        footer = QHBoxLayout()
-        footer.setSpacing(OFFSET_REGIONS_SPACING.DETAILS_DIALOG)
-        cancel = _details_action(BINARY_WORKBENCH_TEXT.CANCEL, self)
-        ok = _details_action(BINARY_WORKBENCH_TEXT.OK, self)
-        cancel.clicked.connect(self.reject)
-        ok.clicked.connect(self.accept)
-        footer.addWidget(cancel)
-        footer.addStretch(1)
-        footer.addWidget(ok)
-        layout.addLayout(footer)
-
-    def details(self) -> str:
-        return self.editor.toPlainText()
-
-
-def _details_action(text: str, parent: QWidget) -> QPushButton:
-    button = QPushButton(text, parent)
-    configure_binary_workbench_dialog_action(button)
-    button.setCursor(Qt.PointingHandCursor)
-    button.setFocusPolicy(Qt.StrongFocus)
-    return button
-
-
-def _remove_slot(parent: QWidget) -> QWidget:
-    slot = QWidget(parent)
-    slot.setFixedWidth(WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH)
-    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-    layout = QVBoxLayout(slot)
-    layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
-    return slot
+    def _update_action_state(self, *args) -> None:
+        records = self._selected_records()
+        self.remove_button.setEnabled(bool(records))
+        self.details_button.setEnabled(len(records) == 1)
+        self.go_to_button.setEnabled(len(records) == 1)

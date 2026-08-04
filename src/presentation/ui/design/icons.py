@@ -131,6 +131,10 @@ class Icons:
         return Icons._icon("offsets", "icon-toolbar")
 
     @staticmethod
+    def show():
+        return Icons._icon("show", "icon-toolbar")
+
+    @staticmethod
     def remove():
         return Icons._icon(
             "remove",

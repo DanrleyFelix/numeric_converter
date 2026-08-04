@@ -1,9 +1,12 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QDialog, QFrame, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QFrame, QVBoxLayout
 
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE
 from src.modules.binary_workbench_dtos import BinaryWorkbenchInternalFileDTO, BinaryWorkbenchLbaFilesystemDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
 )
@@ -18,6 +21,10 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem
 )
 from src.presentation.ui.components.binary_workbench.file_dialogs.lba_filesystem_rows import (
     LbaFilesystemRowsMixin,
+)
+from src.presentation.ui.components.binary_workbench.environment_table.model import (
+    EnvironmentFilterProxyModel,
+    EnvironmentTableModel,
 )
 
 
@@ -61,7 +68,13 @@ class BinaryWorkbenchLbaFilesystemDialog(
         self._saved_library_path = ""
         self._loaded_library_name = ""
         self._loaded_library_path = ""
-        self._rows: list[tuple[QLineEdit, QLineEdit, QWidget, QWidget]] = []
+        self.lba_model = EnvironmentTableModel(
+            (BINARY_WORKBENCH_TEXT.LBA_FILE_NAME, BINARY_WORKBENCH_TEXT.LBA_START),
+            {0, 1},
+            self,
+        )
+        self.lba_proxy = EnvironmentFilterProxyModel(self)
+        self.lba_proxy.setSourceModel(self.lba_model)
         self._build_dialog(internal_files, default_library_name, lba_sector_size)
 
     def _build_dialog(
@@ -75,7 +88,7 @@ class BinaryWorkbenchLbaFilesystemDialog(
         self.shell = QFrame(self)
         self.shell.setObjectName("workspace-table-shell")
         shell_layout = QVBoxLayout(self.shell)
-        shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.PANEL_MARGINS)
+        shell_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.SYMBOLS_PANEL_MARGINS)
         shell_layout.setSpacing(ENVIRONMENT_LAYOUT.PANEL_SPACING)
         self._build_library_controls(shell_layout, default_library_name, lba_sector_size)
         self._build_entry(shell_layout)

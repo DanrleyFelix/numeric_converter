@@ -19,12 +19,10 @@ class LbaFilesystemJsonMixin:
         library = filesystem_from_json_payload(payload, path.stem)
         if library is None:
             return False
-        self._clear_rows()
+        self._replace_rows(library.internal_files)
         self._loaded_library_name = library.name
         self._loaded_library_path = str(path)
         self.sector_size.setCurrentText(f"{library.sector_size} bytes")
-        for item in library.internal_files:
-            self._append_row(item.name, str(item.start_lba))
         self._remember_library_directory(path)
         return True
 

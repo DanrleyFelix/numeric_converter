@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
@@ -22,7 +22,6 @@ from src.presentation.ui.components.binary_workbench.button_icon_painting import
 from src.presentation.ui.components.binary_workbench.input_validators import (
     set_python_identifier_validator,
 )
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 from src.presentation.ui.design.icons import Icons
 
 
@@ -93,34 +92,3 @@ def symbol_button(text: str, object_name: str, parent: QWidget) -> QPushButton:
     button.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH)
     configure_binary_workbench_icon_text(button)
     return button
-
-
-class SymbolRemoveRowButton(QPushButton):
-    """Retain the shared remove control used by other environment dialogs."""
-
-    def __init__(self, parent: QWidget) -> None:
-        """Create the icon-only shared row action."""
-
-        super().__init__(parent)
-        self.setObjectName("workspace-row-remove")
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setIcon(Icons.remove())
-        self.setIconSize(
-            QSize(
-                WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE,
-                WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE,
-            )
-        )
-
-    def enterEvent(self, event) -> None:
-        """Use the established hover icon while the pointer is over the button."""
-
-        self.setIcon(Icons.remove_hover())
-        super().enterEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        """Restore the default remove icon after hover ends."""
-
-        self.setIcon(Icons.remove())
-        super().leaveEvent(event)

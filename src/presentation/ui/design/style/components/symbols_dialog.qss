@@ -1,4 +1,5 @@
-QTableView#binary-workbench-symbols-table {
+QTableView#binary-workbench-symbols-table,
+QTableView#binary-workbench-environment-table {
     background-color: $bg-workspace-row;
     alternate-background-color: $bg-workspace-row;
     color: $text-main;
@@ -11,7 +12,8 @@ QTableView#binary-workbench-symbols-table {
     gridline-color: $border-workspace-row;
 }
 
-QTableView#binary-workbench-symbols-table::item {
+QTableView#binary-workbench-symbols-table::item,
+QTableView#binary-workbench-environment-table::item {
     border: none;
     border-radius: $radius-0;
     padding-left: $space-8;
@@ -20,14 +22,16 @@ QTableView#binary-workbench-symbols-table::item {
 }
 
 QTableView#binary-workbench-symbols-table::item:selected,
-QTableView#binary-workbench-symbols-table::item:selected:focus {
+QTableView#binary-workbench-symbols-table::item:selected:focus,
+QTableView#binary-workbench-environment-table::item:selected,
+QTableView#binary-workbench-environment-table::item:selected:focus {
     background-color: $bg-symbol-row-selected;
     border-radius: $radius-0;
     color: $text-main;
     outline: none;
 }
 
-QTableView#binary-workbench-symbols-table QHeaderView::section {
+QHeaderView#binary-workbench-environment-header::section {
     background-color: $bg-workspace-header;
     color: $text-main;
     border: none;
@@ -40,15 +44,58 @@ QTableView#binary-workbench-symbols-table QHeaderView::section {
     outline: none;
 }
 
-QTableView#binary-workbench-symbols-table QHeaderView::section:last {
+QHeaderView#binary-workbench-environment-header::section:last {
     border-right: none;
 }
 
-QLineEdit#binary-workbench-symbol-cell-editor {
+QLineEdit#binary-workbench-symbol-cell-editor,
+QLineEdit#binary-workbench-environment-cell-editor {
     background-color: $bg-symbol-row-selected;
     color: $text-main;
     border: 1px solid $border-focus;
     border-radius: $radius-0;
     selection-background-color: $border-focus;
     selection-color: $text-main;
+}
+
+QListWidget#binary-workbench-symbol-offsets {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    padding: $space-0;
+    outline: none;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item {
+    background-color: $bg-workspace-row;
+    border: none;
+    border-radius: $radius-0;
+    color: $text-main;
+    padding-left: $space-12;
+    padding-right: $space-12;
+    padding-top: $space-0;
+    padding-bottom: $space-0;
+    outline: none;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:hover {
+    background-color: $bg-search-result-hover;
+    border: none;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:focus,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus,
+QListWidget#binary-workbench-symbol-offsets:focus {
+    outline: none;
+}
+
+QListWidget#binary-workbench-symbol-offsets::item:selected,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus,
+QListWidget#binary-workbench-symbol-offsets::item:selected:hover,
+QListWidget#binary-workbench-symbol-offsets::item:selected:focus:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+    color: $text-main;
 }

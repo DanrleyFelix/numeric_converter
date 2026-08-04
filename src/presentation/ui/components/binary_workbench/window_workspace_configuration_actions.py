@@ -70,8 +70,7 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
             )
         )
         dialog.goToRequested.connect(self.tabs.go_to_offset)
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            return
+        dialog.exec()
         self.tabs.set_current_offset_regions(dialog.mappings())
         module_path = dialog.saved_path() or dialog.loaded_path()
         if module_path:

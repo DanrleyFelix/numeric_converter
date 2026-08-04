@@ -417,44 +417,6 @@ QListWidget#binary-workbench-internal-files QScrollBar:vertical {
     margin: $margin-search-results-scrollbar-vertical;
 }
 
-QListWidget#binary-workbench-symbol-offsets {
-    background-color: $bg-workspace-row;
-    color: $text-main;
-    border: 1px solid $border-workspace-row;
-    border-radius: $radius-10;
-}
-
-QListWidget#binary-workbench-symbol-offsets::item {
-    border: 1px solid transparent;
-    border-radius: $radius-8;
-    }
-
-QListWidget#binary-workbench-symbol-offsets::item:hover {
-    background-color: $bg-workspace-row-hover;
-    border-color: $border-soft-success;
-    color: $text-main;
-}
-
-QListWidget#binary-workbench-symbol-offsets::item:focus,
-QListWidget#binary-workbench-symbol-offsets::item:selected:focus,
-QListWidget#binary-workbench-symbol-offsets:focus {
-    outline: none;
-}
-
-QListWidget#binary-workbench-symbol-offsets::item:selected,
-QListWidget#binary-workbench-symbol-offsets::item:selected:focus {
-    background-color: transparent;
-    border-color: transparent;
-    color: $text-main;
-}
-
-QListWidget#binary-workbench-symbol-offsets::item:selected:hover,
-QListWidget#binary-workbench-symbol-offsets::item:selected:focus:hover {
-    background-color: $bg-workspace-row-hover;
-    border-color: $border-soft-success;
-    color: $text-main;
-}
-
 QScrollArea#binary-workbench-version-scroll {
     background-color: $bg-workspace-row;
     border: 1px solid $border-workspace-row;

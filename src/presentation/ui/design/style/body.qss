@@ -9,6 +9,7 @@ QFrame#body {
 @import "components/command_panel.qss";
 @import "components/dialogs.qss";
 @import "components/symbols_dialog.qss";
+@import "components/encoding_tables.qss";
 @import "components/help_window.qss";
 @import "components/workspace_table.qss";
 @import "components/key_panel.qss";

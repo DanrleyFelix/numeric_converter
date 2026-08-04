@@ -1,0 +1,41 @@
+QListWidget#binary-workbench-encoding-tables {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    padding: $space-0;
+    outline: none;
+}
+
+QListWidget#binary-workbench-encoding-tables::item {
+    background-color: $bg-workspace-row;
+    border: none;
+    border-radius: $radius-0;
+    color: $text-main;
+    padding-left: $space-12;
+    padding-right: $space-12;
+    padding-top: $space-0;
+    padding-bottom: $space-0;
+    outline: none;
+}
+
+QListWidget#binary-workbench-encoding-tables::item:hover {
+    background-color: $bg-search-result-hover;
+    border: none;
+    color: $text-main;
+}
+
+QListWidget#binary-workbench-encoding-tables::item:focus,
+QListWidget#binary-workbench-encoding-tables::item:selected:focus,
+QListWidget#binary-workbench-encoding-tables:focus {
+    outline: none;
+}
+
+QListWidget#binary-workbench-encoding-tables::item:selected,
+QListWidget#binary-workbench-encoding-tables::item:selected:focus,
+QListWidget#binary-workbench-encoding-tables::item:selected:hover,
+QListWidget#binary-workbench-encoding-tables::item:selected:focus:hover {
+    background-color: $bg-toolbar-button-hover;
+    border: none;
+    color: $text-main;
+}

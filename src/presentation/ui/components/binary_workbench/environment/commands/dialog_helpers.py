@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QDialog,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
-    QLabel,
     QPlainTextEdit,
     QVBoxLayout,
     QWidget,
@@ -27,6 +28,39 @@ from src.presentation.ui.components.binary_workbench.dialog_context_menu import 
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
 )
+
+
+def command_load_path(parent: QWidget, directory: str) -> str:
+    """Request a command library through the unchanged native file dialog."""
+
+    path, _ = QFileDialog.getOpenFileName(
+        parent, BINARY_WORKBENCH_TEXT.COMMANDS, directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_COMMANDS
+    )
+    return path
+
+
+def command_save_path(parent: QWidget, directory: str) -> str:
+    """Request a command destination through the unchanged native file dialog."""
+
+    initial = str(Path(directory) / "commands.json")
+    path, _ = QFileDialog.getSaveFileName(
+        parent, BINARY_WORKBENCH_TEXT.COMMANDS, initial, BINARY_WORKBENCH_TEXT.FILE_FILTER_COMMANDS
+    )
+    return path
+
+
+class CommandsFileActionsMixin:
+    """Preserve the native command-library load and save flows."""
+
+    def _request_load(self) -> None:
+        path = command_load_path(self, self._default_directory)
+        if path:
+            self.commandLoadRequested.emit(path)
+
+    def _request_save(self) -> None:
+        path = command_save_path(self, self._default_directory)
+        if path:
+            self.commandSaveRequested.emit(path)
 
 
 def edit_command_instructions(name: str, instructions: list[str], parent: QWidget) -> list[str] | None:
@@ -64,13 +98,3 @@ def edit_command_instructions(name: str, instructions: list[str], parent: QWidge
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return None
     return [line.rstrip() for line in editor.toPlainText().splitlines()]
-
-
-def header_cell(text: str, parent: QWidget, alignment: Qt.AlignmentFlag = Qt.AlignLeft) -> QFrame:
-    frame = QFrame(parent)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
-    label = QLabel(text, frame)
-    label.setObjectName("workspace-table-header-cell")
-    layout.addWidget(label, 1, alignment)
-    return frame

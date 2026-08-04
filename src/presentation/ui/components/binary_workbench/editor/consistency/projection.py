@@ -6,6 +6,7 @@ from PySide6.QtCore import QSignalBlocker
 from PySide6.QtGui import QTextCursor
 
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
+from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
 from src.core.binary_workbench.label_folding import label_fold_regions
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
@@ -217,11 +218,24 @@ def _refresh_fold_visibility(grid) -> None:
     previous = grid._label_fold_regions
     regions = label_fold_regions(grid._rows) if grid._label_folding_enabled else []
     grid._label_fold_regions = regions
+    grid._directive_fold_region = (
+        debugger_directive_fold_region(grid._rows)
+        if grid._label_folding_enabled
+        else None
+    )
+    if grid._directive_fold_region is None:
+        grid._directives_collapsed = False
     grid._expand_owners_of_removed_labels(previous, regions)
     grid._collapsed_labels.intersection_update({item.label for item in regions})
     hidden = grid._folded_hidden_rows()
     grid.instructions.set_label_fold_regions(
         {item.label_row: (item.label, item.label in grid._collapsed_labels) for item in regions}
+    )
+    directive = grid._directive_fold_region
+    grid.instructions.set_directive_fold_region(
+        (directive.header_row, grid._directives_collapsed)
+        if directive is not None
+        else None
     )
     grid._render_offsets()
     for editor in grid._fold_editors():

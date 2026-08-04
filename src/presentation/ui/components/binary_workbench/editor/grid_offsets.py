@@ -74,6 +74,11 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
             self._format_offset_block(block)
         self._position_dash_labels()
 
+    def refresh_dash_overlays(self) -> None:
+        """Realign placeholder overlays after row visibility changes."""
+
+        self._position_dash_labels()
+
     def _format_offset_block(self, block) -> None:
         """Make an address visible or replace a dash with its overlay."""
 
@@ -100,7 +105,11 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
             block = self.document().findBlockByNumber(label.property("offsetBlock"))
             line_rect = self.cursorRect(QTextCursor(block))
             label.setGeometry(0, line_rect.top(), self.viewport().width(), line_rect.height())
-            label.setVisible(block.isValid() and line_rect.bottom() >= 0)
+            label.setVisible(
+                block.isValid()
+                and block.isVisible()
+                and line_rect.bottom() >= 0
+            )
 
 
 class GridOffsetsMixin:

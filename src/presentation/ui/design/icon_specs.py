@@ -21,6 +21,7 @@ ICON_GLYPHS = {
     "remove": "\uf2ed",
     "search": "\uf002",
     "save": "\uf0c7",
+    "show": "\uf06e",
     "tools": "\uf7d9",
 }
 

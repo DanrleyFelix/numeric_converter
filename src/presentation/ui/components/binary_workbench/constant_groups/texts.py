@@ -119,6 +119,8 @@
     OPEN_LABEL_NEW_TAB: str = "Open Label in New Tab"
     COLLAPSE_LABEL: str = "Collapse label instructions"
     EXPAND_LABEL: str = "Expand label instructions"
+    COLLAPSE_DIRECTIVES: str = "Collapse debugger directives"
+    EXPAND_DIRECTIVES: str = "Expand debugger directives"
     ADD_COMMAND: str = "Add Command"
     COMMAND_INSTRUCTION_HEADER: str = "Instruction"
     COMMAND_NAME: str = "Command Name"

@@ -58,14 +58,14 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, [], current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
         dialog.goToRequested.connect(self.tabs.go_to_offset)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
-            module_path = dialog.saved_library_path() or dialog.loaded_library_path()
-            if module_path:
-                self.tabs.set_current_module_path(LBA_FILESYSTEM, Path(module_path))
-            if dialog.should_save_library() or dialog.loaded_library_name():
-                self.tabs.save_current_lba_filesystem(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
-            self.tabs.save_current_workspace()
+        dialog.exec()
+        self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
+        module_path = dialog.saved_library_path() or dialog.loaded_library_path()
+        if module_path:
+            self.tabs.set_current_module_path(LBA_FILESYSTEM, Path(module_path))
+        if dialog.should_save_library() or dialog.loaded_library_name():
+            self.tabs.save_current_lba_filesystem(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
+        self.tabs.save_current_workspace()
 
     def _open_symbols(self) -> None:
         self._open_local_symbols()

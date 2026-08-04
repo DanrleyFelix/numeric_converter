@@ -35,14 +35,14 @@ class SymbolsDialogRowsMixin:
         self.value.clear()
 
     def _remove_selected_symbol(self) -> None:
-        """Remove the source record represented by the selected proxy row."""
+        """Remove every source record selected through Ctrl or Shift."""
 
-        proxy_index = self._selected_proxy_index()
-        record = self._selected_record()
-        if record is None:
+        proxy_indexes = self.table.selectionModel().selectedRows()
+        records = self._selected_records()
+        if not records:
             return
-        next_proxy_row = proxy_index.row()
-        if not self.symbols_model.remove_symbol(record.symbol_id):
+        next_proxy_row = min(index.row() for index in proxy_indexes)
+        if not self.symbols_model.remove_symbols({record.symbol_id for record in records}):
             return
         self.symbolsChanged.emit(self.values()[0])
         if self.symbols_proxy.rowCount() > 0:
@@ -96,16 +96,24 @@ class SymbolsDialogRowsMixin:
         return rows[0] if len(rows) == 1 else QModelIndex()
 
     def _selected_record(self) -> SymbolRecord | None:
-        """Map the visual selection to its source-model record."""
+        """Return one record only when exactly one row is selected."""
 
-        proxy_index = self._selected_proxy_index()
-        if not proxy_index.isValid():
-            return None
-        source_index = self.symbols_proxy.mapToSource(proxy_index)
-        symbol_id = source_index.data(self.symbols_model.SYMBOL_ID_ROLE)
-        if not isinstance(symbol_id, int):
-            return None
-        return self.symbols_model.record_at(self.symbols_model.row_for_id(symbol_id))
+        records = self._selected_records()
+        return records[0] if len(records) == 1 else None
+
+    def _selected_records(self) -> list[SymbolRecord]:
+        """Map every selected proxy row to its stable source record."""
+
+        records = []
+        for proxy_index in self.table.selectionModel().selectedRows():
+            source_index = self.symbols_proxy.mapToSource(proxy_index)
+            symbol_id = source_index.data(self.symbols_model.SYMBOL_ID_ROLE)
+            if not isinstance(symbol_id, int):
+                continue
+            record = self.symbols_model.record_at(self.symbols_model.row_for_id(symbol_id))
+            if record is not None:
+                records.append(record)
+        return records
 
     def _selected_symbol_id(self) -> int | None:
         """Return the stable identity of the current selection."""
@@ -135,8 +143,8 @@ class SymbolsDialogRowsMixin:
         self.table.scrollTo(proxy_index)
 
     def _update_action_state(self, *_args) -> None:
-        """Enable row actions only for one valid visible selection."""
+        """Allow batch removal but require one symbol for Offsets."""
 
-        enabled = self._selected_record() is not None
-        self.offsets_button.setEnabled(enabled)
-        self.remove_button.setEnabled(enabled)
+        records = self._selected_records()
+        self.offsets_button.setEnabled(len(records) == 1)
+        self.remove_button.setEnabled(bool(records))

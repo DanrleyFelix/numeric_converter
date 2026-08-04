@@ -78,6 +78,7 @@ class WorkbenchEditor(
     protectedEditKeyPressed = Signal(object, object)
     navigationWarningRequested = Signal(str)
     labelFoldToggled = Signal(str)
+    directiveFoldToggled = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)

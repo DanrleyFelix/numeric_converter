@@ -75,6 +75,7 @@ QScrollBar::right-arrow:horizontal {
     border: none;
 }
 
-QScrollBar#binary-workbench-symbols-scrollbar:vertical {
+QScrollBar#binary-workbench-symbols-scrollbar:vertical,
+QScrollBar#binary-workbench-environment-scrollbar:vertical {
     margin: $space-0 $space-2 $space-0 $space-0;
 }

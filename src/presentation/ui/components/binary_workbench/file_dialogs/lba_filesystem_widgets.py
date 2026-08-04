@@ -1,12 +1,10 @@
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
 )
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
-from src.presentation.ui.design.icons import Icons
 
 
 def lba_input(
@@ -69,21 +67,3 @@ def lba_button(text: str, object_name: str, parent: QWidget) -> QPushButton:
     button.setFocusPolicy(Qt.StrongFocus)
     button.setCursor(Qt.PointingHandCursor)
     return button
-
-
-class LbaRemoveRowButton(QPushButton):
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent)
-        self.setObjectName("workspace-row-remove")
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setIcon(Icons.remove())
-        self.setIconSize(QSize(WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE, WORKSPACE_TABLE_SIZE.REMOVE_ICON_SIZE))
-
-    def enterEvent(self, event) -> None:
-        self.setIcon(Icons.remove_hover())
-        super().enterEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        self.setIcon(Icons.remove())
-        super().leaveEvent(event)
