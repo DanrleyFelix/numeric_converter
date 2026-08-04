@@ -48,26 +48,50 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
         return max(0, (self.viewport().width() - width) // 2)
 
     def _rebuild_dash_labels(self) -> None:
-        """Hide native placeholder glyphs and create centered visual overlays."""
+        """Restore offset text visibility and rebuild centered dash overlays."""
 
         for label in self._dash_labels:
             label.deleteLater()
         self._dash_labels.clear()
         block = self.document().firstBlock()
-        transparent = QTextCharFormat()
-        transparent.setForeground(QColor(0, 0, 0, 0))
         while block.isValid():
-            if block.text().strip() == "-":
-                cursor = QTextCursor(block)
-                cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
-                cursor.mergeCharFormat(transparent)
-                label = CenteredDashOverlay(self.viewport())
-                label.setAttribute(Qt.WA_TransparentForMouseEvents)
-                label.setProperty("offsetBlock", block.blockNumber())
-                label.show()
-                self._dash_labels.append(label)
+            self._format_offset_block(block)
             block = block.next()
         self._position_dash_labels()
+
+    def refresh_offset_block(self, index: int) -> None:
+        """Refresh one changed offset without scanning the whole document."""
+
+        retained = []
+        for label in self._dash_labels:
+            if label.property("offsetBlock") == index:
+                label.deleteLater()
+            else:
+                retained.append(label)
+        self._dash_labels = retained
+        block = self.document().findBlockByNumber(index)
+        if block.isValid():
+            self._format_offset_block(block)
+        self._position_dash_labels()
+
+    def _format_offset_block(self, block) -> None:
+        """Make an address visible or replace a dash with its overlay."""
+
+        cursor = QTextCursor(block)
+        cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
+        is_placeholder = block.text().strip() == "-"
+        if block.text():
+            text_format = QTextCharFormat()
+            if is_placeholder:
+                text_format.setForeground(QColor(0, 0, 0, 0))
+            cursor.setCharFormat(text_format)
+        if not is_placeholder:
+            return
+        label = CenteredDashOverlay(self.viewport())
+        label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        label.setProperty("offsetBlock", block.blockNumber())
+        label.show()
+        self._dash_labels.append(label)
 
     def _position_dash_labels(self) -> None:
         """Keep every placeholder overlay aligned with its document line."""

@@ -50,11 +50,17 @@ class BinaryWorkbenchDebuggerMixin:
             return
         window = self._current_debugger_window()
         if operation == "run":
+            barrier = self.tabs.ensure_current_consistent("debugger")
+            if not barrier.success:
+                self._show_status(barrier.error or "Unable to prepare the debugger source.", 0, True)
+                return
             if window is None:
                 self._open_debugger_window()
             else:
-                self._show_debugger_window(window)
-                window.perform("run")
+                refreshed = self._open_debugger_window(refresh_existing=True)
+                if refreshed is not None:
+                    self._show_debugger_window(refreshed)
+                    refreshed.perform("run")
             return
         if window is None:
             self._show_warning_status(DEBUGGER_START_REQUIRED)
@@ -62,25 +68,33 @@ class BinaryWorkbenchDebuggerMixin:
         self._show_debugger_window(window)
         window.perform(operation)
 
-    def _open_debugger_window(self) -> DebuggerWindow | None:
+    def _open_debugger_window(self, refresh_existing: bool = False) -> DebuggerWindow | None:
         """Build the complete session transactionally before showing a window."""
 
         try:
             source = self.tabs.debugger_current_source()
             key = self._debugger_key(source.workspace, source.path)
             existing = self._debugger_windows.get(key)
-            if existing is not None:
+            if existing is not None and not refresh_existing:
                 return existing
             bundle = create_debugger_session(source, self.tabs.debugger_source_for)
+            window = DebuggerWindow(
+                bundle,
+                self.toolbar.debugger_actions,
+                self._debugger_state_repository,
+                key,
+            )
         except DebuggerError as error:
             self._show_status(error.message, 0, True)
             return None
-        window = DebuggerWindow(
-            bundle,
-            self.toolbar.debugger_actions,
-            self._debugger_state_repository,
-            key,
-        )
+        except Exception as error:
+            self._show_status(str(error) or "Unable to create the debugger session.", 0, True)
+            return None
+        if existing is not None and not existing.close():
+            window.deleteLater()
+            return existing
+        if existing is not None:
+            self._debugger_windows.pop(key, None)
         window.setAttribute(Qt.WA_DeleteOnClose, True)
         window.setWindowIcon(self.windowIcon())
         window.statusError.connect(lambda message: self._show_status(message, 0, True))

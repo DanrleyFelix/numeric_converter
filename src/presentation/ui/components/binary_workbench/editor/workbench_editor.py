@@ -558,7 +558,12 @@ def _may_edit_document(event: QKeyEvent) -> bool:
         Qt.Key_Delete,
     }:
         return True
-    if event.matches(QKeySequence.Cut) or event.matches(QKeySequence.Paste):
+    if (
+        event.matches(QKeySequence.Cut)
+        or event.matches(QKeySequence.Paste)
+        or event.matches(QKeySequence.Undo)
+        or event.matches(QKeySequence.Redo)
+    ):
         return True
     if not event.text():
         return False

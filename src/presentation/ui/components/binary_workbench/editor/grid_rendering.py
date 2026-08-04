@@ -1,3 +1,4 @@
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit
 
@@ -86,6 +87,9 @@ class GridRenderingMixin:
             self._last_visible_offset = 0
             self._render()
             self._configure_scrollbar()
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.reset(list(self._rows))
         self._schedule_layout_refresh()
 
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
@@ -253,6 +257,7 @@ class GridRenderingMixin:
                     for index, row in enumerate(self._rows)
                 ],
             )
+            editor._rebuild_dash_labels()
 
     def _display_offset(self, editor: QPlainTextEdit, text: str) -> str:
         return text
@@ -279,8 +284,67 @@ class GridRenderingMixin:
         try:
             for editor in editors:
                 editor.verticalScrollBar().setValue(row_index)
+            self._align_static_editors(editors, row_index)
         finally:
             self._syncing_editor_scrollbars = False
+        self._schedule_static_scroll_alignment()
+
+    def _align_static_editors(self, editors: list, row_index: int) -> None:
+        """Align first visible blocks after programmatic or cursor scrolling."""
+
+        reference = next(
+            (
+                editor
+                for editor in editors
+                if editor is not self.instructions
+                and self._scroll_editor_enabled(editor)
+            ),
+            self.instructions,
+        )
+        expected_block = reference.firstVisibleBlock().blockNumber()
+        for editor in editors:
+            if (
+                self._scroll_editor_enabled(editor)
+                and editor.firstVisibleBlock().blockNumber() != expected_block
+            ):
+                self._force_static_scroll_alignment(editor, row_index)
+
+    def _schedule_static_scroll_alignment(self) -> None:
+        """Queue one post-layout alignment without creating recurring timers."""
+
+        if getattr(self, "_static_scroll_alignment_scheduled", False):
+            return
+        self._static_scroll_alignment_scheduled = True
+        QTimer.singleShot(0, self._run_static_scroll_alignment)
+
+    def _run_static_scroll_alignment(self) -> None:
+        """Reconcile editors after Qt has completed cursor auto-scrolling."""
+
+        self._static_scroll_alignment_scheduled = False
+        if self._virtual:
+            return
+        editors = [
+            *self._offset_editors.values(),
+            self.raw_instructions,
+            self.bytes,
+            self.decoded_text,
+            self.instructions,
+        ]
+        row_index = self._visible_block_position(self.scrollbar.value() // ROW_BYTES)
+        self._syncing_editor_scrollbars = True
+        try:
+            self._align_static_editors(editors, row_index)
+        finally:
+            self._syncing_editor_scrollbars = False
+
+    def _force_static_scroll_alignment(self, editor, row_index: int) -> None:
+        """Reapply one static scroll position after cursor-driven auto-scroll."""
+
+        scrollbar = editor.verticalScrollBar()
+        neighbour = row_index - 1 if row_index > scrollbar.minimum() else row_index + 1
+        if neighbour <= scrollbar.maximum() and neighbour != row_index:
+            scrollbar.setValue(neighbour)
+        scrollbar.setValue(row_index)
 
     def _set_editor_text(self, editor: QPlainTextEdit, lines: list[str]) -> None:
         text = "\n".join(lines)
@@ -359,6 +423,9 @@ class GridRenderingMixin:
             cursor = QTextCursor(block)
             cursor.select(QTextCursor.SelectionType.LineUnderCursor)
             cursor.insertText(text)
+            refresh_offset = getattr(editor, "refresh_offset_block", None)
+            if refresh_offset is not None:
+                refresh_offset(index)
             restored = QTextCursor(editor.document())
             set_cursor_position(restored, anchor)
             set_cursor_position(restored, position, QTextCursor.KeepAnchor)

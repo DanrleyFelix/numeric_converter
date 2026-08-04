@@ -180,10 +180,15 @@ class GridRefreshWindowMixin:
 
     def _warn_if_assembly_refresh_needed(self) -> None:
         window = self._last_assembly_refresh_window
-        if window is None or self._assembly_refresh_warning_emitted:
+        if window is None:
             return
         offset = self._viewport_file_offset()
         if window[0] <= offset < window[1]:
+            return
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.prioritize_viewport()
+        if self._assembly_refresh_warning_emitted:
             return
         self._assembly_refresh_warning_emitted = True
         self.commandWarningRequested.emit(

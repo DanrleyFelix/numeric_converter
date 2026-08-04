@@ -8,9 +8,12 @@
             "cpu_arch": "PSX - Mips R3000A",
             "read_mode": "assembly",
             "reference_offsets": [
-                "File"
+                "File",
+                "ram"
             ],
-            "reference_offset_bases": {},
+            "reference_offset_bases": {
+                "ram": "0x8000f800"
+            },
             "labels": {},
             "symbols": {},
             "symbol_offsets": {},
@@ -45,9 +48,9 @@
             "module_checksums": {
                 "symbols": "50942ebb04d0bf9bfb3f91a7aa3ef6d376a0534000ceb23bded2f44f42e36968",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "cd23cc9a4b364ad31f21ed96fcfd2cd7e1fefdc47437f7f968ab0025b70683b3",
+                "versions": "4b9b350b26e15ad0acd54f559f8c4a148fe793753548f3647a6739a31f9de8b4",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "view_preferences": "f960f627d02ca5f70dc3b608e520f3b35f57979548dfba5e4f6a8dcfa9784e02"
+                "view_preferences": "16f07069a7d7773af4593a943ce499834c6ac4aedbfec668cf55b73130ff2c8b"
             },
             "custom_commands": {},
             "last_open_offset": "0x00000000",
@@ -173,7 +176,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "* virtual_memory_range 0x80000000 0x801FFFFF",
                     "bytes_text": "",
@@ -183,7 +187,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "* import current_file 0x80000000",
                     "bytes_text": "",
@@ -193,7 +198,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "* define $sp 0x801FFFF0",
                     "bytes_text": "",
@@ -203,7 +209,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "* define $pc 0x80000000",
                     "bytes_text": "",
@@ -213,7 +220,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "* define $gp 0x8009AF08",
                     "bytes_text": "",
@@ -223,7 +231,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "sp_init:",
                     "bytes_text": "",
@@ -233,7 +242,8 @@
                 {
                     "offset": "0x00000000",
                     "offsets": {
-                        "File": "0x00000000"
+                        "File": "0x00000000",
+                        "ram": "0x8000F800"
                     },
                     "instruction": "LUI $v0, 0x8BF0",
                     "bytes_text": "F0 8B 02 3C",
@@ -243,7 +253,8 @@
                 {
                     "offset": "0x00000004",
                     "offsets": {
-                        "File": "0x00000004"
+                        "File": "0x00000004",
+                        "ram": "0x8000F804"
                     },
                     "instruction": "ADDIU $sp, $sp, -0x60",
                     "bytes_text": "A0 FF BD 27",
@@ -253,7 +264,8 @@
                 {
                     "offset": "0x00000008",
                     "offsets": {
-                        "File": "0x00000008"
+                        "File": "0x00000008",
+                        "ram": "0x8000F808"
                     },
                     "instruction": "SW $a0, 0x0($sp)",
                     "bytes_text": "00 00 A4 AF",
@@ -263,7 +275,8 @@
                 {
                     "offset": "0x0000000C",
                     "offsets": {
-                        "File": "0x0000000C"
+                        "File": "0x0000000C",
+                        "ram": "0x8000F80C"
                     },
                     "instruction": "SW $a1, 0x4($sp)",
                     "bytes_text": "04 00 A5 AF",
@@ -273,7 +286,8 @@
                 {
                     "offset": "0x00000010",
                     "offsets": {
-                        "File": "0x00000010"
+                        "File": "0x00000010",
+                        "ram": "0x8000F810"
                     },
                     "instruction": "SW $a2, 0x8($sp)",
                     "bytes_text": "08 00 A6 AF",
@@ -283,7 +297,8 @@
                 {
                     "offset": "0x00000014",
                     "offsets": {
-                        "File": "0x00000014"
+                        "File": "0x00000014",
+                        "ram": "0x8000F814"
                     },
                     "instruction": "SW $a3, 0xC($sp)",
                     "bytes_text": "0C 00 A7 AF",
@@ -293,7 +308,8 @@
                 {
                     "offset": "0x00000018",
                     "offsets": {
-                        "File": "0x00000018"
+                        "File": "0x00000018",
+                        "ram": "0x8000F818"
                     },
                     "instruction": "SW $v0, 0x10($sp)",
                     "bytes_text": "10 00 A2 AF",
@@ -303,7 +319,8 @@
                 {
                     "offset": "0x0000001C",
                     "offsets": {
-                        "File": "0x0000001C"
+                        "File": "0x0000001C",
+                        "ram": "0x8000F81C"
                     },
                     "instruction": "SW $v1, 0x14($sp)",
                     "bytes_text": "14 00 A3 AF",
@@ -313,7 +330,8 @@
                 {
                     "offset": "0x00000020",
                     "offsets": {
-                        "File": "0x00000020"
+                        "File": "0x00000020",
+                        "ram": "0x8000F820"
                     },
                     "instruction": "SW $s0, 0x18($sp)",
                     "bytes_text": "18 00 B0 AF",
@@ -323,7 +341,8 @@
                 {
                     "offset": "0x00000024",
                     "offsets": {
-                        "File": "0x00000024"
+                        "File": "0x00000024",
+                        "ram": "0x8000F824"
                     },
                     "instruction": "SW $s1, 0x1C($sp)",
                     "bytes_text": "1C 00 B1 AF",
@@ -333,7 +352,8 @@
                 {
                     "offset": "0x00000028",
                     "offsets": {
-                        "File": "0x00000028"
+                        "File": "0x00000028",
+                        "ram": "0x8000F828"
                     },
                     "instruction": "SW $s2, 0x20($sp)",
                     "bytes_text": "20 00 B2 AF",
@@ -343,7 +363,8 @@
                 {
                     "offset": "0x0000002C",
                     "offsets": {
-                        "File": "0x0000002C"
+                        "File": "0x0000002C",
+                        "ram": "0x8000F82C"
                     },
                     "instruction": "SW $s3, 0x24($sp)",
                     "bytes_text": "24 00 B3 AF",
@@ -353,7 +374,8 @@
                 {
                     "offset": "0x00000030",
                     "offsets": {
-                        "File": "0x00000030"
+                        "File": "0x00000030",
+                        "ram": "0x8000F830"
                     },
                     "instruction": "SW $s4, 0x28($sp)",
                     "bytes_text": "28 00 B4 AF",
@@ -363,7 +385,8 @@
                 {
                     "offset": "0x00000034",
                     "offsets": {
-                        "File": "0x00000034"
+                        "File": "0x00000034",
+                        "ram": "0x8000F834"
                     },
                     "instruction": "SW $s5, 0x2C($sp)",
                     "bytes_text": "2C 00 B5 AF",
@@ -373,7 +396,8 @@
                 {
                     "offset": "0x00000038",
                     "offsets": {
-                        "File": "0x00000038"
+                        "File": "0x00000038",
+                        "ram": "0x8000F838"
                     },
                     "instruction": "SW $s6, 0x30($sp)",
                     "bytes_text": "30 00 B6 AF",
@@ -383,7 +407,8 @@
                 {
                     "offset": "0x0000003C",
                     "offsets": {
-                        "File": "0x0000003C"
+                        "File": "0x0000003C",
+                        "ram": "0x8000F83C"
                     },
                     "instruction": "SW $s7, 0x34($sp)",
                     "bytes_text": "34 00 B7 AF",
@@ -393,7 +418,8 @@
                 {
                     "offset": "0x00000040",
                     "offsets": {
-                        "File": "0x00000040"
+                        "File": "0x00000040",
+                        "ram": "0x8000F840"
                     },
                     "instruction": "SW $t0, 0x38($sp)",
                     "bytes_text": "38 00 A8 AF",
@@ -403,7 +429,8 @@
                 {
                     "offset": "0x00000044",
                     "offsets": {
-                        "File": "0x00000044"
+                        "File": "0x00000044",
+                        "ram": "0x8000F844"
                     },
                     "instruction": "SW $t1, 0x3C($sp)",
                     "bytes_text": "3C 00 A9 AF",
@@ -413,7 +440,8 @@
                 {
                     "offset": "0x00000048",
                     "offsets": {
-                        "File": "0x00000048"
+                        "File": "0x00000048",
+                        "ram": "0x8000F848"
                     },
                     "instruction": "SW $t2, 0x40($sp)",
                     "bytes_text": "40 00 AA AF",
@@ -423,7 +451,8 @@
                 {
                     "offset": "0x0000004C",
                     "offsets": {
-                        "File": "0x0000004C"
+                        "File": "0x0000004C",
+                        "ram": "0x8000F84C"
                     },
                     "instruction": "SW $t3, 0x44($sp)",
                     "bytes_text": "44 00 AB AF",
@@ -433,7 +462,8 @@
                 {
                     "offset": "0x00000050",
                     "offsets": {
-                        "File": "0x00000050"
+                        "File": "0x00000050",
+                        "ram": "0x8000F850"
                     },
                     "instruction": "SW $t4, 0x48($sp)",
                     "bytes_text": "48 00 AC AF",
@@ -443,7 +473,8 @@
                 {
                     "offset": "0x00000054",
                     "offsets": {
-                        "File": "0x00000054"
+                        "File": "0x00000054",
+                        "ram": "0x8000F854"
                     },
                     "instruction": "SW $t5, 0x4C($sp)",
                     "bytes_text": "4C 00 AD AF",
@@ -453,7 +484,8 @@
                 {
                     "offset": "0x00000058",
                     "offsets": {
-                        "File": "0x00000058"
+                        "File": "0x00000058",
+                        "ram": "0x8000F858"
                     },
                     "instruction": "SW $t6, 0x50($sp)",
                     "bytes_text": "50 00 AE AF",
@@ -463,7 +495,8 @@
                 {
                     "offset": "0x0000005C",
                     "offsets": {
-                        "File": "0x0000005C"
+                        "File": "0x0000005C",
+                        "ram": "0x8000F85C"
                     },
                     "instruction": "SW $t7, 0x54($sp)",
                     "bytes_text": "54 00 AF AF",
@@ -473,7 +506,8 @@
                 {
                     "offset": "0x00000060",
                     "offsets": {
-                        "File": "0x00000060"
+                        "File": "0x00000060",
+                        "ram": "0x8000F860"
                     },
                     "instruction": "SW $t8, 0x58($sp)",
                     "bytes_text": "58 00 B8 AF",
@@ -483,7 +517,8 @@
                 {
                     "offset": "0x00000064",
                     "offsets": {
-                        "File": "0x00000064"
+                        "File": "0x00000064",
+                        "ram": "0x8000F864"
                     },
                     "instruction": "SW $t9, 0x5C($sp)",
                     "bytes_text": "5C 00 B9 AF",
@@ -493,7 +528,8 @@
                 {
                     "offset": "0x00000068",
                     "offsets": {
-                        "File": "0x00000068"
+                        "File": "0x00000068",
+                        "ram": "0x8000F868"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -503,7 +539,8 @@
                 {
                     "offset": "0x0000006C",
                     "offsets": {
-                        "File": "0x0000006C"
+                        "File": "0x0000006C",
+                        "ram": "0x8000F86C"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -513,7 +550,8 @@
                 {
                     "offset": "0x00000070",
                     "offsets": {
-                        "File": "0x00000070"
+                        "File": "0x00000070",
+                        "ram": "0x8000F870"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -523,7 +561,8 @@
                 {
                     "offset": "0x00000074",
                     "offsets": {
-                        "File": "0x00000074"
+                        "File": "0x00000074",
+                        "ram": "0x8000F874"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -533,7 +572,8 @@
                 {
                     "offset": "0x00000078",
                     "offsets": {
-                        "File": "0x00000078"
+                        "File": "0x00000078",
+                        "ram": "0x8000F878"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -543,7 +583,8 @@
                 {
                     "offset": "0x0000007C",
                     "offsets": {
-                        "File": "0x0000007C"
+                        "File": "0x0000007C",
+                        "ram": "0x8000F87C"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -553,7 +594,8 @@
                 {
                     "offset": "0x00000080",
                     "offsets": {
-                        "File": "0x00000080"
+                        "File": "0x00000080",
+                        "ram": "0x8000F880"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -563,7 +605,8 @@
                 {
                     "offset": "0x00000084",
                     "offsets": {
-                        "File": "0x00000084"
+                        "File": "0x00000084",
+                        "ram": "0x8000F884"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -573,7 +616,8 @@
                 {
                     "offset": "0x00000088",
                     "offsets": {
-                        "File": "0x00000088"
+                        "File": "0x00000088",
+                        "ram": "0x8000F888"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -583,7 +627,8 @@
                 {
                     "offset": "0x0000008C",
                     "offsets": {
-                        "File": "0x0000008C"
+                        "File": "0x0000008C",
+                        "ram": "0x8000F88C"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -593,7 +638,8 @@
                 {
                     "offset": "0x00000090",
                     "offsets": {
-                        "File": "0x00000090"
+                        "File": "0x00000090",
+                        "ram": "0x8000F890"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -603,7 +649,8 @@
                 {
                     "offset": "0x00000094",
                     "offsets": {
-                        "File": "0x00000094"
+                        "File": "0x00000094",
+                        "ram": "0x8000F894"
                     },
                     "instruction": "ADDIU $t2, $t2, 0x2",
                     "bytes_text": "02 00 4A 25",
@@ -613,7 +660,8 @@
                 {
                     "offset": "-",
                     "offsets": {
-                        "File": "-"
+                        "File": "-",
+                        "ram": "-"
                     },
                     "instruction": "sp_restore:",
                     "bytes_text": "",
@@ -623,7 +671,8 @@
                 {
                     "offset": "0x00000098",
                     "offsets": {
-                        "File": "0x00000098"
+                        "File": "0x00000098",
+                        "ram": "0x8000F898"
                     },
                     "instruction": "LW $a0, 0x0($sp)",
                     "bytes_text": "00 00 A4 8F",
@@ -633,7 +682,8 @@
                 {
                     "offset": "0x0000009C",
                     "offsets": {
-                        "File": "0x0000009C"
+                        "File": "0x0000009C",
+                        "ram": "0x8000F89C"
                     },
                     "instruction": "LW $a1, 0x4($sp)",
                     "bytes_text": "04 00 A5 8F",
@@ -643,7 +693,8 @@
                 {
                     "offset": "0x000000A0",
                     "offsets": {
-                        "File": "0x000000A0"
+                        "File": "0x000000A0",
+                        "ram": "0x8000F8A0"
                     },
                     "instruction": "LW $a2, 0x8($sp)",
                     "bytes_text": "08 00 A6 8F",
@@ -653,7 +704,8 @@
                 {
                     "offset": "0x000000A4",
                     "offsets": {
-                        "File": "0x000000A4"
+                        "File": "0x000000A4",
+                        "ram": "0x8000F8A4"
                     },
                     "instruction": "LW $a3, 0xC($sp)",
                     "bytes_text": "0C 00 A7 8F",
@@ -663,7 +715,8 @@
                 {
                     "offset": "0x000000A8",
                     "offsets": {
-                        "File": "0x000000A8"
+                        "File": "0x000000A8",
+                        "ram": "0x8000F8A8"
                     },
                     "instruction": "LW $v0, 0x10($sp)",
                     "bytes_text": "10 00 A2 8F",
@@ -673,7 +726,8 @@
                 {
                     "offset": "0x000000AC",
                     "offsets": {
-                        "File": "0x000000AC"
+                        "File": "0x000000AC",
+                        "ram": "0x8000F8AC"
                     },
                     "instruction": "LW $v1, 0x14($sp)",
                     "bytes_text": "14 00 A3 8F",
@@ -683,7 +737,8 @@
                 {
                     "offset": "0x000000B0",
                     "offsets": {
-                        "File": "0x000000B0"
+                        "File": "0x000000B0",
+                        "ram": "0x8000F8B0"
                     },
                     "instruction": "LW $s0, 0x18($sp)",
                     "bytes_text": "18 00 B0 8F",
@@ -693,7 +748,8 @@
                 {
                     "offset": "0x000000B4",
                     "offsets": {
-                        "File": "0x000000B4"
+                        "File": "0x000000B4",
+                        "ram": "0x8000F8B4"
                     },
                     "instruction": "LW $s1, 0x1C($sp)",
                     "bytes_text": "1C 00 B1 8F",
@@ -703,7 +759,8 @@
                 {
                     "offset": "0x000000B8",
                     "offsets": {
-                        "File": "0x000000B8"
+                        "File": "0x000000B8",
+                        "ram": "0x8000F8B8"
                     },
                     "instruction": "LW $s2, 0x20($sp)",
                     "bytes_text": "20 00 B2 8F",
@@ -713,7 +770,8 @@
                 {
                     "offset": "0x000000BC",
                     "offsets": {
-                        "File": "0x000000BC"
+                        "File": "0x000000BC",
+                        "ram": "0x8000F8BC"
                     },
                     "instruction": "LW $s3, 0x24($sp)",
                     "bytes_text": "24 00 B3 8F",
@@ -723,7 +781,8 @@
                 {
                     "offset": "0x000000C0",
                     "offsets": {
-                        "File": "0x000000C0"
+                        "File": "0x000000C0",
+                        "ram": "0x8000F8C0"
                     },
                     "instruction": "LW $s4, 0x28($sp)",
                     "bytes_text": "28 00 B4 8F",
@@ -733,7 +792,8 @@
                 {
                     "offset": "0x000000C4",
                     "offsets": {
-                        "File": "0x000000C4"
+                        "File": "0x000000C4",
+                        "ram": "0x8000F8C4"
                     },
                     "instruction": "LW $s5, 0x2C($sp)",
                     "bytes_text": "2C 00 B5 8F",
@@ -743,7 +803,8 @@
                 {
                     "offset": "0x000000C8",
                     "offsets": {
-                        "File": "0x000000C8"
+                        "File": "0x000000C8",
+                        "ram": "0x8000F8C8"
                     },
                     "instruction": "LW $s6, 0x30($sp)",
                     "bytes_text": "30 00 B6 8F",
@@ -753,7 +814,8 @@
                 {
                     "offset": "0x000000CC",
                     "offsets": {
-                        "File": "0x000000CC"
+                        "File": "0x000000CC",
+                        "ram": "0x8000F8CC"
                     },
                     "instruction": "LW $s7, 0x34($sp)",
                     "bytes_text": "34 00 B7 8F",
@@ -763,7 +825,8 @@
                 {
                     "offset": "0x000000D0",
                     "offsets": {
-                        "File": "0x000000D0"
+                        "File": "0x000000D0",
+                        "ram": "0x8000F8D0"
                     },
                     "instruction": "LW $t0, 0x38($sp)",
                     "bytes_text": "38 00 A8 8F",
@@ -773,7 +836,8 @@
                 {
                     "offset": "0x000000D4",
                     "offsets": {
-                        "File": "0x000000D4"
+                        "File": "0x000000D4",
+                        "ram": "0x8000F8D4"
                     },
                     "instruction": "LW $t1, 0x3C($sp)",
                     "bytes_text": "3C 00 A9 8F",
@@ -783,7 +847,8 @@
                 {
                     "offset": "0x000000D8",
                     "offsets": {
-                        "File": "0x000000D8"
+                        "File": "0x000000D8",
+                        "ram": "0x8000F8D8"
                     },
                     "instruction": "LW $t2, 0x40($sp)",
                     "bytes_text": "40 00 AA 8F",
@@ -793,7 +858,8 @@
                 {
                     "offset": "0x000000DC",
                     "offsets": {
-                        "File": "0x000000DC"
+                        "File": "0x000000DC",
+                        "ram": "0x8000F8DC"
                     },
                     "instruction": "LW $t3, 0x44($sp)",
                     "bytes_text": "44 00 AB 8F",
@@ -803,7 +869,8 @@
                 {
                     "offset": "0x000000E0",
                     "offsets": {
-                        "File": "0x000000E0"
+                        "File": "0x000000E0",
+                        "ram": "0x8000F8E0"
                     },
                     "instruction": "LW $t4, 0x48($sp)",
                     "bytes_text": "48 00 AC 8F",
@@ -813,7 +880,8 @@
                 {
                     "offset": "0x000000E4",
                     "offsets": {
-                        "File": "0x000000E4"
+                        "File": "0x000000E4",
+                        "ram": "0x8000F8E4"
                     },
                     "instruction": "LW $t5, 0x4C($sp)",
                     "bytes_text": "4C 00 AD 8F",
@@ -823,7 +891,8 @@
                 {
                     "offset": "0x000000E8",
                     "offsets": {
-                        "File": "0x000000E8"
+                        "File": "0x000000E8",
+                        "ram": "0x8000F8E8"
                     },
                     "instruction": "LW $t6, 0x50($sp)",
                     "bytes_text": "50 00 AE 8F",
@@ -833,7 +902,8 @@
                 {
                     "offset": "0x000000EC",
                     "offsets": {
-                        "File": "0x000000EC"
+                        "File": "0x000000EC",
+                        "ram": "0x8000F8EC"
                     },
                     "instruction": "LW $t7, 0x54($sp)",
                     "bytes_text": "54 00 AF 8F",
@@ -843,7 +913,8 @@
                 {
                     "offset": "0x000000F0",
                     "offsets": {
-                        "File": "0x000000F0"
+                        "File": "0x000000F0",
+                        "ram": "0x8000F8F0"
                     },
                     "instruction": "LW $t8, 0x58($sp)",
                     "bytes_text": "58 00 B8 8F",
@@ -853,7 +924,8 @@
                 {
                     "offset": "0x000000F4",
                     "offsets": {
-                        "File": "0x000000F4"
+                        "File": "0x000000F4",
+                        "ram": "0x8000F8F4"
                     },
                     "instruction": "LW $t9, 0x5C($sp)",
                     "bytes_text": "5C 00 B9 8F",
@@ -863,7 +935,8 @@
                 {
                     "offset": "0x000000F8",
                     "offsets": {
-                        "File": "0x000000F8"
+                        "File": "0x000000F8",
+                        "ram": "0x8000F8F8"
                     },
                     "instruction": "ADDIU $sp, $sp, 0x60",
                     "bytes_text": "60 00 BD 27",
@@ -878,7 +951,8 @@
                     "Raw Instructions": true,
                     "Decoded Text": false,
                     "Bytes": true,
-                    "Instruction": true
+                    "Instruction": true,
+                    "ram": true
                 },
                 "decoded_text_tables": [
                     "ASCII (ANSI windows)"

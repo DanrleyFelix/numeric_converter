@@ -12,15 +12,25 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as
 
 
 class GridCommitMixin:
-    def commit_current_editor_text(self) -> None:
+    def commit_current_editor_text(self) -> bool:
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None and coordinator.enabled():
+            coordinator.flush_collected_changes()
+            if coordinator.state:
+                result = coordinator.ensure_consistent("commit")
+                if not result.success:
+                    self.commandWarningRequested.emit(result.error or "Unable to commit Assembly changes.")
+                    return False
+            return True
         if self._dirty_editor_kind is None:
-            return
+            return True
         if self._dirty_editor_kind == BINARY_WORKBENCH_TEXT.BYTES:
             rows = self._byte_rows_from_lines(self.bytes.toPlainText().splitlines())
             self._commit_origin_rows(rows, BINARY_WORKBENCH_TEXT.BYTES, True)
-            return
+            return True
         rows = self._instruction_rows_from_lines(self.instructions.toPlainText().splitlines())
         self._commit_origin_rows(rows, BINARY_WORKBENCH_TEXT.INSTRUCTION, False)
+        return True
 
     def _commit_origin_rows(
         self,

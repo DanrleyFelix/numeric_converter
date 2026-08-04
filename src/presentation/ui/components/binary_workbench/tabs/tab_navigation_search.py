@@ -3,13 +3,25 @@ from src.core.binary_workbench.hazard_cache import HazardCacheItem
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_DEFAULT_SEARCH_RESULT_LIMIT
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.core.binary_workbench.editor_consistency import ConsistencyBarrierResult
 
 
 class TabNavigationSearchMixin:
-    def commit_current_editor_text(self) -> None:
+    def ensure_current_consistent(self, reason: str) -> ConsistencyBarrierResult:
+        """Run a critical consistency barrier for the current editor page."""
+
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
-            page.commit_current_editor_text()
+            if not page.grid._consistency_coordinator.enabled():
+                return ConsistencyBarrierResult(True)
+            return page.ensure_consistent(reason)
+        return ConsistencyBarrierResult(False, error="No active editor is available.")
+
+    def commit_current_editor_text(self) -> bool:
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            return page.commit_current_editor_text()
+        return True
 
     def go_to_offset(self, offset: int) -> None:
         page = self.currentWidget()

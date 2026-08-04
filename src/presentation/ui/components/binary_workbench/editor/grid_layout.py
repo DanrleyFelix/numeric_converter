@@ -153,6 +153,9 @@ class GridLayoutMixin:
         """Expand a folded label before an edit can change its declaration row."""
 
         if editor is self.instructions:
+            coordinator = getattr(self, "_consistency_coordinator", None)
+            if coordinator is not None and coordinator.enabled():
+                coordinator.begin_user_event("key")
             move_to_end = event.key() in {Qt.Key_Return, Qt.Key_Enter}
             self.expand_collapsed_label_at_cursor(editor, move_to_end)
 

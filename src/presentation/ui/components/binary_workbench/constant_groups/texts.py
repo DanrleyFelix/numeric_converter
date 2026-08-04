@@ -36,7 +36,10 @@
     STATUS_TARGET_MISALIGNED: str = "Jump/branch target is not aligned to 4 bytes."
     STATUS_BRANCH_OUT_OF_RANGE: str = "Branch target is outside the supported 16-bit relative range."
     STATUS_ASSEMBLY_REFRESH_REQUIRED: str = (
-        "Viewport moved beyond the last 4 KB refresh. Press F1 to render this region again."
+        "Viewport moved beyond the immediate 4 KB repair. Its rebuild was reprioritized; press F1 again if this region still appears stale."
+    )
+    STATUS_ASSEMBLY_REBUILDING: str = (
+        "The visible 4 KB region is ready; the remaining Assembly projection is rebuilding in the background."
     )
     STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
     FILE: str = "File"

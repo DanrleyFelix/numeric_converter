@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
@@ -33,6 +34,7 @@ from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbo
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.page_reader import reader_for_context
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
+from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
@@ -68,6 +70,7 @@ class BinaryWorkbenchEditorPage(
     ) -> None:
         super().__init__()
         self._context = context
+        self._consistency_version_ids: dict[str, str] = {}
         self._preferences = preferences or BinaryWorkbenchPreferencesDTO()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(
@@ -109,8 +112,63 @@ class BinaryWorkbenchEditorPage(
         self.load_context(context)
 
     def current_context(self) -> BinaryWorkbenchTabContextDTO:
+        self.grid.flush_consistency_changes()
         self.grid.flush_pending_rows_changed()
+        labels = self.grid.current_labels()
+        if labels != self._context.labels:
+            self._context = BinaryWorkbenchTabContextDTO(
+                **{
+                    **self._context.__dict__,
+                    "labels": labels,
+                    "symbol_offsets": symbol_offsets(
+                        self._context.rows,
+                        self._context.variables,
+                        self._context.equates,
+                        labels,
+                    ),
+                }
+            )
         return self._context
+
+    def ensure_consistent(self, reason: str):
+        """Return a complete current snapshot for a critical consumer."""
+
+        return self.grid.ensure_consistent(reason)
+
+    def rename_consistency_version(self, previous: str, current: str) -> None:
+        """Preserve one runtime version identity across a rename."""
+
+        if previous in self._consistency_version_ids:
+            self._consistency_version_ids[current] = self._consistency_version_ids.pop(previous)
+
+    def create_consistency_version(self, name: str) -> str:
+        """Assign a fresh runtime-only identity to a newly created version."""
+
+        previous = self._consistency_version_ids.get(name)
+        if previous is not None:
+            self.grid.forget_consistency_owner(previous)
+        version_id = uuid4().hex
+        self._consistency_version_ids[name] = version_id
+        return version_id
+
+    def replace_consistency_versions(self, names: list[str]) -> None:
+        """Materialize a newly loaded version collection with fresh identities."""
+
+        for version_id in self._consistency_version_ids.values():
+            self.grid.forget_consistency_owner(version_id)
+        self._consistency_version_ids = {name: uuid4().hex for name in names}
+
+    def delete_consistency_version(self, name: str) -> None:
+        """Forget a runtime identity when its owning version is removed."""
+
+        version_id = self._consistency_version_ids.pop(name, None)
+        if version_id is not None:
+            self.grid.forget_consistency_owner(version_id)
+
+    def activate_consistency_context(self) -> None:
+        """Start a fresh activation epoch for the currently materialized version."""
+
+        self._activate_consistency_owner(self._context)
 
     def go_to_clicked_instruction_offset(self, target_offset: int, source_offset: int) -> None:
         self.grid.expand_label_for_offset(target_offset)
@@ -139,6 +197,7 @@ class BinaryWorkbenchEditorPage(
 
     def replace_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._context = context
+        self._activate_consistency_owner(context)
         self.grid.set_symbols(context.labels, context.variables, context.equates, context.symbol_offsets)
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
@@ -178,6 +237,7 @@ class BinaryWorkbenchEditorPage(
         self._reader = reader_for_context(context, self._preferences)
         context = self._context_with_original_file_size(context)
         self._context = context
+        self._activate_consistency_owner(context)
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
         self.grid.set_label_folding_enabled(
@@ -227,6 +287,13 @@ class BinaryWorkbenchEditorPage(
             )
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)
+
+    def _activate_consistency_owner(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        """Bind the grid to an internal version identity for this activation."""
+
+        key = context.active_version_name or "<unversioned>"
+        version_id = self._consistency_version_ids.setdefault(key, uuid4().hex)
+        self.grid.activate_consistency_owner(context.tab_id, version_id)
 
     def load_preferences(self, preferences: BinaryWorkbenchPreferencesDTO) -> None:
         self.set_preferences(preferences)

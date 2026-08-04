@@ -73,6 +73,7 @@ class BinaryWorkbenchWindow(
     ):
         super().__init__()
         self.setObjectName("binary-workbench-window")
+        self.setStyleSheet(STYLESHEET)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.TITLE)
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)

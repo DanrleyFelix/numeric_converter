@@ -52,6 +52,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_viewport_select
     GridViewportSelectionMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
+from src.presentation.ui.components.binary_workbench.editor.consistency import (
+    EditorConsistencyCoordinator,
+)
 
 
 ROWS_CHANGED_DEBOUNCE_MS = 180
@@ -146,7 +149,29 @@ class BinaryWorkbenchGrid(
         self._setup_incremental_editing()
         self._setup_refresh_window()
         self._build_ui()
+        self._consistency_coordinator = EditorConsistencyCoordinator(self)
+        self.destroyed.connect(lambda: self._consistency_coordinator.shutdown())
         self._refresh_command_completions()
+
+    def activate_consistency_owner(self, tab_id: str, version_id: str) -> None:
+        """Bind editor derivations to one runtime tab/version identity."""
+
+        self._consistency_coordinator.activate_owner(tab_id, version_id)
+
+    def forget_consistency_owner(self, version_id: str) -> None:
+        """Remove the runtime state of a version that no longer exists."""
+
+        self._consistency_coordinator.forget_owner(version_id)
+
+    def ensure_consistent(self, reason: str):
+        """Run a synchronous source-to-derived barrier for a critical action."""
+
+        return self._consistency_coordinator.ensure_consistent(reason)
+
+    def flush_consistency_changes(self) -> None:
+        """Classify document changes already delivered by Qt."""
+
+        self._consistency_coordinator.flush_collected_changes()
 
     def _emit_rows_changed(self, rows: list[BinaryWorkbenchRowDTO], deferred: bool = False) -> None:
         if not deferred:

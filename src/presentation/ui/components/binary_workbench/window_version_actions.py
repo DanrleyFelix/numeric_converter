@@ -56,16 +56,38 @@ class BinaryWorkbenchWindowVersionMixin:
     def _update_version(self) -> None:
         self._set_editor_popups_suppressed(True)
         try:
+            barrier = self.tabs.ensure_current_consistent("save-version")
+            if not barrier.success:
+                self._show_status(barrier.error or "Unable to update the current version.", 0, True)
+                return
             current = self.tabs.current_context()
             if _scratch_workspace_source_required(current):
                 self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_WORKSPACE_SOURCE_REQUIRED)
                 return
             name = current.active_version_name if current is not None else ""
-            if name and self.tabs.update_current_version(name, mark_dirty=False, reload_page=False):
-                self.tabs.mark_initial_version_saved(current.tab_id)
-                self.tabs.backup_default_version_if_due()
-                self.tabs.save_current_workspace()
-                self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+            if name:
+                previous = current
+                try:
+                    updated = self.tabs.update_current_version(
+                        name,
+                        mark_dirty=False,
+                        reload_page=False,
+                        ensure_consistency=False,
+                    )
+                    saved = updated and self.tabs.save_current_workspace()
+                except (OSError, TypeError, ValueError) as error:
+                    saved = False
+                    failure = str(error)
+                else:
+                    failure = "Unable to persist the current version atomically."
+                if saved:
+                    self.tabs.mark_initial_version_saved(current.tab_id)
+                    self.tabs.backup_default_version_if_due()
+                    self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
+                    return
+                if previous is not None:
+                    self.tabs._set_current_context_without_page_reload(previous)
+                self._show_status(failure, 0, True)
                 return
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_NO_VERSIONS, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
         finally:

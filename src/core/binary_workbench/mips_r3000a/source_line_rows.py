@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
@@ -22,6 +24,7 @@ def build_source_line_rows(
     variables: dict[str, str] | None = None,
     equates: dict[str, str] | None = None,
     reject_invalid: bool = False,
+    cancelled: Callable[[], bool] | None = None,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     expanded = expand_pseudo_instructions(lines)
     provisional_labels = _provisional_labels(expanded, start_offset)
@@ -37,6 +40,7 @@ def build_source_line_rows(
         variables,
         equates,
         reject_invalid,
+        cancelled,
     )
     if rows is None or labels is not None:
         return rows
@@ -55,6 +59,7 @@ def build_source_line_rows(
             variables,
             equates,
             reject_invalid,
+            cancelled,
         )
         if rows is None:
             return None
@@ -71,11 +76,14 @@ def _build_rows(
     variables: dict[str, str],
     equates: dict[str, str],
     reject_invalid: bool,
+    cancelled: Callable[[], bool] | None,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     rows: list[BinaryWorkbenchRowDTO] = []
     offset = start_offset
     resolver = MipsSymbolResolver(labels, variables, equates)
     for line in lines:
+        if cancelled is not None and cancelled():
+            return None
         code = instruction_code(line)
         if not code:
             rows.append(empty_source_row(line, offset_names))

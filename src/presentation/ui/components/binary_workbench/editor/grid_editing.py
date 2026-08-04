@@ -71,6 +71,10 @@ class GridEditingMixin:
         if not self._editor_change_allowed(False):
             self._restore_editor_after_rejected_change(False)
             return
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None and coordinator.enabled():
+            coordinator.note_text_changed()
+            return
         if not self._has_meaningful_editor_change(self.instructions):
             return
         self._syncing_editor_change = True
@@ -111,6 +115,10 @@ class GridEditingMixin:
     def recalculate_labels_and_branches(self) -> None:
         """Refresh the active source region and its shared label snapshot."""
 
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None and coordinator.enabled():
+            coordinator.force_refresh()
+            return
         self._recalculate_instruction_view(self._normalized_instruction_lines())
 
     def _sync_rows(

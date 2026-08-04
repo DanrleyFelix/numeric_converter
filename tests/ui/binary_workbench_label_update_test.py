@@ -16,9 +16,6 @@ from src.modules.binary_workbench_dtos import (
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
-from src.presentation.ui.components.binary_workbench.editor import (
-    grid_editing as grid_editing_module,
-)
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,
 )
@@ -59,34 +56,21 @@ def _grid(lines: list[str]) -> BinaryWorkbenchGrid:
     return grid
 
 
-def test_labels_refresh_only_when_file_offset_layout_changes(monkeypatch):
+def test_labels_refresh_only_when_file_offset_layout_changes():
     grid = _grid([
         "entry: nop",
         "target: nop",
         "beq $zero, $zero, target",
     ])
-    original = grid_editing_module.labels_from_rows
-    original_folding_refresh = grid._refresh_label_folding
-    calls: list[int] = []
-    folding_refreshes: list[bool] = []
-
-    def tracked_labels(rows):
-        calls.append(len(rows))
-        return original(rows)
-
-    def tracked_folding_refresh():
-        folding_refreshes.append(True)
-        original_folding_refresh()
-
-    monkeypatch.setattr(grid_editing_module, "labels_from_rows", tracked_labels)
-    monkeypatch.setattr(grid, "_refresh_label_folding", tracked_folding_refresh)
+    coordinator = grid._consistency_coordinator
+    initial_structural_revision = coordinator.structural_revision
     grid.instructions.setPlainText(
         "entry: addu $zero, $zero, $zero\n"
         "target: nop\n"
         "beq $zero, $zero, target"
     )
-    assert calls == []
-    assert folding_refreshes == []
+    _app().processEvents()
+    assert coordinator.structural_revision == initial_structural_revision
 
     grid.instructions.setPlainText(
         "entry: addu $zero, $zero, $zero\n"
@@ -94,8 +78,9 @@ def test_labels_refresh_only_when_file_offset_layout_changes(monkeypatch):
         "target: nop\n"
         "beq $zero, $zero, target"
     )
-    assert calls == [4]
-    assert folding_refreshes == [True]
+    _app().processEvents()
+    assert coordinator.ensure_consistent("test").success
+    assert coordinator.structural_revision == initial_structural_revision + 1
     assert grid.current_labels()["target"] == "0x00000008"
     assert grid.instructions._jump_symbols["target"] == "0x00000008"
     assert grid._codec.jump_navigation_target(
@@ -109,8 +94,9 @@ def test_labels_refresh_only_when_file_offset_layout_changes(monkeypatch):
         "target: nop\n"
         "beq $zero, $zero, target"
     )
-    assert calls == [4, 3]
-    assert folding_refreshes == [True, True]
+    _app().processEvents()
+    assert coordinator.ensure_consistent("test").success
+    assert coordinator.structural_revision == initial_structural_revision + 2
     assert grid.current_labels()["target"] == "0x00000004"
 
 
@@ -168,6 +154,7 @@ def test_equal_size_multi_line_edit_refreshes_labels_and_branch_displacement():
         "beq $zero, $zero, target"
     )
     _app().processEvents()
+    assert grid.ensure_consistent("test").success
 
     assert grid.current_labels() == {"target": "0x00000000"}
     assert grid.export_rows()[-1].bytes_text == "FD FF 00 10"

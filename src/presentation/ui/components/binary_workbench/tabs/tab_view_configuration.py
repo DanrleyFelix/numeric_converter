@@ -23,7 +23,7 @@ class TabViewConfigurationMixin:
         return str(self._workspace_repository.decoded_tables_directory)
 
     def set_current_visible_columns(self, visible_columns: dict[str, bool]) -> None:
-        current = self.current_context()
+        current = self._consistent_view_context()
         if current is None:
             return
         preferences = BinaryWorkbenchViewPreferencesDTO(
@@ -42,7 +42,7 @@ class TabViewConfigurationMixin:
         tables: list[BinaryWorkbenchEncodingTableDTO],
         enabled_names: list[str],
     ) -> None:
-        current = self.current_context()
+        current = self._consistent_view_context()
         if current is None:
             return
         preferences = BinaryWorkbenchViewPreferencesDTO(
@@ -68,6 +68,15 @@ class TabViewConfigurationMixin:
         self._set_view_preferences_for_related_tabs(current, preferences)
         self._refresh_encoding_table_pages(list(tables))
 
+    def _consistent_view_context(self) -> BinaryWorkbenchTabContextDTO | None:
+        """Protect current source rows before rematerializing optional columns."""
+
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            if not page.commit_current_editor_text():
+                return None
+            return page.current_context()
+        return self.current_context()
 
     def _set_view_preferences_for_related_tabs(
         self,

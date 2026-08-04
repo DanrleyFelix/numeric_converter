@@ -30,6 +30,10 @@ class GridResizingMixin:
         self.canvas_layout.activate()
         self._configure_scrollbar()
         if self._virtual:
+            # A queued resize from an older projection must never replace newer
+            # authoritative text while its aggregated edit is still pending.
+            if self._dirty_editor_kind is not None:
+                return
             self.visibleWindowRequested.emit(
                 self._aligned_scroll_offset(self.scrollbar.value()),
                 self.visible_size(),

@@ -466,11 +466,12 @@ class TabStateMixin:
         self,
         index: int,
         context: BinaryWorkbenchTabContextDTO,
-    ) -> BinaryWorkbenchTabContextDTO:
+    ) -> BinaryWorkbenchTabContextDTO | None:
         page = self.widget(index)
         if not isinstance(page, BinaryWorkbenchEditorPage):
             return context
-        page.commit_current_editor_text()
+        if not page.commit_current_editor_text():
+            return None
         committed = page.current_context()
         self._replace_context_without_emit(committed.tab_id, committed)
         return committed
@@ -485,12 +486,26 @@ class TabStateMixin:
             previous_context = self.context_at(previous)
             if previous_context is not None:
                 previous_context = self._commit_page_context_without_emit(previous, previous_context)
+                if previous_context is None:
+                    blocker = QSignalBlocker(self)
+                    self.setCurrentIndex(previous)
+                    del blocker
+                    return
             if previous_context is not None and _persist_on_tab_switch(previous_context):
                 persisted = self._persist_workspace_context_for_unload(previous, previous_context)
                 if persisted is not None:
                     self._replace_context_without_emit(persisted.tab_id, persisted)
         self._active_tab_index = index
         self._ensure_workspace_heavy_loaded(index)
+        active_page = self.widget(index)
+        if isinstance(active_page, BinaryWorkbenchEditorPage):
+            active_page.activate_consistency_context()
+            if not active_page.commit_current_editor_text():
+                blocker = QSignalBlocker(self)
+                self.setCurrentIndex(previous if 0 <= previous < self.count() else index)
+                del blocker
+                self._active_tab_index = previous
+                return
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "active_tab_id": self._state.tabs[index].tab_id})
         context = self._state.tabs[index]
         if context.tab_id in self._stale_context_pages:

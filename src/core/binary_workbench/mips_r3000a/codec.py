@@ -30,9 +30,17 @@ TWO_OPERAND_BRANCH_MNEMONICS = {"blez", "bgtz", *SPECIAL_BRANCH_RT}
 
 
 class PsxMipsR3000ACodec(CPUArchCodec):
-    def __init__(self) -> None:
-        self._capstone = import_module("capstone") if _module_exists("capstone") else None
-        self._keystone = import_module("keystone") if _module_exists("keystone") else None
+    def __init__(self, *, use_native_engines: bool = True) -> None:
+        self._capstone = (
+            import_module("capstone")
+            if use_native_engines and _module_exists("capstone")
+            else None
+        )
+        self._keystone = (
+            import_module("keystone")
+            if use_native_engines and _module_exists("keystone")
+            else None
+        )
         self._where_command_index = 0
 
     @property

@@ -29,24 +29,26 @@ from src.presentation.ui.components.binary_workbench.editor.page_overlays import
 
 
 class EditorPageSearchMixin:
-    def commit_current_editor_text(self) -> None:
-        self.grid.commit_current_editor_text()
+    def commit_current_editor_text(self) -> bool:
+        return self.grid.commit_current_editor_text()
 
     def go_to_offset(self, offset: int) -> None:
+        if not self.commit_current_editor_text():
+            return
         if not self._file_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
             return
-        self.commit_current_editor_text()
         self._pending_selection = (offset, offset)
         self.grid.set_visible_offset(offset)
         if self._reader is None:
             self._select_pending_offset()
 
     def go_to_instruction_offset(self, offset: int, *, typing_cursor: bool = False) -> None:
+        if not self.commit_current_editor_text():
+            return
         if not self._navigation_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
             return
-        self.commit_current_editor_text()
         self._pending_selection = (offset, offset)
         self.grid.set_visible_offset(offset)
         if typing_cursor:
@@ -79,6 +81,8 @@ class EditorPageSearchMixin:
         return False
 
     def find_offsets(self, mode: str, query: str, start_offset=None, end_offset=None, max_results=None) -> list[int]:
+        if not self.commit_current_editor_text():
+            return []
         if start_offset is not None and end_offset is not None and start_offset > end_offset:
             return []
         self.remember_search_end_offset(start_offset, end_offset)
@@ -97,7 +101,8 @@ class EditorPageSearchMixin:
         return getattr(self, "_last_search_end_offset", None)
 
     def hazard_items(self, start_offset=None, end_offset=None):
-        self.commit_current_editor_text()
+        if not self.commit_current_editor_text():
+            return []
         self.remember_search_end_offset(start_offset, end_offset)
         if self._reader is not None:
             return hazard_items_from_reader(

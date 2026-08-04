@@ -18,6 +18,8 @@ class TabConfigurationMixin:
     def set_current_cpu_arch(self, value: str) -> None:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):
+            if not page.commit_current_editor_text():
+                return
             page.set_cpu_arch(value)
 
     def set_current_advanced_config(
@@ -28,7 +30,7 @@ class TabConfigurationMixin:
         cache_max_blocks: int,
         selection_limit_bytes: int,
     ) -> None:
-        current = self.current_context()
+        current = self._consistent_configuration_context()
         if current is None:
             return
         self._set_preferences(
@@ -61,7 +63,7 @@ class TabConfigurationMixin:
         )
 
     def set_current_bytes_formatter(self, group_bytes: int, uppercase_bytes: bool, uppercase_instructions: bool) -> None:
-        current = self.current_context()
+        current = self._consistent_configuration_context()
         if current is None:
             return
         self._set_preferences(
@@ -95,7 +97,7 @@ class TabConfigurationMixin:
         return self._preferences.binary_edit_rules
 
     def set_current_edit_rules(self, rules: BinaryWorkbenchEditRulesDTO) -> None:
-        current = self.current_context()
+        current = self._consistent_configuration_context()
         if current is None:
             return
         binary_rules = self._preferences.binary_edit_rules
@@ -125,7 +127,7 @@ class TabConfigurationMixin:
         self.preferencesChanged.emit(self._preferences)
 
     def set_current_read_mode(self, value: str) -> None:
-        current = self.current_context()
+        current = self._consistent_configuration_context()
         if current is None:
             return
         updates: dict[str, object] = {"read_mode": value}
@@ -144,7 +146,7 @@ class TabConfigurationMixin:
         visible_columns: dict[str, bool],
         jump_reference_offset: str = "",
     ) -> None:
-        current = self.current_context()
+        current = self._consistent_configuration_context()
         if current is None:
             return
         preferences = BinaryWorkbenchViewPreferencesDTO(
@@ -159,3 +161,13 @@ class TabConfigurationMixin:
         )
         rows = rebuild_rows_with_offsets(current.rows, reference_offsets, reference_offset_bases)
         self._set_current_context(BinaryWorkbenchTabContextDTO(**{**current.__dict__, "reference_offsets": reference_offsets, "reference_offset_bases": reference_offset_bases, "rows": rows, "view_preferences": preferences}))
+
+    def _consistent_configuration_context(self) -> BinaryWorkbenchTabContextDTO | None:
+        """Commit derived state before a configuration rematerializes columns."""
+
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            if not page.commit_current_editor_text():
+                return None
+            return page.current_context()
+        return self.current_context()

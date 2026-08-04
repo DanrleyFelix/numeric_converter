@@ -174,3 +174,6 @@ class GridIncrementalEditingMixin:
     def _cancel_incremental_instruction_update(self) -> None:
         self._pending_instruction_lines = None
         self._incremental_propagation_timer.stop()
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.cancel_pending()

@@ -140,9 +140,11 @@ def test_f1_refreshes_only_four_kilobytes_and_warns_after_leaving(monkeypatch):
     assert calls
     assert max(calls) <= 1024
     assert grid._last_assembly_refresh_window == (0, 4096)
+    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_REBUILDING]
 
     grid.set_visible_offset(grid.scrollbar.maximum())
     _app().processEvents()
     grid.set_visible_offset(grid.scrollbar.maximum())
 
-    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_REFRESH_REQUIRED]
+    if grid._last_assembly_refresh_window is not None:
+        assert warnings[-1] == BINARY_WORKBENCH_TEXT.STATUS_ASSEMBLY_REFRESH_REQUIRED

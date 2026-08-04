@@ -36,11 +36,16 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
 
 class TabVersionsMixin:
     def create_version(self, name: str) -> bool:
+        if not self.ensure_current_consistent("create-version").success:
+            return False
         current = self.current_context()
         if not self._is_versioned_context(current):
             return False
         current = compact_binary_context_overlays(current)
         version = self._version_from_current(name, current)
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.create_consistency_version(name)
         replaced_names = {name, current.active_version_name}
         versions = [item for item in current.versions if item.name not in replaced_names]
         if current.active_version_name and current.active_version_name != name:
@@ -56,7 +61,10 @@ class TabVersionsMixin:
         *,
         mark_dirty: bool = True,
         reload_page: bool = True,
+        ensure_consistency: bool = True,
     ) -> bool:
+        if ensure_consistency and not self.ensure_current_consistent("update-version").success:
+            return False
         current = self.current_context()
         if not self._is_versioned_context(current) or not current.active_version_name:
             return False
@@ -65,9 +73,12 @@ class TabVersionsMixin:
             page.commit_current_editor_text()
             current = page.current_context()
         current = compact_binary_context_overlays(current)
+        previous_name = current.active_version_name
         version = self._version_from_current(name, current)
-        versions = [item for item in current.versions if item.name != current.active_version_name]
+        versions = [item for item in current.versions if item.name != previous_name]
         updated = BinaryWorkbenchTabContextDTO(**{**current.__dict__, "versions": _sorted_versions([*versions, version]), "active_version_name": name, "version_dirty": mark_dirty})
+        if isinstance(page, BinaryWorkbenchEditorPage) and previous_name != name:
+            page.rename_consistency_version(previous_name, name)
         if reload_page:
             self._set_current_context(updated)
         else:
@@ -75,6 +86,8 @@ class TabVersionsMixin:
         return True
 
     def load_version(self, name: str) -> bool:
+        if not self.ensure_current_consistent("load-version").success:
+            return False
         current = self.current_context()
         if not self._is_versioned_context(current):
             return False
@@ -143,6 +156,9 @@ class TabVersionsMixin:
             active = loaded[0].name if loaded else None
         if not loaded or active is None:
             return None
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.replace_consistency_versions([version.name for version in loaded])
         path = self.import_environment_file(VERSIONS, path)
         loaded = _versions_with_only_active_loaded(loaded, active)
         module_paths = {
