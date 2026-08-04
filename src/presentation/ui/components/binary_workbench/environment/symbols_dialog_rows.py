@@ -1,132 +1,142 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from __future__ import annotations
 
-from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_dialog_action,
-    configure_binary_workbench_line_edit,
-)
+from PySide6.QtCore import QModelIndex, QItemSelectionModel
+
 from src.core.binary_workbench.symbol_values import merged_symbol_values
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
-from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
-)
 from src.presentation.ui.components.binary_workbench.environment.symbol_offsets_dialog import (
     BinaryWorkbenchSymbolOffsetsDialog,
 )
-from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
-    SymbolRemoveRowButton,
-    symbol_button,
-    symbol_input,
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_model import (
+    SymbolRecord,
 )
-from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
 
 
 class SymbolsDialogRowsMixin:
-    def values(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
-        symbols: dict[str, str] = {}
-        for name, value, _, _ in self._rows:
-            if name.text().strip() and value.text().strip():
-                symbols[name.text().strip().lstrip("_@")] = value.text().strip()
-        return symbols, {}, {}
+    """Coordinate incremental model operations and selection-based actions."""
 
-    def _load_rows(self, variables: dict[str, str], equates: dict[str, str], labels: dict[str, str]) -> None:
-        for name, value in merged_symbol_values(None, variables, equates).items():
-            self._append_row(str(name), str(value))
+    def values(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+        """Return symbols using the public tuple shape retained for compatibility."""
+
+        return self.symbols_model.symbols(), {}, {}
 
     def _merge_rows(self, symbols: dict[str, str]) -> None:
-        existing = {
-            name.text().strip().lstrip("_@").casefold(): value
-            for name, value, _, _ in self._rows
-        }
-        for name, value in merged_symbol_values(symbols).items():
-            key = name.casefold()
-            if key in existing:
-                existing[key].setText(value)
-            else:
-                self._append_row(name, value)
+        """Merge one logical batch and refresh filtering only once."""
+
+        selected_id = self._selected_symbol_id()
+        affected_id = self.symbols_model.merge_symbols(merged_symbol_values(symbols))
+        self._select_symbol(affected_id if affected_id is not None else selected_id)
         self.symbolsChanged.emit(self.values()[0])
 
     def _append_from_entry(self) -> None:
+        """Merge the entry fields as one incremental operation."""
+
         self._merge_rows({self.name.text(): self.value.text()})
         self.name.clear()
         self.value.clear()
 
-    def _clear_rows(self) -> None:
-        for _, _, row, remove_slot in self._rows:
-            row.deleteLater()
-            remove_slot.deleteLater()
-        self._rows.clear()
+    def _remove_selected_symbol(self) -> None:
+        """Remove the source record represented by the selected proxy row."""
 
-    def _append_row(self, name: str, value: str) -> None:
-        row = QFrame(self.body)
-        row.setObjectName("workspace-row")
-        row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
-        layout.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
-        name_edit = symbol_input(
-            BINARY_WORKBENCH_TEXT.SYMBOL_NAME,
-            row,
-            name,
-            expanding=True,
-        )
-        value_edit = symbol_input(
-            BINARY_WORKBENCH_TEXT.SYMBOL_VALUE,
-            row,
-            value,
-            expanding=True,
-        )
-        configure_binary_workbench_line_edit(name_edit)
-        configure_binary_workbench_line_edit(value_edit)
-        set_python_identifier_validator(name_edit)
-        offsets = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "", row)
-        configure_binary_workbench_dialog_action(offsets)
-        offsets.clicked.connect(lambda: self._open_symbol_offsets(name_edit.text()))
-        remove_slot = _remove_slot(self.remove_body)
-        remove = SymbolRemoveRowButton(remove_slot)
-        remove.setFixedSize(
-            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_WIDTH,
-            WORKSPACE_TABLE_SIZE.REMOVE_BUTTON_HEIGHT,
-        )
-        remove.clicked.connect(lambda: self._remove_row(row, remove_slot))
-        layout.addWidget(name_edit, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        layout.addWidget(value_edit, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        layout.addWidget(offsets, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        layout.addStretch(1)
-        remove_slot.layout().addWidget(remove, 0, Qt.AlignCenter)
-        self._rows.append((name_edit, value_edit, row, remove_slot))
-        self.body_layout.addWidget(row, 0)
-        self.remove_layout.addWidget(remove_slot, 0)
-        self._apply_filter()
+        proxy_index = self._selected_proxy_index()
+        record = self._selected_record()
+        if record is None:
+            return
+        next_proxy_row = proxy_index.row()
+        if not self.symbols_model.remove_symbol(record.symbol_id):
+            return
+        self.symbolsChanged.emit(self.values()[0])
+        if self.symbols_proxy.rowCount() > 0:
+            self.table.selectRow(min(next_proxy_row, self.symbols_proxy.rowCount() - 1))
+        self._update_action_state()
+
+    def _open_selected_symbol_offsets(self) -> None:
+        """Request offsets for the stable symbol currently selected."""
+
+        record = self._selected_record()
+        if record is not None:
+            self._open_symbol_offsets(record.name)
 
     def _open_symbol_offsets(self, name: str) -> None:
+        """Open one offsets dialog using the current provider context."""
+
         clean_name = name.strip().lstrip("_@")
+        context_id: str | None = None
         offsets = self._symbol_offsets.get(clean_name, [])
-        dialog = BinaryWorkbenchSymbolOffsetsDialog(clean_name or name.strip(), offsets, self)
+        if self._offsets_provider is not None:
+            context_id, offsets = self._offsets_provider(clean_name)
+        dialog = BinaryWorkbenchSymbolOffsetsDialog(clean_name or name.strip(), list(offsets), self)
+        self._active_offsets_dialog = dialog
+        self._active_offsets_context_id = context_id
         dialog.goToRequested.connect(self.goToRequested.emit)
-        dialog.exec()
+        try:
+            dialog.exec()
+        finally:
+            self._active_offsets_dialog = None
+            self._active_offsets_context_id = None
 
-    def _remove_row(self, row: QWidget, remove_slot: QWidget) -> None:
-        self._rows = [item for item in self._rows if item[2] is not row]
-        row.deleteLater()
-        remove_slot.deleteLater()
-        self.symbolsChanged.emit(self.values()[0])
+    def invalidate_offsets_context(self, _index: int | None = None) -> None:
+        """Mark an open Global Offsets result stale without recalculating it."""
 
-    def _apply_filter(self) -> None:
-        query = self.filter_input.text().strip().lower()
-        for name, value, row, remove_slot in self._rows:
-            haystack = f"{name.text()} {value.text()}".lower()
-            visible = not query or query in haystack
-            row.setVisible(visible)
-            remove_slot.setVisible(visible)
+        if (
+            self._active_offsets_dialog is not None
+            and self._active_offsets_context_id is not None
+        ):
+            self._active_offsets_dialog.mark_stale()
 
+    def _apply_filter(self, text: str = "") -> None:
+        """Forward one filter change to the proxy model."""
 
-def _remove_slot(parent: QWidget) -> QWidget:
-    slot = QWidget(parent)
-    slot.setFixedWidth(WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH)
-    slot.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
-    layout = QVBoxLayout(slot)
-    layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
-    return slot
+        self.symbols_proxy.set_filter_text(text)
+        self._update_action_state()
+
+    def _selected_proxy_index(self) -> QModelIndex:
+        """Return the selected proxy row's first-column index."""
+
+        rows = self.table.selectionModel().selectedRows()
+        return rows[0] if len(rows) == 1 else QModelIndex()
+
+    def _selected_record(self) -> SymbolRecord | None:
+        """Map the visual selection to its source-model record."""
+
+        proxy_index = self._selected_proxy_index()
+        if not proxy_index.isValid():
+            return None
+        source_index = self.symbols_proxy.mapToSource(proxy_index)
+        symbol_id = source_index.data(self.symbols_model.SYMBOL_ID_ROLE)
+        if not isinstance(symbol_id, int):
+            return None
+        return self.symbols_model.record_at(self.symbols_model.row_for_id(symbol_id))
+
+    def _selected_symbol_id(self) -> int | None:
+        """Return the stable identity of the current selection."""
+
+        record = self._selected_record()
+        return record.symbol_id if record is not None else None
+
+    def _select_symbol(self, symbol_id: int | None) -> None:
+        """Restore selection by identity after filtering or sorting changes."""
+
+        if symbol_id is None:
+            self.table.clearSelection()
+            self._update_action_state()
+            return
+        source_row = self.symbols_model.row_for_id(symbol_id)
+        source_index = self.symbols_model.index(source_row, self.symbols_model.NAME_COLUMN)
+        proxy_index = self.symbols_proxy.mapFromSource(source_index)
+        if not proxy_index.isValid():
+            self.table.clearSelection()
+            self._update_action_state()
+            return
+        self.table.selectionModel().setCurrentIndex(
+            proxy_index,
+            QItemSelectionModel.SelectionFlag.ClearAndSelect
+            | QItemSelectionModel.SelectionFlag.Rows,
+        )
+        self.table.scrollTo(proxy_index)
+
+    def _update_action_state(self, *_args) -> None:
+        """Enable row actions only for one valid visible selection."""
+
+        enabled = self._selected_record() is not None
+        self.offsets_button.setEnabled(enabled)
+        self.remove_button.setEnabled(enabled)

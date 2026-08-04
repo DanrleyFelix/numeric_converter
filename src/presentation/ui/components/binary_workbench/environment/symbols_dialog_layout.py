@@ -1,84 +1,91 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
     configure_binary_workbench_filter,
     configure_binary_workbench_line_edit,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_DIALOG_LAYOUT as ENVIRONMENT_LAYOUT,
+)
+from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_delegate import (
+    SymbolCellDelegate,
 )
 from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_widgets import (
     symbol_button,
     symbol_input,
 )
-from src.presentation.ui.components.binary_workbench.input_validators import set_python_identifier_validator
-from src.presentation.ui.components.workspace_table.constants.layout import WORKSPACE_TABLE_SIZE
+from src.presentation.ui.components.binary_workbench.environment.symbols_table_view import (
+    SymbolsTableView,
+)
+from src.presentation.ui.components.binary_workbench.input_validators import (
+    set_python_identifier_validator,
+)
+from src.presentation.ui.design.icons import Icons
 
 
 class SymbolsDialogLayoutMixin:
-    def _build_library_controls(self, parent: QVBoxLayout, _default_library_name: str) -> None:
-        filters = QFrame(self.shell)
-        filters.setObjectName("binary-workbench-symbol-filter-row")
-        filters.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        row = QHBoxLayout(filters)
+    """Build the fixed controls and virtualized symbols table."""
+
+    def _build_footer_actions(self, parent: QVBoxLayout) -> None:
+        """Create one fixed set of actions outside the scrolling table."""
+
+        footer = QFrame(self.shell)
+        footer.setObjectName("binary-workbench-symbol-footer")
+        footer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        row = QHBoxLayout(footer)
         row.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
         row.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
+        load = symbol_button(BINARY_WORKBENCH_TEXT.LOAD, "", footer)
+        save = symbol_button(BINARY_WORKBENCH_TEXT.SAVE, "", footer)
+        self.offsets_button = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS, "", footer)
+        load.setIcon(Icons.load())
+        save.setIcon(Icons.save())
+        self.offsets_button.setIcon(Icons.offsets())
+        for button in (load, save, self.offsets_button):
+            configure_binary_workbench_dialog_action(button)
+        self.offsets_button.setEnabled(False)
+        load.clicked.connect(self._load_library_json_dialog)
+        save.clicked.connect(self._save_library_json_dialog)
+        self.offsets_button.clicked.connect(self._open_selected_symbol_offsets)
         self.filter_input = symbol_input(
             BINARY_WORKBENCH_TEXT.FILTER,
-            filters,
+            footer,
             "",
             BINARY_WORKBENCH_LAYOUT.SYMBOL_FILTER_WIDTH,
             search_icon=True,
         )
         configure_binary_workbench_filter(self.filter_input)
         configure_binary_workbench_line_edit(self.filter_input)
+        self.filter_input.setMaximumWidth(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_MAX_WIDTH)
+        self.filter_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.filter_input.textChanged.connect(self._apply_filter)
-        row.addWidget(self.filter_input, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        row.addStretch(1)
-        parent.addWidget(filters, 0)
-        parent.addSpacing(ENVIRONMENT_LAYOUT.SECTION_SPACING)
-
-    def _build_footer_actions(self, parent: QVBoxLayout) -> None:
-        footer = QFrame(self.shell)
-        footer.setObjectName("binary-workbench-symbol-footer")
-        footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        row = QHBoxLayout(footer)
-        row.setContentsMargins(
-            ENVIRONMENT_LAYOUT.ZERO,
-            ENVIRONMENT_LAYOUT.ZERO,
-            _delete_gutter_width(),
-            ENVIRONMENT_LAYOUT.ZERO,
-        )
-        row.setSpacing(ENVIRONMENT_LAYOUT.ZERO)
-        load = symbol_button("Load", "", footer)
-        save = symbol_button("Save", "", footer)
-        ok = symbol_button("OK", "", footer)
-        for button in (load, save, ok):
-            configure_binary_workbench_dialog_action(button)
-        load.clicked.connect(self._load_library_json_dialog)
-        save.clicked.connect(self._save_library_json_dialog)
-        ok.clicked.connect(self.accept)
-        row.addWidget(load, 0, Qt.AlignLeft)
-        row.addStretch(1)
-        row.addWidget(ok, 0, Qt.AlignHCenter)
-        row.addStretch(1)
-        row.addWidget(save, 0, Qt.AlignRight)
+        row.addWidget(load)
+        row.addWidget(save)
+        row.addWidget(self.offsets_button)
+        row.addWidget(self.filter_input, 1)
         parent.addWidget(footer, 0)
 
     def _build_entry(self, parent: QVBoxLayout) -> None:
+        """Create the fixed controls used to append or merge one symbol."""
+
         entry = QFrame(self.shell)
         entry.setObjectName("binary-workbench-symbol-entry-row")
-        entry.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        entry.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row = QHBoxLayout(entry)
-        row.setContentsMargins(
-            ENVIRONMENT_LAYOUT.ZERO,
-            ENVIRONMENT_LAYOUT.ZERO,
-            _delete_gutter_width(),
-            ENVIRONMENT_LAYOUT.ZERO,
-        )
+        row.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
         row.setSpacing(BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN)
         self.name = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_NAME, entry, expanding=True)
         self.value = symbol_input(BINARY_WORKBENCH_TEXT.SYMBOL_VALUE, entry, expanding=True)
@@ -86,55 +93,58 @@ class SymbolsDialogLayoutMixin:
         configure_binary_workbench_line_edit(self.value)
         set_python_identifier_validator(self.name)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "", entry)
+        self.remove_button = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_REMOVE, "", entry)
+        add.setIcon(Icons.add())
+        self.remove_button.setIcon(Icons.remove())
         configure_binary_workbench_dialog_action(add)
+        configure_binary_workbench_dialog_action(self.remove_button)
+        self.remove_button.setEnabled(False)
         add.clicked.connect(self._append_from_entry)
-        row.addWidget(self.name, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        row.addWidget(self.value, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        row.addWidget(add, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        self.remove_button.clicked.connect(self._remove_selected_symbol)
+        row.addWidget(self.name, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self.value, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(add, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self.remove_button, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
         parent.addWidget(entry, 0)
 
-    def _build_scroll_body(self, parent: QVBoxLayout) -> None:
-        self.scroll = QScrollArea(self.shell)
-        self.scroll.setObjectName("workspace-table-body-scroll")
-        self.scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.scroll.verticalScrollBar().setObjectName("workspace-table-scrollbar")
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll_body = QWidget(self.scroll)
-        self.scroll_body.setObjectName("workspace-table-body")
-        scroll_layout = QHBoxLayout(self.scroll_body)
-        scroll_layout.setContentsMargins(
-            ENVIRONMENT_LAYOUT.ZERO,
-            ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
-            BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN
-            + BINARY_WORKBENCH_LAYOUT.SYMBOL_REMOVE_BUTTON_SHIFT,
-            ENVIRONMENT_LAYOUT.SCROLL_VERTICAL_MARGIN,
+    def _build_table(self, parent: QVBoxLayout) -> None:
+        """Create the model/view table without permanent cell editors."""
+
+        self.table = SymbolsTableView(self.shell)
+        self.table.setObjectName("binary-workbench-symbols-table")
+        self.table.setModel(self.symbols_proxy)
+        self.table.setItemDelegate(SymbolCellDelegate(self.symbols_model.NAME_COLUMN, self.table))
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked
+            | QAbstractItemView.EditTrigger.SelectedClicked
+            | QAbstractItemView.EditTrigger.EditKeyPressed
         )
-        scroll_layout.setSpacing(BINARY_WORKBENCH_LAYOUT.ROW_DELETE_COLUMN_SPACING)
-        self.body = QFrame(self.scroll_body)
-        self.body.setObjectName("workspace-table-body")
-        self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
-        self.body_layout.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
-        self.body_layout.setAlignment(Qt.AlignTop)
-        self.remove_body = QFrame(self.scroll_body)
-        self.remove_body.setObjectName("workspace-table-body")
-        self.remove_layout = QVBoxLayout(self.remove_body)
-        self.remove_layout.setContentsMargins(*ENVIRONMENT_LAYOUT.EMPTY_MARGINS)
-        self.remove_layout.setSpacing(ENVIRONMENT_LAYOUT.ROW_SPACING)
-        self.remove_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
-        scroll_layout.addWidget(self.body, 1)
-        scroll_layout.addWidget(self.remove_body, 0)
-        self.scroll.setWidget(self.scroll_body)
-        parent.addWidget(self.scroll, 1)
-
-
-def _delete_gutter_width() -> int:
-    return (
-        WORKSPACE_TABLE_SIZE.REMOVE_GUTTER_WIDTH
-        + BINARY_WORKBENCH_LAYOUT.ROW_DELETE_COLUMN_SPACING
-        + BINARY_WORKBENCH_LAYOUT.ROW_DELETE_SCROLLBAR_MARGIN
-        + BINARY_WORKBENCH_LAYOUT.ROW_SCROLLBAR_RESERVED_WIDTH
-    )
+        self.table.setAlternatingRowColors(False)
+        self.table.setShowGrid(True)
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(-1, Qt.SortOrder.AscendingOrder)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        scrollbar = self.table.verticalScrollBar()
+        scrollbar.setObjectName("binary-workbench-symbols-scrollbar")
+        scrollbar.style().unpolish(scrollbar)
+        scrollbar.style().polish(scrollbar)
+        self.table.setViewportMargins(
+            ENVIRONMENT_LAYOUT.ZERO,
+            ENVIRONMENT_LAYOUT.ZERO,
+            BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
+            ENVIRONMENT_LAYOUT.ZERO,
+        )
+        self.table.verticalHeader().hide()
+        self.table.verticalHeader().setDefaultSectionSize(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
+        header = self.table.horizontalHeader()
+        header.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setHighlightSections(False)
+        self.table.selectionModel().selectionChanged.connect(self._update_action_state)
+        self.symbols_proxy.rowsRemoved.connect(self._update_action_state)
+        self.symbols_proxy.layoutChanged.connect(self._update_action_state)
+        parent.addWidget(self.table, 1)

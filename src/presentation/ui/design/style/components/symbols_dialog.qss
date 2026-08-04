@@ -1,0 +1,54 @@
+QTableView#binary-workbench-symbols-table {
+    background-color: $bg-workspace-row;
+    alternate-background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    padding: $space-0;
+    outline: none;
+    selection-background-color: $bg-symbol-row-selected;
+    selection-color: $text-main;
+    gridline-color: $border-workspace-row;
+}
+
+QTableView#binary-workbench-symbols-table::item {
+    border: none;
+    border-radius: $radius-0;
+    padding-left: $space-8;
+    padding-right: $space-8;
+    color: $text-main;
+}
+
+QTableView#binary-workbench-symbols-table::item:selected,
+QTableView#binary-workbench-symbols-table::item:selected:focus {
+    background-color: $bg-symbol-row-selected;
+    border-radius: $radius-0;
+    color: $text-main;
+    outline: none;
+}
+
+QTableView#binary-workbench-symbols-table QHeaderView::section {
+    background-color: $bg-workspace-header;
+    color: $text-main;
+    border: none;
+    border-bottom: 1px solid $border-workspace-header;
+    border-right: 1px solid $border-workspace-header;
+    padding-left: $space-8;
+    padding-right: $space-8;
+    padding-top: $space-6;
+    padding-bottom: $space-6;
+    outline: none;
+}
+
+QTableView#binary-workbench-symbols-table QHeaderView::section:last {
+    border-right: none;
+}
+
+QLineEdit#binary-workbench-symbol-cell-editor {
+    background-color: $bg-symbol-row-selected;
+    color: $text-main;
+    border: 1px solid $border-focus;
+    border-radius: $radius-0;
+    selection-background-color: $border-focus;
+    selection-color: $text-main;
+}

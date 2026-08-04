@@ -12,9 +12,13 @@ from src.presentation.ui.components.binary_workbench.environment.symbols_dialog_
 
 
 class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
+    """Display navigable offsets for one symbol and one tab context."""
+
     goToRequested = Signal(int)
 
     def __init__(self, name: str, offsets: list[str], parent=None) -> None:
+        """Create a snapshot view of the supplied offsets."""
+
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS)
@@ -35,20 +39,35 @@ class BinaryWorkbenchSymbolOffsetsDialog(QDialog):
             BINARY_WORKBENCH_LAYOUT.SYMBOL_OFFSETS_SCROLLBAR_MARGIN,
             ENVIRONMENT_LAYOUT.ZERO,
         )
-        if offsets:
-            self.offsets.setCursor(Qt.PointingHandCursor)
-            self.offsets.addItems(offsets)
-        else:
-            self.offsets.setCursor(Qt.ArrowCursor)
-            self.offsets.addItem(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_EMPTY)
-            self.offsets.item(0).setFlags(Qt.NoItemFlags)
+        self._set_offsets(offsets)
         self.offsets.itemClicked.connect(self._go_to_offset)
         layout.addWidget(self.offsets)
 
     def _go_to_offset(self, item: QListWidgetItem) -> None:
+        """Navigate only when the clicked entry represents a valid offset."""
+
         if not item.flags() & Qt.ItemIsEnabled:
             return
         try:
             self.goToRequested.emit(int(item.text(), 0))
         except ValueError:
             return
+
+    def mark_stale(self) -> None:
+        """Invalidate displayed Global Offsets after the active tab changes."""
+
+        self.offsets.clear()
+        self.offsets.setCursor(Qt.ArrowCursor)
+        self.offsets.addItem(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_STALE)
+        self.offsets.item(0).setFlags(Qt.NoItemFlags)
+
+    def _set_offsets(self, offsets: list[str]) -> None:
+        """Populate either navigable offsets or the established empty state."""
+
+        if offsets:
+            self.offsets.setCursor(Qt.PointingHandCursor)
+            self.offsets.addItems(offsets)
+            return
+        self.offsets.setCursor(Qt.ArrowCursor)
+        self.offsets.addItem(BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS_EMPTY)
+        self.offsets.item(0).setFlags(Qt.NoItemFlags)

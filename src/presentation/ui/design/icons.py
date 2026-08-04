@@ -115,6 +115,22 @@ class Icons:
         return Icons._icon("copy", "icon-toolbar")
 
     @staticmethod
+    def add():
+        return Icons._icon("add", "icon-toolbar")
+
+    @staticmethod
+    def load():
+        return Icons._icon("load", "icon-toolbar")
+
+    @staticmethod
+    def save():
+        return Icons._icon("save", "icon-toolbar")
+
+    @staticmethod
+    def offsets():
+        return Icons._icon("offsets", "icon-toolbar")
+
+    @staticmethod
     def remove():
         return Icons._icon(
             "remove",

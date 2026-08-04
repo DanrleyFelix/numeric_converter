@@ -8,6 +8,7 @@ QFrame#body {
 @import "components/converter_panel.qss";
 @import "components/command_panel.qss";
 @import "components/dialogs.qss";
+@import "components/symbols_dialog.qss";
 @import "components/help_window.qss";
 @import "components/workspace_table.qss";
 @import "components/key_panel.qss";

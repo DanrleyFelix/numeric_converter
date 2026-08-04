@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QShortcut, QTextCursor, QWheelEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollBar, QTextBrowser, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QScrollBar, QTableView, QTextBrowser, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.binary_workbench_constants import (
@@ -3367,21 +3367,21 @@ def test_binary_workbench_symbols_rows_use_one_symbol_type():
     assert labels == {}
 
 
-def test_binary_workbench_symbols_dialog_rows_are_regular_editable_inputs():
+def test_binary_workbench_symbols_dialog_cells_are_editable_without_permanent_inputs():
     _app()
     dialog = BinaryWorkbenchSymbolsDialog({"original": "0x20"}, {}, {})
-    name_input = dialog._rows[0][0]
-    value_input = dialog._rows[0][1]
+    name_index = dialog.symbols_model.index(0, dialog.symbols_model.NAME_COLUMN)
+    value_index = dialog.symbols_model.index(0, dialog.symbols_model.VALUE_COLUMN)
 
-    assert name_input.isReadOnly() is False
-    assert value_input.isReadOnly() is False
-    assert name_input.cursor().shape() != Qt.PointingHandCursor
+    assert dialog.table.indexWidget(dialog.symbols_proxy.index(0, 0)) is None
+    assert bool(dialog.symbols_model.flags(name_index) & Qt.ItemIsEditable)
+    assert bool(dialog.symbols_model.flags(value_index) & Qt.ItemIsEditable)
 
-    name_input.setText("renamed")
-    value_input.setText("0x40")
+    assert dialog.symbols_model.setData(name_index, "renamed") is True
+    assert dialog.symbols_model.setData(value_index, "0x40") is True
 
     assert dialog.values() == ({"renamed": "0x40"}, {}, {})
-    assert len(dialog._rows) == 1
+    assert dialog.symbols_model.rowCount() == 1
 
 
 def test_binary_workbench_clicking_editor_symbol_edits_its_local_definition(
@@ -3522,62 +3522,62 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     buttons = {button.text(): button for button in dialog.findChildren(QPushButton)}
     add_button = buttons[BINARY_WORKBENCH_TEXT.SYMBOL_ADD]
     footer = dialog.findChild(QWidget, "binary-workbench-symbol-footer")
-    scroll = dialog.findChild(QWidget, "workspace-table-body-scroll")
+    table = dialog.findChild(QTableView, "binary-workbench-symbols-table")
     shell = dialog.findChild(QWidget, "workspace-table-shell")
-    content_widgets = [dialog.filter_input.parentWidget(), dialog.name.parentWidget(), scroll, footer]
+    content_widgets = [dialog.name.parentWidget(), table, footer]
     rows = dialog.findChildren(QWidget, "workspace-row")
-    first_row_fields = dialog._rows[0][:2]
-    symbol_fields = [dialog.name, dialog.value, *first_row_fields]
+    symbol_fields = [dialog.name, dialog.value]
     non_empty_labels = [label.text() for label in dialog.findChildren(QLabel) if label.text()]
 
     assert dialog.filter_input.placeholderText() == BINARY_WORKBENCH_TEXT.FILTER
-    assert dialog.filter_input.width() == BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH
+    assert dialog.filter_input.width() >= BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH
     assert "Library Name" not in {field.placeholderText() for field in fields}
     assert non_empty_labels == []
     assert dialog.minimumWidth() == 880
     assert dialog.width() == 880
     assert shell is not None
     assert {widget.mapTo(dialog, QPoint()).x() for widget in content_widgets if widget is not None} == {
-        dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x()
+        dialog.name.parentWidget().mapTo(dialog, QPoint()).x()
     }
-    assert dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x() == shell.mapTo(dialog, QPoint()).x() + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
+    assert dialog.name.parentWidget().mapTo(dialog, QPoint()).x() == shell.mapTo(dialog, QPoint()).x() + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
     assert {
         widget.layout().contentsMargins().left()
         for widget in content_widgets
         if widget is not None and widget.layout() is not None
     } == {0}
-    assert dialog.filter_input.mapTo(dialog, QPoint()).x() == dialog.filter_input.parentWidget().mapTo(dialog, QPoint()).x()
     assert combos == []
     assert {field.width() for field in symbol_fields} == {232}
     assert {field.height() for field in fields} == {
         BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT
     }
     assert add_button.width() == BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH
-    assert dialog.name.mapTo(dialog, QPoint()).x() == dialog.filter_input.mapTo(dialog, QPoint()).x()
     assert dialog.value.mapTo(dialog, QPoint()).x() - dialog.name.mapTo(dialog, QPoint()).x() == (
         BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
     )
-    assert first_row_fields[0].mapTo(dialog, QPoint()).x() == dialog.name.mapTo(dialog, QPoint()).x()
-    assert first_row_fields[1].mapTo(dialog, QPoint()).x() == dialog.value.mapTo(dialog, QPoint()).x()
-    assert footer is not None
-    assert buttons["Load"].mapTo(dialog, QPoint()).x() == dialog.filter_input.mapTo(dialog, QPoint()).x()
-    assert footer.layout().count() == 5
-    assert buttons["Load"].mapTo(dialog, QPoint()).x() < buttons["OK"].mapTo(dialog, QPoint()).x()
-    assert buttons["OK"].mapTo(dialog, QPoint()).x() < buttons["Save"].mapTo(dialog, QPoint()).x()
-    assert buttons["Load"].mapTo(dialog, QPoint()).y() == buttons["Save"].mapTo(dialog, QPoint()).y()
-    assert buttons["Save"].mapTo(dialog, QPoint()).y() == buttons["OK"].mapTo(dialog, QPoint()).y()
-    assert dialog.name.mapTo(dialog, QPoint()).y() - (dialog.filter_input.mapTo(dialog, QPoint()).y() + dialog.filter_input.height()) >= 20
-    offsets = next(
-        button
-        for button in rows[0].findChildren(QPushButton)
-        if button.text() == BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS
+    assert dialog.remove_button.mapTo(dialog, QPoint()).x() - add_button.mapTo(dialog, QPoint()).x() == (
+        BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
     )
-    assert add_button.mapTo(dialog, QPoint()).x() == offsets.mapTo(dialog, QPoint()).x()
-    assert offsets.mapTo(dialog, QPoint()).x() + offsets.width() <= scroll.mapTo(dialog, QPoint()).x() + scroll.width()
-    remove = dialog.findChild(QPushButton, "workspace-row-remove")
-    assert remove is not None
-    remove_right = remove.mapTo(scroll, QPoint()).x() + remove.width()
-    assert scroll.width() - remove_right >= BINARY_WORKBENCH_LAYOUT.SYMBOL_REMOVE_BUTTON_SHIFT
+    assert table is not None
+    assert dialog.findChild(QScrollArea, "workspace-table-body-scroll") is None
+    assert rows == []
+    assert table.indexWidget(dialog.symbols_proxy.index(0, 0)) is None
+    assert table.model().headerData(0, Qt.Horizontal) == BINARY_WORKBENCH_TEXT.SYMBOL_NAME
+    assert table.model().headerData(1, Qt.Horizontal) == BINARY_WORKBENCH_TEXT.SYMBOL_VALUE
+    assert footer is not None
+    assert buttons["Load"].mapTo(dialog, QPoint()).x() == table.mapTo(dialog, QPoint()).x()
+    assert footer.layout().count() == 4
+    assert len([button for button in dialog.findChildren(QPushButton) if button.text() == BINARY_WORKBENCH_TEXT.SYMBOL_OFFSETS]) == 1
+    assert len([button for button in dialog.findChildren(QPushButton) if button.text() == BINARY_WORKBENCH_TEXT.SYMBOL_REMOVE]) == 1
+    assert BINARY_WORKBENCH_TEXT.OK not in buttons
+    assert buttons["Load"].mapTo(dialog, QPoint()).x() < buttons["Save"].mapTo(dialog, QPoint()).x()
+    assert buttons["Save"].mapTo(dialog, QPoint()).x() < dialog.offsets_button.mapTo(dialog, QPoint()).x()
+    assert dialog.offsets_button.mapTo(dialog, QPoint()).x() < dialog.filter_input.mapTo(dialog, QPoint()).x()
+    assert dialog.filter_input.mapTo(dialog, QPoint()).x() + dialog.filter_input.width() == table.mapTo(dialog, QPoint()).x() + table.width()
+    assert buttons["Load"].mapTo(dialog, QPoint()).y() == dialog.filter_input.mapTo(dialog, QPoint()).y()
+    assert dialog.offsets_button.parentWidget() is footer
+    assert dialog.remove_button.parentWidget() is dialog.name.parentWidget()
+    assert dialog.offsets_button.isEnabled() is False
+    assert dialog.remove_button.isEnabled() is False
     assert all(button.focusPolicy() == Qt.NoFocus for button in dialog.findChildren(QPushButton))
 
 
@@ -6183,6 +6183,36 @@ def test_binary_workbench_local_and_global_symbols_have_separate_ownership(
 
     restored = binary_workbench_state_from_payload(payload)
     assert restored.global_symbols == {"global_value": "0x20"}
+
+
+def test_binary_workbench_closing_symbols_dialog_commits_direct_cell_edits(
+    tmp_path: Path,
+    monkeypatch,
+):
+    assembly_path = tmp_path / "symbols.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+
+    def edit_and_close(dialog):
+        value_index = dialog.symbols_model.index(0, dialog.symbols_model.VALUE_COLUMN)
+        dialog.symbols_model.setData(value_index, "0x40")
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(BinaryWorkbenchSymbolsDialog, "exec", edit_and_close)
+    tool.tabs.set_current_symbols({"local_symbol": "0x20"}, {}, {})
+    tool._open_local_symbols()
+
+    assert tool.tabs.local_symbols() == {"local_symbol": "0x40"}
+
+    tool.tabs.set_global_symbols({"global_symbol": "0x20"})
+    tool._open_global_symbols()
+
+    assert tool.tabs.global_symbols() == {"global_symbol": "0x40"}
 
 
 def test_binary_workbench_global_symbols_emit_and_persist_on_add_load_and_save(tmp_path: Path):

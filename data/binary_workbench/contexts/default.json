@@ -6,7 +6,7 @@
             "display_name": "teste_scra.asm",
             "source_path": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\modding\\effects\\teste_scra.asm",
             "cpu_arch": "PSX - Mips R3000A",
-            "read_mode": "assembly",
+            "read_mode": "Auto",
             "reference_offsets": [
                 "File",
                 "ram"
@@ -48,9 +48,9 @@
             "module_checksums": {
                 "symbols": "50942ebb04d0bf9bfb3f91a7aa3ef6d376a0534000ceb23bded2f44f42e36968",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "4b9b350b26e15ad0acd54f559f8c4a148fe793753548f3647a6739a31f9de8b4",
+                "versions": "0d1cfad005f2acd62f4b26227a57795095bad4a8525ac57689094b9417877565",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
-                "view_preferences": "16f07069a7d7773af4593a943ce499834c6ac4aedbfec668cf55b73130ff2c8b"
+                "view_preferences": "1654dedcec20fdc3384aa4b15d7f5b0d451ae1424594e68b88487e64fb5689c7"
             },
             "custom_commands": {},
             "last_open_offset": "0x00000000",
@@ -957,7 +957,7 @@
                 "decoded_text_tables": [
                     "ASCII (ANSI windows)"
                 ],
-                "jump_reference_offset": ""
+                "jump_reference_offset": "ram"
             }
         }
     ],

@@ -3,6 +3,7 @@ class BINARY_WORKBENCH_DIALOG_LAYOUT:
     DIALOG_MARGINS: tuple[int, int, int, int] = (20, 30, 20, 20)
     CONTENT_MARGINS: tuple[int, int, int, int] = (20, 20, 20, 20)
     PANEL_MARGINS: tuple[int, int, int, int] = (20, 20, 20, 16)
+    SYMBOLS_PANEL_MARGINS: tuple[int, int, int, int] = (20, 20, 20, 20)
     EMPTY_MARGINS: tuple[int, int, int, int] = (ZERO, ZERO, ZERO, ZERO)
 
     FIELD_LABEL_SPACING: int = 4

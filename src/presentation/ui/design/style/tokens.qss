@@ -25,6 +25,7 @@ $bg-workspace-shell:      #1A1A27;
 $bg-workspace-header:     #1D1D2C;
 $bg-workspace-row:        #161624;
 $bg-workspace-row-hover:  #1B1B29;
+$bg-symbol-row-selected:  #252539;
 $bg-search-result-hover:  #252539;
 $bg-workspace-remove:     #281119;
 $bg-workspace-remove-hover:#351720;
