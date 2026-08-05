@@ -73,7 +73,8 @@ class EditorLabelNavigationMixin:
         self._jump_label_symbols = set(label_symbols)
         variable_symbols = {f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}
         equate_symbols = {f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}
-        self._jump_symbols = {**label_symbols, **variable_symbols, **equate_symbols}
+        self._jump_non_label_symbols = {**variable_symbols, **equate_symbols}
+        self._jump_symbols = {**label_symbols, **self._jump_non_label_symbols}
         self._jump_reference_offset = jump_reference_offset
         self._jump_reference_bases = {
             str(name): safe_int(str(value))
@@ -82,6 +83,16 @@ class EditorLabelNavigationMixin:
         self._jump_visible_reference_offsets = list(visible_reference_offsets or [])
         self._jump_navigation_start_offset = max(0, navigation_start_offset)
         self._jump_navigation_row_bytes = max(1, row_bytes)
+
+    def update_jump_labels(self, labels: dict[str, str]) -> None:
+        """Replace only label targets while preserving the indexed Symbol resolver."""
+
+        label_symbols = {name.lower(): value for name, value in labels.items()}
+        self._jump_label_symbols = set(label_symbols)
+        self._jump_symbols = {
+            **label_symbols,
+            **getattr(self, "_jump_non_label_symbols", {}),
+        }
 
     def _label_at_position(self, position: QPoint) -> tuple[str, int] | None:
         return self._label_offsets.get(self._strict_token_at_position(position).lower())

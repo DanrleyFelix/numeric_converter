@@ -29,8 +29,12 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSIONS,
 )
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     apply_instruction_overlays,
+)
+from src.presentation.ui.components.binary_workbench.tabs.autosave import (
+    VersionAutosaveResult,
 )
 
 
@@ -274,17 +278,137 @@ class TabVersionsMixin:
         )
         return True
 
-    def autosave_current_version_after_structure(self) -> bool:
-        current = self.current_context()
-        if current is None or not current.active_version_name:
-            return False
-        if not self.update_current_version(
-            current.active_version_name,
-            mark_dirty=False,
-            reload_page=False,
+    def schedule_version_autosave(self, tab_id: str) -> bool:
+        """Schedule an Assembly-only version save without a consistency barrier."""
+
+        current = next(
+            (tab for tab in self._state.tabs if tab.tab_id == tab_id),
+            None,
+        )
+        if (
+            current is None
+            or current.kind != BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            or not current.active_version_name
         ):
             return False
-        return self.save_current_workspace()
+        self._version_autosave.schedule(tab_id)
+        return True
+
+    def autosave_current_version_after_structure(self) -> bool:
+        """Keep the former entry point as a deferred Assembly autosave adapter."""
+
+        current = self.current_context()
+        return bool(current and self.schedule_version_autosave(current.tab_id))
+
+    def _version_autosave_snapshot(
+        self,
+        tab_id: str,
+    ) -> BinaryWorkbenchTabContextDTO | None:
+        """Capture only current Assembly rows and active-version metadata."""
+
+        current = next(
+            (tab for tab in self._state.tabs if tab.tab_id == tab_id),
+            None,
+        )
+        if (
+            current is None
+            or current.kind != BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+            or not current.active_version_name
+        ):
+            return None
+        existing = next(
+            (
+                item
+                for item in current.versions
+                if item.name == current.active_version_name
+            ),
+            None,
+        )
+        version = BinaryWorkbenchVersionDTO(
+            **{
+                **(existing.__dict__ if existing is not None else {
+                    "name": current.active_version_name,
+                }),
+                "rows": list(current.rows),
+            }
+        )
+        versions = [
+            version if item.name == version.name else item
+            for item in current.versions
+        ]
+        if not any(item.name == version.name for item in current.versions):
+            versions.append(version)
+        snapshot = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "versions": _sorted_versions(versions),
+            }
+        )
+        self._replace_autosave_context(snapshot)
+        return snapshot
+
+    def _handle_version_autosave_saved(
+        self,
+        result: VersionAutosaveResult,
+    ) -> None:
+        """Merge persistence paths without replacing editor rows or projections."""
+
+        current = next(
+            (tab for tab in self._state.tabs if tab.tab_id == result.tab_id),
+            None,
+        )
+        if current is None:
+            return
+        updated = BinaryWorkbenchTabContextDTO(
+            **{
+                **current.__dict__,
+                "module_paths": result.module_paths,
+                "version_dirty": (
+                    current.version_dirty
+                    if not self._version_autosave.is_current(
+                        result.tab_id,
+                        result.generation,
+                    )
+                    else False
+                ),
+            }
+        )
+        self._replace_autosave_context(updated)
+
+    def _handle_version_autosave_failed(self, error: str) -> None:
+        """Report a background autosave failure without interrupting editing."""
+
+        self.statusWarningChanged.emit(
+            BINARY_WORKBENCH_TEXT.STATUS_VERSION_AUTOSAVE_FAILED_TEMPLATE.format(
+                error=error,
+            )
+        )
+
+    def _replace_autosave_context(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        """Replace lightweight persistence state without reloading any editor."""
+
+        self._replace_context_without_emit(context.tab_id, context)
+        index = next(
+            (
+                item
+                for item, tab in enumerate(self._state.tabs)
+                if tab.tab_id == context.tab_id
+            ),
+            -1,
+        )
+        page = self.widget(index) if 0 <= index < self.count() else None
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.replace_persistence_context(context)
+
+    def flush_version_autosave(self) -> None:
+        """Flush pending Assembly snapshots without running an ALT+S barrier."""
+
+        if not hasattr(self, "_version_autosave"):
+            return
+        self._version_autosave.flush_now()
 
     @staticmethod
     def _is_versioned_context(current: BinaryWorkbenchTabContextDTO | None) -> bool:

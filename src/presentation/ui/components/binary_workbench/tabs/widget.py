@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QToolButton, QWidget
@@ -11,6 +12,7 @@ from src.core.binary_workbench.search_cache import (
     SearchCacheService,
 )
 from src.core.binary_workbench.hazard_cache import HazardCacheRepository
+from src.core.binary_workbench.symbols import SymbolRuntime
 from src.modules.application_dtos import ProgramContextDTO
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
@@ -116,6 +118,8 @@ class BinaryWorkbenchTabs(
         self._controller = BinaryWorkbenchController()
         self._state = BinaryWorkbenchStateDTO()
         self._global_symbols: dict[str, str] = {}
+        self._symbol_runtime = SymbolRuntime(str(uuid4()))
+        self._pending_global_symbol_tabs: set[str] = set()
         self._stale_context_pages: set[str] = set()
         self._initialize_workspace_memory()
         self.currentChanged.connect(self._sync_active_tab)

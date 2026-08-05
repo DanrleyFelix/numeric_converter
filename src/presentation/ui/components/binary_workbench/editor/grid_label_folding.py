@@ -5,6 +5,9 @@ from PySide6.QtGui import QTextCursor
 from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
 from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 
 
 class GridLabelFoldingMixin:
@@ -195,7 +198,7 @@ class GridLabelFoldingMixin:
             return
         block = self.instructions.document().findBlockByNumber(region.label_row)
         cursor = QTextCursor(block)
-        cursor.setPosition(block.position() + len(block.text()))
+        set_cursor_position(cursor, block.position() + len(block.text()))
         self.instructions.setTextCursor(cursor)
 
     def expand_collapsed_label_at_cursor(
@@ -221,7 +224,7 @@ class GridLabelFoldingMixin:
         ):
             block = editor.document().findBlockByNumber(region.label_row)
             cursor = QTextCursor(block)
-            cursor.setPosition(block.position() + len(block.text()))
+            set_cursor_position(cursor, block.position() + len(block.text()))
             editor.setTextCursor(cursor)
         self._collapsed_labels.remove(region.label)
         self._apply_label_visibility()

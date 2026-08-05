@@ -82,7 +82,7 @@ class TabPageManagementMixin:
             )
         )
         page.structuralVersionSaveRequested.connect(
-            self.autosave_current_version_after_structure
+            lambda tab_id=context.tab_id: self.schedule_version_autosave(tab_id)
         )
         page.openLabelTabRequested.connect(self.open_label_tab)
         page.symbolEditRequested.connect(self._edit_symbol_from_editor)

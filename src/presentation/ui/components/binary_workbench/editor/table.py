@@ -15,6 +15,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_commit import G
 from src.presentation.ui.components.binary_workbench.editor.grid_byte_replacement import (
     GridByteReplacementMixin,
 )
+from src.presentation.ui.components.binary_workbench.editor.grid_bytes_structural_editing import (
+    GridBytesStructuralEditingMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_commands import (
     GridCommandsMixin,
 )
@@ -22,6 +25,9 @@ from src.presentation.ui.components.binary_workbench.editor.grid_edit_rules impo
     GridEditRulesMixin,
 )
 from src.presentation.ui.components.binary_workbench.editor.grid_editing import GridEditingMixin
+from src.presentation.ui.components.binary_workbench.editor.grid_derived_display import (
+    GridDerivedDisplayMixin,
+)
 from src.presentation.ui.components.binary_workbench.editor.grid_incremental_editing import (
     GridIncrementalEditingMixin,
 )
@@ -64,12 +70,14 @@ class BinaryWorkbenchGrid(
     GridLayoutMixin,
     GridLabelFoldingMixin,
     GridResizingMixin,
+    GridDerivedDisplayMixin,
     GridRenderingMixin,
     GridCommandsMixin,
     GridRawInstructionsMixin,
     GridEditRulesMixin,
     GridCommitMixin,
     GridByteReplacementMixin,
+    GridBytesStructuralEditingMixin,
     GridIncrementalEditingMixin,
     GridRefreshWindowMixin,
     GridEditingMixin,
@@ -82,6 +90,7 @@ class BinaryWorkbenchGrid(
     QWidget,
 ):
     rowsChanged = Signal(list)
+    assemblyTextChanged = Signal()
     selectionSummaryChanged = Signal(str)
     visibleWindowRequested = Signal(int, int, int)
     selectAllRequested = Signal()
@@ -106,6 +115,12 @@ class BinaryWorkbenchGrid(
         self._offset_editors: dict[str, WorkbenchEditor] = {}
         self._updating = False
         self._syncing_editor_change = False
+        self._bytes_staged_incomplete = False
+        self._bytes_staged_block: int | None = None
+        self._bytes_edit_block_hint: int | None = None
+        self._bytes_edit_alignment_hint: int | None = None
+        self._active_bytes_alignment_hint: int | None = None
+        self._byte_transition_validated = False
         self._virtual = False
         self._total_size = 0
         self._original_file_size = 0
@@ -149,6 +164,7 @@ class BinaryWorkbenchGrid(
         self._rows_changed_emit_timer.setSingleShot(True)
         self._rows_changed_emit_timer.timeout.connect(self.flush_pending_rows_changed)
         self._setup_incremental_editing()
+        self._setup_bytes_structural_editing()
         self._setup_refresh_window()
         self._build_ui()
         self._consistency_coordinator = EditorConsistencyCoordinator(self)

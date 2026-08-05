@@ -1,4 +1,6 @@
 {
+    "schema_version": 3,
+    "workspace_id": "b1a3ebbf-30c1-4cda-a715-b723de9355d1",
     "tabs": [
         {
             "tab_id": "64f222f53388464f86e8b3a285b93c5c",
@@ -16,6 +18,7 @@
             },
             "labels": {},
             "symbols": {},
+            "symbol_definitions": [],
             "symbol_offsets": {},
             "internal_files": [],
             "internal_file_start_lba": null,
@@ -46,16 +49,16 @@
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions"
             },
             "module_checksums": {
-                "symbols": "50942ebb04d0bf9bfb3f91a7aa3ef6d376a0534000ceb23bded2f44f42e36968",
+                "symbols": "19c54505f0fda078e1f7bdeb92ee7642f9a961a93c4846376eca16c07b13ad6e",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "e9904314ad5f6262c520e04ee1114409624054cc3598dbae71e4ff75ad4812ae",
+                "versions": "33948e57271362b4adad25532d9cfc7aa767e9f631b43e3517f6e6c7c69f0575",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "1654dedcec20fdc3384aa4b15d7f5b0d451ae1424594e68b88487e64fb5689c7"
             },
             "custom_commands": {},
             "last_open_offset": "0x00000000",
             "navigation_history": [],
-            "file_size": 256,
+            "file_size": 248,
             "original_file_size": 36,
             "version_dirty": false,
             "byte_overlays": {},
@@ -174,79 +177,13 @@
             ],
             "rows": [
                 {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "* virtual_memory_range 0x80000000 0x801FFFFF",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "* import current_file 0x80000000",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "* define $sp 0x801FFFF0",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "* define $pc 0x80000000",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "* define $gp 0x8009AF08",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "sp_init:",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
                     "offset": "0x00000000",
                     "offsets": {
                         "File": "0x00000000",
                         "ram": "0x8000F800"
                     },
-                    "instruction": "LUI $v0, 0x8BF0",
-                    "bytes_text": "F0 8B 02 3C",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -256,8 +193,8 @@
                         "File": "0x00000004",
                         "ram": "0x8000F804"
                     },
-                    "instruction": "ADDIU $sp, $sp, -0x60",
-                    "bytes_text": "A0 FF BD 27",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -267,8 +204,8 @@
                         "File": "0x00000008",
                         "ram": "0x8000F808"
                     },
-                    "instruction": "SW $a0, 0x0($sp)",
-                    "bytes_text": "00 00 A4 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -278,8 +215,8 @@
                         "File": "0x0000000C",
                         "ram": "0x8000F80C"
                     },
-                    "instruction": "SW $a1, 0x4($sp)",
-                    "bytes_text": "04 00 A5 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -289,8 +226,8 @@
                         "File": "0x00000010",
                         "ram": "0x8000F810"
                     },
-                    "instruction": "SW $a2, 0x8($sp)",
-                    "bytes_text": "08 00 A6 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -300,8 +237,8 @@
                         "File": "0x00000014",
                         "ram": "0x8000F814"
                     },
-                    "instruction": "SW $a3, 0xC($sp)",
-                    "bytes_text": "0C 00 A7 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -311,8 +248,8 @@
                         "File": "0x00000018",
                         "ram": "0x8000F818"
                     },
-                    "instruction": "SW $v0, 0x10($sp)",
-                    "bytes_text": "10 00 A2 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -322,8 +259,8 @@
                         "File": "0x0000001C",
                         "ram": "0x8000F81C"
                     },
-                    "instruction": "SW $v1, 0x14($sp)",
-                    "bytes_text": "14 00 A3 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -333,8 +270,8 @@
                         "File": "0x00000020",
                         "ram": "0x8000F820"
                     },
-                    "instruction": "SW $s0, 0x18($sp)",
-                    "bytes_text": "18 00 B0 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -344,8 +281,19 @@
                         "File": "0x00000024",
                         "ram": "0x8000F824"
                     },
-                    "instruction": "SW $s1, 0x1C($sp)",
-                    "bytes_text": "1C 00 B1 AF",
+                    "instruction": "ADDIU $a0, $a0, 0x3",
+                    "bytes_text": "03 00 84 24",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "-",
+                    "offsets": {
+                        "File": "-",
+                        "ram": "-"
+                    },
+                    "instruction": "spInit:",
+                    "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -355,8 +303,8 @@
                         "File": "0x00000028",
                         "ram": "0x8000F828"
                     },
-                    "instruction": "SW $s2, 0x20($sp)",
-                    "bytes_text": "20 00 B2 AF",
+                    "instruction": "SW $a0, 0x0($sp)",
+                    "bytes_text": "00 00 A4 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -366,8 +314,8 @@
                         "File": "0x0000002C",
                         "ram": "0x8000F82C"
                     },
-                    "instruction": "SW $s3, 0x24($sp)",
-                    "bytes_text": "24 00 B3 AF",
+                    "instruction": "SW $a1, 0x4($sp)",
+                    "bytes_text": "04 00 A5 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -377,8 +325,8 @@
                         "File": "0x00000030",
                         "ram": "0x8000F830"
                     },
-                    "instruction": "SW $s4, 0x28($sp)",
-                    "bytes_text": "28 00 B4 AF",
+                    "instruction": "SW $a2, 0x8($sp)",
+                    "bytes_text": "08 00 A6 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -388,8 +336,8 @@
                         "File": "0x00000034",
                         "ram": "0x8000F834"
                     },
-                    "instruction": "SW $s5, 0x2C($sp)",
-                    "bytes_text": "2C 00 B5 AF",
+                    "instruction": "SW $a3, 0xC($sp)",
+                    "bytes_text": "0C 00 A7 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -399,8 +347,8 @@
                         "File": "0x00000038",
                         "ram": "0x8000F838"
                     },
-                    "instruction": "SW $s6, 0x30($sp)",
-                    "bytes_text": "30 00 B6 AF",
+                    "instruction": "SW $v0, 0x10($sp)",
+                    "bytes_text": "10 00 A2 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -410,8 +358,8 @@
                         "File": "0x0000003C",
                         "ram": "0x8000F83C"
                     },
-                    "instruction": "SW $s7, 0x34($sp)",
-                    "bytes_text": "34 00 B7 AF",
+                    "instruction": "SW $v1, 0x14($sp)",
+                    "bytes_text": "14 00 A3 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -421,8 +369,8 @@
                         "File": "0x00000040",
                         "ram": "0x8000F840"
                     },
-                    "instruction": "SW $t0, 0x38($sp)",
-                    "bytes_text": "38 00 A8 AF",
+                    "instruction": "SW $s0, 0x18($sp)",
+                    "bytes_text": "18 00 B0 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -432,8 +380,8 @@
                         "File": "0x00000044",
                         "ram": "0x8000F844"
                     },
-                    "instruction": "SW $t1, 0x3C($sp)",
-                    "bytes_text": "3C 00 A9 AF",
+                    "instruction": "SW $s1, 0x1C($sp)",
+                    "bytes_text": "1C 00 B1 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -443,8 +391,8 @@
                         "File": "0x00000048",
                         "ram": "0x8000F848"
                     },
-                    "instruction": "SW $t2, 0x40($sp)",
-                    "bytes_text": "40 00 AA AF",
+                    "instruction": "SW $s2, 0x20($sp)",
+                    "bytes_text": "20 00 B2 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -454,8 +402,8 @@
                         "File": "0x0000004C",
                         "ram": "0x8000F84C"
                     },
-                    "instruction": "SW $t3, 0x44($sp)",
-                    "bytes_text": "44 00 AB AF",
+                    "instruction": "SW $s3, 0x24($sp)",
+                    "bytes_text": "24 00 B3 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -465,8 +413,8 @@
                         "File": "0x00000050",
                         "ram": "0x8000F850"
                     },
-                    "instruction": "SW $t4, 0x48($sp)",
-                    "bytes_text": "48 00 AC AF",
+                    "instruction": "SW $s4, 0x28($sp)",
+                    "bytes_text": "28 00 B4 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -476,8 +424,8 @@
                         "File": "0x00000054",
                         "ram": "0x8000F854"
                     },
-                    "instruction": "SW $t5, 0x4C($sp)",
-                    "bytes_text": "4C 00 AD AF",
+                    "instruction": "SW $s5, 0x2C($sp)",
+                    "bytes_text": "2C 00 B5 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -487,8 +435,8 @@
                         "File": "0x00000058",
                         "ram": "0x8000F858"
                     },
-                    "instruction": "SW $t6, 0x50($sp)",
-                    "bytes_text": "50 00 AE AF",
+                    "instruction": "SW $s6, 0x30($sp)",
+                    "bytes_text": "30 00 B6 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -498,8 +446,8 @@
                         "File": "0x0000005C",
                         "ram": "0x8000F85C"
                     },
-                    "instruction": "SW $t7, 0x54($sp)",
-                    "bytes_text": "54 00 AF AF",
+                    "instruction": "SW $s7, 0x34($sp)",
+                    "bytes_text": "34 00 B7 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -509,8 +457,8 @@
                         "File": "0x00000060",
                         "ram": "0x8000F860"
                     },
-                    "instruction": "SW $t8, 0x58($sp)",
-                    "bytes_text": "58 00 B8 AF",
+                    "instruction": "SW $t0, 0x38($sp)",
+                    "bytes_text": "38 00 A8 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -520,8 +468,8 @@
                         "File": "0x00000064",
                         "ram": "0x8000F864"
                     },
-                    "instruction": "SW $t9, 0x5C($sp)",
-                    "bytes_text": "5C 00 B9 AF",
+                    "instruction": "SW $t1, 0x3C($sp)",
+                    "bytes_text": "3C 00 A9 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -531,8 +479,8 @@
                         "File": "0x00000068",
                         "ram": "0x8000F868"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t2, 0x40($sp)",
+                    "bytes_text": "40 00 AA AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -542,8 +490,8 @@
                         "File": "0x0000006C",
                         "ram": "0x8000F86C"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t3, 0x44($sp)",
+                    "bytes_text": "44 00 AB AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -553,8 +501,8 @@
                         "File": "0x00000070",
                         "ram": "0x8000F870"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t4, 0x48($sp)",
+                    "bytes_text": "48 00 AC AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -564,8 +512,8 @@
                         "File": "0x00000074",
                         "ram": "0x8000F874"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t5, 0x4C($sp)",
+                    "bytes_text": "4C 00 AD AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -575,8 +523,8 @@
                         "File": "0x00000078",
                         "ram": "0x8000F878"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t6, 0x50($sp)",
+                    "bytes_text": "50 00 AE AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -586,8 +534,8 @@
                         "File": "0x0000007C",
                         "ram": "0x8000F87C"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t7, 0x54($sp)",
+                    "bytes_text": "54 00 AF AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -597,8 +545,8 @@
                         "File": "0x00000080",
                         "ram": "0x8000F880"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t8, 0x58($sp)",
+                    "bytes_text": "58 00 B8 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -608,8 +556,8 @@
                         "File": "0x00000084",
                         "ram": "0x8000F884"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "SW $t9, 0x5C($sp)",
+                    "bytes_text": "5C 00 B9 AF",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -619,8 +567,19 @@
                         "File": "0x00000088",
                         "ram": "0x8000F888"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "JR $ra",
+                    "bytes_text": "08 00 E0 03",
+                    "original_instruction": "",
+                    "original_bytes_text": ""
+                },
+                {
+                    "offset": "-",
+                    "offsets": {
+                        "File": "-",
+                        "ram": "-"
+                    },
+                    "instruction": "spRestore:",
+                    "bytes_text": "",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -630,8 +589,8 @@
                         "File": "0x0000008C",
                         "ram": "0x8000F88C"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "LW $a0, 0x0($sp)",
+                    "bytes_text": "00 00 A4 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -641,8 +600,8 @@
                         "File": "0x00000090",
                         "ram": "0x8000F890"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
+                    "instruction": "LW $a1, 0x4($sp)",
+                    "bytes_text": "04 00 A5 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -652,19 +611,8 @@
                         "File": "0x00000094",
                         "ram": "0x8000F894"
                     },
-                    "instruction": "ADDIU $t2, $t2, 0x2",
-                    "bytes_text": "02 00 4A 25",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "sp_restore:",
-                    "bytes_text": "",
+                    "instruction": "LW $a2, 0x8($sp)",
+                    "bytes_text": "08 00 A6 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -674,8 +622,8 @@
                         "File": "0x00000098",
                         "ram": "0x8000F898"
                     },
-                    "instruction": "LW $a0, 0x0($sp)",
-                    "bytes_text": "00 00 A4 8F",
+                    "instruction": "LW $a3, 0xC($sp)",
+                    "bytes_text": "0C 00 A7 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -685,8 +633,8 @@
                         "File": "0x0000009C",
                         "ram": "0x8000F89C"
                     },
-                    "instruction": "LW $a1, 0x4($sp)",
-                    "bytes_text": "04 00 A5 8F",
+                    "instruction": "LW $v0, 0x10($sp)",
+                    "bytes_text": "10 00 A2 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -696,8 +644,8 @@
                         "File": "0x000000A0",
                         "ram": "0x8000F8A0"
                     },
-                    "instruction": "LW $a2, 0x8($sp)",
-                    "bytes_text": "08 00 A6 8F",
+                    "instruction": "LW $v1, 0x14($sp)",
+                    "bytes_text": "14 00 A3 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -707,8 +655,8 @@
                         "File": "0x000000A4",
                         "ram": "0x8000F8A4"
                     },
-                    "instruction": "LW $a3, 0xC($sp)",
-                    "bytes_text": "0C 00 A7 8F",
+                    "instruction": "LW $s0, 0x18($sp)",
+                    "bytes_text": "18 00 B0 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -718,8 +666,8 @@
                         "File": "0x000000A8",
                         "ram": "0x8000F8A8"
                     },
-                    "instruction": "LW $v0, 0x10($sp)",
-                    "bytes_text": "10 00 A2 8F",
+                    "instruction": "LW $s1, 0x1C($sp)",
+                    "bytes_text": "1C 00 B1 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -729,8 +677,8 @@
                         "File": "0x000000AC",
                         "ram": "0x8000F8AC"
                     },
-                    "instruction": "LW $v1, 0x14($sp)",
-                    "bytes_text": "14 00 A3 8F",
+                    "instruction": "LW $s2, 0x20($sp)",
+                    "bytes_text": "20 00 B2 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -740,8 +688,8 @@
                         "File": "0x000000B0",
                         "ram": "0x8000F8B0"
                     },
-                    "instruction": "LW $s0, 0x18($sp)",
-                    "bytes_text": "18 00 B0 8F",
+                    "instruction": "LW $s3, 0x24($sp)",
+                    "bytes_text": "24 00 B3 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -751,8 +699,8 @@
                         "File": "0x000000B4",
                         "ram": "0x8000F8B4"
                     },
-                    "instruction": "LW $s1, 0x1C($sp)",
-                    "bytes_text": "1C 00 B1 8F",
+                    "instruction": "LW $s4, 0x28($sp)",
+                    "bytes_text": "28 00 B4 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -762,8 +710,8 @@
                         "File": "0x000000B8",
                         "ram": "0x8000F8B8"
                     },
-                    "instruction": "LW $s2, 0x20($sp)",
-                    "bytes_text": "20 00 B2 8F",
+                    "instruction": "LW $s5, 0x2C($sp)",
+                    "bytes_text": "2C 00 B5 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -773,8 +721,8 @@
                         "File": "0x000000BC",
                         "ram": "0x8000F8BC"
                     },
-                    "instruction": "LW $s3, 0x24($sp)",
-                    "bytes_text": "24 00 B3 8F",
+                    "instruction": "LW $s6, 0x30($sp)",
+                    "bytes_text": "30 00 B6 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -784,8 +732,8 @@
                         "File": "0x000000C0",
                         "ram": "0x8000F8C0"
                     },
-                    "instruction": "LW $s4, 0x28($sp)",
-                    "bytes_text": "28 00 B4 8F",
+                    "instruction": "LW $s7, 0x34($sp)",
+                    "bytes_text": "34 00 B7 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -795,8 +743,8 @@
                         "File": "0x000000C4",
                         "ram": "0x8000F8C4"
                     },
-                    "instruction": "LW $s5, 0x2C($sp)",
-                    "bytes_text": "2C 00 B5 8F",
+                    "instruction": "LW $t0, 0x38($sp)",
+                    "bytes_text": "38 00 A8 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -806,8 +754,8 @@
                         "File": "0x000000C8",
                         "ram": "0x8000F8C8"
                     },
-                    "instruction": "LW $s6, 0x30($sp)",
-                    "bytes_text": "30 00 B6 8F",
+                    "instruction": "LW $t1, 0x3C($sp)",
+                    "bytes_text": "3C 00 A9 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -817,8 +765,8 @@
                         "File": "0x000000CC",
                         "ram": "0x8000F8CC"
                     },
-                    "instruction": "LW $s7, 0x34($sp)",
-                    "bytes_text": "34 00 B7 8F",
+                    "instruction": "LW $t2, 0x40($sp)",
+                    "bytes_text": "40 00 AA 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -828,8 +776,8 @@
                         "File": "0x000000D0",
                         "ram": "0x8000F8D0"
                     },
-                    "instruction": "LW $t0, 0x38($sp)",
-                    "bytes_text": "38 00 A8 8F",
+                    "instruction": "LW $t3, 0x44($sp)",
+                    "bytes_text": "44 00 AB 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -839,8 +787,8 @@
                         "File": "0x000000D4",
                         "ram": "0x8000F8D4"
                     },
-                    "instruction": "LW $t1, 0x3C($sp)",
-                    "bytes_text": "3C 00 A9 8F",
+                    "instruction": "LW $t4, 0x48($sp)",
+                    "bytes_text": "48 00 AC 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -850,8 +798,8 @@
                         "File": "0x000000D8",
                         "ram": "0x8000F8D8"
                     },
-                    "instruction": "LW $t2, 0x40($sp)",
-                    "bytes_text": "40 00 AA 8F",
+                    "instruction": "LW $t5, 0x4C($sp)",
+                    "bytes_text": "4C 00 AD 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -861,8 +809,8 @@
                         "File": "0x000000DC",
                         "ram": "0x8000F8DC"
                     },
-                    "instruction": "LW $t3, 0x44($sp)",
-                    "bytes_text": "44 00 AB 8F",
+                    "instruction": "LW $t6, 0x50($sp)",
+                    "bytes_text": "50 00 AE 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -872,8 +820,8 @@
                         "File": "0x000000E0",
                         "ram": "0x8000F8E0"
                     },
-                    "instruction": "LW $t4, 0x48($sp)",
-                    "bytes_text": "48 00 AC 8F",
+                    "instruction": "LW $t7, 0x54($sp)",
+                    "bytes_text": "54 00 AF 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -883,8 +831,8 @@
                         "File": "0x000000E4",
                         "ram": "0x8000F8E4"
                     },
-                    "instruction": "LW $t5, 0x4C($sp)",
-                    "bytes_text": "4C 00 AD 8F",
+                    "instruction": "LW $t8, 0x58($sp)",
+                    "bytes_text": "58 00 B8 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -894,8 +842,8 @@
                         "File": "0x000000E8",
                         "ram": "0x8000F8E8"
                     },
-                    "instruction": "LW $t6, 0x50($sp)",
-                    "bytes_text": "50 00 AE 8F",
+                    "instruction": "LW $t9, 0x5C($sp)",
+                    "bytes_text": "5C 00 B9 8F",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -905,8 +853,8 @@
                         "File": "0x000000EC",
                         "ram": "0x8000F8EC"
                     },
-                    "instruction": "LW $t7, 0x54($sp)",
-                    "bytes_text": "54 00 AF 8F",
+                    "instruction": "ADDIU $sp, $sp, 0x60",
+                    "bytes_text": "60 00 BD 27",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -916,8 +864,8 @@
                         "File": "0x000000F0",
                         "ram": "0x8000F8F0"
                     },
-                    "instruction": "LW $t8, 0x58($sp)",
-                    "bytes_text": "58 00 B8 8F",
+                    "instruction": "JR $ra",
+                    "bytes_text": "08 00 E0 03",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },
@@ -927,41 +875,8 @@
                         "File": "0x000000F4",
                         "ram": "0x8000F8F4"
                     },
-                    "instruction": "LW $t9, 0x5C($sp)",
-                    "bytes_text": "5C 00 B9 8F",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x000000F8",
-                    "offsets": {
-                        "File": "0x000000F8",
-                        "ram": "0x8000F8F8"
-                    },
-                    "instruction": "ADDIU $sp, $sp, 0x60",
-                    "bytes_text": "60 00 BD 27",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "-",
-                    "offsets": {
-                        "File": "-",
-                        "ram": "-"
-                    },
-                    "instruction": "J @returb",
-                    "bytes_text": "",
-                    "original_instruction": "",
-                    "original_bytes_text": ""
-                },
-                {
-                    "offset": "0x000000FC",
-                    "offsets": {
-                        "File": "0x000000FC",
-                        "ram": "0x8000F8FC"
-                    },
-                    "instruction": "J @equate_49444441",
-                    "bytes_text": "10 11 51 0A",
+                    "instruction": "nop",
+                    "bytes_text": "00 00 00 00",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 }
@@ -1015,6 +930,269 @@
         "test1": "20",
         "variable_1d9200": "0x1D9200"
     },
+    "global_symbol_definitions": [
+        {
+            "symbol_id": "2cc655cd-50b8-5115-b742-e3b37ef09df4",
+            "name": "addr_slot_temp",
+            "value": "0x24C($gp)",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "6fe25262-dbb6-527d-b88c-86266da0cebe",
+            "name": "card_atk_offset",
+            "value": "0xE",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "9826735e-b388-559e-9e8d-70aac360d645",
+            "name": "card_boost_offset",
+            "value": "0x12",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "57f92832-5ca3-5228-bbd8-3d284e4b0315",
+            "name": "card_flags_offset",
+            "value": "0x16",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "0bf2e938-7d72-5c86-ab36-55951f7fd643",
+            "name": "card_id_offset",
+            "value": "0xC",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "63d7dd0b-cf75-56db-a2f2-517b44ec1b5d",
+            "name": "card_number_offset",
+            "value": "0x18",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "7b3fb5d8-b866-5341-97e5-de8f1b7b11b9",
+            "name": "card_terrain_offset",
+            "value": "0x14",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "f94bbec4-526d-51d1-aefd-8138d9462378",
+            "name": "card_used",
+            "value": "0x248($gp)",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "6ddcd61d-c54b-52f2-a176-3bfa8ffeedd3",
+            "name": "effect_test_addr1",
+            "value": "0x1d9200",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "6535cb97-733e-564a-8830-374a238e0adb",
+            "name": "effect_test_addr2",
+            "value": "0x1D9244",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "89a87fe5-ab10-50a7-9a8b-c81c751c6df0",
+            "name": "effect_test_addr3",
+            "value": "0x1D927C",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "0e318eae-aa14-5efc-847b-03c8f87d907e",
+            "name": "equate_8",
+            "value": "0x8",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "b9f9690b-cb7b-550c-b668-d2e45ba3f7b9",
+            "name": "equate_801d",
+            "value": "0x801D",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "ae9bfc7a-d873-5a3d-8eca-a28c42711aae",
+            "name": "field_hand_index",
+            "value": "0x1C",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "caea6c20-a614-58c4-a8d7-aa7370d15803",
+            "name": "is_card_on_field",
+            "value": "0x8000",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "953724a6-bd17-5de4-87cf-9c1a87d4ae26",
+            "name": "is_cpu_turn",
+            "value": "0x2CD($gp)",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "168d154c-c1f5-53ba-9445-292c047eb194",
+            "name": "max_index_spell",
+            "value": "0xE",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "deda25f4-0128-55d2-a593-bf8e40608623",
+            "name": "p1_deck",
+            "value": "0x801A7E20",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "0bbf9c3b-59e5-51f5-93e0-5d416e85add8",
+            "name": "p1_field_addr",
+            "value": "0x801A7B64",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "d42e5e74-94b1-58db-99e2-6ca8b90dce60",
+            "name": "p2_deck",
+            "value": "0x801A7F10",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "698d423d-229c-5879-b367-8346ac0c1ce0",
+            "name": "p2_field_addr",
+            "value": "0x801A7D08",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "5e1d5cb5-512a-583e-bcc9-b8f87078a2e7",
+            "name": "return_original",
+            "value": "0x0025CCC",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "2a5c6855-b2f4-5b5c-a7ec-611decfc580f",
+            "name": "spell_dispatch",
+            "value": "0x26BA4",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "7798722b-e668-5fff-a2d6-436e40850198",
+            "name": "spell_id",
+            "value": "0x2a1",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "6f96ff25-4222-5601-9c06-07269a0ce601",
+            "name": "summonCard",
+            "value": "0x24D34",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "c87a10b9-9170-533e-a6c0-e5dc4db6d716",
+            "name": "temp2_var_addr",
+            "value": "-0x72E4($gp)",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "43dd9f1b-03cc-5d5e-8a59-e670f34968c7",
+            "name": "temp_var_addr",
+            "value": "-0x72E8($gp)",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "af1bafc9-e4ae-56f2-9dc2-f3030c248dc4",
+            "name": "test1",
+            "value": "20",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "0675c3d4-d2a8-5f4f-97bc-c8b5210a5259",
+            "name": "variable_1d9200",
+            "value": "0x1D9200",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 0,
+            "resolution_revision": 0
+        }
+    ],
     "share_view_preferences": false,
     "commands_by_arch": {
         "PSX - Mips R3000A": {

@@ -6,6 +6,7 @@ from src.presentation.ui.components.binary_workbench.editor.highlighters import 
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.editor.grid_offsets import (
+    CenteredDashWorkbenchEditor,
     OffsetWorkbenchEditor,
 )
 
@@ -29,9 +30,9 @@ class GridLayoutMixin:
         self.scrollbar = QScrollBar(Qt.Vertical, self)
         self.scrollbar.setObjectName("binary-workbench-editor-scrollbar")
         self.scrollbar.valueChanged.connect(self._on_scrollbar_changed)
-        self.raw_shell, self.raw_instructions = self._panel(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, "binary-workbench-raw-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_RAW_INSTRUCTION_WIDTH)
-        self.bytes_shell, self.bytes = self._panel(BINARY_WORKBENCH_TEXT.BYTES, "binary-workbench-bytes-panel", False, BINARY_WORKBENCH_LAYOUT.EDITOR_BYTES_WIDTH)
-        self.decoded_shell, self.decoded_text = self._panel(BINARY_WORKBENCH_TEXT.DECODED_TEXT, "binary-workbench-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_DECODED_TEXT_WIDTH)
+        self.raw_shell, self.raw_instructions = self._panel(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, "binary-workbench-raw-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_RAW_INSTRUCTION_WIDTH, CenteredDashWorkbenchEditor)
+        self.bytes_shell, self.bytes = self._panel(BINARY_WORKBENCH_TEXT.BYTES, "binary-workbench-bytes-panel", False, BINARY_WORKBENCH_LAYOUT.EDITOR_BYTES_WIDTH, CenteredDashWorkbenchEditor)
+        self.decoded_shell, self.decoded_text = self._panel(BINARY_WORKBENCH_TEXT.DECODED_TEXT, "binary-workbench-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_DECODED_TEXT_WIDTH, CenteredDashWorkbenchEditor)
         self.instructions_shell, self.instructions = self._panel(BINARY_WORKBENCH_TEXT.INSTRUCTION, "binary-workbench-instructions-panel", False)
         self._bytes_highlighter = BytesHighlighter(self.bytes.document())
         self._raw_instruction_highlighter = InstructionHighlighter(self.raw_instructions.document())
@@ -80,8 +81,10 @@ class GridLayoutMixin:
                 )
             )
             editor.returnKeyPressed.connect(self._handle_editor_return_key)
-            editor.editAboutToStart.connect(self._expand_label_before_edit)
+            editor.editAboutToStart.connect(self._prepare_editor_edit)
+            editor.editFinished.connect(self._finish_editor_edit)
             editor.protectedEditKeyPressed.connect(self._handle_editor_protected_edit_key)
+        self.bytes.cursorPositionChanged.connect(self._finish_staged_bytes_after_navigation)
         self.decoded_text.copyRequested.connect(lambda source: source.copy())
         self.decoded_text.verticalScrollBar().valueChanged.connect(
             lambda value: self._on_editor_scrollbar_changed(
@@ -150,15 +153,55 @@ class GridLayoutMixin:
         configured = BINARY_WORKBENCH_TEXT.BYTES in getattr(self, "_configured_columns", [])
         self.bytes_shell.setVisible(configured and not self._responsive_bytes_hidden)
 
-    def _expand_label_before_edit(self, editor, event) -> None:
-        """Expand a folded label before an edit can change its declaration row."""
+    def _prepare_editor_edit(self, editor, event) -> None:
+        """Expand source folds and reject unsafe direct Bytes mutations."""
+
+        if editor is self.bytes:
+            first, last = self._byte_edit_event_rows(editor.textCursor())
+            # A multicursor edit mutates several blocks inside one Qt edit block.
+            # Treating the visible/current cursor as a single-row hint commits only
+            # that row and leaves the other Bytes changes stale in Assembly.
+            self._bytes_edit_block_hint = (
+                first
+                if first == last and not editor.has_multicursor_ranges()
+                else None
+            )
+            self._bytes_edit_alignment_hint = self._byte_edit_alignment_boundary(
+                editor,
+                event,
+                first,
+            )
+            if not self._bytes_edit_event_allowed(editor, event):
+                self._bytes_edit_block_hint = None
+                self._bytes_edit_alignment_hint = None
+                editor.mark_edit_preflight_handled()
+                return
 
         if editor is self.instructions:
             coordinator = getattr(self, "_consistency_coordinator", None)
             if coordinator is not None and coordinator.enabled():
                 coordinator.begin_user_event("key")
+                ranges = list(getattr(editor, "_occurrence_ranges", ()))
+                if not ranges:
+                    cursor = editor.textCursor()
+                    ranges = [(cursor.selectionStart(), cursor.selectionEnd())]
+                coordinator.register_source_edit_ranges(ranges)
             move_to_end = event.key() in {Qt.Key_Return, Qt.Key_Enter}
             self.expand_collapsed_label_at_cursor(editor, move_to_end)
+
+    def _finish_editor_edit(self, editor) -> None:
+        """Discard a partial Bytes transaction when its editor loses focus."""
+
+        if editor is self.bytes and self._bytes_staged_incomplete:
+            self._restore_editor_after_rejected_change(True)
+
+    def _finish_staged_bytes_after_navigation(self) -> None:
+        """Discard a partial Bytes transaction before editing another row."""
+
+        if not self._bytes_staged_incomplete:
+            return
+        if self.bytes.textCursor().blockNumber() != self._bytes_staged_block:
+            self._restore_editor_after_rejected_change(True)
 
     def _configure_scrollbar(self) -> None:
         was_updating = self._updating

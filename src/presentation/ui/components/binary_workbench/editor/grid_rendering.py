@@ -13,6 +13,8 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     normalize_instruction_text,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    capture_logical_cursor,
+    restore_logical_cursor,
     set_cursor_position,
 )
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
@@ -129,8 +131,18 @@ class GridRenderingMixin:
         self._variables = dict(variables)
         self._equates = dict(equates)
         self._symbol_offsets = dict(symbol_offsets or self._symbol_offsets)
-        self._instruction_highlighter.set_symbols(labels, variables, equates)
-        self._raw_instruction_highlighter.set_symbols(labels, variables, equates)
+        first = max(0, self.instructions.firstVisibleBlock().blockNumber())
+        line_height = max(1, self.instructions.fontMetrics().height())
+        visible_lines = max(1, self.instructions.viewport().height() // line_height + 2)
+        last = first + visible_lines
+        maps = self._instruction_highlighter.symbol_maps(labels, variables, equates)
+        self._symbol_maps = maps
+        self._instruction_highlighter.set_symbol_maps_for_blocks(
+            maps, first, last
+        )
+        self._raw_instruction_highlighter.set_symbol_maps_for_blocks(
+            maps, first, last
+        )
         self.instructions.set_symbol_helpers(labels, variables, equates)
         self._refresh_jump_navigation()
         if symbols_changed and hasattr(self, "raw_instructions"):
@@ -225,7 +237,7 @@ class GridRenderingMixin:
 
     def _render(self) -> None:
         self._resize_editors()
-        self._set_editor_text(self.bytes, [self._display_bytes_text(row.bytes_text) for row in self._rows])
+        self._set_editor_text(self.bytes, [self._display_bytes_row(row) for row in self._rows])
         self._render_decoded_text()
         self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
         self._instruction_highlighter.rehighlight()
@@ -240,7 +252,7 @@ class GridRenderingMixin:
         self._set_editor_text(
             self.decoded_text,
             [
-                decode_hex_bytes(row.bytes_text, self._decoded_text_values)
+                self._display_decoded_row(row)
                 for row in self._rows
             ],
         )
@@ -252,7 +264,7 @@ class GridRenderingMixin:
                 [
                     self._display_offset(
                         editor,
-                        self._folded_offset_text(index, name, row.offsets.get(name, "")),
+                        self._display_offset_row(index, name, row.offsets.get(name, "")),
                     )
                     for index, row in enumerate(self._rows)
                 ],
@@ -360,9 +372,11 @@ class GridRenderingMixin:
             return
         was_updating = self._updating
         self._updating = True
+        cursor_state = capture_logical_cursor(editor)
         scroll_value = editor.verticalScrollBar().value()
         try:
             editor.setPlainText(text)
+            restore_logical_cursor(editor, cursor_state)
             if self._virtual:
                 editor.verticalScrollBar().setValue(0)
             else:
@@ -399,6 +413,9 @@ class GridRenderingMixin:
             editor.verticalScrollBar().setValue(
                 min(scroll_value, editor.verticalScrollBar().maximum())
             )
+            rebuild_dashes = getattr(editor, "_rebuild_dash_labels", None)
+            if rebuild_dashes is not None:
+                rebuild_dashes()
             self._remember_editor_text_signature(editor)
         finally:
             self._updating = was_updating
@@ -423,9 +440,9 @@ class GridRenderingMixin:
             cursor = QTextCursor(block)
             cursor.select(QTextCursor.SelectionType.LineUnderCursor)
             cursor.insertText(text)
-            refresh_offset = getattr(editor, "refresh_offset_block", None)
-            if refresh_offset is not None:
-                refresh_offset(index)
+            refresh_dash = getattr(editor, "refresh_offset_block", None)
+            if refresh_dash is not None:
+                refresh_dash(index)
             restored = QTextCursor(editor.document())
             set_cursor_position(restored, anchor)
             set_cursor_position(restored, position, QTextCursor.KeepAnchor)

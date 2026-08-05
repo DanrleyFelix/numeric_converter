@@ -24,16 +24,24 @@ class EditorCompletionMixin:
         variables: dict[str, str],
         equates: dict[str, str],
     ) -> None:
-        self.set_label_offsets(labels)
+        self.set_label_helpers(labels)
         self._completion_items = {
             **self._completion_items,
-            "label": sorted(labels),
             "variable": sorted(f"_{name.lstrip('_')}" for name in variables),
             "equate": sorted(f"@{name.lstrip('@')}" for name in equates),
         }
         self._symbol_tooltips = {
             **tooltip_values({f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}),
             **tooltip_values({f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}),
+        }
+
+    def set_label_helpers(self, labels: dict[str, str]) -> None:
+        """Refresh label-only completion state without rebuilding Symbol catalogs."""
+
+        self.set_label_offsets(labels)
+        self._completion_items = {
+            **self._completion_items,
+            "label": sorted(labels),
         }
 
     def _refresh_completions(self) -> None:

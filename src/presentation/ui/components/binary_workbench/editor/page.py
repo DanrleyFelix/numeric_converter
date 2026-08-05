@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from src.core.binary_workbench.selection_limits import capped_end_offset
@@ -34,7 +36,6 @@ from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbo
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.page_reader import reader_for_context
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
 from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
@@ -83,6 +84,9 @@ class BinaryWorkbenchEditorPage(
         self.grid = BinaryWorkbenchGrid(binary_workbench_codec_for(context.cpu_arch))
         self.grid.set_command_directory(command_directory)
         self.grid.rowsChanged.connect(self._on_rows_changed)
+        self.grid.assemblyTextChanged.connect(
+            self.structuralVersionSaveRequested.emit
+        )
         self.grid.commandsChanged.connect(self._on_commands_changed)
         self.grid.selectionSummaryChanged.connect(self._set_summary)
         self.grid.visibleWindowRequested.connect(self._load_visible_rows)
@@ -120,12 +124,7 @@ class BinaryWorkbenchEditorPage(
                 **{
                     **self._context.__dict__,
                     "labels": labels,
-                    "symbol_offsets": symbol_offsets(
-                        self._context.rows,
-                        self._context.variables,
-                        self._context.equates,
-                        labels,
-                    ),
+                    "symbol_offsets": {name: [offset] for name, offset in labels.items()},
                 }
             )
         return self._context
@@ -134,6 +133,43 @@ class BinaryWorkbenchEditorPage(
         """Return a complete current snapshot for a critical consumer."""
 
         return self.grid.ensure_consistent(reason)
+
+    def rederive_symbol_lines(self, indices: tuple[int, ...]) -> None:
+        """Project only source rows affected by changed Symbol definitions."""
+
+        self.grid._consistency_coordinator.rederive_symbol_lines(indices)
+
+    def rename_symbol_tokens(
+        self,
+        old_name: str,
+        new_name: str,
+        indices: tuple[int, ...],
+    ) -> None:
+        """Rename known source occurrences as one aggregated text operation."""
+
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9_])([_@]){re.escape(old_name)}(?![A-Za-z0-9_])",
+            re.IGNORECASE,
+        )
+        coordinator = self.grid._consistency_coordinator
+        coordinator.begin_edit_operation("rename-symbol")
+        try:
+            document = self.grid.instructions.document()
+            for index in sorted(set(indices), reverse=True):
+                block = document.findBlockByNumber(index)
+                if not block.isValid():
+                    continue
+                updated = pattern.sub(
+                    lambda match: f"{match.group(1)}{new_name}",
+                    block.text(),
+                )
+                if updated == block.text():
+                    continue
+                cursor = QTextCursor(block)
+                cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+                cursor.insertText(updated)
+        finally:
+            coordinator.end_edit_operation()
 
     def rename_consistency_version(self, previous: str, current: str) -> None:
         """Preserve one runtime version identity across a rename."""
@@ -202,6 +238,14 @@ class BinaryWorkbenchEditorPage(
         self.grid.set_original_file_size(context.original_file_size)
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)
+
+    def replace_persistence_context(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        """Accept version persistence metadata without rebuilding editor projections."""
+
+        self._context = context
 
     def refresh_shared_context(
         self,

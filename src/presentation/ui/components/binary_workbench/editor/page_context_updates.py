@@ -11,12 +11,10 @@ from src.presentation.ui.components.binary_workbench.constants import (
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import (
     update_selection_summary,
 )
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 
 
 class EditorPageContextMixin:
     def _on_rows_changed(self, rows: list) -> None:
-        previous_size = self._context.file_size
         if self._reader is not None:
             self._update_overlay(rows)
         else:
@@ -28,8 +26,6 @@ class EditorPageContextMixin:
                     self.grid.current_file_size(),
                 )
             )
-        if self._context.file_size > previous_size:
-            self.structuralVersionSaveRequested.emit()
 
     def _on_commands_changed(self, commands: dict[str, list[str]]) -> None:
         self._update_context({"custom_commands": commands})
@@ -96,7 +92,7 @@ def symbol_updates(
         "file_size": valid_offset_end(rows) if file_size is None else file_size,
         "labels": labels,
         "version_dirty": context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY,
-        "symbol_offsets": symbol_offsets(rows, context.variables, context.equates, labels),
+        "symbol_offsets": {name: [offset] for name, offset in labels.items()},
     }
     if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
         return _internal_updates(context, rows, updates)

@@ -117,6 +117,11 @@ class BinaryWorkbenchTabContextDTO:
     equates: dict[str, str] = field(default_factory=dict)
     variables: dict[str, str] = field(default_factory=dict)
     symbol_offsets: dict[str, list[str]] = field(default_factory=dict)
+    symbol_definitions: tuple[dict[str, object], ...] = ()
+    symbol_migration_pending: bool = False
+    symbol_catalog_revision: int = 0
+    lazy_symbol_payload: dict[str, object] = field(default_factory=dict)
+    symbol_migration_conflicts: tuple[str, ...] = ()
     search_cache: dict[str, list[str]] = field(default_factory=dict)
     internal_files: list[BinaryWorkbenchInternalFileDTO] = field(default_factory=list)
     internal_file_start_lba: int | None = None
@@ -152,6 +157,10 @@ class BinaryWorkbenchStateDTO:
     tabs: list[BinaryWorkbenchTabContextDTO] = field(default_factory=list)
     active_tab_id: str | None = None
     global_symbols: dict[str, str] = field(default_factory=dict)
+    global_symbol_definitions: tuple[dict[str, object], ...] = ()
+    global_symbol_migration_conflicts: tuple[str, ...] = ()
+    schema_version: int = 3
+    workspace_id: str = ""
     share_view_preferences: bool = False
     directories: dict[str, str] = field(default_factory=_default_binary_workbench_directories)
     commands_by_arch: dict[str, dict[str, list[str]]] = field(default_factory=dict)

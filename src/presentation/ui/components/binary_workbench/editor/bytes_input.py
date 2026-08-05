@@ -43,8 +43,12 @@ def bytes_paste_replacement(
         replacement = _shift_replacement(text) if allow_line_shift else _format_hex_line(_hex_stream(text))
     if replacement is None:
         return None
-    updated = f"{document_text[:start]}{replacement}{document_text[end:]}"
-    return replacement if _document_is_valid(updated) else None
+    return replacement if _affected_region_is_valid(
+        document_text,
+        start,
+        end,
+        replacement,
+    ) else None
 
 
 def bytes_delete_allowed(editor, previous: bool, allow_line_shift: bool) -> bool:
@@ -136,6 +140,24 @@ def _delete_range(editor, previous: bool) -> tuple[int, int]:
 
 def _document_is_valid(text: str) -> bool:
     return all(_line_is_valid(line) for line in text.split("\n"))
+
+
+def _affected_region_is_valid(
+    document_text: str,
+    start: int,
+    end: int,
+    replacement: str,
+) -> bool:
+    """Validate only lines touched by paste, ignoring protected display rows."""
+
+    region_start, _ = _line_bounds(document_text, start)
+    _, region_end = _line_bounds(document_text, end)
+    affected = (
+        document_text[region_start:start]
+        + replacement
+        + document_text[end:region_end]
+    )
+    return _document_is_valid(affected)
 
 
 def _line_is_valid(line: str) -> bool:

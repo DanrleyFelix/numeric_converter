@@ -8,6 +8,10 @@ from src.modules.application_dtos import (
     WorkspaceStateDTO,
 )
 from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO
+from src.core.binary_workbench.symbols.compatibility import (
+    SYMBOL_SCHEMA_VERSION,
+    SymbolSchemaMigrator,
+)
 from src.presentation.repository.binary_workbench_payload import (
     binary_workbench_state_from_payload,
     binary_workbench_state_to_payload,
@@ -95,6 +99,16 @@ class BinaryWorkbenchContextRepository:
         payload = _read_binary_workbench_json(target)
         if not isinstance(payload, dict):
             return BinaryWorkbenchStateDTO()
+        if _needs_symbol_migration(payload):
+            active = payload.get("active_tab_id")
+            report = SymbolSchemaMigrator().migrate_file(
+                target,
+                active if isinstance(active, str) else None,
+            )
+            if report.success:
+                migrated = _read_binary_workbench_json(target)
+                if isinstance(migrated, dict):
+                    payload = migrated
         return binary_workbench_state_from_payload(payload)
 
     def save(
@@ -120,6 +134,21 @@ def _read_binary_workbench_json(path: Path) -> object:
         return json.loads(text)
     except json.JSONDecodeError:
         return {}
+
+
+def _needs_symbol_migration(payload: dict[str, object]) -> bool:
+    """Detect legacy symbol fields in the root or currently active tab."""
+
+    if int(payload.get("schema_version", 0) or 0) < SYMBOL_SCHEMA_VERSION:
+        return True
+    active = payload.get("active_tab_id")
+    for raw in payload.get("tabs", []) if isinstance(payload.get("tabs"), list) else []:
+        if not isinstance(raw, dict) or raw.get("tab_id") != active:
+            continue
+        return "symbol_definitions" not in raw and any(
+            key in raw for key in ("symbols", "variables", "equates")
+        )
+    return False
 
 
 class ProgramContextRepository:

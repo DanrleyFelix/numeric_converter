@@ -1,5 +1,6 @@
 from dataclasses import replace
 from pathlib import Path
+from uuid import uuid4
 
 from PySide6.QtCore import QSignalBlocker
 
@@ -9,6 +10,7 @@ from src.core.binary_workbench.internal_file_patch import (
 from src.core.binary_workbench.internal_file_region import define_internal_file_region
 from src.core.binary_workbench.internal_offset_mapper import InternalOffsetMapper
 from src.core.binary_workbench.symbol_values import merged_symbol_values
+from src.core.binary_workbench.symbols import SymbolRuntime
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchStateDTO,
@@ -83,7 +85,14 @@ class TabStateMixin:
             self._stale_context_pages.clear()
             self._workspace_tab_access.clear()
             self._state = restorable_state(state)
+            if not self._state.workspace_id:
+                self._state = BinaryWorkbenchStateDTO(
+                    **{**state_payload(self._state), "workspace_id": str(uuid4())}
+                )
+            self._symbol_runtime = SymbolRuntime(self._state.workspace_id)
             self._global_symbols = merged_symbol_values(self._state.global_symbols)
+            self._symbol_runtime.set_global_definitions(self._global_symbols)
+            active_tab_id = self._state.active_tab_id
             self._state = BinaryWorkbenchStateDTO(
                 **{
                     **state_payload(self._state),
@@ -92,6 +101,8 @@ class TabStateMixin:
                             self._context_with_global_symbols(
                                 self._context_with_universal_commands(tab)
                             )
+                            if tab.tab_id == active_tab_id
+                            else self._context_with_universal_commands(tab)
                         )
                         for tab in self._state.tabs
                     ],
@@ -262,6 +273,8 @@ class TabStateMixin:
         if not isinstance(context, BinaryWorkbenchTabContextDTO):
             return
         previous = next((tab for tab in self._state.tabs if tab.tab_id == tab_id), None)
+        if previous is not None and previous.rows is not context.rows:
+            self._symbol_runtime.discard_tab(tab_id)
         if previous is not None and previous.custom_commands != context.custom_commands:
             context = self._sync_universal_commands_from_context(context)
         if previous is not None and _is_transient_visible_context_update(previous, context):
@@ -508,6 +521,8 @@ class TabStateMixin:
                 return
         self._state = BinaryWorkbenchStateDTO(**{**state_payload(self._state), "active_tab_id": self._state.tabs[index].tab_id})
         context = self._state.tabs[index]
+        context = self._materialize_symbol_context(context, self.widget(index))
+        self._replace_context_without_emit(context.tab_id, context)
         if context.tab_id in self._stale_context_pages:
             self._stale_context_pages.discard(context.tab_id)
             page = self.widget(index)

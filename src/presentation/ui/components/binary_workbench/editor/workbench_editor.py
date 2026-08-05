@@ -36,6 +36,8 @@ from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import
     normalize_instruction_text,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    capture_logical_cursor,
+    restore_logical_cursor,
     set_cursor_position,
 )
 from src.presentation.ui.helpers.load_qss import STYLESHEET
@@ -75,6 +77,7 @@ class WorkbenchEditor(
     viewportChangeFinished = Signal(object)
     returnKeyPressed = Signal(object, object)
     editAboutToStart = Signal(object, object)
+    editFinished = Signal(object)
     protectedEditKeyPressed = Signal(object, object)
     navigationWarningRequested = Signal(str)
     labelFoldToggled = Signal(str)
@@ -122,6 +125,7 @@ class WorkbenchEditor(
         self._left_mouse_selecting = False
         self._return_key_handled = False
         self._protected_edit_key_handled = False
+        self._edit_preflight_handled = False
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
         self._completion_navigation_timer = QTimer(self)
@@ -255,12 +259,18 @@ class WorkbenchEditor(
             self.setTextCursor(cursor)
         self._stop_selection_scroll()
         super().focusOutEvent(event)
+        self.editFinished.emit(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in _COMPLETION_NAVIGATION_KEYS:
             self._debounce_completions_after_navigation()
         if _may_edit_document(event):
+            self._edit_preflight_handled = False
+            self.clear_bytes_row_removal_authorization()
             self.editAboutToStart.emit(self, event)
+            if self._edit_preflight_handled:
+                event.accept()
+                return
         if self.handle_immediate_symbol_shortcut(event.key(), event.modifiers()):
             event.accept()
             return
@@ -273,7 +283,7 @@ class WorkbenchEditor(
             return
         if event.matches(QKeySequence.Undo):
             self.clear_editor_occurrence_selection()
-            self.undo()
+            self._run_history_action(self.undo)
             event.accept()
             return
         if event.matches(QKeySequence.Redo) or (
@@ -281,7 +291,7 @@ class WorkbenchEditor(
             and bool(event.modifiers() & Qt.ControlModifier)
             and bool(event.modifiers() & Qt.ShiftModifier)
         ):
-            self.redo()
+            self._run_history_action(self.redo)
             event.accept()
             return
         if event.matches(QKeySequence.SelectAll):
@@ -351,6 +361,71 @@ class WorkbenchEditor(
         super().keyPressEvent(event)
         self._refresh_completions()
         self._normalize_instruction_after_comment_start(event.text())
+
+    def _run_history_action(self, action) -> None:
+        """Run undo/redo without letting Qt relocate the typing viewport."""
+
+        cursor_state = capture_logical_cursor(self)
+        local_scroll = self.verticalScrollBar().value()
+        shared_scroll = (
+            self._shared_scrollbar.value()
+            if self._shared_scrollbar is not None
+            else None
+        )
+        action()
+        self._restore_history_interaction(cursor_state, local_scroll, shared_scroll)
+        QTimer.singleShot(
+            0,
+            lambda: self._restore_history_interaction(
+                cursor_state,
+                local_scroll,
+                shared_scroll,
+            ),
+        )
+
+    def _restore_history_interaction(
+        self,
+        cursor_state,
+        local_scroll: int,
+        shared_scroll: int | None,
+    ) -> None:
+        """Restore row-relative cursor and scroll state after queued projections."""
+
+        editor_blocker = QSignalBlocker(self)
+        local_bar = self.verticalScrollBar()
+        local_blocker = QSignalBlocker(local_bar)
+        shared_blocker = (
+            QSignalBlocker(self._shared_scrollbar)
+            if self._shared_scrollbar is not None
+            else None
+        )
+        restore_logical_cursor(self, cursor_state)
+        # The column layout reparents this editor into its shell.  The shared
+        # scrollbar, however, remains owned by BinaryWorkbenchGrid and is the
+        # stable route back to the component that synchronizes every column.
+        parent = (
+            self._shared_scrollbar.parentWidget()
+            if self._shared_scrollbar is not None
+            else self.parentWidget()
+        )
+        synchronize_static = (
+            getattr(parent, "_scroll_static_document", None)
+            if parent is not None and not getattr(parent, "_virtual", False)
+            else None
+        )
+        if synchronize_static is None:
+            local_bar.setValue(min(local_scroll, local_bar.maximum()))
+        if self._shared_scrollbar is not None and shared_scroll is not None:
+            self._shared_scrollbar.setValue(
+                min(shared_scroll, self._shared_scrollbar.maximum())
+            )
+        del shared_blocker
+        del local_blocker
+        del editor_blocker
+        if synchronize_static is not None and shared_scroll is not None:
+            synchronize_static(
+                min(shared_scroll, self._shared_scrollbar.maximum())
+            )
 
     def _normalize_instruction_after_comment_start(self, text: str) -> None:
         if text in {";", "#"}:
@@ -437,7 +512,7 @@ class WorkbenchEditor(
         position = byte_cursor_position(normalized, raw_index)
         if trailing_group_space and raw_index == len(raw):
             position = len(normalized)
-        cursor.setPosition(block.position() + position)
+        set_cursor_position(cursor, block.position() + position)
 
     def _hex_text_event(self, event: QKeyEvent) -> QKeyEvent | None:
         text = event.text()
@@ -466,6 +541,11 @@ class WorkbenchEditor(
 
     def mark_protected_edit_key_handled(self) -> None:
         self._protected_edit_key_handled = True
+
+    def mark_edit_preflight_handled(self) -> None:
+        """Stop one mutating key event before it reaches the Qt document."""
+
+        self._edit_preflight_handled = True
 
     def wheelEvent(self, event) -> None:
         if self._shared_scrollbar is None:

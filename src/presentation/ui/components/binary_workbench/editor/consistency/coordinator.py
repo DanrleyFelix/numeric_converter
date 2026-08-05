@@ -24,6 +24,7 @@ from src.core.binary_workbench.editor_consistency.classification import (
 from src.core.binary_workbench.editor_consistency.constants import OFFSET_BATCH_SIZE
 from src.core.binary_workbench.editor_consistency.distribution import (
     LineContributionIndex,
+    RangeConsistencyIndex,
     incremental_offset_values,
 )
 from src.core.binary_workbench.codec_registry import binary_workbench_worker_codec_for
@@ -34,6 +35,8 @@ from src.presentation.ui.components.binary_workbench.constant_groups.timing impo
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.consistency.projection import (
+    apply_bytes_line_contents,
+    apply_bytes_structure_splice,
     apply_full_projection,
     apply_line_contents,
     apply_offset_values,
@@ -71,9 +74,12 @@ class EditorConsistencyCoordinator(QObject):
         self._dirty_from_line: int | None = None
         self._pending_first: int | None = None
         self._pending_last: int | None = None
+        self._explicit_dirty_lines: set[int] = set()
         self._operation_depth = 0
         self._collector_scheduled = False
         self._viewport_restart_scheduled = False
+        self._pending_bytes_content_batches: list[LineContentBatch] = []
+        self._range_consistency = RangeConsistencyIndex()
         self._barrier_active = False
         self._visual_token: CancellationToken | None = None
         self._semantic_token: CancellationToken | None = None
@@ -83,7 +89,13 @@ class EditorConsistencyCoordinator(QObject):
         self._visual_quiet = self._timer(BINARY_WORKBENCH_TIMING.CONSISTENCY_VISUAL_DEBOUNCE_MS, self._start_visual)
         self._visual_maximum = self._timer(BINARY_WORKBENCH_TIMING.CONSISTENCY_VISUAL_MAX_LATENCY_MS, self._start_visual)
         self._semantic_timer = self._timer(BINARY_WORKBENCH_TIMING.CONSISTENCY_SEMANTIC_DEBOUNCE_MS, self._start_semantic)
+        self._viewport_timer = self._timer(
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_SCROLL_FRAME_MS,
+            self._prioritize_coalesced_viewport,
+        )
+        self._bytes_content_timer = self._timer(0, self._flush_bytes_content_batch)
         grid.instructions.document().contentsChange.connect(self.collect_contents_change)
+        grid.scrollbar.valueChanged.connect(lambda _value: self.prioritize_viewport())
 
     def _timer(self, interval: int, callback) -> QTimer:
         timer = QTimer(self)
@@ -141,10 +153,259 @@ class EditorConsistencyCoordinator(QObject):
         self._dependency_index = _dependency_index(rows)
         self._dirty_ranges = ()
         self._dirty_from_line = None
+        self._range_consistency.reset(len(rows), self.structural_revision)
         self._clear_collector()
         self.visual_revision_applied = self.structural_revision
         self.semantic_revision_applied = self.source_revision
         self.state = ConsistencyState.CLEAN
+
+    def accept_synchronous_rows(self, rows: list[BinaryWorkbenchRowDTO]) -> None:
+        """Adopt a complete Bytes-origin projection as the current revision."""
+
+        previous_sizes = tuple(_row_size(row) for row in self._model_rows)
+        current_sizes = tuple(_row_size(row) for row in rows)
+        self.cancel_pending()
+        self.source_revision += 1
+        if previous_sizes != current_sizes:
+            self.structural_revision += 1
+        self._model_rows = list(rows)
+        self._line_revisions = [self.source_revision] * len(rows)
+        self._contributions = LineContributionIndex(current_sizes)
+        self._dependency_index = _dependency_index(rows)
+        self._dirty_ranges = ()
+        self._dirty_from_line = None
+        self._range_consistency.reset(len(rows), self.structural_revision)
+        self._clear_collector()
+        self.visual_revision_applied = self.structural_revision
+        self.semantic_revision_applied = self.source_revision
+        self.state = ConsistencyState.CLEAN
+
+    def accept_bytes_line(self, index: int, row: BinaryWorkbenchRowDTO) -> None:
+        """Adopt and project one complete Bytes-origin row proportionally."""
+
+        if not 0 <= index < len(self._model_rows):
+            return
+        previous = self._model_rows[index]
+        previous_size = _row_size(previous)
+        current_size = _row_size(row)
+        self.cancel_pending()
+        self.source_revision += 1
+        self._model_rows[index] = row
+        self._line_revisions[index] = self.source_revision
+        self._contributions.splice(index, 1, [current_size])
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        self.grid._set_editor_line(
+            self.grid.instructions,
+            index,
+            self.grid._display_instruction(row.instruction),
+        )
+        # Bytes is the authoritative editor for this transaction. Keep the
+        # user's configured casing/grouping and patch only its derived peers.
+        self.grid._set_editor_line(
+            self.grid.decoded_text,
+            index,
+            self.grid._display_decoded_row(row),
+        )
+        self.grid._set_editor_line(
+            self.grid.raw_instructions,
+            index,
+            self.grid._display_raw_row(row),
+        )
+        self._clear_collector()
+        self._refresh_dependency_range(index, 1)
+        if previous_size != current_size:
+            self.structural_revision += 1
+            self._range_consistency.invalidate_from(
+                index,
+                len(self._model_rows),
+                self.structural_revision,
+            )
+            immediate_last = self._apply_immediate_offsets(index)
+            if immediate_last < len(self._model_rows) - 1:
+                self._dirty_ranges = merge_dirty_ranges(
+                    self._dirty_ranges,
+                    DirtyRange(index, len(self._model_rows) - 1),
+                )
+                self._dirty_from_line = index
+                self._schedule_visual()
+            else:
+                self.visual_revision_applied = self.structural_revision
+        else:
+            self.visual_revision_applied = self.structural_revision
+        if previous_size != current_size and index < len(self._model_rows) - 1:
+            self._invalidate_semantic()
+            self._schedule_semantic()
+        else:
+            self.semantic_revision_applied = self.source_revision
+            self.state &= ~ConsistencyState.DIRTY_SEMANTIC
+            self.state &= ~ConsistencyState.RECALCULATING_SEMANTIC
+        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+        self.grid._emit_selection_summary()
+        self.grid._dirty_editor_kind = None
+
+    def accept_bytes_lines(
+        self,
+        rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+    ) -> None:
+        """Adopt many Bytes rows and commit the active viewport first."""
+
+        changed = tuple(
+            (index, row)
+            for index, row in rows
+            if 0 <= index < len(self._model_rows)
+        )
+        if not changed:
+            return
+        self.cancel_pending()
+        self.source_revision += 1
+        structural_from: int | None = None
+        for index, row in changed:
+            previous_size = _row_size(self._model_rows[index])
+            current_size = _row_size(row)
+            self._model_rows[index] = row
+            self._line_revisions[index] = self.source_revision
+            self._contributions.splice(index, 1, [current_size])
+            if previous_size != current_size:
+                structural_from = (
+                    index
+                    if structural_from is None
+                    else min(structural_from, index)
+                )
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        self._clear_collector()
+        viewport = self._viewport_range()
+        immediate, deferred = _viewport_first_rows(changed, viewport, OFFSET_BATCH_SIZE)
+        apply_bytes_line_contents(self.grid, immediate)
+        self._queue_bytes_content(deferred)
+        for index, _row in changed:
+            self._refresh_dependency_range(index, 1)
+        if structural_from is not None:
+            self.structural_revision += 1
+            self._range_consistency.invalidate_from(
+                structural_from,
+                len(self._model_rows),
+                self.structural_revision,
+            )
+            self._invalidate_visual()
+            self._invalidate_semantic()
+            immediate_last = self._apply_immediate_offsets(structural_from)
+            if not (
+                structural_from <= viewport.first
+                and viewport.last <= immediate_last
+            ):
+                self._apply_offset_window(
+                    viewport.first,
+                    viewport.last - viewport.first + 1,
+                )
+            if immediate_last < len(self._model_rows) - 1:
+                self._dirty_ranges = merge_dirty_ranges(
+                    self._dirty_ranges,
+                    DirtyRange(structural_from, len(self._model_rows) - 1),
+                )
+                self._dirty_from_line = structural_from
+                self._schedule_visual()
+            else:
+                self.visual_revision_applied = self.structural_revision
+            self._schedule_semantic()
+        else:
+            self.visual_revision_applied = self.structural_revision
+            self.semantic_revision_applied = self.source_revision
+            self.state &= ~ConsistencyState.DIRTY_SEMANTIC
+            self.state &= ~ConsistencyState.RECALCULATING_SEMANTIC
+        if not self._pending_bytes_content_batches:
+            self._finish_bytes_content_projection()
+
+    def _queue_bytes_content(
+        self,
+        rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+    ) -> None:
+        for first in range(0, len(rows), OFFSET_BATCH_SIZE):
+            self._pending_bytes_content_batches.append(LineContentBatch(
+                self.owner,
+                self.source_revision,
+                self.visual_generation,
+                rows[first : first + OFFSET_BATCH_SIZE],
+            ))
+        if self._pending_bytes_content_batches:
+            self._bytes_content_timer.start()
+
+    def _flush_bytes_content_batch(self) -> None:
+        if not self._pending_bytes_content_batches:
+            return
+        batch = self._pending_bytes_content_batches.pop(0)
+        if (
+            batch.owner == self.owner
+            and batch.source_revision == self.source_revision
+            and batch.generation == self.visual_generation
+        ):
+            apply_bytes_line_contents(self.grid, batch.rows)
+        if self._pending_bytes_content_batches:
+            self._bytes_content_timer.start()
+        else:
+            self._finish_bytes_content_projection()
+
+    def _finish_bytes_content_projection(self) -> None:
+        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+        self.grid._emit_selection_summary()
+        self.grid._dirty_editor_kind = None
+
+    def accept_bytes_structure_splice(
+        self,
+        first: int,
+        removed: int,
+        inserted: list[BinaryWorkbenchRowDTO],
+    ) -> None:
+        """Commit one Bytes-origin row splice and defer only its shifted suffix."""
+
+        first = min(max(0, first), len(self._model_rows))
+        removed = min(max(0, removed), len(self._model_rows) - first)
+        self.cancel_pending()
+        self.source_revision += 1
+        self.structural_revision += 1
+        self._model_rows[first : first + removed] = inserted
+        self._line_revisions[first : first + removed] = [self.source_revision] * len(inserted)
+        self._contributions.splice(
+            first,
+            removed,
+            [_row_size(row) for row in inserted],
+        )
+        self._dependency_index = {}
+        self._range_consistency.invalidate_from(
+            first,
+            len(self._model_rows),
+            self.structural_revision,
+        )
+        self._invalidate_visual()
+        self._invalidate_semantic()
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        apply_bytes_structure_splice(self.grid, first, removed, inserted)
+        immediate_last = self._apply_immediate_offsets(first)
+        viewport = self._viewport_range()
+        if not (first <= viewport.first and viewport.last <= immediate_last):
+            self._apply_offset_window(
+                viewport.first,
+                viewport.last - viewport.first + 1,
+            )
+        if immediate_last < len(self._model_rows) - 1:
+            self._dirty_ranges = merge_dirty_ranges(
+                self._dirty_ranges,
+                DirtyRange(first, len(self._model_rows) - 1),
+            )
+            self._dirty_from_line = first
+            self._schedule_visual()
+        else:
+            self._dirty_ranges = ()
+            self._dirty_from_line = None
+            self.visual_revision_applied = self.structural_revision
+            self.state &= ~ConsistencyState.DIRTY_VISUAL
+            self.state &= ~ConsistencyState.RECALCULATING_VISUAL
+        self._schedule_semantic()
+        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+        self.grid._emit_selection_summary()
+        self.grid._dirty_editor_kind = None
 
     def begin_edit_operation(self, _kind: str = "edit") -> None:
         """Begin one explicit multi-signal logical edit operation."""
@@ -181,6 +442,23 @@ class EditorConsistencyCoordinator(QObject):
             self._collector_scheduled = True
             QTimer.singleShot(0, self.flush_collected_changes)
 
+    def register_source_edit_ranges(
+        self,
+        ranges: list[tuple[int, int]],
+    ) -> None:
+        """Capture exact Assembly blocks before one native edit mutates positions."""
+
+        document = self.grid.instructions.document()
+        for start, end in ranges:
+            first_block = document.findBlock(max(0, start))
+            last_position = max(start, end - 1)
+            last_block = document.findBlock(max(0, last_position))
+            if not first_block.isValid():
+                continue
+            first = first_block.blockNumber()
+            last = first if not last_block.isValid() else last_block.blockNumber()
+            self._explicit_dirty_lines.update(range(first, last + 1))
+
     def note_text_changed(self) -> None:
         """Mark the authoritative editor dirty without reading its full text."""
 
@@ -193,11 +471,15 @@ class EditorConsistencyCoordinator(QObject):
         if self._operation_depth or self._pending_first is None or not self.enabled():
             return
         first, last = self._pending_first, self._pending_last or self._pending_first
+        explicit_lines = tuple(sorted(self._explicit_dirty_lines))
         self._clear_collector()
         self.source_revision += 1
         old_count = len(self._model_rows)
         new_count = self.grid.instructions.document().blockCount()
         delta = new_count - old_count
+        if delta == 0 and len(explicit_lines) > 1:
+            self._apply_exact_source_lines(explicit_lines)
+            return
         new_span = max(1, last - first + 1, delta + 1)
         new_span = min(new_span, max(0, new_count - first))
         old_span = min(max(0, new_span - delta), max(0, old_count - first))
@@ -246,6 +528,11 @@ class EditorConsistencyCoordinator(QObject):
             )
             current_sizes = [_row_size(row) for row in rows]
         self.structural_revision += 1
+        self._range_consistency.invalidate_from(
+            first,
+            len(self._model_rows),
+            self.structural_revision,
+        )
         self._invalidate_visual()
         self._invalidate_semantic()
         self.grid._rows = list(self._model_rows)
@@ -275,10 +562,93 @@ class EditorConsistencyCoordinator(QObject):
             self.visual_revision_applied = self.structural_revision
             self.state &= ~ConsistencyState.DIRTY_VISUAL
             self.state &= ~ConsistencyState.RECALCULATING_VISUAL
+            # The immediate bounded projection is the complete visual commit
+            # for short documents.  Without this notification, the editors
+            # show the new rows while the owning tab keeps its previous model.
+            self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+            self.grid._dirty_editor_kind = None
         self._schedule_semantic()
 
+    def _apply_exact_source_lines(self, indices: tuple[int, ...]) -> None:
+        """Project non-contiguous Assembly edits without rebuilding their span."""
+
+        changed: list[tuple[int, BinaryWorkbenchRowDTO]] = []
+        structural_from: int | None = None
+        labels_changed = False
+        for index in indices:
+            if not 0 <= index < len(self._model_rows):
+                continue
+            block = self.grid.instructions.document().findBlockByNumber(index)
+            if not block.isValid():
+                continue
+            previous = self._model_rows[index]
+            rebuilt = self._derive_lines(index, [block.text()])
+            row = (
+                rebuilt[0]
+                if rebuilt and len(rebuilt) == 1
+                else BinaryWorkbenchRowDTO({}, block.text(), "")
+            )
+            previous_size = _row_size(previous)
+            current_size = _row_size(row)
+            labels_changed = labels_changed or (
+                declared_label(previous.instruction)
+                != declared_label(row.instruction)
+            )
+            self._model_rows[index] = row
+            self._line_revisions[index] = self.source_revision
+            self._contributions.splice(index, 1, [current_size])
+            self._refresh_dependency_range(index, 1)
+            changed.append((index, row))
+            if previous_size != current_size:
+                structural_from = (
+                    index
+                    if structural_from is None
+                    else min(structural_from, index)
+                )
+        if not changed:
+            return
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        apply_line_contents(self.grid, tuple(changed))
+        if labels_changed:
+            self.grid._set_editing_labels(labels_from_source_rows(self._model_rows))
+        if structural_from is not None:
+            self.structural_revision += 1
+            self._range_consistency.invalidate_from(
+                structural_from,
+                len(self._model_rows),
+                self.structural_revision,
+            )
+            self._invalidate_visual()
+            immediate_last = self._apply_immediate_offsets(structural_from)
+            viewport = self._viewport_range()
+            if not (
+                structural_from <= viewport.first
+                and viewport.last <= immediate_last
+            ):
+                self._apply_offset_window(
+                    viewport.first,
+                    viewport.last - viewport.first + 1,
+                )
+            if immediate_last < len(self._model_rows) - 1:
+                self._dirty_ranges = merge_dirty_ranges(
+                    self._dirty_ranges,
+                    DirtyRange(structural_from, len(self._model_rows) - 1),
+                )
+                self._dirty_from_line = structural_from
+                self._schedule_visual()
+        else:
+            self.visual_revision_applied = self.structural_revision
+        if structural_from is not None or labels_changed:
+            self._invalidate_semantic()
+            self._schedule_semantic()
+        else:
+            self.semantic_revision_applied = self.source_revision
+        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+        self.grid._dirty_editor_kind = None
+
     def _apply_immediate_offsets(self, first: int) -> int:
-        """Project the current affected offset and its first bounded batch now."""
+        """Update one model batch but paint only the edited row and viewport."""
 
         values = incremental_offset_values(
             self._contributions.snapshot(),
@@ -300,8 +670,52 @@ class EditorConsistencyCoordinator(QObject):
             )
         self.grid._rows = list(self._model_rows)
         self.grid._all_rows = list(self._model_rows)
-        apply_offset_values(self.grid, values)
+        viewport = self._viewport_range()
+        priority = tuple(
+            item
+            for item in values
+            if item[0] == first or viewport.first <= item[0] <= viewport.last
+        )
+        apply_offset_values(self.grid, priority)
+        self._range_consistency.mark(
+            tuple(index for index, _offsets in priority),
+            self.structural_revision,
+        )
         return values[-1][0]
+
+    def _apply_offset_window(
+        self,
+        first: int,
+        count: int,
+    ) -> tuple[tuple[int, dict[str, str]], ...]:
+        """Project one bounded offset window from the indexed prefix base."""
+
+        values = incremental_offset_values(
+            self._contributions.snapshot(),
+            first,
+            count,
+            tuple(self.grid._columns or [BINARY_WORKBENCH_TEXT.FILE]),
+            self.grid._offset_base_text(),
+        )
+        if not values:
+            return ()
+        for index, offsets in values:
+            row = self._model_rows[index]
+            self._model_rows[index] = BinaryWorkbenchRowDTO(
+                offsets,
+                row.instruction,
+                row.bytes_text,
+                row.original_instruction,
+                row.original_bytes_text,
+            )
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        apply_offset_values(self.grid, values)
+        self._range_consistency.mark(
+            tuple(index for index, _offsets in values),
+            self.structural_revision,
+        )
+        return values
 
     def _apply_structural_label_delta(
         self,
@@ -431,6 +845,9 @@ class EditorConsistencyCoordinator(QObject):
 
     def _start_visual(self) -> None:
         self._viewport_restart_scheduled = False
+        if self._pending_bytes_content_batches:
+            self._visual_quiet.start()
+            return
         if not self._dirty_ranges or not self.enabled():
             return
         if (
@@ -483,6 +900,10 @@ class EditorConsistencyCoordinator(QObject):
             self.grid._rows = list(self._model_rows)
             self.grid._all_rows = list(self._model_rows)
             apply_offset_values(self.grid, batch.values)
+            self._range_consistency.mark(
+                tuple(index for index, _offsets in batch.values),
+                batch.structural_revision,
+            )
             direct = tuple(
                 (index, self._model_rows[index])
                 for index, _ in batch.values
@@ -515,6 +936,9 @@ class EditorConsistencyCoordinator(QObject):
         self.grid._dirty_editor_kind = None
 
     def _start_semantic(self) -> None:
+        if self._pending_bytes_content_batches:
+            self._semantic_timer.start()
+            return
         if not self.enabled():
             return
         self.semantic_generation += 1
@@ -582,6 +1006,7 @@ class EditorConsistencyCoordinator(QObject):
         self._model_rows = rows
         self._line_revisions = [self.source_revision] * len(rows)
         self._contributions = LineContributionIndex(current_sizes)
+        self._range_consistency.reset(len(rows), self.structural_revision)
         self._dependency_index = _dependency_index(rows)
         self.grid._set_editing_labels(dict(result.labels))
         self.grid.raw_instructions.set_hazard_extra_selections([])
@@ -638,6 +1063,7 @@ class EditorConsistencyCoordinator(QObject):
             self._model_rows = list(rows)
             self._line_revisions = [self.source_revision] * len(rows)
             self._contributions = LineContributionIndex(current_sizes)
+            self._range_consistency.reset(len(rows), self.structural_revision)
             self._dependency_index = _dependency_index(rows)
             self._dirty_ranges = ()
             self._dirty_from_line = None
@@ -678,12 +1104,23 @@ class EditorConsistencyCoordinator(QObject):
         """Repair the viewport immediately and establish a complete F1 revision."""
 
         self.flush_collected_changes()
+        if (
+            self.state == ConsistencyState.CLEAN
+            and self.visual_revision_applied == self.structural_revision
+            and self.semantic_revision_applied == self.source_revision
+        ):
+            return self.ensure_consistent("f1-clean")
         lines = self._document_lines()
         if not self.grid._bounded_refresh_available(lines):
             return self.ensure_consistent("f1")
         self.grid._refresh_bounded_source_rows(lines)
         self._model_rows = self.grid.export_rows()
         self._contributions = LineContributionIndex([_row_size(row) for row in self._model_rows])
+        self._range_consistency.invalidate_from(
+            0,
+            len(self._model_rows),
+            self.structural_revision,
+        )
         self._dependency_index = _dependency_index(self._model_rows)
         self._dirty_ranges = (DirtyRange(0, max(0, len(self._model_rows) - 1)),)
         self._dirty_from_line = 0
@@ -704,7 +1141,87 @@ class EditorConsistencyCoordinator(QObject):
     def prioritize_viewport(self) -> None:
         """Requeue a pending full projection around the newly visible region."""
 
-        if not self._dirty_ranges or self._viewport_restart_scheduled:
+        viewport = self._viewport_range()
+        if self._range_consistency.is_current(
+            viewport.first,
+            viewport.last,
+            self.structural_revision,
+        ):
+            return
+        if not self._dirty_ranges or self._viewport_timer.isActive():
+            return
+        self._viewport_timer.start()
+
+    def rederive_symbol_lines(self, indices: tuple[int, ...]) -> None:
+        """Rebuild only rows depending on changed Symbol definitions."""
+
+        active = tuple(sorted({
+            index for index in indices
+            if 0 <= index < len(self._model_rows)
+        }))
+        if not active or not self.enabled():
+            return
+        self.source_revision += 1
+        self._invalidate_semantic()
+        viewport = self._viewport_range()
+        prioritized = sorted(
+            active,
+            key=lambda index: (
+                0 if viewport.first <= index <= viewport.last else 1,
+                min(abs(index - viewport.first), abs(index - viewport.last)),
+                index,
+            ),
+        )
+        immediate = sorted(prioritized[:OFFSET_BATCH_SIZE])
+        changed: list[tuple[int, BinaryWorkbenchRowDTO]] = []
+        structural_from: int | None = None
+        for index in immediate:
+            rebuilt = self._derive_lines(index, [self._model_rows[index].instruction])
+            if not rebuilt:
+                continue
+            previous_size = _row_size(self._model_rows[index])
+            current_size = _row_size(rebuilt[0])
+            self._model_rows[index] = rebuilt[0]
+            self._line_revisions[index] = self.source_revision
+            self._contributions.splice(index, 1, [current_size])
+            changed.append((index, rebuilt[0]))
+            if previous_size != current_size:
+                structural_from = index if structural_from is None else min(
+                    structural_from, index
+                )
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        if changed:
+            self._apply_line_content_batch(LineContentBatch(
+                self.owner,
+                self.source_revision,
+                self.visual_generation,
+                tuple(changed),
+            ))
+        if structural_from is not None:
+            self.structural_revision += 1
+            self.visual_generation += 1
+            self._invalidate_visual()
+            self._range_consistency.invalidate_from(
+                structural_from,
+                len(self._model_rows),
+                self.structural_revision,
+            )
+            dirty = DirtyRange(structural_from, len(self._model_rows) - 1)
+            self._dirty_ranges = merge_dirty_ranges(self._dirty_ranges, dirty)
+            self._dirty_from_line = (
+                structural_from
+                if self._dirty_from_line is None
+                else min(self._dirty_from_line, structural_from)
+            )
+            self._schedule_visual()
+        self._schedule_semantic()
+        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+
+    def _prioritize_coalesced_viewport(self) -> None:
+        """Apply at most one viewport reprioritization per display frame."""
+
+        if self._viewport_restart_scheduled or not self._dirty_ranges:
             return
         self._viewport_restart_scheduled = True
         self._invalidate_visual()
@@ -716,6 +1233,9 @@ class EditorConsistencyCoordinator(QObject):
         self._visual_quiet.stop()
         self._visual_maximum.stop()
         self._semantic_timer.stop()
+        self._viewport_timer.stop()
+        self._bytes_content_timer.stop()
+        self._pending_bytes_content_batches.clear()
         self.visual_generation += 1
         self.semantic_generation += 1
         if self._visual_token is not None:
@@ -799,6 +1319,7 @@ class EditorConsistencyCoordinator(QObject):
     def _clear_collector(self) -> None:
         self._pending_first = None
         self._pending_last = None
+        self._explicit_dirty_lines.clear()
         self._collector_scheduled = False
 
     def _worker_failed(self, phase: str, message: str) -> None:
@@ -824,6 +1345,31 @@ def _row_size(row: BinaryWorkbenchRowDTO) -> int:
         return len(bytes.fromhex(row.bytes_text.replace(" ", "")))
     except ValueError:
         return 0
+
+
+def _viewport_first_rows(
+    rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+    viewport: DirtyRange,
+    limit: int,
+) -> tuple[
+    tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+    tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+]:
+    """Return one immediate viewport batch and bounded deferred remainder."""
+
+    visible = [item for item in rows if viewport.first <= item[0] <= viewport.last]
+    visible_ids = {index for index, _row in visible}
+    nearest = sorted(
+        (item for item in rows if item[0] not in visible_ids),
+        key=lambda item: min(
+            abs(item[0] - viewport.first),
+            abs(item[0] - viewport.last),
+        ),
+    )
+    immediate = tuple([*visible, *nearest[: max(0, limit - len(visible))]])
+    immediate_ids = {index for index, _row in immediate}
+    deferred = tuple(item for item in rows if item[0] not in immediate_ids)
+    return immediate, deferred
 
 
 _SYMBOL = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

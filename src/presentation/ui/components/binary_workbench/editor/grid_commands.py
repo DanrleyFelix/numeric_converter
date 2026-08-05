@@ -4,6 +4,10 @@ from pathlib import Path
 
 from PySide6.QtGui import QTextCursor
 
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
+
 from src.core.binary_workbench.editor.commands.custom import (
     create_custom_command,
     selected_command_lines,
@@ -124,8 +128,8 @@ class GridCommandsMixin:
         if not first.isValid() or not last.isValid():
             return
         cursor = QTextCursor(editor.document())
-        cursor.setPosition(first.position())
-        cursor.setPosition(last.position() + len(last.text()), QTextCursor.KeepAnchor)
+        set_cursor_position(cursor, first.position())
+        set_cursor_position(cursor, last.position() + len(last.text()), QTextCursor.KeepAnchor)
         cursor.beginEditBlock()
         cursor.insertText("\n".join(lines))
         cursor.endEditBlock()

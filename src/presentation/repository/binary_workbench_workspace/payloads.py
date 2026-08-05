@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any
+from uuid import NAMESPACE_URL, uuid5
 
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
@@ -34,6 +35,12 @@ from src.core.binary_workbench.version_overlays import instruction_overlays_from
 from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.resource_identity import file_resource_identifiers
 from src.core.binary_workbench.symbol_values import merged_symbol_values
+from src.core.binary_workbench.symbols.compatibility import (
+    LegacySymbolsPayloadAdapter,
+    SYMBOL_SCHEMA_VERSION,
+    definitions_payload,
+)
+from src.core.binary_workbench.symbols.definitions import SymbolScope
 
 
 def checksum(payload: dict[str, Any]) -> str:
@@ -80,13 +87,23 @@ def symbols_payload(
     symbols: dict[str, str],
     legacy_equates: dict[str, str] | None = None,
 ) -> dict[str, object]:
+    values = merged_symbol_values(
+        symbols if legacy_equates is None else None,
+        symbols if legacy_equates is not None else None,
+        legacy_equates,
+    )
+    module_id = str(uuid5(NAMESPACE_URL, f"binary-workbench-symbol-module:{name.casefold()}"))
+    definitions = tuple(LegacySymbolsPayloadAdapter(module_id).from_mapping(
+        values,
+        SymbolScope.LOCAL,
+        f"module:{module_id}",
+    ))
     return {
+        "schema_version": SYMBOL_SCHEMA_VERSION,
+        "module_id": module_id,
         "name": name,
-        "symbols": merged_symbol_values(
-            symbols if legacy_equates is None else None,
-            symbols if legacy_equates is not None else None,
-            legacy_equates,
-        ),
+        "symbol_definitions": definitions_payload(definitions),
+        "symbols": values,
     }
 
 
@@ -313,11 +330,16 @@ def versions_payload(
 def symbols_from_payload(payload: dict[str, object] | None) -> tuple[dict[str, str], dict[str, str]]:
     if not isinstance(payload, dict):
         return {}, {}
-    symbols = merged_symbol_values(
-        normalize_string_map(payload.get("symbols")),
-        normalize_string_map(payload.get("variables")),
-        normalize_string_map(payload.get("equates")),
+    module_id = str(payload.get("module_id") or uuid5(
+        NAMESPACE_URL,
+        f"binary-workbench-symbol-module:{str(payload.get('name', '')).casefold()}",
+    ))
+    adapted = LegacySymbolsPayloadAdapter(module_id).adapt(
+        payload,
+        SymbolScope.LOCAL,
+        f"module:{module_id}",
     )
+    symbols = {item.name: item.value for item in adapted.definitions}
     return symbols, symbols
 
 

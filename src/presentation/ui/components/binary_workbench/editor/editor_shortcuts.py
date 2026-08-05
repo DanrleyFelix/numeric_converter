@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence, QTextCursor
 from PySide6.QtWidgets import QApplication, QTextEdit
 
@@ -30,6 +30,7 @@ class EditorShortcutMixin:
     def setup_editor_shortcuts(self) -> None:
         self._large_binary_mode = False
         self._bytes_line_shift_allowed = False
+        self._bytes_row_removal_authorized = False
         self._occurrence_query = ""
         self._occurrence_ranges: list[tuple[int, int]] = []
 
@@ -41,6 +42,21 @@ class EditorShortcutMixin:
 
     def bytes_line_shift_allowed(self) -> bool:
         return self._bytes_line_shift_allowed
+
+    def authorize_bytes_row_removal(self) -> None:
+        """Allow one preflight-validated plain or empty row removal."""
+
+        self._bytes_row_removal_authorized = True
+
+    def clear_bytes_row_removal_authorization(self) -> None:
+        """Clear the one-event empty-row removal authorization."""
+
+        self._bytes_row_removal_authorized = False
+
+    def bytes_row_removal_authorized(self) -> bool:
+        """Return whether Core-backed preflight approved this key event."""
+
+        return self._bytes_row_removal_authorized
 
     def handle_editor_shortcut(self, event: QKeyEvent) -> bool:
         key = event.key()
@@ -369,17 +385,23 @@ class EditorShortcutMixin:
             for (start, end), replacement in zip(ranges, values)
         ]
         cursor = QTextCursor(self.document())
+        blocker = QSignalBlocker(self)
         cursor.beginEditBlock()
-        for start, end, replacement in sorted(replacements, reverse=True):
-            set_cursor_position(cursor, start)
-            set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
-            cursor.insertText(replacement)
-        cursor.endEditBlock()
+        try:
+            for start, end, replacement in sorted(replacements, reverse=True):
+                set_cursor_position(cursor, start)
+                set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
+                cursor.insertText(replacement)
+        finally:
+            cursor.endEditBlock()
+            del blocker
         if keep_multicursor:
             self._occurrence_ranges = self._ranges_after_replacements(replacements)
             self._apply_occurrence_selection(self._occurrence_ranges[-1])
+            self.textChanged.emit()
             return
         self.clear_editor_occurrence_selection()
+        self.textChanged.emit()
 
     def _all_occurrence_ranges_empty(self, ranges: list[tuple[int, int]] | None = None) -> bool:
         ranges = self._occurrence_ranges if ranges is None else ranges
@@ -402,14 +424,19 @@ class EditorShortcutMixin:
             self._apply_occurrence_selection(self._occurrence_ranges[-1])
             return
         cursor = QTextCursor(self.document())
+        blocker = QSignalBlocker(self)
         cursor.beginEditBlock()
-        for start, end in sorted(delete_ranges, reverse=True):
-            set_cursor_position(cursor, start)
-            set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
-            cursor.removeSelectedText()
-        cursor.endEditBlock()
+        try:
+            for start, end in sorted(delete_ranges, reverse=True):
+                set_cursor_position(cursor, start)
+                set_cursor_position(cursor, end, QTextCursor.KeepAnchor)
+                cursor.removeSelectedText()
+        finally:
+            cursor.endEditBlock()
+            del blocker
         self._occurrence_ranges = self._ranges_after_multicursor_delete(ranges, delete_ranges)
         self._apply_occurrence_selection(self._occurrence_ranges[-1])
+        self.textChanged.emit()
 
     def _multicursor_delete_ranges(
         self,
@@ -475,7 +502,7 @@ class EditorShortcutMixin:
             self._set_text_selection(start_block.position(), end_block.position() + len(end_block.text()))
             return
         cursor = self.textCursor()
-        cursor.setPosition(end_block.position() + len(end_block.text()))
+        set_cursor_position(cursor, end_block.position() + len(end_block.text()))
         self.setTextCursor(cursor)
 
     def _instruction_block_paste_must_preserve_rows(self, event: QKeyEvent) -> bool:

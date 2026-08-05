@@ -20,7 +20,6 @@ from src.modules.binary_workbench_dtos import (
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     DEFAULT_REF_BASES,
     DEFAULT_REFS,
@@ -56,7 +55,7 @@ def create_binary_tab(
         symbols=symbols,
         equates=symbols,
         variables=symbols,
-        symbol_offsets=symbol_offsets(rows, symbols, symbols, labels),
+        symbol_offsets={name: [offset] for name, offset in labels.items()},
         internal_files=[],
         lba_sector_size=BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
         original_rows=deepcopy(rows),
@@ -99,7 +98,7 @@ def create_assembly_tab(
         symbols=symbols,
         equates=symbols,
         variables=symbols,
-        symbol_offsets=symbol_offsets(rows, symbols, symbols, labels),
+        symbol_offsets={name: [offset] for name, offset in labels.items()},
         original_rows=deepcopy(rows),
         rows=rows,
         file_size=valid_offset_end(rows),

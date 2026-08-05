@@ -267,6 +267,50 @@ class BinaryWorkbenchWorkspaceRepository:
             }
         )
 
+    def save_active_version(
+        self,
+        tab: BinaryWorkbenchTabContextDTO,
+    ) -> dict[str, str]:
+        """Persist only the active version payload and preserve every other module."""
+
+        active = next(
+            (
+                version
+                for version in tab.versions
+                if version.name == tab.active_version_name
+            ),
+            None,
+        )
+        if active is None:
+            return dict(tab.module_paths)
+        manifest = self._normalize_manifest_path(
+            Path(tab.workspace_path or self._default_manifest(tab))
+        )
+        directories = self.default_module_directories()
+        paths = dict(tab.module_paths)
+        stem = safe_stem(manifest.stem)
+        target = self._version_file_path(tab, paths, directories, stem)
+        existing = read_json(target)
+        if not existing:
+            active_key = f"{VERSION_PATH_PREFIX}{tab.active_version_name or ''}"
+            source_value = paths.get(VERSIONS) or paths.get(active_key)
+            source = Path(source_value) if source_value else None
+            if source is not None and source != target:
+                existing = read_json(source)
+        existing_versions = existing.get("versions") if isinstance(existing, dict) else {}
+        merged = dict(existing_versions) if isinstance(existing_versions, dict) else {}
+        payload = versions_payload([active], tab.active_version_name)
+        serialized = payload.get("versions", {})
+        if isinstance(serialized, dict) and active.name in serialized:
+            merged[active.name] = serialized[active.name]
+        write_json(
+            target,
+            {"active_version": tab.active_version_name, "versions": merged},
+        )
+        paths[VERSIONS] = str(target)
+        paths[f"{VERSION_PATH_PREFIX}{active.name}"] = str(target)
+        return paths
+
     def checksums_for_tab(self, tab: BinaryWorkbenchTabContextDTO) -> dict[str, str]:
         return tab_checksums(tab)
 

@@ -46,7 +46,7 @@ class EditorGranularUndoMixin:
         if is_bytes_editor(self) and not bytes_delete_allowed(
             self,
             event.key() == Qt.Key_Backspace,
-            self.bytes_line_shift_allowed(),
+            self.bytes_line_shift_allowed() or self.bytes_row_removal_authorized(),
         ):
             return True
         if event.key() == Qt.Key_Backspace:
@@ -105,5 +105,6 @@ def _bytes_delete_should_preserve_line_breaks(editor) -> bool:
     return (
         cursor.hasSelection()
         and not editor.bytes_line_shift_allowed()
+        and not editor.bytes_row_removal_authorized()
         and "\n" in selected
     )

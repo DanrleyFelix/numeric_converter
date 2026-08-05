@@ -108,7 +108,6 @@ class InstructionHighlighter(QSyntaxHighlighter):
         )
         self._directive_refresh_timer.timeout.connect(self.rehighlight)
         self.document().contentsChange.connect(self._refresh_directives_after_edit)
-        self.rehighlight()
 
     def set_symbols(
         self,
@@ -116,11 +115,10 @@ class InstructionHighlighter(QSyntaxHighlighter):
         variables: dict[str, str],
         equates: dict[str, str],
     ) -> None:
-        self._labels = {name.lower(): value for name, value in labels.items()}
-        self._variables = {f"_{name.lstrip('_')}".lower(): value for name, value in variables.items()}
-        self._equates = {f"@{name.lstrip('@')}".lower(): value for name, value in equates.items()}
+        self.set_symbol_maps(self.symbol_maps(labels, variables, equates))
         self._known_register_values_by_block.clear()
-        self.rehighlight()
+        if self._has_debugger_directives:
+            self._directive_refresh_timer.start()
 
     def set_symbols_for_blocks(
         self,
@@ -132,19 +130,53 @@ class InstructionHighlighter(QSyntaxHighlighter):
     ) -> None:
         """Update symbol formats only inside one bounded source window."""
 
-        self._labels = {name.lower(): value for name, value in labels.items()}
-        self._variables = {
-            f"_{name.lstrip('_')}".lower(): value
-            for name, value in variables.items()
-        }
-        self._equates = {
-            f"@{name.lstrip('@')}".lower(): value
-            for name, value in equates.items()
-        }
-        for index in range(max(0, first_block), max(first_block, last_block)):
+        self.set_symbol_maps_for_blocks(
+            self.symbol_maps(labels, variables, equates),
+            first_block,
+            last_block,
+        )
+
+    def set_symbol_maps_for_blocks(
+        self,
+        maps: tuple[dict[str, str], dict[str, str], dict[str, str]],
+        first_block: int,
+        last_block: int,
+    ) -> None:
+        """Reuse one immutable-in-practice resolver across highlighters."""
+
+        self.set_symbol_maps(maps)
+        for index in range(max(0, first_block), max(first_block, last_block) + 1):
             block = self.document().findBlockByNumber(index)
             if block.isValid():
                 self.rehighlightBlock(block)
+
+    @staticmethod
+    def symbol_maps(
+        labels: dict[str, str],
+        variables: dict[str, str],
+        equates: dict[str, str],
+    ) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+        """Build one O(1) resolver snapshot shared by both documents."""
+
+        return (
+            {name.casefold(): value for name, value in labels.items()},
+            {
+                f"_{name.lstrip('_@')}".casefold(): value
+                for name, value in variables.items()
+            },
+            {
+                f"@{name.lstrip('_@')}".casefold(): value
+                for name, value in equates.items()
+            },
+        )
+
+    def set_symbol_maps(
+        self,
+        maps: tuple[dict[str, str], dict[str, str], dict[str, str]],
+    ) -> None:
+        """Install a resolver snapshot without copying or global rehighlight."""
+
+        self._labels, self._variables, self._equates = maps
 
     def set_navigation_background_enabled(self, enabled: bool) -> None:
         self._navigation_background_enabled = enabled
@@ -203,16 +235,25 @@ class InstructionHighlighter(QSyntaxHighlighter):
         jump_reference_offset: str,
         file_size: int = 0,
     ) -> None:
-        self._reference_offset_bases = {
+        bases = {
             str(name): safe_int(str(value))
             for name, value in (reference_offset_bases or {}).items()
         }
-        self._jump_reference_offset = (
+        selected = (
             jump_reference_offset
-            if jump_reference_offset in self._reference_offset_bases
+            if jump_reference_offset in bases
             else ""
         )
-        self._file_size = max(0, file_size)
+        size = max(0, file_size)
+        if (
+            bases == self._reference_offset_bases
+            and selected == self._jump_reference_offset
+            and size == self._file_size
+        ):
+            return
+        self._reference_offset_bases = bases
+        self._jump_reference_offset = selected
+        self._file_size = size
         self.rehighlight()
 
     def highlightBlock(self, text: str) -> None:

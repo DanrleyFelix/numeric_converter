@@ -22,10 +22,18 @@ def apply_symbol_offsets(
     symbol_offsets: dict[str, list[str]],
     codec: CPUArchCodec,
 ) -> list[BinaryWorkbenchRowDTO]:
+    symbols_by_offset = _symbols_by_offset(variables, equates, symbol_offsets)
     return [
         BinaryWorkbenchRowDTO(
             offsets=row.offsets,
-            instruction=with_offset_symbols(row, variables, equates, symbol_offsets, codec),
+            instruction=with_offset_symbols(
+                row,
+                variables,
+                equates,
+                symbol_offsets,
+                codec,
+                symbols_by_offset,
+            ),
             bytes_text=row.bytes_text,
         )
         for row in rows
@@ -38,12 +46,18 @@ def with_offset_symbols(
     equates: dict[str, str],
     symbol_offsets: dict[str, list[str]],
     codec: CPUArchCodec,
+    symbols_by_offset: dict[str, tuple[str, ...]] | None = None,
 ) -> str:
     offset = file_offset(row)
     if not row.bytes_text or offset == "-":
         return row.instruction
     code = row.instruction
-    for symbol in _symbols_for_offset(offset, variables, equates, symbol_offsets):
+    symbols = (
+        symbols_by_offset.get(offset, ())
+        if symbols_by_offset is not None
+        else _symbols_for_offset(offset, variables, equates, symbol_offsets)
+    )
+    for symbol in symbols:
         code = replace_matching_symbol(code, symbol, row.bytes_text, int(offset, 16), {}, variables, equates, codec)
     return code
 
@@ -99,3 +113,19 @@ def _symbols_for_offset(
         if offset in symbol_offsets.get(name, []):
             symbols.append(f"@{name.lstrip('@')}")
     return symbols
+
+
+def _symbols_by_offset(
+    variables: dict[str, str],
+    equates: dict[str, str],
+    symbol_offsets: dict[str, list[str]],
+) -> dict[str, tuple[str, ...]]:
+    """Build the reverse lookup once instead of scanning Symbols per row."""
+
+    values: dict[str, list[str]] = {}
+    for sigil, names in (("_", variables), ("@", equates)):
+        for name in names:
+            symbol = f"{sigil}{name.lstrip('_@')}"
+            for offset in symbol_offsets.get(name, ()):
+                values.setdefault(offset, []).append(symbol)
+    return {offset: tuple(symbols) for offset, symbols in values.items()}

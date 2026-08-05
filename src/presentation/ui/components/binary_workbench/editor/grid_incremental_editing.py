@@ -5,8 +5,10 @@ from PySide6.QtCore import QTimer
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
 from src.core.binary_workbench.mips_r3000a import (
     build_source_line_rows,
+    editor_mips_instruction,
     validate_mips_hazards,
 )
+from src.core.binary_workbench.symbolic_instructions import symbolic_instruction
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constant_groups.timing import (
@@ -66,6 +68,118 @@ class GridIncrementalEditingMixin:
         else:
             self._schedule_instruction_propagation(None)
         return True
+
+    def _try_single_byte_update(
+        self,
+        lines: list[str],
+        index_hint: int | None = None,
+    ) -> bool:
+        """Commit one complete Bytes row without rebuilding every projection."""
+
+        if self._virtual or len(lines) != len(self._rows):
+            return False
+        changed = (
+            [index_hint]
+            if index_hint is not None
+            and 0 <= index_hint < len(self._rows)
+            and _canonical_bytes(self._display_bytes_row(self._rows[index_hint]))
+            != _canonical_bytes(lines[index_hint])
+            else [
+                index
+                for index, (row, line) in enumerate(zip(self._rows, lines))
+                if _canonical_bytes(self._display_bytes_row(row))
+                != _canonical_bytes(line)
+            ]
+        )
+        if len(changed) != 1:
+            return False
+        index = changed[0]
+        row = self._complete_byte_row(index, lines[index], self._source_offset_before_row(index))
+        if row is None:
+            return False
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is None or not coordinator.enabled():
+            return False
+        coordinator.accept_bytes_line(index, row)
+        self._remember_editor_text_signature(self.bytes)
+        self._dirty_editor_kind = None
+        return True
+
+    def _try_multiple_byte_update(self, lines: list[str]) -> bool:
+        """Commit complete changed Bytes rows without rebuilding the document."""
+
+        if self._virtual or len(lines) != len(self._rows):
+            return False
+        changed = [
+            index
+            for index, (row, line) in enumerate(zip(self._rows, lines))
+            if _canonical_bytes(self._display_bytes_row(row))
+            != _canonical_bytes(line)
+        ]
+        if len(changed) < 2:
+            return False
+        changed_set = set(changed)
+        address = self._source_rows_start_offset()
+        rows: list[tuple[int, BinaryWorkbenchRowDTO]] = []
+        for index, previous in enumerate(self._rows):
+            if index in changed_set:
+                row = self._complete_byte_row(index, lines[index], address)
+                if row is None:
+                    return False
+                rows.append((index, row))
+                address += ROW_BYTES
+            elif previous.bytes_text:
+                address += ROW_BYTES
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is None or not coordinator.enabled():
+            return False
+        coordinator.accept_bytes_lines(tuple(rows))
+        self._remember_editor_text_signature(self.bytes)
+        self._dirty_editor_kind = None
+        return True
+
+    def _complete_byte_row(
+        self,
+        index: int,
+        line: str,
+        address: int,
+    ) -> BinaryWorkbenchRowDTO | None:
+        """Decode one complete Bytes line while preserving source annotations."""
+
+        raw = _canonical_bytes(line)
+        if len(raw) != ROW_BYTES * 2:
+            return None
+        try:
+            data = bytes.fromhex(raw)
+        except ValueError:
+            return None
+        previous = self._rows[index]
+        offsets = {
+            name: f"0x{address + (0 if name == BINARY_WORKBENCH_TEXT.FILE else int(base, 0)):08X}"
+            for name, base in self._offset_base_text().items()
+        }
+        decoded = editor_mips_instruction(self._codec.disassemble(data, address), address)
+        instruction = (
+            symbolic_instruction(
+                decoded,
+                previous.instruction,
+                self._codec.bytes_text(data),
+                address,
+                self._labels,
+                self._variables,
+                self._equates,
+                self._codec,
+            )
+            if previous.instruction
+            else decoded
+        )
+        return BinaryWorkbenchRowDTO(
+            offsets,
+            instruction,
+            self._codec.bytes_text(data),
+            previous.original_instruction,
+            previous.original_bytes_text,
+        )
 
     def _single_instruction_row(
         self,
@@ -128,13 +242,13 @@ class GridIncrementalEditingMixin:
     ) -> None:
         self._rows = [*self._rows[:index], row, *self._rows[index + 1 :]]
         self._all_rows = list(self._rows)
-        self._set_editor_line(self.bytes, index, self._display_bytes_text(row.bytes_text))
+        self._set_editor_line(self.bytes, index, self._display_bytes_row(row))
         self._set_editor_line(
             self.decoded_text,
             index,
-            decode_hex_bytes(row.bytes_text, self._decoded_text_values),
+            self._display_decoded_row(row),
         )
-        raw = self._raw_instruction_from_bytes(row.bytes_text, address_from_row(row))
+        raw = self._display_raw_row(row)
         self._set_editor_line(self.raw_instructions, index, raw)
         self._emit_rows_changed(self._all_rows, deferred=True)
         self._emit_selection_summary()
@@ -177,3 +291,7 @@ class GridIncrementalEditingMixin:
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None:
             coordinator.cancel_pending()
+
+
+def _canonical_bytes(value: str) -> str:
+    return "".join(value.split()).upper()

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainter, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QPainter, QPalette, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import QWidget
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
@@ -11,18 +11,21 @@ from src.presentation.ui.components.binary_workbench.editor.workbench_editor imp
 
 
 class CenteredDashOverlay(QWidget):
-    """Paint one centered offset placeholder without changing document text."""
+    """Paint one centered gray placeholder without changing document text."""
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
-        painter.setPen(self.parentWidget().palette().text().color())
-        width = self.parentWidget().fontMetrics().horizontalAdvance("-")
-        left = max(0, (self.width() - width) // 2)
-        painter.drawLine(left, self.height() // 2, left + width, self.height() // 2)
+        painter.setPen(self.parentWidget().palette().color(QPalette.PlaceholderText))
+        painter.setFont(self.parentWidget().font())
+        painter.drawText(
+            self.rect(),
+            Qt.AlignCenter,
+            str(self.property("placeholderText") or "-"),
+        )
 
 
-class OffsetWorkbenchEditor(WorkbenchEditor):
-    """Render placeholder dashes at the visual center of an offset column."""
+class CenteredDashWorkbenchEditor(WorkbenchEditor):
+    """Render placeholder dashes at the visual center of a derived column."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -74,6 +77,27 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
             self._format_offset_block(block)
         self._position_dash_labels()
 
+    def splice_offset_blocks(self, first: int, removed: int, inserted: int) -> None:
+        """Shift placeholder overlays after a structural document splice."""
+
+        after = first + removed
+        delta = inserted - removed
+        retained = []
+        for label in self._dash_labels:
+            index = int(label.property("offsetBlock"))
+            if first <= index < after:
+                label.deleteLater()
+                continue
+            if index >= after:
+                label.setProperty("offsetBlock", index + delta)
+            retained.append(label)
+        self._dash_labels = retained
+        for index in range(first, first + inserted):
+            block = self.document().findBlockByNumber(index)
+            if block.isValid():
+                self._format_offset_block(block)
+        self._position_dash_labels()
+
     def refresh_dash_overlays(self) -> None:
         """Realign placeholder overlays after row visibility changes."""
 
@@ -84,7 +108,8 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
 
         cursor = QTextCursor(block)
         cursor.movePosition(QTextCursor.EndOfBlock, QTextCursor.KeepAnchor)
-        is_placeholder = block.text().strip() == "-"
+        placeholder = block.text().strip()
+        is_placeholder = placeholder == "-"
         if block.text():
             text_format = QTextCharFormat()
             if is_placeholder:
@@ -95,6 +120,7 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
         label = CenteredDashOverlay(self.viewport())
         label.setAttribute(Qt.WA_TransparentForMouseEvents)
         label.setProperty("offsetBlock", block.blockNumber())
+        label.setProperty("placeholderText", placeholder)
         label.show()
         self._dash_labels.append(label)
 
@@ -110,6 +136,10 @@ class OffsetWorkbenchEditor(WorkbenchEditor):
                 and block.isVisible()
                 and line_rect.bottom() >= 0
             )
+
+
+class OffsetWorkbenchEditor(CenteredDashWorkbenchEditor):
+    """Derived editor used by File and Reference Offset columns."""
 
 
 class GridOffsetsMixin:

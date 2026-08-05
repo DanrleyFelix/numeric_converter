@@ -1,7 +1,7 @@
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor, QTextFormat
 from PySide6.QtWidgets import QTextEdit
 
-from src.core.binary_workbench.mips_r3000a import raw_mips_instruction, validate_mips_hazards
+from src.core.binary_workbench.mips_r3000a import validate_mips_hazards
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -25,17 +25,7 @@ class GridRawInstructionsMixin:
     def _raw_instruction_lines(self) -> list[str]:
         lines: list[str] = []
         for row in self._rows:
-            address = address_from_row(row)
-            lines.append(
-                self._raw_instruction_from_bytes(row.bytes_text, address)
-                or raw_mips_instruction(
-                    row.instruction,
-                    address,
-                    self._labels,
-                    self._variables,
-                    self._equates,
-                )
-            )
+            lines.append(self._display_raw_row(row))
         return lines
 
     def _raw_instruction_from_bytes(self, bytes_text: str, address: int) -> str:

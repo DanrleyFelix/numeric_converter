@@ -52,6 +52,4 @@ class EditorPageByteReplacementMixin:
         self.grid.set_virtual_total_size(current_size)
         visible_start = start - (start % ROW_BYTES)
         self._load_visible_rows(visible_start, self.grid.visible_size(), 1)
-        if current_size > previous_size:
-            self.structuralVersionSaveRequested.emit()
         return True

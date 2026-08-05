@@ -1,5 +1,12 @@
 ﻿import re
 
+from src.core.binary_workbench.byte_editing import (
+    ByteEditViolation,
+    ByteRowAccess,
+    aligned_source_indices,
+    byte_row_policy,
+    byte_lines_ready_for_commit,
+)
 from src.core.binary_workbench.mips_r3000a import (
     build_source_line_rows,
     editor_mips_instruction,
@@ -22,7 +29,6 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as
 from src.modules.constants import HEX_DIGITS, HEX_DIGIT_PATTERN
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -58,12 +64,79 @@ class GridEditingMixin:
             return
         self._syncing_editor_change = True
         try:
+            block_hint = self._bytes_edit_block_hint
+            self._bytes_edit_block_hint = None
+            self._active_bytes_alignment_hint = self._bytes_edit_alignment_hint
             self._cancel_incremental_instruction_update()
             if not self._bytes_user_edit_in_progress():
                 self._normalize_bytes_editor_text()
-            self._sync_user_rows(self._normalized_bytes_lines(), BINARY_WORKBENCH_TEXT.BYTES)
+            lines = self._normalized_bytes_lines()
+            if self._try_bytes_structure_update(lines):
+                return
+            if self._stage_or_commit_single_byte_event(lines, block_hint):
+                return
+            if not self._byte_lines_change_allowed(lines):
+                self._restore_editor_after_rejected_change(True)
+                return
+            previous = [self._display_bytes_row(row) for row in self._rows]
+            if not byte_lines_ready_for_commit(
+                previous,
+                lines,
+                ROW_BYTES,
+                self._active_bytes_alignment_hint,
+            ):
+                self._bytes_staged_incomplete = True
+                self._bytes_staged_block = self.bytes.textCursor().blockNumber()
+                self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
+                return
+            self._bytes_staged_incomplete = False
+            self._bytes_staged_block = None
+            if self._try_single_byte_update(lines):
+                return
+            if self._try_multiple_byte_update(lines):
+                return
+            self._byte_transition_validated = True
+            try:
+                self._sync_user_rows(lines, BINARY_WORKBENCH_TEXT.BYTES)
+            finally:
+                self._byte_transition_validated = False
         finally:
+            self._active_bytes_alignment_hint = None
+            self._bytes_edit_alignment_hint = None
             self._syncing_editor_change = False
+
+    def _stage_or_commit_single_byte_event(
+        self,
+        lines: list[str],
+        index: int | None,
+    ) -> bool:
+        """Handle a preflight-proven one-line event without scanning all rows."""
+
+        if (
+            index is None
+            or not 0 <= index < len(self._rows)
+            or len(lines) != len(self._rows)
+        ):
+            return False
+        policy = byte_row_policy(
+            self._rows[index].instruction,
+            bool(self._rows[index].bytes_text),
+        )
+        if policy.access is ByteRowAccess.ASSEMBLY_ONLY:
+            self._emit_byte_edit_warning(ByteEditViolation.ASSEMBLY_ONLY)
+            self._restore_editor_after_rejected_change(True)
+            return True
+        raw = "".join(lines[index].split())
+        if len(raw) < ROW_BYTES * 2 and all(character in HEX_DIGITS for character in raw):
+            self._bytes_staged_incomplete = True
+            self._bytes_staged_block = index
+            self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
+            return True
+        if len(raw) == ROW_BYTES * 2 and self._try_single_byte_update(lines, index):
+            self._bytes_staged_incomplete = False
+            self._bytes_staged_block = None
+            return True
+        return False
 
     def _on_instructions_changed(self) -> None:
         if self._updating or self._syncing_editor_change:
@@ -71,11 +144,12 @@ class GridEditingMixin:
         if not self._editor_change_allowed(False):
             self._restore_editor_after_rejected_change(False)
             return
+        if not self._has_meaningful_editor_change(self.instructions):
+            return
+        self.assemblyTextChanged.emit()
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None and coordinator.enabled():
             coordinator.note_text_changed()
-            return
-        if not self._has_meaningful_editor_change(self.instructions):
             return
         self._syncing_editor_change = True
         try:
@@ -129,6 +203,9 @@ class GridEditingMixin:
     ) -> None:
         if self._updating:
             return
+        if editing_bytes and not self._byte_lines_change_allowed(lines):
+            self._restore_editor_after_rejected_change(True)
+            return
         updated = self._byte_rows_from_lines(lines) if editing_bytes else self._instruction_rows_from_lines(lines)
         if updated is None:
             self._restore_editor_after_rejected_change(editing_bytes)
@@ -147,6 +224,7 @@ class GridEditingMixin:
         labels_changed = labels != self._labels
         incomplete_bytes_edit = editing_bytes and _has_incomplete_byte_rows(updated)
         self._rows = updated
+        rows_changed_payload: list[BinaryWorkbenchRowDTO] | None = None
         if not editing_bytes:
             self._last_assembly_refresh_window = None
             self._assembly_refresh_warning_emitted = False
@@ -163,15 +241,19 @@ class GridEditingMixin:
             self._rows = list(self._all_rows)
             self._total_size = len(self._all_rows) * ROW_BYTES
             self._configure_scrollbar()
-            self._emit_rows_changed(self.export_rows(), deferred=not editing_bytes)
+            rows_changed_payload = self.export_rows()
+            if not editing_bytes:
+                self._emit_rows_changed(rows_changed_payload, deferred=True)
         else:
             self._total_size = self._expanded_virtual_total_size(updated, offset_delta)
             self._configure_scrollbar()
-            self._emit_rows_changed(self._rows, deferred=not editing_bytes)
+            rows_changed_payload = list(self._rows)
+            if not editing_bytes:
+                self._emit_rows_changed(rows_changed_payload, deferred=True)
         self._render_offsets()
         if not incomplete_bytes_edit:
             target = self.instructions if editing_bytes else self.bytes
-            values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_text(row.bytes_text) for row in self._rows]
+            values = [self._display_instruction(row.instruction) for row in self._rows] if editing_bytes else [self._display_bytes_row(row) for row in self._rows]
             self._set_editor_text(target, values)
             self._render_decoded_text()
             self._render_raw_instructions()
@@ -180,6 +262,13 @@ class GridEditingMixin:
             self._refresh_label_folding()
         if not self._virtual:
             self._scroll_static_document(self.scrollbar.value())
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if editing_bytes and coordinator is not None and coordinator.enabled():
+            coordinator.accept_synchronous_rows(list(self._rows))
+        # Reentrant row observers must see Assembly, offsets and the coordinator at
+        # the same revision. Bytes edits intentionally do not trigger autosave.
+        if editing_bytes and rows_changed_payload is not None:
+            self._emit_rows_changed(rows_changed_payload)
         self._emit_selection_summary()
         source = self.bytes if editing_bytes else self.instructions
         self._remember_editor_text_signature(source)
@@ -199,55 +288,60 @@ class GridEditingMixin:
         was_updating = self._updating
         self._updating = True
         self._labels = labels
-        self._symbol_offsets = symbol_offsets(
-            self._rows,
-            self._variables,
-            self._equates,
-            labels,
+        self._symbol_offsets = {name: [offset] for name, offset in labels.items()}
+        cached = getattr(self, "_symbol_maps", None)
+        if cached is None:
+            cached = self._instruction_highlighter.symbol_maps(
+                {}, self._variables, self._equates
+            )
+        maps = (
+            {name.casefold(): value for name, value in labels.items()},
+            cached[1],
+            cached[2],
         )
+        self._symbol_maps = maps
         if block_range is None:
-            self._instruction_highlighter.set_symbols(labels, self._variables, self._equates)
-            self._raw_instruction_highlighter.set_symbols(labels, self._variables, self._equates)
+            self._instruction_highlighter.set_symbol_maps(maps)
+            self._raw_instruction_highlighter.set_symbol_maps(maps)
         else:
             first, last = block_range
-            self._instruction_highlighter.set_symbols_for_blocks(
-                labels,
-                self._variables,
-                self._equates,
+            self._instruction_highlighter.set_symbol_maps_for_blocks(
+                maps,
                 first,
                 last,
             )
-            self._raw_instruction_highlighter.set_symbols_for_blocks(
-                labels,
-                self._variables,
-                self._equates,
+            self._raw_instruction_highlighter.set_symbol_maps_for_blocks(
+                maps,
                 first,
                 last,
             )
-        self.instructions.set_symbol_helpers(labels, self._variables, self._equates)
-        self._refresh_jump_navigation()
+        self.instructions.set_label_helpers(labels)
+        self.instructions.update_jump_labels(labels)
         self._updating = was_updating
 
     def _byte_rows_from_lines(self, lines: list[str]) -> list[BinaryWorkbenchRowDTO] | None:
         rows: list[BinaryWorkbenchRowDTO] = []
-        for line in lines:
+        source_rows = self._aligned_byte_source_rows(lines)
+        for index, line in enumerate(lines):
+            source = source_rows[index]
             raw = "".join(line.split())
+            if line.strip() == "-":
+                rows.append(source)
+                continue
             if not raw:
-                row = self._row_at(len(rows))
                 rows.append(
                     BinaryWorkbenchRowDTO(
-                        offsets=row.offsets,
-                        instruction=self._bytes_fallback_instruction(row),
+                        offsets=source.offsets,
+                        instruction=self._bytes_fallback_instruction(source),
                         bytes_text="",
                     )
                 )
                 continue
             if len(raw) < ROW_BYTES * 2:
-                row = self._row_at(len(rows))
                 rows.append(
                     BinaryWorkbenchRowDTO(
-                        offsets=row.offsets,
-                        instruction=self._bytes_fallback_instruction(row),
+                        offsets=source.offsets,
+                        instruction=self._bytes_fallback_instruction(source),
                         bytes_text="",
                     )
                 )
@@ -260,15 +354,31 @@ class GridEditingMixin:
                 return None
             for start in range(0, len(data), ROW_BYTES):
                 chunk = data[start : start + ROW_BYTES]
-                row = self._row_at(len(rows))
                 rows.append(
                     BinaryWorkbenchRowDTO(
-                        offsets=row.offsets,
-                        instruction=row.instruction,
+                        offsets=source.offsets,
+                        instruction=source.instruction,
                         bytes_text=self._codec.bytes_text(chunk),
                     )
                 )
         return self._rows_decoded_after_offset_rebuild(rows)
+
+    def _aligned_byte_source_rows(
+        self,
+        lines: list[str],
+    ) -> list[BinaryWorkbenchRowDTO]:
+        previous = [self._display_bytes_row(row) for row in self._rows]
+        indices = aligned_source_indices(
+            previous,
+            lines,
+            self._active_bytes_alignment_hint,
+        )
+        return [
+            self._rows[source]
+            if source is not None and 0 <= source < len(self._rows)
+            else BinaryWorkbenchRowDTO(offsets=self._offsets_for_row(index))
+            for index, source in enumerate(indices)
+        ]
 
     def _bytes_fallback_instruction(self, row: BinaryWorkbenchRowDTO) -> str:
         if annotation := preserved_source_annotation(row.instruction):
@@ -279,20 +389,18 @@ class GridEditingMixin:
         self,
         updated: list[BinaryWorkbenchRowDTO],
     ) -> list[BinaryWorkbenchRowDTO]:
-        annotation_structure_changed = len(updated) == len(self._rows) and any(
-            bool(previous.bytes_text) != bool(current.bytes_text)
-            and preserved_source_annotation(previous.instruction)
-            for previous, current in zip(self._rows, updated)
+        previous_lines = [self._display_bytes_row(row) for row in self._rows]
+        current_lines = [self._display_bytes_row(row) for row in updated]
+        indices = aligned_source_indices(
+            previous_lines,
+            current_lines,
+            self._active_bytes_alignment_hint,
         )
-        if not annotation_structure_changed:
-            return self._rows
         return [
-            BinaryWorkbenchRowDTO(
-                offsets=current.offsets,
-                instruction=previous.instruction,
-                bytes_text=previous.bytes_text,
-            )
-            for previous, current in zip(self._rows, updated)
+            self._rows[source]
+            if source is not None and 0 <= source < len(self._rows)
+            else current
+            for source, current in zip(indices, updated)
         ]
 
     def _preserve_bytes_rows(
@@ -646,6 +754,9 @@ class GridEditingMixin:
         self.bytes.setTextCursor(cursor)
 
     def _normalized_bytes_line(self, line: str) -> str:
+        stripped = line.strip()
+        if stripped == "-":
+            return stripped
         raw = "".join(char for char in line if char in HEX_DIGITS)
         raw = raw[: ROW_BYTES * 2]
         raw = raw.upper() if self._uppercase_bytes else raw

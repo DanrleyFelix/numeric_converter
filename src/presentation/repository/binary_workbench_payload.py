@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 from typing import Any
+from uuid import UUID
 
 from src.core.binary_workbench.context_overlays import (
     compact_binary_context_overlays,
@@ -10,6 +11,12 @@ from src.core.binary_workbench.encoding_tables import encoding_table_from_payloa
 from src.core.binary_workbench.legacy_overlays import discard_legacy_nop_overlays
 from src.core.binary_workbench.version_names import sorted_versions
 from src.core.binary_workbench.symbol_values import merged_symbol_values
+from src.core.binary_workbench.symbols.compatibility import (
+    LegacySymbolsPayloadAdapter,
+    SYMBOL_SCHEMA_VERSION,
+    definitions_payload,
+)
+from src.core.binary_workbench.symbols.definitions import SymbolScope
 from src.core.binary_workbench.version_overlays import (
     without_blank_instruction_overlays,
 )
@@ -36,6 +43,17 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
     VERSION_PATH_PREFIX,
     VERSIONS,
 )
+
+_NIL_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000"
+
+
+def _workspace_id(raw: object) -> str:
+    """Return a valid namespace while preserving empty legacy DTO defaults."""
+
+    try:
+        return str(UUID(str(raw)))
+    except (ValueError, TypeError, AttributeError):
+        return _NIL_WORKSPACE_ID
 
 
 def _string_list_map(raw: object) -> dict[str, list[str]]:
@@ -295,7 +313,11 @@ def _offset_hex(raw: object) -> str:
     return f"0x{value:08X}" if value is not None else str(raw)
 
 
-def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
+def _tab_context(
+    raw: object,
+    workspace_id: str,
+    materialize_symbols: bool = True,
+) -> BinaryWorkbenchTabContextDTO | None:
     if not isinstance(raw, dict):
         return None
     tab_id = raw.get("tab_id")
@@ -340,10 +362,72 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
     if kind not in {"binary", "internal"}:
         byte_overlays = {}
         instruction_overlays = {}
-    symbols = merged_symbol_values(
-        normalize_string_map(raw.get("symbols")),
-        normalize_string_map(raw.get("variables")),
-        normalize_string_map(raw.get("equates")),
+    versions = _versions(raw.get("versions"))
+    adapted = LegacySymbolsPayloadAdapter(workspace_id).adapt(
+        raw if materialize_symbols else {},
+        SymbolScope.LOCAL,
+        tab_id,
+    )
+    symbols = {item.name: item.value for item in adapted.definitions}
+    raw_versions = raw.get("versions", []) if isinstance(raw.get("versions"), list) else []
+    version_symbols = [
+        (
+            str(item.get("name", "")),
+            merged_symbol_values(
+                normalize_string_map(item.get("symbols")),
+                normalize_string_map(item.get("variables")),
+                normalize_string_map(item.get("equates")),
+            ),
+        )
+        for item in raw_versions
+        if materialize_symbols
+        and isinstance(item, dict)
+        and any(key in item for key in ("symbols", "variables", "equates"))
+    ]
+    version_symbol_maps = [values for _name, values in version_symbols if values]
+    conflicts: list[str] = list(adapted.conflicts)
+    if materialize_symbols and not symbols and version_symbol_maps:
+        symbols = dict(version_symbol_maps[0])
+        adapted = type(adapted)(
+            tuple(LegacySymbolsPayloadAdapter(workspace_id).from_mapping(
+                symbols,
+                SymbolScope.LOCAL,
+                tab_id,
+            )),
+            True,
+        )
+    for version_name, values in version_symbols:
+        if not values:
+            continue
+        if symbols and values != symbols:
+            conflicts.append(
+                f"Version '{version_name}' contains Local Symbols that differ from tab '{tab_id}'."
+            )
+    version_symbol_payloads = tuple(
+        item
+        for item in raw.get("versions", [])
+        if isinstance(item, dict)
+        and any(key in item for key in ("symbols", "variables", "equates"))
+    )
+    lazy_symbol_payload = (
+        {}
+        if materialize_symbols
+        else {
+            key: raw[key]
+            for key in (
+                "symbols",
+                "variables",
+                "equates",
+                "symbol_definitions",
+                "symbol_offsets",
+            )
+            if key in raw
+        }
+        | (
+            {"version_symbol_payloads": version_symbol_payloads}
+            if version_symbol_payloads
+            else {}
+        )
     )
     context = discard_legacy_nop_overlays(compact_binary_context_overlays(BinaryWorkbenchTabContextDTO(
         tab_id=tab_id,
@@ -360,7 +444,21 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         symbols=symbols,
         equates=symbols,
         variables=symbols,
-        symbol_offsets=_string_list_map(raw.get("symbol_offsets")),
+        symbol_offsets=(
+            _string_list_map(raw.get("symbol_offsets"))
+            if materialize_symbols
+            else {}
+        ),
+        symbol_definitions=tuple(definitions_payload(adapted.definitions)),
+        symbol_migration_pending=(
+            adapted.legacy_detected if materialize_symbols else bool(lazy_symbol_payload)
+        ),
+        symbol_catalog_revision=max(
+            (item.catalog_revision for item in adapted.definitions),
+            default=0,
+        ),
+        lazy_symbol_payload=lazy_symbol_payload,
+        symbol_migration_conflicts=tuple(conflicts),
         search_cache={},
         internal_files=internal_files,
         internal_file_start_lba=internal_file_start_lba,
@@ -378,7 +476,7 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
         offset_regions=_offset_regions(raw.get("offset_regions")),
         offset_regions_loaded=_bool(raw.get("offset_regions_loaded"), bool(raw.get("offset_regions"))),
         encoding_tables=_encoding_tables(raw.get("encoding_tables")),
-        versions=_versions(raw.get("versions")),
+        versions=versions,
         active_version_name=active_version_name,
         workspace_path=str(raw.get("workspace_path"))
         if isinstance(raw.get("workspace_path"), str)
@@ -407,7 +505,31 @@ def _tab_context(raw: object) -> BinaryWorkbenchTabContextDTO | None:
 
 
 def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchStateDTO:
-    tabs = [tab for item in raw.get("tabs", []) if (tab := _tab_context(item)) is not None]
+    workspace_id = _workspace_id(raw.get("workspace_id"))
+    requested_active = raw.get("active_tab_id")
+    raw_tabs = raw.get("tabs", []) if isinstance(raw.get("tabs"), list) else []
+    first_tab_id = next(
+        (
+            str(item.get("tab_id"))
+            for item in raw_tabs
+            if isinstance(item, dict) and item.get("tab_id")
+        ),
+        None,
+    )
+    materialized_tab_id = (
+        requested_active if isinstance(requested_active, str) else first_tab_id
+    )
+    tabs = [
+        tab
+        for item in raw_tabs
+        if (
+            tab := _tab_context(
+                item,
+                workspace_id,
+                isinstance(item, dict) and item.get("tab_id") == materialized_tab_id,
+            )
+        ) is not None
+    ]
     commands_by_arch = _commands_by_arch(raw.get("commands_by_arch"))
     encoding_tables = _encoding_tables(raw.get("encoding_tables"))
     if not encoding_tables:
@@ -429,10 +551,20 @@ def binary_workbench_state_from_payload(raw: dict[str, Any]) -> BinaryWorkbenchS
         for tab in tabs
     ]
     active_tab_id = raw.get("active_tab_id")
+    global_adapted = LegacySymbolsPayloadAdapter(workspace_id).adapt(
+        raw,
+        SymbolScope.GLOBAL,
+        modern_key="global_symbol_definitions",
+    )
+    global_symbols = {item.name: item.value for item in global_adapted.definitions}
     return BinaryWorkbenchStateDTO(
         tabs=tabs,
         active_tab_id=active_tab_id if isinstance(active_tab_id, str) else None,
-        global_symbols=normalize_string_map(raw.get("global_symbols")),
+        global_symbols=global_symbols,
+        global_symbol_definitions=tuple(definitions_payload(global_adapted.definitions)),
+        global_symbol_migration_conflicts=global_adapted.conflicts,
+        schema_version=int(raw.get("schema_version", SYMBOL_SCHEMA_VERSION)),
+        workspace_id="" if workspace_id == _NIL_WORKSPACE_ID else workspace_id,
         share_view_preferences=bool(raw.get("share_view_preferences", False)),
         directories={
             **BinaryWorkbenchStateDTO().directories,
@@ -450,7 +582,19 @@ def binary_workbench_state_to_payload(
     tabs = [compact_binary_context_overlays(tab) for tab in state.tabs]
     commands_by_arch = _state_commands_by_arch(state, tabs)
     encoding_tables = state.encoding_tables or _merged_encoding_tables(tabs)
+    workspace_id = _workspace_id(state.workspace_id)
+    adapter = LegacySymbolsPayloadAdapter(workspace_id)
+    global_definitions = (
+        tuple(state.global_symbol_definitions)
+        if state.global_symbol_definitions
+        else tuple(definitions_payload(tuple(adapter.from_mapping(
+            state.global_symbols,
+            SymbolScope.GLOBAL,
+        ))))
+    )
     return {
+        "schema_version": SYMBOL_SCHEMA_VERSION,
+        "workspace_id": state.workspace_id,
         "tabs": [
             {
                 "tab_id": tab.tab_id,
@@ -462,10 +606,7 @@ def binary_workbench_state_to_payload(
                 "reference_offsets": list(tab.reference_offsets),
                 "reference_offset_bases": {k: v for k, v in dict(tab.reference_offset_bases).items() if not (k == "File" and v == "0x00000000")},
                 "labels": {} if _module_backed(tab, VERSIONS) else dict(tab.labels),
-                "symbols": {} if _module_backed(tab, SYMBOLS) else dict(tab.symbols),
-                "symbol_offsets": {} if _has_symbol_offset_modules(tab) else {
-                    key: list(value) for key, value in tab.symbol_offsets.items()
-                },
+                **_stored_symbol_payload(tab, adapter),
                 "internal_files": [
                     {"name": item.name, "start_lba": item.start_lba}
                     for item in tab.internal_files
@@ -489,6 +630,7 @@ def binary_workbench_state_to_payload(
                         "name": version.name,
                         "rows": [_row_payload(row) for row in version.rows],
                         "instructions": _version_instructions_payload(version),
+                        **_legacy_version_symbols(tab, version.name),
                     }
                     for version in sorted_versions(tab.versions, name_of=lambda item: item.name)
                 ],
@@ -517,6 +659,7 @@ def binary_workbench_state_to_payload(
         ],
         "active_tab_id": state.active_tab_id,
         "global_symbols": dict(state.global_symbols),
+        "global_symbol_definitions": list(global_definitions),
         "share_view_preferences": state.share_view_preferences,
         "commands_by_arch": commands_by_arch,
         "encoding_tables": _encoding_tables_payload(encoding_tables),
@@ -532,6 +675,53 @@ def binary_workbench_state_to_payload(
 
 def _stores_overlay_payload(tab: BinaryWorkbenchTabContextDTO) -> bool:
     return tab.kind == "internal"
+
+
+def _stored_symbol_payload(
+    tab: BinaryWorkbenchTabContextDTO,
+    adapter: LegacySymbolsPayloadAdapter,
+) -> dict[str, object]:
+    """Copy inactive legacy payloads without materializing their Symbols."""
+
+    if _module_backed(tab, SYMBOLS):
+        return {"symbols": {}, "symbol_definitions": [], "symbol_offsets": {}}
+    if tab.lazy_symbol_payload:
+        return {
+            key: value
+            for key, value in tab.lazy_symbol_payload.items()
+            if key != "version_symbol_payloads"
+        }
+    definitions = (
+        list(tab.symbol_definitions)
+        if tab.symbol_definitions
+        else definitions_payload(tuple(adapter.from_mapping(
+            tab.symbols,
+            SymbolScope.LOCAL,
+            tab.tab_id,
+        )))
+    )
+    return {
+        "symbols": dict(tab.symbols),
+        "symbol_definitions": definitions,
+        "symbol_offsets": {},
+    }
+
+
+def _legacy_version_symbols(
+    tab: BinaryWorkbenchTabContextDTO,
+    version_name: str,
+) -> dict[str, object]:
+    """Preserve inactive legacy version maps without resolving the tab."""
+
+    raw_versions = tab.lazy_symbol_payload.get("version_symbol_payloads", ())
+    for raw in raw_versions if isinstance(raw_versions, (list, tuple)) else ():
+        if isinstance(raw, dict) and raw.get("name") == version_name:
+            return {
+                key: raw[key]
+                for key in ("symbols", "variables", "equates")
+                if key in raw
+            }
+    return {}
 
 
 def _uses_virtual_rows(tab: BinaryWorkbenchTabContextDTO) -> bool:

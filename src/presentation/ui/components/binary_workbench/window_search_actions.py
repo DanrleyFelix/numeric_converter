@@ -18,7 +18,14 @@ class BinaryWorkbenchWindowSearchMixin:
         current = self.tabs.current_context()
         if current is None:
             return
-        dialog = BinaryWorkbenchGoToDialog(current, self)
+        dialog = BinaryWorkbenchGoToDialog(
+            current,
+            self,
+            symbol_offsets_provider=lambda name: self.tabs.symbol_offsets_for(
+                current.tab_id,
+                name,
+            ),
+        )
         dialog.goToRequested.connect(self.tabs.go_to_offset)
         if dialog.exec() != dialog.DialogCode.Accepted:
             return

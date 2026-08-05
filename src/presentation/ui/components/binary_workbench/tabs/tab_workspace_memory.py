@@ -27,6 +27,9 @@ from src.presentation.ui.components.binary_workbench.tabs.workspace_memory impor
     workspace_heavy_context_loaded,
     workspace_heavy_context_unloaded,
 )
+from src.presentation.ui.components.binary_workbench.tabs.autosave import (
+    VersionAutosaveScheduler,
+)
 
 
 class TabWorkspaceMemoryMixin:
@@ -37,6 +40,14 @@ class TabWorkspaceMemoryMixin:
         self._version_update_counts: dict[str, int] = {}
         self._scratch_tabs_pending_initial_version: set[str] = set()
         self._active_tab_index = -1
+        self._version_autosave = VersionAutosaveScheduler(
+            self._version_autosave_snapshot,
+            self._workspace_repository.save_active_version,
+            self,
+        )
+        self._version_autosave.saved.connect(self._handle_version_autosave_saved)
+        self._version_autosave.failed.connect(self._handle_version_autosave_failed)
+        self.destroyed.connect(lambda: self._version_autosave.shutdown())
 
     def _remember_workspace_tab_access(self, tab_id: str) -> None:
         self._workspace_access_counter += 1

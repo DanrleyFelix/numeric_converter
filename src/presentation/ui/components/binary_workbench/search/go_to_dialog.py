@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QDialog, QPushButton
 
@@ -26,9 +28,15 @@ _LAST_GO_TO_TARGET = BINARY_WORKBENCH_TEXT.FILE_OFFSET_TARGET
 class BinaryWorkbenchGoToDialog(QDialog):
     goToRequested = Signal(int)
 
-    def __init__(self, context: BinaryWorkbenchTabContextDTO, parent=None) -> None:
+    def __init__(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+        parent=None,
+        symbol_offsets_provider: Callable[[str], list[str]] | None = None,
+    ) -> None:
         super().__init__(parent)
         self._context = context
+        self._symbol_offsets_provider = symbol_offsets_provider
         self.setObjectName("preferences-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.GO_TO)
         self.setMaximumSize(
@@ -93,6 +101,18 @@ class BinaryWorkbenchGoToDialog(QDialog):
             self.results.addItem(f"0x{offset:08X}")
 
     def _resolve_offsets(self) -> list[int]:
+        if (
+            self.target.currentText() == BINARY_WORKBENCH_TEXT.SYMBOL_TARGET
+            and self._symbol_offsets_provider is not None
+        ):
+            values = self._symbol_offsets_provider(self.value.text().strip())
+            offsets: list[int] = []
+            for value in values:
+                try:
+                    offsets.append(int(value, 0))
+                except ValueError:
+                    continue
+            return offsets
         return resolve_go_to_offsets(
             self._context,
             self.target.currentText(),

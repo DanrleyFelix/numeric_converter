@@ -86,6 +86,10 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             self.tabs.directory_for(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY),
             self,
             symbol_offsets=current.symbol_offsets,
+            offsets_provider=lambda name: (
+                current.tab_id,
+                self.tabs.symbol_offsets_for(current.tab_id, name),
+            ),
         )
         dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.LOCAL_SYMBOLS)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
@@ -94,7 +98,12 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         symbols, _, _ = dialog.values()
         symbols_changed = symbols != self.tabs.local_symbols(current)
         if symbols_changed:
-            self.tabs.set_current_symbols(symbols, {}, current.labels)
+            self.tabs.set_current_symbols(
+                symbols,
+                {},
+                current.labels,
+                apply_existing=False,
+            )
         module_path = dialog.saved_library_path() or dialog.loaded_library_path()
         if module_path:
             self.tabs.set_current_module_path(SYMBOLS, Path(module_path))
@@ -122,7 +131,12 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         )
         dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.GLOBAL_SYMBOLS)
         dialog.goToRequested.connect(self.tabs.go_to_offset)
-        dialog.symbolsChanged.connect(self.tabs.set_global_symbols)
+        dialog.symbolsChanged.connect(
+            lambda values: self.tabs.set_global_symbols(
+                values,
+                apply_existing=False,
+            )
+        )
         self.tabs.currentChanged.connect(dialog.invalidate_offsets_context)
         try:
             dialog.exec()
@@ -130,7 +144,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             self.tabs.currentChanged.disconnect(dialog.invalidate_offsets_context)
         symbols, _, _ = dialog.values()
         if symbols != self.tabs.global_symbols():
-            self.tabs.set_global_symbols(symbols)
+            self.tabs.set_global_symbols(symbols, apply_existing=False)
 
     def _global_symbol_offsets(self, name: str) -> tuple[str | None, list[str]]:
         """Read one Global Symbol's offsets from the tab active at click time."""
@@ -138,7 +152,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         current = self.tabs.current_context()
         if current is None:
             return None, []
-        return current.tab_id, list(current.symbol_offsets.get(name, []))
+        return current.tab_id, self.tabs.symbol_offsets_for(current.tab_id, name)
 
     def _open_labels(self) -> None:
         self.tabs.commit_current_editor_text()

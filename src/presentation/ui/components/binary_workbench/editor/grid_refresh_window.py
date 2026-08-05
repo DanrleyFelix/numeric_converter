@@ -141,17 +141,17 @@ class GridRefreshWindowMixin:
             self._set_editor_line(
                 self.bytes,
                 index,
-                self._display_bytes_text(row.bytes_text),
+                self._display_bytes_row(row),
             )
             self._set_editor_line(
                 self.decoded_text,
                 index,
-                decode_hex_bytes(row.bytes_text, self._decoded_text_values),
+                self._display_decoded_row(row),
             )
-            raw = self._raw_instruction_from_bytes(row.bytes_text, address_from_row(row))
+            raw = self._display_raw_row(row)
             self._set_editor_line(self.raw_instructions, index, raw)
             for name, editor in self._offset_editors.items():
-                value = self._folded_offset_text(
+                value = self._display_offset_row(
                     index,
                     name,
                     row.offsets.get(name, ""),

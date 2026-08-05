@@ -42,6 +42,13 @@
         "The visible 4 KB region is ready; the remaining Assembly projection is rebuilding in the background."
     )
     STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
+    STATUS_BYTES_ASSEMBLY_ONLY: str = (
+        "Directive rows can only be edited in Editor (Assembly Code)."
+    )
+    STATUS_BYTES_ROW_REMOVAL_BLOCKED: str = (
+        "Rows containing labels, comments, or directives cannot be removed from Bytes."
+    )
+    STATUS_VERSION_AUTOSAVE_FAILED_TEMPLATE: str = "Version autosave failed: {error}"
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"
     PREFERENCES: str = "Preferences"

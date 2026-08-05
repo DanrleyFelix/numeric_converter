@@ -116,6 +116,36 @@ def test_contents_change_handler_contains_no_expensive_derivation_path():
     assert "assemble" not in source
 
 
+def test_label_only_commit_reuses_symbol_catalog_maps(monkeypatch):
+    grid = _grid(["entry: nop"])
+    variables = {f"local_{index}": hex(index) for index in range(32)}
+    equates = {f"global_{index}": hex(index) for index in range(64)}
+    grid.set_symbols({"entry": "0x00000000"}, variables, equates, {})
+    variable_map = grid._symbol_maps[1]
+    equate_map = grid._symbol_maps[2]
+
+    monkeypatch.setattr(
+        grid._instruction_highlighter,
+        "symbol_maps",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("label updates must not rebuild Symbol maps")
+        ),
+    )
+    monkeypatch.setattr(
+        grid.instructions,
+        "set_symbol_helpers",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("label updates must not rebuild Symbol helpers")
+        ),
+    )
+
+    grid._set_editing_labels({"entry": "0x00000004"})
+
+    assert grid._symbol_maps[1] is variable_map
+    assert grid._symbol_maps[2] is equate_map
+    assert grid.instructions._label_offsets["entry"][1] == 4
+
+
 def test_same_qt_cycle_coalesces_multiple_signals_into_one_flush(monkeypatch):
     grid = _grid(["nop", "nop"])
     coordinator = grid._consistency_coordinator
@@ -133,6 +163,28 @@ def test_same_qt_cycle_coalesces_multiple_signals_into_one_flush(monkeypatch):
 
     assert calls == [True]
     monkeypatch.setattr(coordinator, "flush_collected_changes", original)
+
+
+def test_non_contiguous_assembly_deletion_commits_every_visible_column_immediately():
+    grid = _grid(["addiu $a0, $a0, 3" for _ in range(48)], references=True)
+    ranges = []
+    for index in (3, 6, 9):
+        block = grid.instructions.document().findBlockByNumber(index)
+        ranges.append((block.position(), block.position() + len(block.text())))
+    grid.instructions._occurrence_ranges = ranges
+    grid.instructions._apply_occurrence_selection(ranges[-1])
+    grid.instructions.setFocus()
+
+    QTest.keyClick(grid.instructions, Qt.Key_Backspace)
+    _app().processEvents()
+
+    for index in (3, 6, 9):
+        assert _editor_line(grid.instructions, index) == ""
+        assert _editor_line(grid.bytes, index) == ""
+        assert _editor_line(grid.raw_instructions, index) == ""
+        assert _editor_line(grid.decoded_text, index) == ""
+        assert _editor_line(grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE], index) == "-"
+        assert _editor_line(grid._offset_editors[_REFERENCE], index) == "-"
 
 
 @pytest.mark.parametrize("operation", ["paste", "delete", "cut", "replace", "undo", "redo"])
@@ -312,6 +364,57 @@ def test_two_trailing_blank_lines_keep_every_column_on_the_same_visible_row():
     )
     assert len({editor.document().blockCount() for editor in editors}) == 1
     assert len({editor.firstVisibleBlock().blockNumber() for editor in editors}) == 1
+
+
+def test_structural_edit_repairs_a_previously_diverged_derived_document():
+    grid = _grid(["entry:", *["nop" for _ in range(24)]], references=True)
+    coordinator = grid._consistency_coordinator
+    raw_lines = grid.raw_instructions.toPlainText().split("\n")
+    grid.raw_instructions.setPlainText("\n".join(raw_lines[:-1]))
+    block = grid.instructions.document().findBlockByNumber(5)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+
+    cursor.insertText("\n")
+    coordinator.flush_collected_changes()
+
+    editors = (
+        *grid._offset_editors.values(),
+        grid.raw_instructions,
+        grid.bytes,
+        grid.decoded_text,
+        grid.instructions,
+    )
+    assert {editor.document().blockCount() for editor in editors} == {
+        grid.instructions.document().blockCount()
+    }
+    assert grid.raw_instructions.document().findBlockByNumber(6).isValid()
+
+
+def test_undo_keeps_the_assembly_cursor_and_shared_viewport_near_the_edit():
+    grid = _grid(["entry:", *["nop" for _ in range(80)]], references=True)
+    grid.scrollbar.setValue(40 * 4)
+    block = grid.instructions.document().findBlockByNumber(45)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.instructions.setTextCursor(cursor)
+    grid.instructions.setFocus()
+    QTest.keyClick(grid.instructions, Qt.Key_Return)
+    _app().processEvents()
+    cursor_row = grid.instructions.textCursor().blockNumber()
+    scroll_before = grid.scrollbar.value()
+
+    QTest.keyClick(grid.instructions, Qt.Key_Z, Qt.ControlModifier)
+    _app().processEvents()
+
+    assert grid.instructions.textCursor().blockNumber() == min(
+        cursor_row,
+        grid.instructions.document().blockCount() - 1,
+    )
+    assert grid.scrollbar.value() == min(scroll_before, grid.scrollbar.maximum())
+    assert grid.instructions.textCursor().blockNumber() < (
+        grid.instructions.document().blockCount() - 1
+    )
 
 
 def test_last_valid_instruction_gets_all_offsets_immediately_after_blank_lines():

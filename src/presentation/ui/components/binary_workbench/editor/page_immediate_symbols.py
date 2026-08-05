@@ -12,7 +12,9 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
     labels_from_rows,
     update_instruction_overlays,
 )
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
+from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    set_cursor_position,
+)
 
 
 class EditorPageImmediateSymbolsMixin:
@@ -32,7 +34,7 @@ class EditorPageImmediateSymbolsMixin:
         labels = labels_from_rows(self.grid.export_rows())
         rows = self.grid.rows_encoded_with_symbols(variables, equates, labels, replacement)
         labels = labels_from_rows(rows)
-        offsets = symbol_offsets(rows, variables, equates, labels)
+        offsets = {label: [offset] for label, offset in labels.items()}
         self.grid.set_symbols(labels, variables, equates, offsets)
         updates: dict[str, object] = {
             "symbols": local_symbols,
@@ -66,7 +68,7 @@ class EditorPageImmediateSymbolsMixin:
         block = self.grid.instructions.document().findBlockByNumber(cursor_state[0])
         if block.isValid():
             cursor = self.grid.instructions.textCursor()
-            cursor.setPosition(block.position() + min(cursor_state[1], len(block.text())))
+            set_cursor_position(cursor, block.position() + min(cursor_state[1], len(block.text())))
             self.grid.instructions.setTextCursor(cursor)
             self.grid.instructions.setFocus()
 

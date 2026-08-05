@@ -30,7 +30,6 @@ from src.presentation.ui.components.binary_workbench.editor.instruction_overlays
     merged_instruction_labels,
     rows_from_overlays,
 )
-from src.presentation.ui.components.binary_workbench.symbols import symbol_offsets
 from src.presentation.ui.components.binary_workbench.tabs.workspace_memory import (
     workspace_heavy_context_unloaded,
 )
@@ -257,12 +256,7 @@ class TabWorkspaceMixin:
                 **context.__dict__,
                 "rows": rows,
                 "labels": labels,
-                "symbol_offsets": symbol_offsets(
-                    symbol_rows,
-                    context.variables,
-                    context.equates,
-                    labels,
-                ),
+                "symbol_offsets": {name: [offset] for name, offset in labels.items()},
             }
         )
 
