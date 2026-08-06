@@ -417,6 +417,82 @@ def test_undo_keeps_the_assembly_cursor_and_shared_viewport_near_the_edit():
     )
 
 
+def test_current_viewport_schedules_zero_consistency_work():
+    grid = _grid(["nop" for _ in range(100)], references=True)
+    coordinator = grid._consistency_coordinator
+    coordinator._viewport_timer.stop()
+
+    coordinator.prioritize_viewport()
+
+    assert coordinator._viewport_timer.isActive() is False
+
+
+def test_newly_visible_stale_viewport_is_projected_without_global_work(monkeypatch):
+    grid = _grid(["nop" for _ in range(100)], references=True)
+    coordinator = grid._consistency_coordinator
+    viewport = coordinator_module.DirtyRange(60, 68)
+    coordinator.structural_revision += 1
+    coordinator._range_consistency.invalidate_from(
+        viewport.first,
+        len(coordinator._model_rows),
+        coordinator.structural_revision,
+    )
+    coordinator._dirty_ranges = ()
+    monkeypatch.setattr(coordinator, "_viewport_range", lambda: viewport)
+
+    coordinator.prioritize_viewport()
+    assert coordinator._viewport_timer.isActive() is True
+    assert coordinator._viewport_timer.interval() <= 70
+    coordinator._viewport_timer.stop()
+    coordinator._prioritize_coalesced_viewport()
+
+    assert coordinator._range_consistency.is_current(
+        viewport.first,
+        viewport.last,
+        coordinator.structural_revision,
+    )
+    for row in range(viewport.first, viewport.last + 1):
+        assert _editor_line(
+            grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE], row
+        ) == coordinator._model_rows[row].offsets[BINARY_WORKBENCH_TEXT.FILE]
+
+
+def test_newly_visible_pending_bytes_content_is_projected_immediately(monkeypatch):
+    grid = _grid(["nop" for _ in range(100)], references=True)
+    coordinator = grid._consistency_coordinator
+    row_index = 60
+    previous = coordinator._model_rows[row_index]
+    changed = BinaryWorkbenchRowDTO(
+        previous.offsets,
+        "addiu $a0, $a0, 3",
+        "03 00 84 24",
+        previous.original_instruction,
+        previous.original_bytes_text,
+    )
+    coordinator._model_rows[row_index] = changed
+    grid._rows[row_index] = changed
+    grid._all_rows[row_index] = changed
+    coordinator._pending_bytes_content_batches = [LineContentBatch(
+        coordinator.owner,
+        coordinator.source_revision,
+        coordinator.visual_generation,
+        ((row_index, changed),),
+    )]
+    monkeypatch.setattr(
+        coordinator,
+        "_viewport_range",
+        lambda: coordinator_module.DirtyRange(row_index, row_index + 4),
+    )
+
+    coordinator.prioritize_viewport()
+    assert coordinator._viewport_timer.isActive() is True
+    coordinator._viewport_timer.stop()
+    coordinator._prioritize_coalesced_viewport()
+
+    assert _editor_line(grid.instructions, row_index).casefold() == changed.instruction
+    assert coordinator._pending_bytes_content_batches == []
+
+
 def test_last_valid_instruction_gets_all_offsets_immediately_after_blank_lines():
     grid = _grid(["entry:", *["nop" for _ in range(8)]], references=True)
     previous = grid.export_rows()[-1]

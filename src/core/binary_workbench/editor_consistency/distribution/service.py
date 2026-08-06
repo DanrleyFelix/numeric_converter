@@ -151,9 +151,9 @@ def _priority_order(
     seen: set[int] = set()
     output: list[int] = []
     ranges = [
-        *dirty_ranges,
         viewport,
         DirtyRange(viewport.first - VIEWPORT_MARGIN_LINES, viewport.last + VIEWPORT_MARGIN_LINES),
+        *dirty_ranges,
         DirtyRange(0 if dirty_from_line is None else dirty_from_line, count - 1),
     ]
     for item in ranges:

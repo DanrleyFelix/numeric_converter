@@ -544,6 +544,8 @@ class EditorConsistencyCoordinator(QObject):
                 self.grid,
                 tuple((first + index, row) for index, row in enumerate(rows)),
             )
+            if label_changed:
+                self.grid._refresh_label_folding()
         immediate_last = self._apply_immediate_offsets(first)
         has_pending_visual = bool(self._dirty_ranges)
         needs_visual_worker = has_pending_visual or immediate_last < len(self._model_rows) - 1
@@ -612,6 +614,7 @@ class EditorConsistencyCoordinator(QObject):
         apply_line_contents(self.grid, tuple(changed))
         if labels_changed:
             self.grid._set_editing_labels(labels_from_source_rows(self._model_rows))
+            self.grid._refresh_label_folding()
         if structural_from is not None:
             self.structural_revision += 1
             self._range_consistency.invalidate_from(
@@ -791,6 +794,7 @@ class EditorConsistencyCoordinator(QObject):
         if label_changed:
             labels = labels_from_source_rows(self._model_rows)
             self.grid._set_editing_labels(labels, (first, first + len(rows)))
+            self.grid._refresh_label_folding()
             changed_names = {
                 name.casefold()
                 for name in {*previous_labels, *labels}
@@ -1139,16 +1143,18 @@ class EditorConsistencyCoordinator(QObject):
         return ConsistencyBarrierResult(True, snapshot)
 
     def prioritize_viewport(self) -> None:
-        """Requeue a pending full projection around the newly visible region."""
+        """Queue only a stale viewport for the next display-frame commit."""
 
         viewport = self._viewport_range()
-        if self._range_consistency.is_current(
+        offsets_current = self._range_consistency.is_current(
             viewport.first,
             viewport.last,
             self.structural_revision,
-        ):
+        )
+        content_pending = self._bytes_content_pending_in(viewport)
+        if offsets_current and not content_pending:
             return
-        if not self._dirty_ranges or self._viewport_timer.isActive():
+        if self._viewport_timer.isActive():
             return
         self._viewport_timer.start()
 
@@ -1219,13 +1225,77 @@ class EditorConsistencyCoordinator(QObject):
         self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
 
     def _prioritize_coalesced_viewport(self) -> None:
-        """Apply at most one viewport reprioritization per display frame."""
+        """Commit stale visible rows before restarting deferred propagation."""
 
+        viewport = self._viewport_range()
+        self._apply_pending_bytes_viewport(viewport)
+        if not self._range_consistency.is_current(
+            viewport.first,
+            viewport.last,
+            self.structural_revision,
+        ):
+            self._apply_offset_window(
+                viewport.first,
+                viewport.last - viewport.first + 1,
+            )
         if self._viewport_restart_scheduled or not self._dirty_ranges:
             return
         self._viewport_restart_scheduled = True
         self._invalidate_visual()
         QTimer.singleShot(0, self._start_visual)
+
+    def _bytes_content_pending_in(self, viewport: DirtyRange) -> bool:
+        """Return whether a deferred Bytes batch intersects the viewport."""
+
+        return any(
+            batch.rows
+            and batch.rows[0][0] <= viewport.last
+            and batch.rows[-1][0] >= viewport.first
+            for batch in self._pending_bytes_content_batches
+        )
+
+    def _apply_pending_bytes_viewport(self, viewport: DirtyRange) -> None:
+        """Project deferred Bytes peers intersecting the visible source rows."""
+
+        visible: list[tuple[int, BinaryWorkbenchRowDTO]] = []
+        remaining: list[LineContentBatch] = []
+        for batch in self._pending_bytes_content_batches:
+            if (
+                batch.owner != self.owner
+                or batch.source_revision != self.source_revision
+                or batch.generation != self.visual_generation
+            ):
+                continue
+            if (
+                not batch.rows
+                or batch.rows[0][0] > viewport.last
+                or batch.rows[-1][0] < viewport.first
+            ):
+                remaining.append(batch)
+                continue
+            deferred = tuple(
+                item
+                for item in batch.rows
+                if not viewport.first <= item[0] <= viewport.last
+            )
+            visible.extend(
+                item
+                for item in batch.rows
+                if viewport.first <= item[0] <= viewport.last
+            )
+            if deferred:
+                remaining.append(LineContentBatch(
+                    batch.owner,
+                    batch.source_revision,
+                    batch.generation,
+                    deferred,
+                ))
+        self._pending_bytes_content_batches = remaining
+        if visible:
+            apply_bytes_line_contents(self.grid, tuple(visible))
+        if not remaining:
+            self._bytes_content_timer.stop()
+            self._finish_bytes_content_projection()
 
     def cancel_pending(self) -> None:
         """Invalidate timers and cooperative workers without terminating threads."""

@@ -466,6 +466,57 @@ def test_enter_after_last_byte_before_label_shifts_source_immediately():
     assert grid.bytes.textCursor().blockNumber() == 1
 
 
+def test_enter_in_bytes_with_three_labels_keeps_folding_and_scroll_reachable():
+    """Insert a Bytes row without inheriting a hidden zero-line layout block."""
+
+    rows: list[BinaryWorkbenchRowDTO] = []
+    offset = 0
+    for label in ("first", "second", "third"):
+        rows.append(BinaryWorkbenchRowDTO({"File": "-"}, f"{label}:", ""))
+        for _unused in range(8):
+            rows.append(BinaryWorkbenchRowDTO(
+                {"File": f"0x{offset:08X}"},
+                "nop",
+                "00 00 00 00",
+            ))
+            offset += 4
+    grid = _grid(rows)
+    grid.resize(800, 240)
+    grid.show()
+    grid.set_label_folding_enabled(True)
+    grid.toggle_label_fold("first")
+    grid.toggle_label_fold("third")
+    block = grid.bytes.document().findBlockByNumber(8)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.bytes.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier, "\r"),
+    )
+    QApplication.processEvents()
+
+    editors = (
+        *grid._offset_editors.values(),
+        grid.raw_instructions,
+        grid.bytes,
+        grid.decoded_text,
+        grid.instructions,
+    )
+    assert {editor.document().blockCount() for editor in editors} == {len(grid._rows)}
+    masks = [
+        tuple(
+            editor.document().findBlockByNumber(row).isVisible()
+            for row in range(editor.document().blockCount())
+        )
+        for editor in editors
+    ]
+    assert len(set(masks)) == 1
+    expected = max(0, grid._scrollable_total_size() - grid.visible_size())
+    assert grid.scrollbar.maximum() == expected
+
+
 def test_backspace_on_inserted_empty_byte_row_returns_to_previous_instruction():
     rows = [
         BinaryWorkbenchRowDTO(
@@ -500,6 +551,184 @@ def test_backspace_on_inserted_empty_byte_row_returns_to_previous_instruction():
     assert cursor.blockNumber() == 0
     assert cursor.positionInBlock() == len("02 00 84 24")
     assert grid._rows[1].instruction == "spInit:"
+
+
+def test_last_byte_removal_before_label_returns_to_previous_instruction_and_undoes():
+    rows = [
+        *[
+            BinaryWorkbenchRowDTO(
+                {"File": f"0x{index * 4:08X}"},
+                "addiu $a0, $a0, 2",
+                "02 00 84 24",
+            )
+            for index in range(5)
+        ],
+        BinaryWorkbenchRowDTO({"File": "-"}, "spInit:", ""),
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000014"},
+            "sw $a0, 0x0($sp)",
+            "00 00 A4 AF",
+        ),
+    ]
+    grid = _grid(rows)
+    grid.set_label_folding_enabled(True)
+    grid.toggle_label_fold("spInit")
+    block = grid.bytes.document().findBlockByNumber(4)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.bytes.setTextCursor(cursor)
+
+    for _ in range(len("02 00 84 24")):
+        QApplication.sendEvent(
+            grid.bytes,
+            QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier),
+        )
+
+    cursor = grid.bytes.textCursor()
+    assert cursor.blockNumber() == 3
+    assert cursor.positionInBlock() == len("02 00 84 24")
+    assert grid._rows[4].instruction == "spInit:"
+    assert grid.instructions._label_fold_regions == {4: ("spInit", True)}
+    assert {
+        editor.document().blockCount()
+        for editor in (
+            *grid._offset_editors.values(),
+            grid.raw_instructions,
+            grid.bytes,
+            grid.decoded_text,
+            grid.instructions,
+        )
+    } == {len(rows) - 1}
+
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier),
+    )
+    QApplication.processEvents()
+
+    assert len(grid._rows) == len(rows)
+    assert grid._rows[4].instruction.lower() == "addiu $a0, $a0, 2"
+    assert grid.bytes.document().findBlockByNumber(4).text() == "02 00 84 24"
+    assert grid._rows[5].instruction == "spInit:"
+    assert grid.instructions._label_fold_regions == {5: ("spInit", True)}
+
+
+def test_empty_byte_row_inserted_before_label_has_no_valid_offset_immediately():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000040"},
+            "addiu $a0, $a0, 2",
+            "02 00 84 24",
+        ),
+        BinaryWorkbenchRowDTO({"File": "-"}, "spInit:", ""),
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000044"},
+            "sw $a0, 0x0($sp)",
+            "00 00 A4 AF",
+        ),
+    ]
+    grid = _grid(rows)
+    grid.set_label_folding_enabled(True)
+    cursor = QTextCursor(grid.bytes.document().firstBlock())
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.bytes.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Return, Qt.NoModifier, "\r"),
+    )
+
+    assert grid._rows[1].instruction == ""
+    assert grid._rows[1].bytes_text == ""
+    assert grid._rows[1].offsets[BINARY_WORKBENCH_TEXT.FILE] == "-"
+    offset_block = grid._offset_editors[
+        BINARY_WORKBENCH_TEXT.FILE
+    ].document().findBlockByNumber(1)
+    assert offset_block.text() == "-"
+    assert grid.instructions._label_fold_regions == {2: ("spInit", False)}
+
+
+def test_bytes_structure_splice_repairs_a_diverged_peer_without_traceback():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            {"File": f"0x{index * 4:08X}"},
+            "addiu $a0, $a0, 2",
+            "02 00 84 24",
+        )
+        for index in range(8)
+    ]
+    grid = _grid(rows)
+    raw_lines = grid.raw_instructions.toPlainText().split("\n")
+    grid.raw_instructions.setPlainText("\n".join(raw_lines[:-1]))
+    block = grid.bytes.document().findBlockByNumber(3)
+    cursor = QTextCursor(block)
+    cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+    grid.bytes.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Delete, Qt.NoModifier),
+    )
+
+    assert len(grid._rows) == len(rows) - 1
+    assert {
+        editor.document().blockCount()
+        for editor in (
+            *grid._offset_editors.values(),
+            grid.raw_instructions,
+            grid.bytes,
+            grid.decoded_text,
+            grid.instructions,
+        )
+    } == {len(rows) - 1}
+
+
+def test_blocked_backspace_on_label_does_not_consume_previous_bytes_undo():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000000"},
+            "addiu $a0, $a0, 2",
+            "02 00 84 24",
+        ),
+        BinaryWorkbenchRowDTO({"File": "-"}, "spInit:", ""),
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000004"},
+            "sw $a0, 0x0($sp)",
+            "00 00 A4 AF",
+        ),
+    ]
+    grid = _grid(rows)
+    warnings: list[str] = []
+    grid.commandWarningRequested.connect(warnings.append)
+    cursor = QTextCursor(grid.bytes.document().findBlockByNumber(2))
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.bytes.setTextCursor(cursor)
+
+    for _ in range(len("00 00 A4 AF")):
+        QApplication.sendEvent(
+            grid.bytes,
+            QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier),
+        )
+
+    assert len(grid._rows) == 2
+    assert grid._rows[1].instruction == "spInit:"
+    assert grid.bytes.textCursor().blockNumber() == 1
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier),
+    )
+    assert warnings == [BINARY_WORKBENCH_TEXT.STATUS_BYTES_ROW_REMOVAL_BLOCKED]
+
+    QApplication.sendEvent(
+        grid.bytes,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Z, Qt.ControlModifier),
+    )
+    QApplication.processEvents()
+
+    assert len(grid._rows) == len(rows)
+    assert grid._rows[1].instruction == "spInit:"
+    assert grid._rows[2].instruction.lower() == "sw $a0, 0x0($sp)"
+    assert grid.bytes.document().findBlockByNumber(2).text() == "00 00 A4 AF"
 
 
 def test_multiple_selected_plain_byte_rows_are_removed_without_touching_label():

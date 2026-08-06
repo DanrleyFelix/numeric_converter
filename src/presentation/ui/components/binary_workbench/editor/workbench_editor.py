@@ -283,7 +283,7 @@ class WorkbenchEditor(
             return
         if event.matches(QKeySequence.Undo):
             self.clear_editor_occurrence_selection()
-            self._run_history_action(self.undo)
+            self._run_history_action(self.undo, undo=True)
             event.accept()
             return
         if event.matches(QKeySequence.Redo) or (
@@ -291,7 +291,7 @@ class WorkbenchEditor(
             and bool(event.modifiers() & Qt.ControlModifier)
             and bool(event.modifiers() & Qt.ShiftModifier)
         ):
-            self._run_history_action(self.redo)
+            self._run_history_action(self.redo, undo=False)
             event.accept()
             return
         if event.matches(QKeySequence.SelectAll):
@@ -362,7 +362,7 @@ class WorkbenchEditor(
         self._refresh_completions()
         self._normalize_instruction_after_comment_start(event.text())
 
-    def _run_history_action(self, action) -> None:
+    def _run_history_action(self, action, *, undo: bool) -> None:
         """Run undo/redo without letting Qt relocate the typing viewport."""
 
         cursor_state = capture_logical_cursor(self)
@@ -372,7 +372,15 @@ class WorkbenchEditor(
             if self._shared_scrollbar is not None
             else None
         )
+        previous_text = self.toPlainText()
+        previous_steps = self._available_history_steps(undo)
         action()
+        self._skip_bytes_no_op_history(
+            action,
+            undo=undo,
+            previous_text=previous_text,
+            previous_steps=previous_steps,
+        )
         self._restore_history_interaction(cursor_state, local_scroll, shared_scroll)
         QTimer.singleShot(
             0,
@@ -382,6 +390,38 @@ class WorkbenchEditor(
                 shared_scroll,
             ),
         )
+
+    def _skip_bytes_no_op_history(
+        self,
+        action,
+        *,
+        undo: bool,
+        previous_text: str,
+        previous_steps: int,
+    ) -> None:
+        """Skip visual-only history entries before the next Bytes text change."""
+
+        if not self._hex_input_enabled:
+            return
+        for _unused in range(BINARY_WORKBENCH_TIMING.EDITOR_NO_OP_HISTORY_LIMIT):
+            current_steps = self._available_history_steps(undo)
+            if self.toPlainText() != previous_text or current_steps >= previous_steps:
+                return
+            available = (
+                self.document().isUndoAvailable()
+                if undo
+                else self.document().isRedoAvailable()
+            )
+            if not available:
+                return
+            previous_steps = current_steps
+            action()
+
+    def _available_history_steps(self, undo: bool) -> int:
+        """Return the current number of commands in one history direction."""
+
+        document = self.document()
+        return document.availableUndoSteps() if undo else document.availableRedoSteps()
 
     def _restore_history_interaction(
         self,

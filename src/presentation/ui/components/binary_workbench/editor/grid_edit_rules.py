@@ -107,7 +107,6 @@ class GridEditRulesMixin:
             and event is not None
             and event.key() == Qt.Key_Backspace
             and not editor.textCursor().hasSelection()
-            and editor.textCursor().positionInBlock() == 0
         )
         target_row = first - 1 if return_to_previous else first
         target_row = min(max(0, target_row), max(0, remaining_count - 1))

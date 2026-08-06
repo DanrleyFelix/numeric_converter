@@ -160,12 +160,17 @@ class GridLabelFoldingMixin:
 
         document = editor.document()
         block = document.firstBlock()
+        changed = False
         while block.isValid():
             visible = block.blockNumber() not in hidden_rows
-            block.setVisible(visible)
-            block.setLineCount(1 if visible else 0)
+            line_count = 1 if visible else 0
+            if block.isVisible() != visible or block.lineCount() != line_count:
+                block.setVisible(visible)
+                block.setLineCount(line_count)
+                changed = True
             block = block.next()
-        document.markContentsDirty(0, document.characterCount())
+        if changed:
+            document.markContentsDirty(0, document.characterCount())
         refresh_dashes = getattr(editor, "refresh_dash_overlays", None)
         if refresh_dashes is not None:
             refresh_dashes()
@@ -301,18 +306,6 @@ class GridLabelFoldingMixin:
             for index in range(document.blockCount())
             if document.findBlockByNumber(index).isVisible()
         )
-
-    def _folded_scrollbar_maximum(self, maximum: int) -> int:
-        """Clamp shared scrolling to the reachable range of visible columns."""
-
-        if self._virtual or not (self._collapsed_labels or self._directives_collapsed):
-            return maximum
-        limits = [
-            editor.verticalScrollBar().maximum() * ROW_BYTES
-            for editor in self._fold_editors()
-            if self._scroll_editor_enabled(editor)
-        ]
-        return min([maximum, *limits]) if limits else maximum
 
     def _ensure_static_editor_scroll_range(self, maximum: int) -> None:
         """Restore editor ranges left stale after expanding folded blocks."""

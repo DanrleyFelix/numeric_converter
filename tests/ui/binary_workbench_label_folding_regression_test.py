@@ -190,3 +190,120 @@ def test_raw_instruction_rerender_preserves_folds_with_invalid_jump():
     assert raw_visibility == instruction_visibility
     assert raw_visibility[1] is False
     assert raw_visibility[3] is False
+
+
+def test_new_label_marker_is_published_in_the_same_qt_cycle():
+    """Expose a newly typed label without waiting for another source edit."""
+
+    grid = _grid(["nop", "nop", "nop"])
+    block = grid.instructions.document().findBlockByNumber(0)
+    cursor = QTextCursor(block)
+    cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+    grid.instructions.setTextCursor(cursor)
+
+    QTest.keyClicks(grid.instructions, "new_label:")
+    _app().processEvents()
+
+    assert any(
+        region.label == "new_label" for region in grid._label_fold_regions
+    ), grid.instructions.toPlainText()
+    assert grid.instructions._label_fold_regions[0][0] == "new_label"
+
+
+def test_fold_refresh_repairs_visible_blocks_with_zero_layout_lines():
+    """Normalize a visible block inherited from a previously hidden neighbour."""
+
+    grid = _grid(["first:", "nop", "second:", "nop", "third:", "nop"])
+    block = grid.instructions.document().findBlockByNumber(3)
+    block.setVisible(True)
+    block.setLineCount(0)
+
+    grid._refresh_label_folding()
+
+    assert block.isVisible() is True
+    assert block.lineCount() == 1
+
+
+def test_collapsed_scroll_range_ignores_transient_editor_maximums():
+    """Derive the shared range from logical rows while Qt layouts settle."""
+
+    body = ["nop"] * 18
+    grid = _grid(["first:", *body, "second:", *body, "third:", *body])
+    grid.toggle_label_fold("first")
+    grid.raw_instructions.verticalScrollBar().setMaximum(0)
+    expected = max(0, grid._scrollable_total_size() - grid.visible_size())
+
+    grid._configure_scrollbar()
+
+    assert expected > 0
+    assert grid.scrollbar.maximum() == expected
+
+
+def test_three_quick_collapses_keep_the_last_label_reachable_after_expansion():
+    """Keep every logical row reachable across unsettled folding layouts."""
+
+    body = ["nop"] * 18
+    grid = _grid([
+        "first:", *body,
+        "second:", *body,
+        "third:", *body,
+        "fourth:", *body,
+    ])
+    for label in ("first", "second", "third", "fourth"):
+        grid.toggle_label_fold(label)
+    grid.toggle_label_fold("second")
+    _app().processEvents()
+
+    expected = max(0, grid._scrollable_total_size() - grid.visible_size())
+    assert grid.scrollbar.maximum() == expected
+    grid.set_visible_offset(expected)
+    _app().processEvents()
+
+    fourth_row = next(
+        region.label_row
+        for region in grid._label_fold_regions
+        if region.label == "fourth"
+    )
+    assert grid.instructions.document().findBlockByNumber(fourth_row).isVisible()
+    assert any(
+        marker[0] == fourth_row
+        for marker in grid.instructions.visible_label_fold_markers()
+    )
+    masks = [
+        tuple(
+            editor.document().findBlockByNumber(row).isVisible()
+            for row in range(editor.document().blockCount())
+        )
+        for editor in _editors(grid)
+    ]
+    assert len(set(masks)) == 1
+
+
+def test_new_rows_near_folded_labels_keep_documents_and_scroll_range_aligned():
+    """Commit structural source insertion without orphaning a Qt layout row."""
+
+    body = ["nop"] * 8
+    grid = _grid(["first:", *body, "second:", *body, "third:", *body])
+    grid.toggle_label_fold("first")
+    grid.toggle_label_fold("third")
+    insertion_row = 9 + len(body) - 1
+    block = grid.instructions.document().findBlockByNumber(insertion_row)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.instructions.setTextCursor(cursor)
+
+    QTest.keyClick(grid.instructions, Qt.Key_Return)
+    _app().processEvents()
+
+    counts = {editor.document().blockCount() for editor in _editors(grid)}
+    assert counts == {len(grid._rows)}
+    expected = max(0, grid._scrollable_total_size() - grid.visible_size())
+    assert grid.scrollbar.maximum() == expected
+    masks = [
+        tuple(
+            editor.document().findBlockByNumber(row).isVisible()
+            for row in range(editor.document().blockCount())
+        )
+        for editor in _editors(grid)
+    ]
+    assert len(set(masks)) == 1

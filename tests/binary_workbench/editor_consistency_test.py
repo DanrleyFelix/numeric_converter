@@ -28,7 +28,7 @@ def test_contribution_index_reuses_untouched_immutable_segments():
     assert index.prefix_bytes(500) == sum(sizes[:500]) - 4
 
 
-def test_offset_batches_prioritize_dirty_viewport_margin_then_remainder():
+def test_offset_batches_prioritize_viewport_margin_dirty_then_remainder():
     index = LineContributionIndex([4] * 500)
     token = CancellationToken()
     batches = build_offset_batches(
@@ -46,8 +46,9 @@ def test_offset_batches_prioritize_dirty_viewport_margin_then_remainder():
 
     first_indices = [line for line, _offsets in batches[0].values]
     assert all(len(batch.values) <= 256 for batch in batches)
-    assert first_indices[:2] == [300, 301]
-    assert first_indices[2:13] == list(range(50, 61))
+    assert first_indices[:11] == list(range(50, 61))
+    assert first_indices[11:13] == [0, 1]
+    assert first_indices[125:127] == [300, 301]
     offsets = dict(batches[0].values)
     assert offsets[300]["File"] == "0x000004B0"
     assert offsets[50]["Reference Offset A"] == "0x800000C8"

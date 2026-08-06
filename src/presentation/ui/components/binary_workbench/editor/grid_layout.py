@@ -208,7 +208,6 @@ class GridLayoutMixin:
         self._updating = True
         try:
             maximum = max(0, self._scrollable_total_size() - self.visible_size())
-            maximum = self._folded_scrollbar_maximum(maximum)
             target = min(max(0, self._aligned_scroll_offset(self._visible_start_offset)), maximum)
             self._visible_start_offset = target
             self.scrollbar.setRange(0, maximum)

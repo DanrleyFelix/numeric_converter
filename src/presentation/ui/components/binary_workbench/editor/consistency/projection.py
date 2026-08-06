@@ -20,6 +20,7 @@ def projection_transaction(
     *,
     refresh_structure: bool = False,
     refresh_folding: bool = True,
+    refresh_fold_offsets: bool = True,
 ):
     """Apply one derived projection without exposing intermediate scroll states."""
 
@@ -34,7 +35,10 @@ def projection_transaction(
         yield
         if refresh_structure:
             if refresh_folding:
-                _refresh_fold_visibility(grid)
+                _refresh_fold_visibility(
+                    grid,
+                    render_offsets=refresh_fold_offsets,
+                )
             grid._visible_start_offset = shared_value
             grid._configure_scrollbar()
             grid.scrollbar.setValue(min(shared_value, grid.scrollbar.maximum()))
@@ -115,48 +119,52 @@ def apply_bytes_structure_splice(
     expected_before = max(1, len(grid._rows) - len(inserted) + removed)
     peers = (*grid._offset_editors.values(), grid.raw_instructions, grid.decoded_text, grid.instructions)
     if any(editor.document().blockCount() != expected_before for editor in peers):
-        raise RuntimeError("Bytes peer block counts diverged before structural splice.")
-    with projection_transaction(
-        grid,
-        refresh_structure=True,
-        refresh_folding=False,
-    ):
-        for name, editor in grid._offset_editors.items():
+        _rebuild_bytes_origin_projection(grid)
+        return
+    try:
+        with projection_transaction(
+            grid,
+            refresh_structure=True,
+            refresh_fold_offsets=False,
+        ):
+            for name, editor in grid._offset_editors.items():
+                _replace_span(
+                    editor,
+                    first,
+                    removed,
+                    [
+                        grid._display_offset_row(
+                            first + offset,
+                            name,
+                            row.offsets.get(name, "-"),
+                        )
+                        for offset, row in enumerate(inserted)
+                    ],
+                )
+                splice_overlays = getattr(editor, "splice_offset_blocks", None)
+                if splice_overlays is not None:
+                    splice_overlays(first, removed, len(inserted))
             _replace_span(
-                editor,
+                grid.raw_instructions,
                 first,
                 removed,
-                [
-                    grid._display_offset_row(
-                        first + offset,
-                        name,
-                        row.offsets.get(name, "-"),
-                    )
-                    for offset, row in enumerate(inserted)
-                ],
+                [grid._display_raw_row(row) for row in inserted],
             )
-            splice_overlays = getattr(editor, "splice_offset_blocks", None)
-            if splice_overlays is not None:
-                splice_overlays(first, removed, len(inserted))
-        _replace_span(
-            grid.raw_instructions,
-            first,
-            removed,
-            [grid._display_raw_row(row) for row in inserted],
-        )
-        _replace_span(
-            grid.decoded_text,
-            first,
-            removed,
-            [grid._display_decoded_row(row) for row in inserted],
-        )
-        _replace_span(
-            grid.instructions,
-            first,
-            removed,
-            [grid._display_instruction(row.instruction) for row in inserted],
-        )
-        _validate_block_counts(grid)
+            _replace_span(
+                grid.decoded_text,
+                first,
+                removed,
+                [grid._display_decoded_row(row) for row in inserted],
+            )
+            _replace_span(
+                grid.instructions,
+                first,
+                removed,
+                [grid._display_instruction(row.instruction) for row in inserted],
+            )
+            _validate_block_counts(grid)
+    except Exception:
+        _rebuild_bytes_origin_projection(grid)
 
 
 def apply_offset_values(grid, values: tuple[tuple[int, dict[str, str]], ...]) -> None:
@@ -328,7 +336,7 @@ def _replace_span(editor, first: int, removed: int, lines: list[str]) -> None:
     cursor.insertText(replacement)
 
 
-def _refresh_fold_visibility(grid) -> None:
+def _refresh_fold_visibility(grid, *, render_offsets: bool = True) -> None:
     previous = grid._label_fold_regions
     regions = label_fold_regions(grid._rows) if grid._label_folding_enabled else []
     grid._label_fold_regions = regions
@@ -351,9 +359,48 @@ def _refresh_fold_visibility(grid) -> None:
         if directive is not None
         else None
     )
-    grid._render_offsets()
+    if render_offsets:
+        grid._render_offsets()
     for editor in grid._fold_editors():
         grid._apply_hidden_rows(editor, hidden)
+
+
+def _rebuild_bytes_origin_projection(grid) -> None:
+    """Repair every Bytes-origin peer from the committed row model."""
+
+    rows = list(grid._rows)
+    with projection_transaction(
+        grid,
+        refresh_structure=True,
+        refresh_fold_offsets=False,
+    ):
+        for name, editor in grid._offset_editors.items():
+            _replace_document(
+                editor,
+                [
+                    grid._display_offset_row(index, name, row.offsets.get(name, "-"))
+                    for index, row in enumerate(rows)
+                ],
+            )
+        if grid.bytes.document().blockCount() != max(1, len(rows)):
+            _replace_document(
+                grid.bytes,
+                [grid._display_bytes_row(row) for row in rows],
+            )
+        _replace_document(
+            grid.decoded_text,
+            [grid._display_decoded_row(row) for row in rows],
+        )
+        _replace_document(
+            grid.raw_instructions,
+            [grid._display_raw_row(row) for row in rows],
+        )
+        _replace_document(
+            grid.instructions,
+            [grid._display_instruction(row.instruction) for row in rows],
+        )
+        _refresh_offset_overlays(grid)
+        _validate_block_counts(grid)
 
 
 def _refresh_offset_overlays(grid) -> None:
