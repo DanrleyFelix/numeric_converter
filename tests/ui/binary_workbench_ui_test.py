@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QShortcut, QTextCursor, QWheelEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QScrollBar, QTableView, QTextBrowser, QToolButton, QWidget
+from PySide6.QtWidgets import QApplication, QCheckBox, QFileDialog, QLabel, QListWidget, QMessageBox, QPushButton, QComboBox, QDialog, QLineEdit, QMenu, QPlainTextEdit, QScrollArea, QScrollBar, QTableView, QTextBrowser, QToolButton, QWidget
 
 from src.main import create_main_window
 from src.modules.binary_workbench_constants import (
@@ -22,6 +22,7 @@ from src.modules.dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchLbaFilesystemDTO,
+    BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
@@ -73,6 +74,7 @@ from src.presentation.ui.components.binary_workbench.file_dialogs.constants impo
 from src.presentation.ui.components.binary_workbench.native_dialogs import _map_windows_response
 from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchAdvancedConfigDialog,
+    BinaryWorkbenchViewDialog,
 )
 from src.presentation.ui.components.binary_workbench.search import (
     BinaryWorkbenchFindDialog,
@@ -3762,8 +3764,9 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     assert dialog.value.mapTo(dialog, QPoint()).x() - dialog.name.mapTo(dialog, QPoint()).x() == (
         BINARY_WORKBENCH_LAYOUT.SYMBOL_FIELD_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
     )
-    assert dialog.remove_button.mapTo(dialog, QPoint()).x() - add_button.mapTo(dialog, QPoint()).x() == (
-        BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH + BINARY_WORKBENCH_LAYOUT.SYMBOL_ROW_SIDE_MARGIN
+    assert dialog.remove_button.mapTo(dialog, QPoint()).x() > (
+        add_button.mapTo(dialog, QPoint()).x()
+        + BINARY_WORKBENCH_LAYOUT.SHARED_ACTION_WIDTH
     )
     assert table is not None
     assert dialog.findChild(QScrollArea, "workspace-table-body-scroll") is None
@@ -3787,6 +3790,32 @@ def test_binary_workbench_symbols_inputs_are_aligned_and_symmetric():
     assert dialog.offsets_button.isEnabled() is False
     assert dialog.remove_button.isEnabled() is False
     assert all(button.focusPolicy() == Qt.NoFocus for button in dialog.findChildren(QPushButton))
+
+    dialog.resize(dialog.maximumWidth(), dialog.height())
+    _app().processEvents()
+    assert (
+        dialog.remove_button.mapTo(dialog, QPoint()).x()
+        + dialog.remove_button.width()
+        == table.mapTo(dialog, QPoint()).x() + table.width()
+    )
+
+
+def test_binary_workbench_view_uses_rules_checkbox_presentation():
+    _app()
+    dialog = BinaryWorkbenchViewDialog(
+        [BINARY_WORKBENCH_TEXT.FILE],
+        {
+            BINARY_WORKBENCH_TEXT.BYTES: True,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: True,
+            BINARY_WORKBENCH_TEXT.DECODED_TEXT: False,
+            BINARY_WORKBENCH_TEXT.FILE: True,
+        },
+    )
+    checks = dialog.findChildren(QCheckBox, "binary-workbench-dialog-check")
+
+    assert len(checks) == 4
+    assert all(check.cursor().shape() == Qt.PointingHandCursor for check in checks)
+    assert all(check.height() == BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT for check in checks)
 
 
 def test_binary_workbench_labels_dialog_filters_and_navigates():
@@ -4942,15 +4971,7 @@ def test_binary_workbench_offset_placeholders_are_centered_in_every_offset_colum
         assert abs(editor.centered_dash_x() - editor.viewport().width() // 2) <= editor.fontMetrics().horizontalAdvance("-")
         source_x = editor.cursorRect(QTextCursor(placeholder)).x()
         assert source_x < editor.centered_dash_x()
-        line = editor.cursorRect(QTextCursor(placeholder))
-        overlay = editor._dash_labels[0]
-        assert overlay.isVisible()
-        assert overlay.geometry().left() == 0
-        assert overlay.geometry().width() == editor.viewport().width()
-        assert overlay.geometry().top() == line.top()
-        assert overlay.geometry().height() == line.height()
-
-        assert overlay.property("placeholderText") == "-"
+        assert editor._dash_blocks == {0}
 
 def test_binary_workbench_jump_highlighter_separates_labels_symbols_and_addresses():
     _app()
@@ -5634,6 +5655,97 @@ def test_binary_workbench_update_version_does_not_reload_current_assembly_page(t
 
     assert page.grid.instructions.toPlainText().splitlines()[0] == "nop"  # type: ignore[attr-defined]
     assert active.rows or active.instruction_overlays or active.instructions_by_line
+
+
+def test_binary_workbench_saved_assembly_version_comments_invalid_source(tmp_path: Path):
+    """Persist invalid Assembly safely while leaving the active editor untouched."""
+
+    assembly_path = tmp_path / "invalid-version.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    locked_rules = BinaryWorkbenchEditRulesDTO(allow_byte_shift=False)
+    tool.tabs._preferences = BinaryWorkbenchPreferencesDTO(
+        assembly_edit_rules=locked_rules,
+    )
+    page.grid.set_edit_rules(locked_rules)  # type: ignore[attr-defined]
+    page.grid.instructions.setPlainText("bad $a0 ; keep this")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    tool._update_version()
+    current = tool.tabs.current_context()
+    active = next(
+        version
+        for version in current.versions
+        if version.name == current.active_version_name
+    )
+
+    assert active.rows[0].instruction == (
+        "nop; Incorrect Instruction: bad $a0 | keep this"
+    )
+    assert page.grid.instructions.toPlainText().splitlines()[0] == (  # type: ignore[attr-defined]
+        "bad $a0 ; keep this"
+    )
+
+
+def test_binary_workbench_shift_enabled_keeps_invalid_version_source(tmp_path: Path):
+    assembly_path = tmp_path / "shifted-invalid-version.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    page.grid.instructions.setPlainText("bad $a0")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    tool._update_version()
+    current = tool.tabs.current_context()
+    active = next(
+        version
+        for version in current.versions
+        if version.name == current.active_version_name
+    )
+
+    assert active.rows[0].instruction == "bad $a0"
+
+
+def test_binary_workbench_close_flush_normalizes_locked_invalid_source(tmp_path: Path):
+    assembly_path = tmp_path / "locked-close.asm"
+    assembly_path.write_text("nop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    locked_rules = BinaryWorkbenchEditRulesDTO(allow_byte_shift=False)
+    tool.tabs._preferences = BinaryWorkbenchPreferencesDTO(
+        assembly_edit_rules=locked_rules,
+    )
+    page.grid.set_edit_rules(locked_rules)  # type: ignore[attr-defined]
+    page.grid.instructions.setPlainText("broken")  # type: ignore[attr-defined]
+    _app().processEvents()
+
+    tool.tabs.flush_open_workspaces()
+    current = tool.tabs.current_context()
+    active = next(
+        version
+        for version in current.versions
+        if version.name == current.active_version_name
+    )
+
+    assert active.rows[0].instruction == (
+        "nop; Incorrect Instruction: broken"
+    )
 
 
 def test_binary_workbench_saved_assembly_version_closes_without_original_file_prompt(

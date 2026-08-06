@@ -48,7 +48,21 @@
     STATUS_BYTES_ROW_REMOVAL_BLOCKED: str = (
         "Rows containing labels, comments, or directives cannot be removed from Bytes."
     )
+    STATUS_BYTES_SHIFTING_DISABLED: str = (
+        "Rows cannot be removed while Allow byte shifting is disabled."
+    )
+    STATUS_HISTORY_BYTE_SHIFTING_DISABLED: str = (
+        "Undo or Redo was blocked because it would shift rows while Allow byte shifting is disabled."
+    )
     STATUS_VERSION_AUTOSAVE_FAILED_TEMPLATE: str = "Version autosave failed: {error}"
+    RECOVERY_TITLE: str = "Binary Workbench Recovery"
+    RECOVERY_EXPLANATION: str = (
+        "The last active tab may exceed the safe startup budget. Choose a blank project "
+        "or recover the saved tabs while excluding selected entries."
+    )
+    RECOVERY_BLANK_PROJECT: str = "Blank project"
+    RECOVERY_ALL_TABS: str = "Recover all tabs"
+    RECOVERY_EXCEPT: str = "Except:"
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"
     PREFERENCES: str = "Preferences"

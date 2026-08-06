@@ -101,8 +101,12 @@ class SymbolsDialogLayoutMixin:
         row.addWidget(self.name, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self.value, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(add, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        row.addWidget(self.remove_button, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
+        row.addWidget(
+            self.remove_button,
+            0,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
         parent.addWidget(entry, 0)
 
     def _build_table(self, parent: QVBoxLayout) -> None:

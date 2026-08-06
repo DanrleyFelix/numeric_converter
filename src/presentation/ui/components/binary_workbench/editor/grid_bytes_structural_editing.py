@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.core.binary_workbench.byte_editing import ByteEditViolation
 from src.core.binary_workbench.mips_r3000a import editor_mips_instruction
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
@@ -46,7 +47,10 @@ class GridBytesStructuralEditingMixin:
             return False
         if removed:
             removed_rows = tuple(self._rows[first : first + removed])
-            if not self._byte_rows_removable(tuple(range(first, first + removed))):
+            violation = self._byte_row_removal_violation(
+                tuple(range(first, first + removed))
+            )
+            if violation is not ByteEditViolation.NONE:
                 return False
             self._remember_removed_bytes_rows(first, removed_rows)
         inserted = self._rows_for_bytes_insertion(first, inserted_lines)
@@ -140,4 +144,4 @@ def _is_hex(value: str) -> bool:
 def _line_matches_cached(line: str, cached: str) -> bool:
     current = _canonical_bytes(line)
     expected = _canonical_bytes(cached)
-    return current == expected or (len(current) < len(expected) and expected.startswith(current))
+    return current == expected

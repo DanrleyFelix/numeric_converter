@@ -9,6 +9,9 @@ from src.core.binary_workbench.encoding_tables import decode_hex_bytes
 from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
 from src.core.binary_workbench.label_folding import label_fold_regions
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -21,10 +24,27 @@ def projection_transaction(
     refresh_structure: bool = False,
     refresh_folding: bool = True,
     refresh_fold_offsets: bool = True,
+    history_exclude: tuple = (),
+    history_editors: tuple | None = None,
 ):
     """Apply one derived projection without exposing intermediate scroll states."""
 
-    editors = [*grid._offset_editors.values(), grid.raw_instructions, grid.bytes, grid.decoded_text]
+    editors = list(_derived_editors(grid))
+    excluded_ids = {id(editor) for editor in history_exclude}
+    history_sources = (
+        (*editors, grid.instructions)
+        if history_editors is None
+        else history_editors
+    )
+    tracked_editors = [
+        editor
+        for editor in dict.fromkeys(history_sources)
+        if id(editor) not in excluded_ids
+    ]
+    for editor in tracked_editors:
+        begin = getattr(editor, "begin_derived_projection", None)
+        if begin is not None:
+            begin()
     scrollbars = [grid.scrollbar, *(editor.verticalScrollBar() for editor in (*editors, grid.instructions))]
     blockers = [QSignalBlocker(item) for item in scrollbars]
     shared_value = grid.scrollbar.value()
@@ -44,6 +64,10 @@ def projection_transaction(
             grid.scrollbar.setValue(min(shared_value, grid.scrollbar.maximum()))
         grid._scroll_static_document(grid.scrollbar.value())
     finally:
+        for editor in reversed(tracked_editors):
+            end = getattr(editor, "end_derived_projection", None)
+            if end is not None:
+                end()
         grid._updating = previous_updating
         grid.setUpdatesEnabled(True)
         del blockers
@@ -66,7 +90,12 @@ def apply_structure_splice(
         _rebuild_derived_documents(grid)
         return
     try:
-        with projection_transaction(grid, refresh_structure=True):
+        with projection_transaction(
+            grid,
+            refresh_structure=True,
+            refresh_fold_offsets=False,
+            history_editors=editors,
+        ):
             for name, editor in grid._offset_editors.items():
                 _replace_span(
                     editor,
@@ -77,24 +106,27 @@ def apply_structure_splice(
                         for offset, row in enumerate(inserted)
                     ],
                 )
-            _replace_span(
-                grid.bytes,
-                first,
-                removed,
-                [grid._display_bytes_row(row) for row in inserted],
-            )
-            _replace_span(
-                grid.decoded_text,
-                first,
-                removed,
-                [grid._display_decoded_row(row) for row in inserted],
-            )
-            _replace_span(
-                grid.raw_instructions,
-                first,
-                removed,
-                [grid._display_raw_row(row) for row in inserted],
-            )
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.BYTES):
+                _replace_span(
+                    grid.bytes,
+                    first,
+                    removed,
+                    [grid._display_bytes_row(row) for row in inserted],
+                )
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+                _replace_span(
+                    grid.decoded_text,
+                    first,
+                    removed,
+                    [grid._display_decoded_row(row) for row in inserted],
+                )
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+                _replace_span(
+                    grid.raw_instructions,
+                    first,
+                    removed,
+                    [grid._display_raw_row(row) for row in inserted],
+                )
             _refresh_offset_overlays(grid)
             _validate_block_counts(grid)
     except Exception:
@@ -117,7 +149,20 @@ def apply_bytes_structure_splice(
     """Splice Bytes-derived peers while leaving the edited Bytes text intact."""
 
     expected_before = max(1, len(grid._rows) - len(inserted) + removed)
-    peers = (*grid._offset_editors.values(), grid.raw_instructions, grid.decoded_text, grid.instructions)
+    peers = (
+        *grid._offset_editors.values(),
+        *(
+            (grid.raw_instructions,)
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS)
+            else ()
+        ),
+        *(
+            (grid.decoded_text,)
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT)
+            else ()
+        ),
+        grid.instructions,
+    )
     if any(editor.document().blockCount() != expected_before for editor in peers):
         _rebuild_bytes_origin_projection(grid)
         return
@@ -126,6 +171,8 @@ def apply_bytes_structure_splice(
             grid,
             refresh_structure=True,
             refresh_fold_offsets=False,
+            history_exclude=(grid.bytes,),
+            history_editors=peers,
         ):
             for name, editor in grid._offset_editors.items():
                 _replace_span(
@@ -144,18 +191,20 @@ def apply_bytes_structure_splice(
                 splice_overlays = getattr(editor, "splice_offset_blocks", None)
                 if splice_overlays is not None:
                     splice_overlays(first, removed, len(inserted))
-            _replace_span(
-                grid.raw_instructions,
-                first,
-                removed,
-                [grid._display_raw_row(row) for row in inserted],
-            )
-            _replace_span(
-                grid.decoded_text,
-                first,
-                removed,
-                [grid._display_decoded_row(row) for row in inserted],
-            )
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+                _replace_span(
+                    grid.raw_instructions,
+                    first,
+                    removed,
+                    [grid._display_raw_row(row) for row in inserted],
+                )
+            if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+                _replace_span(
+                    grid.decoded_text,
+                    first,
+                    removed,
+                    [grid._display_decoded_row(row) for row in inserted],
+                )
             _replace_span(
                 grid.instructions,
                 first,
@@ -173,7 +222,7 @@ def apply_offset_values(grid, values: tuple[tuple[int, dict[str, str]], ...]) ->
     editors = tuple(grid._offset_editors.values())
     snapshots = _line_snapshots(editors, tuple(index for index, _ in values))
     try:
-        with projection_transaction(grid):
+        with projection_transaction(grid, history_editors=editors):
             for index, offsets in values:
                 for name, editor in grid._offset_editors.items():
                     _replace_line(
@@ -194,10 +243,10 @@ def apply_offset_values(grid, values: tuple[tuple[int, dict[str, str]], ...]) ->
 def apply_line_contents(grid, rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...]) -> None:
     """Patch source-revision-bound Bytes, Raw, and Decoded Text rows."""
 
-    editors = (grid.bytes, grid.decoded_text, grid.raw_instructions)
+    editors = _configured_content_editors(grid)
     snapshots = _line_snapshots(editors, tuple(index for index, _ in rows))
     try:
-        with projection_transaction(grid):
+        with projection_transaction(grid, history_editors=editors):
             _apply_content_rows(grid, rows)
             _validate_contents(grid, rows)
     except Exception:
@@ -211,26 +260,42 @@ def apply_bytes_line_contents(
 ) -> None:
     """Project Bytes-origin content peers without rewriting the active editor."""
 
-    editors = (grid.instructions, grid.decoded_text, grid.raw_instructions)
+    editors = (
+        grid.instructions,
+        *tuple(
+            editor
+            for name, editor in (
+                (BINARY_WORKBENCH_TEXT.DECODED_TEXT, grid.decoded_text),
+                (BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, grid.raw_instructions),
+            )
+            if _column_is_configured(grid, name)
+        ),
+    )
     snapshots = _line_snapshots(editors, tuple(index for index, _ in rows))
     try:
-        with projection_transaction(grid):
+        with projection_transaction(
+            grid,
+            history_exclude=(grid.bytes,),
+            history_editors=editors,
+        ):
             for index, row in rows:
                 _replace_line(
                     grid.instructions,
                     index,
                     grid._display_instruction(row.instruction),
                 )
-                _replace_line(
-                    grid.decoded_text,
-                    index,
-                    grid._display_decoded_row(row),
-                )
-                _replace_line(
-                    grid.raw_instructions,
-                    index,
-                    grid._display_raw_row(row),
-                )
+                if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+                    _replace_line(
+                        grid.decoded_text,
+                        index,
+                        grid._display_decoded_row(row),
+                    )
+                if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+                    _replace_line(
+                        grid.raw_instructions,
+                        index,
+                        grid._display_raw_row(row),
+                    )
             _validate_bytes_line_contents(grid, rows)
     except Exception:
         _restore_lines(grid, snapshots)
@@ -248,7 +313,7 @@ def apply_semantic_projection(
     editors = _derived_editors(grid)
     snapshots = _line_snapshots(editors, indices)
     try:
-        with projection_transaction(grid):
+        with projection_transaction(grid, history_editors=editors):
             for index, values in offsets:
                 for name, editor in grid._offset_editors.items():
                     _replace_line(
@@ -280,17 +345,20 @@ def _apply_content_rows(
     rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
 ) -> None:
     for index, row in rows:
-        _replace_line(grid.bytes, index, grid._display_bytes_row(row))
-        _replace_line(
-            grid.decoded_text,
-            index,
-            grid._display_decoded_row(row),
-        )
-        _replace_line(
-            grid.raw_instructions,
-            index,
-            grid._display_raw_row(row),
-        )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.BYTES):
+            _replace_line(grid.bytes, index, grid._display_bytes_row(row))
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+            _replace_line(
+                grid.decoded_text,
+                index,
+                grid._display_decoded_row(row),
+            )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+            _replace_line(
+                grid.raw_instructions,
+                index,
+                grid._display_raw_row(row),
+            )
 
 
 def _replace_line(editor, index: int, text: str) -> None:
@@ -382,19 +450,24 @@ def _rebuild_bytes_origin_projection(grid) -> None:
                     for index, row in enumerate(rows)
                 ],
             )
-        if grid.bytes.document().blockCount() != max(1, len(rows)):
+        if (
+            _column_is_configured(grid, BINARY_WORKBENCH_TEXT.BYTES)
+            and grid.bytes.document().blockCount() != max(1, len(rows))
+        ):
             _replace_document(
                 grid.bytes,
                 [grid._display_bytes_row(row) for row in rows],
             )
-        _replace_document(
-            grid.decoded_text,
-            [grid._display_decoded_row(row) for row in rows],
-        )
-        _replace_document(
-            grid.raw_instructions,
-            [grid._display_raw_row(row) for row in rows],
-        )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+            _replace_document(
+                grid.decoded_text,
+                [grid._display_decoded_row(row) for row in rows],
+            )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+            _replace_document(
+                grid.raw_instructions,
+                [grid._display_raw_row(row) for row in rows],
+            )
         _replace_document(
             grid.instructions,
             [grid._display_instruction(row.instruction) for row in rows],
@@ -411,7 +484,29 @@ def _refresh_offset_overlays(grid) -> None:
 
 
 def _derived_editors(grid) -> tuple:
-    return (*grid._offset_editors.values(), grid.bytes, grid.decoded_text, grid.raw_instructions)
+    """Return only materialized columns; hidden columns must not add Qt work."""
+
+    return (*grid._offset_editors.values(), *_configured_content_editors(grid))
+
+
+def _configured_content_editors(grid) -> tuple:
+    """Exclude hidden legacy projections from large structural commits."""
+
+    return tuple(
+        editor
+        for name, editor in (
+            (BINARY_WORKBENCH_TEXT.BYTES, grid.bytes),
+            (BINARY_WORKBENCH_TEXT.DECODED_TEXT, grid.decoded_text),
+            (BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, grid.raw_instructions),
+        )
+        if _column_is_configured(grid, name)
+    )
+
+
+def _column_is_configured(grid, name: str) -> bool:
+    """Report whether a derived column is part of the current user layout."""
+
+    return name in getattr(grid, "_configured_columns", ())
 
 
 def _document_snapshots(editors: tuple) -> tuple[tuple[object, str], ...]:
@@ -452,18 +547,21 @@ def _rebuild_derived_documents(grid) -> None:
                     for index, row in enumerate(rows)
                 ],
             )
-        _replace_document(
-            grid.bytes,
-            [grid._display_bytes_row(row) for row in rows],
-        )
-        _replace_document(
-            grid.decoded_text,
-            [grid._display_decoded_row(row) for row in rows],
-        )
-        _replace_document(
-            grid.raw_instructions,
-            [grid._display_raw_row(row) for row in rows],
-        )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.BYTES):
+            _replace_document(
+                grid.bytes,
+                [grid._display_bytes_row(row) for row in rows],
+            )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.DECODED_TEXT):
+            _replace_document(
+                grid.decoded_text,
+                [grid._display_decoded_row(row) for row in rows],
+            )
+        if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS):
+            _replace_document(
+                grid.raw_instructions,
+                [grid._display_raw_row(row) for row in rows],
+            )
         _refresh_offset_overlays(grid)
         _validate_block_counts(grid)
 
@@ -510,10 +608,14 @@ def _validate_offsets(grid, values: tuple[tuple[int, dict[str, str]], ...]) -> N
 def _validate_contents(grid, rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...]) -> None:
     _validate_block_counts(grid)
     for index, row in rows:
-        expected = (
-            (grid.bytes, grid._display_bytes_row(row)),
-            (grid.decoded_text, grid._display_decoded_row(row)),
-            (grid.raw_instructions, grid._display_raw_row(row)),
+        expected = tuple(
+            (editor, text)
+            for name, editor, text in (
+                (BINARY_WORKBENCH_TEXT.BYTES, grid.bytes, grid._display_bytes_row(row)),
+                (BINARY_WORKBENCH_TEXT.DECODED_TEXT, grid.decoded_text, grid._display_decoded_row(row)),
+                (BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, grid.raw_instructions, grid._display_raw_row(row)),
+            )
+            if _column_is_configured(grid, name)
         )
         if any(
             not editor.document().findBlockByNumber(index).isValid()
@@ -531,8 +633,14 @@ def _validate_bytes_line_contents(
     for index, row in rows:
         expected = (
             (grid.instructions, grid._display_instruction(row.instruction)),
-            (grid.decoded_text, grid._display_decoded_row(row)),
-            (grid.raw_instructions, grid._display_raw_row(row)),
+            *tuple(
+                (editor, text)
+                for name, editor, text in (
+                    (BINARY_WORKBENCH_TEXT.DECODED_TEXT, grid.decoded_text, grid._display_decoded_row(row)),
+                    (BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, grid.raw_instructions, grid._display_raw_row(row)),
+                )
+                if _column_is_configured(grid, name)
+            ),
         )
         if any(
             not editor.document().findBlockByNumber(index).isValid()

@@ -9,6 +9,7 @@ from src.core.binary_workbench.selection_limits import (
     DEFAULT_SELECTION_LIMIT_BYTES,
     normalized_selection_limit,
 )
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 from src.modules.contracts import CPUArchCodec
 from src.modules.binary_workbench_dtos import BinaryWorkbenchEditRulesDTO, BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.editor.grid_commit import GridCommitMixin
@@ -61,6 +62,9 @@ from src.presentation.ui.components.binary_workbench.editor.workbench_editor imp
 from src.presentation.ui.components.binary_workbench.editor.consistency import (
     EditorConsistencyCoordinator,
 )
+from src.presentation.ui.components.binary_workbench.constant_groups.timing import (
+    BINARY_WORKBENCH_TIMING,
+)
 
 
 ROWS_CHANGED_DEBOUNCE_MS = 180
@@ -89,6 +93,8 @@ class BinaryWorkbenchGrid(
     GridOffsetsMixin,
     QWidget,
 ):
+    """Coordinate one source editor and a bounded set of derived text columns."""
+
     rowsChanged = Signal(list)
     assemblyTextChanged = Signal()
     selectionSummaryChanged = Signal(str)
@@ -137,8 +143,10 @@ class BinaryWorkbenchGrid(
         self._collapsed_labels: set[str] = set()
         self._directive_fold_region = None
         self._directives_collapsed = False
+        self._last_fold_hidden_rows: set[int] = set()
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
+        self._symbol_resolver = MipsSymbolResolver()
         self._symbol_offsets: dict[str, list[str]] = {}
         self._last_editor_kind: str | None = None
         self._dirty_editor_kind: str | None = None
@@ -146,7 +154,6 @@ class BinaryWorkbenchGrid(
         self._edit_rules = BinaryWorkbenchEditRulesDTO()
         self._custom_commands = {}
         self._command_directory: Path | None = None
-        self._editor_text_signatures: dict[int, str] = {}
         self._visible_start_offset = 0
         self._last_visible_offset = 0
         self._layout_refresh_scheduled = False
@@ -163,6 +170,14 @@ class BinaryWorkbenchGrid(
         self._rows_changed_emit_timer = QTimer(self)
         self._rows_changed_emit_timer.setSingleShot(True)
         self._rows_changed_emit_timer.timeout.connect(self.flush_pending_rows_changed)
+        self._viewport_projection_timer = QTimer(self)
+        self._viewport_projection_timer.setSingleShot(True)
+        self._viewport_projection_timer.setInterval(
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_SCROLL_FRAME_MS
+        )
+        self._viewport_projection_timer.timeout.connect(
+            self._refresh_visible_highlighter_projection
+        )
         self._setup_incremental_editing()
         self._setup_bytes_structural_editing()
         self._setup_refresh_window()

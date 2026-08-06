@@ -109,7 +109,10 @@ class TabStateMixin:
                 }
             )
             for tab in self._state.tabs:
-                self._add_tab_page(tab)
+                self._add_tab_page(
+                    tab,
+                    materialize=tab.tab_id == active_tab_id,
+                )
             if self.count():
                 self.setCurrentIndex(self._active_index())
         finally:
@@ -509,6 +512,7 @@ class TabStateMixin:
                 if persisted is not None:
                     self._replace_context_without_emit(persisted.tab_id, persisted)
         self._active_tab_index = index
+        self._materialize_tab_page(index)
         self._ensure_workspace_heavy_loaded(index)
         active_page = self.widget(index)
         if isinstance(active_page, BinaryWorkbenchEditorPage):

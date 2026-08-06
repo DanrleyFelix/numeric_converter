@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QScrollBar, QSizePolicy, QVBoxLayout, QWidget
 
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT, BINARY_WORKBENCH_TEXT
@@ -12,6 +13,8 @@ from src.presentation.ui.components.binary_workbench.editor.grid_offsets import 
 
 
 class GridLayoutMixin:
+    """Build fixed text columns; rows are QTextBlocks, not per-row widgets."""
+
     def _build_ui(self) -> None:
         self._responsive_bytes_hidden = False
         layout = QHBoxLayout(self)
@@ -32,10 +35,17 @@ class GridLayoutMixin:
         self.scrollbar.valueChanged.connect(self._on_scrollbar_changed)
         self.raw_shell, self.raw_instructions = self._panel(BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, "binary-workbench-raw-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_RAW_INSTRUCTION_WIDTH, CenteredDashWorkbenchEditor)
         self.bytes_shell, self.bytes = self._panel(BINARY_WORKBENCH_TEXT.BYTES, "binary-workbench-bytes-panel", False, BINARY_WORKBENCH_LAYOUT.EDITOR_BYTES_WIDTH, CenteredDashWorkbenchEditor)
-        self.decoded_shell, self.decoded_text = self._panel(BINARY_WORKBENCH_TEXT.DECODED_TEXT, "binary-workbench-instructions-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_DECODED_TEXT_WIDTH, CenteredDashWorkbenchEditor)
+        self.bytes.set_content_alignment(Qt.AlignCenter)
+        self.decoded_shell, self.decoded_text = self._panel(BINARY_WORKBENCH_TEXT.DECODED_TEXT, "binary-workbench-decoded-text-panel", True, BINARY_WORKBENCH_LAYOUT.EDITOR_DECODED_TEXT_WIDTH, CenteredDashWorkbenchEditor)
         self.instructions_shell, self.instructions = self._panel(BINARY_WORKBENCH_TEXT.INSTRUCTION, "binary-workbench-instructions-panel", False)
-        self._bytes_highlighter = BytesHighlighter(self.bytes.document())
-        self._raw_instruction_highlighter = InstructionHighlighter(self.raw_instructions.document())
+        self._bytes_highlighter = BytesHighlighter(
+            self.bytes.document(),
+            double_spacing=True,
+        )
+        self._raw_instruction_highlighter = InstructionHighlighter(
+            self.raw_instructions.document(),
+            semantic_validation=False,
+        )
         self._raw_instruction_highlighter.set_navigation_background_enabled(False)
         self._instruction_highlighter = InstructionHighlighter(self.instructions.document())
         self._connect_editors()
@@ -156,7 +166,30 @@ class GridLayoutMixin:
     def _prepare_editor_edit(self, editor, event) -> None:
         """Expand source folds and reject unsafe direct Bytes mutations."""
 
+        undo = event.matches(QKeySequence.Undo)
+        redo = event.matches(QKeySequence.Redo) or (
+            event.key() == Qt.Key_Z
+            and bool(event.modifiers() & Qt.ControlModifier)
+            and bool(event.modifiers() & Qt.ShiftModifier)
+        )
+        if (
+            (undo or redo)
+            and editor.history_action_requires_byte_shift(undo)
+            and not self._edit_rules.allow_byte_shift
+            and not self._free_offset_window()
+        ):
+            self.commandWarningRequested.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_HISTORY_BYTE_SHIFTING_DISABLED
+            )
+            editor.mark_edit_preflight_handled()
+            return
+
         if editor is self.bytes:
+            structural_history = (
+                editor.next_structural_history_command(undo)
+                if undo or redo
+                else None
+            )
             first, last = self._byte_edit_event_rows(editor.textCursor())
             # A multicursor edit mutates several blocks inside one Qt edit block.
             # Treating the visible/current cursor as a single-row hint commits only
@@ -166,10 +199,10 @@ class GridLayoutMixin:
                 if first == last and not editor.has_multicursor_ranges()
                 else None
             )
-            self._bytes_edit_alignment_hint = self._byte_edit_alignment_boundary(
-                editor,
-                event,
-                first,
+            self._bytes_edit_alignment_hint = (
+                structural_history.block
+                if structural_history is not None
+                else self._byte_edit_alignment_boundary(editor, event, first)
             )
             if not self._bytes_edit_event_allowed(editor, event):
                 self._bytes_edit_block_hint = None
@@ -196,9 +229,15 @@ class GridLayoutMixin:
             self._restore_editor_after_rejected_change(True)
 
     def _finish_staged_bytes_after_navigation(self) -> None:
-        """Discard a partial Bytes transaction before editing another row."""
+        """Discard a partial Bytes transaction before editing another row.
+
+        Native Undo temporarily moves Qt's caret while restoring a command. It
+        is not user navigation and must never discard the remaining history.
+        """
 
         if not self._bytes_staged_incomplete:
+            return
+        if bool(getattr(self.bytes, "_history_action_in_progress", False)):
             return
         if self.bytes.textCursor().blockNumber() != self._bytes_staged_block:
             self._restore_editor_after_rejected_change(True)

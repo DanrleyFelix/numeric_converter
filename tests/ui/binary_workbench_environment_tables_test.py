@@ -3,7 +3,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QScrollArea, QTableView, QWidget
 
@@ -132,6 +132,7 @@ def test_offset_regions_and_labels_use_fixed_selection_actions():
     regions.show()
     _app().processEvents()
     regions.table.selectRow(0)
+    _app().processEvents()
     regions.go_to_button.click()
     labels.show()
     _app().processEvents()
@@ -158,3 +159,66 @@ def test_environment_actions_reuse_symbols_icons_and_spacing():
         assert BINARY_WORKBENCH_TEXT.OK not in {button.text() for button in actions}
         assert all(not button.icon().isNull() for button in actions)
         assert all(button.property(ICON_TEXT_SPACING_PROPERTY) == BINARY_WORKBENCH_LAYOUT.SYMBOL_ACTION_ICON_TEXT_SPACING for button in actions)
+
+
+def test_offset_regions_entry_anchors_name_and_details_to_table_edges():
+    _app()
+    dialog = BinaryWorkbenchOffsetRegionsDialog([], "")
+    dialog.resize(dialog.maximumWidth(), dialog.height())
+    dialog.show()
+    _app().processEvents()
+
+    assert dialog.name.mapTo(dialog, QPoint()).x() == dialog.table.mapTo(dialog, QPoint()).x()
+    assert (
+        dialog.details_button.mapTo(dialog, QPoint()).x()
+        + dialog.details_button.width()
+        == dialog.table.mapTo(dialog, QPoint()).x() + dialog.table.width()
+    )
+    add_button = next(
+        button
+        for button in dialog.findChildren(QPushButton)
+        if button.text() == BINARY_WORKBENCH_TEXT.SYMBOL_ADD
+    )
+    assert dialog.remove_button.parentWidget() is dialog.details_button.parentWidget()
+    add_right = add_button.mapTo(dialog, QPoint()).x() + add_button.width()
+    remove_left = dialog.remove_button.mapTo(dialog, QPoint()).x()
+    remove_right = remove_left + dialog.remove_button.width()
+    details_left = dialog.details_button.mapTo(dialog, QPoint()).x()
+    assert abs((remove_left - add_right) - (details_left - remove_right)) <= 1
+
+
+def test_offset_regions_filter_fills_the_footer_to_the_table_right_edge():
+    _app()
+    dialog = BinaryWorkbenchOffsetRegionsDialog([], "")
+    dialog.resize(dialog.maximumWidth(), dialog.height())
+    dialog.show()
+    _app().processEvents()
+
+    filter_right = (
+        dialog.filter_input.mapTo(dialog, QPoint()).x()
+        + dialog.filter_input.width()
+    )
+    table_right = dialog.table.mapTo(dialog, QPoint()).x() + dialog.table.width()
+
+    assert filter_right == table_right
+    assert dialog.filter_input.width() > BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH
+
+
+def test_commands_dialog_width_keeps_filter_inside_the_table_edge():
+    _app()
+    dialog = BinaryWorkbenchCommandsDialog({}, "")
+    dialog.show()
+    _app().processEvents()
+
+    assert dialog.width() == BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_WIDTH
+    assert dialog.filter_input.width() > BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH
+    assert (
+        dialog.filter_input.mapTo(dialog, QPoint()).x()
+        + dialog.filter_input.width()
+        == dialog.table.mapTo(dialog, QPoint()).x() + dialog.table.width()
+    )
+    assert dialog.filter_input.maximumWidth() == BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_WIDTH
+    assert abs(
+        dialog.table.columnWidth(0) - dialog.table.viewport().width() // 4
+    ) <= 1
+    assert dialog.table.columnWidth(1) > dialog.table.columnWidth(0) * 2

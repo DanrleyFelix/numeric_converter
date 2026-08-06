@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.core.binary_workbench.mips_r3000a import editor_mips_instruction
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.mips_r3000a.preprocessor import raw_mips_instruction
+from src.core.binary_workbench.mips_r3000a.source_line_rows import split_label
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_EMPTY_OFFSET as EMPTY_OFFSET,
     BINARY_WORKBENCH_FILE_OFFSET_COLUMN as FILE_OFFSET,
@@ -12,6 +13,34 @@ from src.modules.contracts import CPUArchCodec
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 INVALID_INSTRUCTION_PREFIX = "Invalid instruction:"
+INCORRECT_ASSEMBLY_INSTRUCTION_PREFIX = "Incorrect instruction:"
+
+
+def comment_invalid_assembly_rows(
+    rows: list[BinaryWorkbenchRowDTO],
+) -> list[BinaryWorkbenchRowDTO]:
+    """Persist invalid Assembly source as comments without changing valid rows."""
+
+    normalized: list[BinaryWorkbenchRowDTO] = []
+    for row in rows:
+        code, _separator, comment = split_comment(row.instruction)
+        label, instruction = split_label(code.strip())
+        invalid = instruction.strip()
+        if row.bytes_text or not invalid or invalid.startswith("*"):
+            normalized.append(row)
+            continue
+        note = f"{INCORRECT_ASSEMBLY_INSTRUCTION_PREFIX} {invalid}"
+        if comment.strip():
+            note = f"{note} | {comment.strip()}"
+        prefix = f"{label}: " if label else ""
+        normalized.append(
+            BinaryWorkbenchRowDTO(
+                offsets=dict(row.offsets),
+                instruction=f"{prefix}; {note}",
+                bytes_text="",
+            )
+        )
+    return normalized
 
 
 def version_instruction_maps(

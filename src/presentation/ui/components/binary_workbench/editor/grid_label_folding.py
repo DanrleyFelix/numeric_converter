@@ -70,6 +70,7 @@ class GridLabelFoldingMixin:
         """Recalculate regions and apply one visibility mask to all columns."""
 
         previous_regions = self._label_fold_regions
+        previously_collapsed = bool(self._collapsed_labels or self._directives_collapsed)
         regions = label_fold_regions(self._rows) if self._label_folding_enabled else []
         self._label_fold_regions = regions
         self._directive_fold_region = (
@@ -82,9 +83,17 @@ class GridLabelFoldingMixin:
         self._expand_owners_of_removed_labels(previous_regions, regions)
         valid_labels = {region.label for region in regions}
         self._collapsed_labels.intersection_update(valid_labels)
-        self._apply_label_visibility(anchor_row)
+        self._apply_label_visibility(
+            anchor_row,
+            refresh_offsets=previously_collapsed or bool(self._collapsed_labels),
+        )
 
-    def _apply_label_visibility(self, anchor_row: int | None = None) -> None:
+    def _apply_label_visibility(
+        self,
+        anchor_row: int | None = None,
+        *,
+        refresh_offsets: bool = True,
+    ) -> None:
         """Apply cached fold regions without preprocessing source labels."""
 
         regions = self._label_fold_regions
@@ -104,9 +113,12 @@ class GridLabelFoldingMixin:
         was_syncing = self._syncing_editor_scrollbars
         self._syncing_editor_scrollbars = True
         try:
-            self._render_offsets()
-            for editor in self._fold_editors():
-                self._apply_hidden_rows(editor, hidden_rows)
+            if refresh_offsets:
+                self._render_offsets()
+            if hidden_rows or getattr(self, "_last_fold_hidden_rows", set()):
+                for editor in self._fold_editors():
+                    self._apply_hidden_rows(editor, hidden_rows)
+            self._last_fold_hidden_rows = set(hidden_rows)
         finally:
             self._syncing_editor_scrollbars = was_syncing
         if not self._virtual:
@@ -300,12 +312,8 @@ class GridLabelFoldingMixin:
 
         if self._virtual or not self._label_folding_enabled:
             return self._total_size
-        document = self.instructions.document()
-        return sum(
-            ROW_BYTES
-            for index in range(document.blockCount())
-            if document.findBlockByNumber(index).isVisible()
-        )
+        visible_rows = max(0, len(self._rows) - len(self._last_fold_hidden_rows))
+        return visible_rows * ROW_BYTES
 
     def _ensure_static_editor_scroll_range(self, maximum: int) -> None:
         """Restore editor ranges left stale after expanding folded blocks."""

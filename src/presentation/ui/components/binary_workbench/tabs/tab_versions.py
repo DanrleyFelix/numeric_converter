@@ -16,6 +16,7 @@ from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
     without_blank_instruction_overlays,
 )
+from src.core.binary_workbench.persistence import normalize_locked_assembly_rows
 from src.core.binary_workbench.version_instruction_maps import version_instruction_maps
 from src.core.binary_workbench.version_line_comments import apply_line_comments
 from src.core.binary_workbench.version_names import sorted_versions
@@ -206,20 +207,39 @@ class TabVersionsMixin:
         name: str,
         current: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchVersionDTO:
+        """Build a version without legacy overlay work for Assembly sources."""
+
         current = compact_binary_context_overlays(current)
-        instruction_overlays, instructions_by_line = version_instruction_maps(
-            current.rows,
-            current.instruction_overlays,
-            binary_workbench_codec_for(current.cpu_arch),
-            current.labels,
-            current.variables,
-            current.equates,
-        )
         if current.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY:
             rows = deepcopy(current.rows)
+            if not self._preferences.assembly_edit_rules.allow_byte_shift:
+                previous = next(
+                    (
+                        version.rows
+                        for version in current.versions
+                        if version.name == current.active_version_name
+                    ),
+                    [],
+                )
+                rows = normalize_locked_assembly_rows(
+                    rows,
+                    binary_workbench_codec_for(current.cpu_arch),
+                    current.labels,
+                    current.variables,
+                    current.equates,
+                    (previous, current.original_rows),
+                )
             instruction_overlays = {}
             instructions_by_line = {}
         else:
+            instruction_overlays, instructions_by_line = version_instruction_maps(
+                current.rows,
+                current.instruction_overlays,
+                binary_workbench_codec_for(current.cpu_arch),
+                current.labels,
+                current.variables,
+                current.equates,
+            )
             rows = build_version_rows_from_overlay(
                 current.byte_overlays,
                 list(current.reference_offsets),

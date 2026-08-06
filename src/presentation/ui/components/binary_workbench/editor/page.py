@@ -239,6 +239,17 @@ class BinaryWorkbenchEditorPage(
         self._set_cpu_arch_summary(context.cpu_arch)
         self._set_internal_file_summary(context)
 
+    def update_symbol_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
+        """Install a catalog revision without resetting this editor owner."""
+
+        self._context = context
+        self.grid.set_symbols(
+            context.labels,
+            context.variables,
+            context.equates,
+            context.symbol_offsets,
+        )
+
     def replace_persistence_context(
         self,
         context: BinaryWorkbenchTabContextDTO,

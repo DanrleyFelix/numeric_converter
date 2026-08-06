@@ -16,6 +16,7 @@ class GridSelectionMixin:
         set_cursor_position(cursor, positions[0])
         set_cursor_position(cursor, positions[1], QTextCursor.KeepAnchor)
         self.bytes.setTextCursor(cursor)
+        self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
         self.bytes.setFocus()
         self._emit_selection_summary()
 
@@ -33,6 +34,7 @@ class GridSelectionMixin:
         set_cursor_position(cursor, start_block.position())
         set_cursor_position(cursor, end_block.position() + len(end_block.text()), QTextCursor.KeepAnchor)
         self.instructions.setTextCursor(cursor)
+        self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
         self.instructions.setFocus()
         self._emit_selection_summary()
 
@@ -46,6 +48,7 @@ class GridSelectionMixin:
         cursor = self.instructions.textCursor()
         set_cursor_position(cursor, block.position())
         self.instructions.setTextCursor(cursor)
+        self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
         self.instructions.setFocus()
         self._emit_selection_summary()
 

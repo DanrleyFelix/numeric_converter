@@ -251,7 +251,7 @@ class EditorLabelNavigationMixin:
             self.viewport().setCursor(Qt.PointingHandCursor)
             QToolTip.showText(
                 self.viewport().mapToGlobal(position),
-                self._symbol_tooltips[symbol],
+                self._symbol_tooltip_text(symbol),
                 self.viewport(),
             )
             return

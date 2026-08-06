@@ -95,7 +95,7 @@ class SymbolRuntime(SymbolRuntimeQueriesMixin):
         )
         tab = MaterializedSymbolTab(
             journal, occurrences, layout, source_lines,
-            "\n".join(source_lines).casefold(), initial_range is None, set(),
+            None, initial_range is None, set(),
         )
         self._tabs[tab_id] = tab
         return tab

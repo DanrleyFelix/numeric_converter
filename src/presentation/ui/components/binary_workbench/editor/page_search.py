@@ -33,7 +33,7 @@ class EditorPageSearchMixin:
         return self.grid.commit_current_editor_text()
 
     def go_to_offset(self, offset: int) -> None:
-        if not self.commit_current_editor_text():
+        if not self.grid.prepare_navigation():
             return
         if not self._file_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)
@@ -44,7 +44,7 @@ class EditorPageSearchMixin:
             self._select_pending_offset()
 
     def go_to_instruction_offset(self, offset: int, *, typing_cursor: bool = False) -> None:
-        if not self.commit_current_editor_text():
+        if not self.grid.prepare_navigation():
             return
         if not self._navigation_offset_is_valid(offset):
             self.statusErrorRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_OFFSET_OUT_OF_RANGE)

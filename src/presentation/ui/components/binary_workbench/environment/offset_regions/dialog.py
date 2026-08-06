@@ -2,7 +2,13 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout
+from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchOffsetRegionDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
@@ -85,6 +91,7 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, OffsetRegionsFi
             extended_selection=True,
         )
         self.table.selectionModel().selectionChanged.connect(self._update_action_state)
+        self.table.selectionModel().currentChanged.connect(self._update_action_state)
         self.regions_proxy.layoutChanged.connect(self._update_action_state)
         layout.addWidget(self.table, 1)
         self._build_footer(layout)
@@ -102,24 +109,39 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, OffsetRegionsFi
         configure_binary_workbench_line_edit(self.name)
         configure_binary_workbench_line_edit(self.offset)
         add = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_ADD, "", entry)
-        self.remove_button = symbol_button(BINARY_WORKBENCH_TEXT.SYMBOL_REMOVE, "", entry)
+        self.remove_button = symbol_button(
+            BINARY_WORKBENCH_TEXT.SYMBOL_REMOVE,
+            "",
+            entry,
+        )
+        self.details_button = symbol_button(BINARY_WORKBENCH_TEXT.DETAILS, "", entry)
         add.setIcon(Icons.add())
         self.remove_button.setIcon(Icons.remove())
-        for button in (add, self.remove_button):
+        self.details_button.setIcon(Icons.show())
+        for button in (add, self.remove_button, self.details_button):
             configure_binary_workbench_dialog_action(button)
         add.clicked.connect(self._append_from_entry)
         self.remove_button.clicked.connect(self._remove_selected)
+        self.details_button.clicked.connect(self._edit_selected_details)
         self.remove_button.setEnabled(False)
-        for widget in (self.name, self.offset, add, self.remove_button):
-            row.addWidget(widget, 1 if widget in (self.name, self.offset) else 0)
+        self.details_button.setEnabled(False)
+        row.addWidget(self.name, 1)
+        row.addWidget(self.offset, 1)
+        row.addWidget(add)
+        row.addStretch(1)
+        row.addWidget(self.remove_button)
+        row.addStretch(1)
+        row.addWidget(self.details_button)
         parent.addWidget(entry)
 
     def _build_footer(self, parent: QVBoxLayout) -> None:
+        """Keep Filter elastic so its right edge follows the table."""
+
         footer = QFrame(self.shell)
         row = QHBoxLayout(footer)
         row.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
         row.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
-        actions = ((BINARY_WORKBENCH_TEXT.LOAD, Icons.load(), self._load), (BINARY_WORKBENCH_TEXT.SAVE, Icons.save(), self._save), (BINARY_WORKBENCH_TEXT.DETAILS, Icons.show(), self._edit_selected_details), (BINARY_WORKBENCH_TEXT.GO_TO, Icons.offsets(), self._go_to_selected))
+        actions = ((BINARY_WORKBENCH_TEXT.LOAD, Icons.load(), self._load), (BINARY_WORKBENCH_TEXT.SAVE, Icons.save(), self._save), (BINARY_WORKBENCH_TEXT.GO_TO, Icons.offsets(), self._go_to_selected))
         buttons = []
         for text, icon, callback in actions:
             button = symbol_button(text, "", footer)
@@ -128,13 +150,17 @@ class BinaryWorkbenchOffsetRegionsDialog(OffsetRegionsRowsMixin, OffsetRegionsFi
             button.clicked.connect(callback)
             row.addWidget(button)
             buttons.append(button)
-        self.details_button, self.go_to_button = buttons[2], buttons[3]
-        self.details_button.setEnabled(False)
+        self.go_to_button = buttons[2]
         self.go_to_button.setEnabled(False)
         self.filter_input = symbol_input(BINARY_WORKBENCH_TEXT.FILTER, footer, search_icon=True)
         configure_binary_workbench_filter(self.filter_input)
         configure_binary_workbench_line_edit(self.filter_input)
+        self.filter_input.setMinimumWidth(BINARY_WORKBENCH_LAYOUT.SHARED_FILTER_WIDTH)
+        self.filter_input.setMaximumWidth(
+            BINARY_WORKBENCH_LAYOUT.EXPANDING_CONTROL_MAX_WIDTH
+        )
         self.filter_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.filter_input.textChanged.connect(self._apply_filter)
         row.addWidget(self.filter_input, 1)
+        row.setStretch(row.indexOf(self.filter_input), 1)
         parent.addWidget(footer)

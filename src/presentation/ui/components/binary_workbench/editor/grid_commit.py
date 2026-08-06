@@ -12,6 +12,21 @@ from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as
 
 
 class GridCommitMixin:
+    def prepare_navigation(self) -> bool:
+        """Flush the source event collector without imposing a global barrier.
+
+        Known-offset navigation (Search result, LBA, Symbol, Label, Hazard,
+        Offset Region or Go To) only needs the destination viewport.  The
+        shared scrollbar asks the coordinator for the exact pending projection
+        types after moving there.
+        """
+
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None and coordinator.supports_derived_updates():
+            coordinator.flush_collected_changes()
+            return True
+        return self.commit_current_editor_text()
+
     def commit_current_editor_text(self) -> bool:
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None and coordinator.enabled():

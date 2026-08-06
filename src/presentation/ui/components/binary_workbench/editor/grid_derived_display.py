@@ -31,6 +31,8 @@ class GridDerivedDisplayMixin:
         return decode_hex_bytes(row.bytes_text, self._decoded_text_values)
 
     def _display_raw_row(self, row: BinaryWorkbenchRowDTO) -> str:
+        """Derive one row with the shared resolver to avoid lines x Symbols work."""
+
         if self._row_uses_derived_placeholder(row):
             return ""
         address = address_from_row(row)
@@ -40,6 +42,7 @@ class GridDerivedDisplayMixin:
             self._labels,
             self._variables,
             self._equates,
+            self._symbol_resolver,
         )
 
     def _display_offset_row(

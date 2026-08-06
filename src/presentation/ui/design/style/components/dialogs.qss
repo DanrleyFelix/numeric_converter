@@ -229,6 +229,10 @@ QLabel#binary-workbench-footer-status[statusKind="warning"] {
     color: $text-warning;
 }
 
+QCheckBox#binary-workbench-recovery-tab[loadRisk="heavy"] {
+    color: $text-danger;
+}
+
 QLabel#binary-workbench-command-name {
     color: $text-command;
     font-size: $fs-c-md;
@@ -257,6 +261,7 @@ QLabel#binary-workbench-column-label {
 QPlainTextEdit#binary-workbench-offsets-panel,
 QPlainTextEdit#binary-workbench-raw-instructions-panel,
 QPlainTextEdit#binary-workbench-bytes-panel,
+QPlainTextEdit#binary-workbench-decoded-text-panel,
 QPlainTextEdit#binary-workbench-instructions-panel {
     background-color: $bg-workspace-shell;
     border: 1px solid $border-workspace-shell;

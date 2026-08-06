@@ -7,7 +7,10 @@ from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
 )
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import (
     normalize_bytes_text,
     normalize_instruction_text,
@@ -18,6 +21,7 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
     set_cursor_position,
 )
 from src.core.binary_workbench.encoding_tables import decode_hex_bytes
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 from src.core.binary_workbench.row_structure import (
     first_valid_label_offset,
     valid_offset_end,
@@ -25,6 +29,8 @@ from src.core.binary_workbench.row_structure import (
 
 
 class GridRenderingMixin:
+    """Keep fixed QTextDocument projections aligned with authoritative rows."""
+
     def load_rows(
         self,
         columns: list[str],
@@ -89,10 +95,39 @@ class GridRenderingMixin:
             self._last_visible_offset = 0
             self._render()
             self._configure_scrollbar()
+        self._reset_loaded_editor_histories()
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None:
             coordinator.reset(list(self._rows))
         self._schedule_layout_refresh()
+
+    def _reset_loaded_editor_histories(self) -> None:
+        """Make a newly loaded context the baseline, never an Undo command."""
+
+        # Toggling a QTextDocument history emits change notifications on some
+        # Qt builds.  Those notifications describe a projection reset, not a
+        # user edit; letting them reach the edit pipeline used to rebuild the
+        # freshly loaded Assembly with an incomplete Symbol catalog and erase
+        # its label map.
+        was_updating = self._updating
+        self._updating = True
+        try:
+            for editor in (
+                *self._offset_editors.values(),
+                self.raw_instructions,
+                self.bytes,
+                self.decoded_text,
+                self.instructions,
+            ):
+                document = editor.document()
+                document.setUndoRedoEnabled(False)
+                document.setUndoRedoEnabled(True)
+                reset = getattr(editor, "reset_native_history_metadata", None)
+                if reset is not None:
+                    reset()
+                document.setModified(False)
+        finally:
+            self._updating = was_updating
 
     def render_rows(self, rows: list[BinaryWorkbenchRowDTO], start_offset: int) -> None:
         if self._virtual:
@@ -122,43 +157,63 @@ class GridRenderingMixin:
         equates: dict[str, str],
         symbol_offsets: dict[str, list[str]] | None = None,
     ) -> None:
-        symbols_changed = (
-            labels != self._labels
-            or variables != self._variables
-            or equates != self._equates
-        )
-        self._labels = dict(labels)
-        self._variables = dict(variables)
-        self._equates = dict(equates)
-        self._symbol_offsets = dict(symbol_offsets or self._symbol_offsets)
-        first = max(0, self.instructions.firstVisibleBlock().blockNumber())
-        line_height = max(1, self.instructions.fontMetrics().height())
-        visible_lines = max(1, self.instructions.viewport().height() // line_height + 2)
-        last = first + visible_lines
-        maps = self._instruction_highlighter.symbol_maps(labels, variables, equates)
-        self._symbol_maps = maps
-        self._instruction_highlighter.set_symbol_maps_for_blocks(
-            maps, first, last
-        )
-        self._raw_instruction_highlighter.set_symbol_maps_for_blocks(
-            maps, first, last
-        )
-        self.instructions.set_symbol_helpers(labels, variables, equates)
-        self._refresh_jump_navigation()
-        if symbols_changed and hasattr(self, "raw_instructions"):
-            restore_raw_selection = self._virtual and (
-                self.raw_instructions.textCursor().hasSelection()
-                or (
-                    self._viewport_line_selection is not None
-                    and self._viewport_line_selection[0]
-                    == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
-                )
+        """Install one shared lookup context for viewport-scoped rendering."""
+
+        # Rehighlighting emits QTextDocument notifications on Windows.  A
+        # Symbol catalog projection must never be classified as a user edit or
+        # enter native Undo history.
+        was_updating = self._updating
+        self._updating = True
+        try:
+            symbols_changed = (
+                labels != self._labels
+                or variables != self._variables
+                or equates != self._equates
             )
-            if self.raw_instructions.textCursor().hasSelection():
-                self._capture_viewport_line_selection(self.raw_instructions)
-            self._render_raw_instructions()
-            if restore_raw_selection:
-                self._restore_viewport_line_selection()
+            self._labels = dict(labels)
+            self._variables = dict(variables)
+            self._equates = (
+                self._variables
+                if equates is variables
+                else dict(equates)
+            )
+            self._symbol_offsets = dict(symbol_offsets or self._symbol_offsets)
+            first = max(0, self.instructions.firstVisibleBlock().blockNumber())
+            line_height = max(1, self.instructions.fontMetrics().height())
+            visible_lines = max(1, self.instructions.viewport().height() // line_height + 2)
+            last = first + visible_lines
+            maps = self._instruction_highlighter.symbol_maps(labels, variables, equates)
+            self._symbol_maps = maps
+            self._symbol_resolver = MipsSymbolResolver.from_symbol_maps(maps)
+            self._instruction_highlighter.set_symbol_maps_for_blocks(
+                maps, first, last
+            )
+            self._raw_instruction_highlighter.set_symbol_maps_for_blocks(
+                maps, first, last
+            )
+            self.instructions.set_symbol_helpers(
+                labels,
+                self._variables,
+                self._equates,
+                maps,
+            )
+            self._refresh_jump_navigation()
+            if symbols_changed and hasattr(self, "raw_instructions"):
+                restore_raw_selection = self._virtual and (
+                    self.raw_instructions.textCursor().hasSelection()
+                    or (
+                        self._viewport_line_selection is not None
+                        and self._viewport_line_selection[0]
+                        == BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
+                    )
+                )
+                if self.raw_instructions.textCursor().hasSelection():
+                    self._capture_viewport_line_selection(self.raw_instructions)
+                self._refresh_raw_projection(first, last)
+                if restore_raw_selection:
+                    self._restore_viewport_line_selection()
+        finally:
+            self._updating = was_updating
 
     def current_labels(self) -> dict[str, str]:
         """Return the in-memory label snapshot used by branch navigation."""
@@ -229,19 +284,37 @@ class GridRenderingMixin:
         return list(self._all_rows if not self._virtual else self._rows)
 
     def set_visible_offset(self, offset: int) -> None:
+        """Navigate and request the same typed viewport consistency as scroll."""
+
         target = min(max(0, offset), self.scrollbar.maximum())
         if self.scrollbar.value() == target:
             self._on_scrollbar_changed(target)
+            coordinator = getattr(self, "_consistency_coordinator", None)
+            if coordinator is not None:
+                coordinator.prioritize_viewport()
             return
         self.scrollbar.setValue(target)
 
     def _render(self) -> None:
         self._resize_editors()
-        self._set_editor_text(self.bytes, [self._display_bytes_row(row) for row in self._rows])
+        first, last = self._highlighter_projection_range()
+        self._bytes_highlighter.set_projection_window(first, last)
+        self._raw_instruction_highlighter.set_projection_window(first, last)
+        self._instruction_highlighter.set_projection_window(first, last)
+        if BINARY_WORKBENCH_TEXT.BYTES in self._configured_columns:
+            self._set_editor_text(
+                self.bytes,
+                [self._display_bytes_row(row) for row in self._rows],
+            )
         self._render_decoded_text()
-        self._set_editor_text(self.instructions, [self._display_instruction(row.instruction) for row in self._rows])
-        self._instruction_highlighter.rehighlight()
-        self._render_raw_instructions()
+        instruction_lines = [
+            self._display_instruction(row.instruction)
+            for row in self._rows
+        ]
+        self._instruction_highlighter.prepare_lines(instruction_lines)
+        self._set_editor_text(self.instructions, instruction_lines)
+        if BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS in self._configured_columns:
+            self._render_raw_instructions()
         self._render_offsets()
         self._refresh_label_folding()
         self._emit_selection_summary()
@@ -249,6 +322,8 @@ class GridRenderingMixin:
     def _render_decoded_text(self) -> None:
         """Rebuild decoded rows from the same row snapshot as every column."""
 
+        if BINARY_WORKBENCH_TEXT.DECODED_TEXT not in self._configured_columns:
+            return
         self._set_editor_text(
             self.decoded_text,
             [
@@ -299,7 +374,70 @@ class GridRenderingMixin:
             self._align_static_editors(editors, row_index)
         finally:
             self._syncing_editor_scrollbars = False
+        if not self._updating:
+            # Dragging the shared scrollbar may emit many values in one frame.
+            # Coalesce formatting work and keep only the final destination.
+            self._viewport_projection_timer.start()
         self._schedule_static_scroll_alignment()
+
+    def _highlighter_projection_range(self) -> tuple[int, int]:
+        """Return the current viewport plus the configured 64-line margin."""
+
+        first = max(0, self.instructions.firstVisibleBlock().blockNumber())
+        line_height = max(1, self.instructions.fontMetrics().height())
+        visible = max(1, self.instructions.viewport().height() // line_height + 2)
+        margin = BINARY_WORKBENCH_LAYOUT.EDITOR_PROJECTION_MARGIN
+        return max(0, first - margin), first + visible + margin
+
+    def _visible_highlighter_projection_range(self) -> tuple[int, int]:
+        """Return only rows visible after a coalesced navigation frame."""
+
+        first = max(0, self.instructions.firstVisibleBlock().blockNumber())
+        line_height = max(1, self.instructions.fontMetrics().height())
+        visible = max(1, self.instructions.viewport().height() // line_height + 2)
+        return first, first + visible
+
+    def _refresh_visible_highlighter_projection(self) -> None:
+        """Prioritize current viewport formatting after scroll/navigation."""
+
+        self._refresh_highlighter_projection(
+            self._visible_highlighter_projection_range()
+        )
+
+    def _refresh_highlighter_projection(
+        self,
+        projection_range: tuple[int, int] | None = None,
+    ) -> None:
+        """Reprioritize highlighting without treating formatting as user text.
+
+        QSyntaxHighlighter can emit document notifications while formatting a
+        new viewport.  The projection guard prevents those notifications from
+        normalizing Bytes or destroying its native Undo history.
+        """
+
+        first, last = projection_range or self._highlighter_projection_range()
+        was_updating = self._updating
+        self._updating = True
+        try:
+            self._bytes_highlighter.set_projection_window(first, last)
+            self._raw_instruction_highlighter.set_projection_window(first, last)
+            self._instruction_highlighter.set_projection_window(first, last)
+            self._materialize_raw_projection(first, last)
+            self._rehighlight_projection_window()
+            self._refresh_visible_instruction_hazards(first, last)
+        finally:
+            self._updating = was_updating
+
+    def _rehighlight_projection_window(self) -> None:
+        """Reformat only visible blocks and their small prefetch margin."""
+
+        self._instruction_highlighter.rehighlight_projection_window()
+        self._raw_instruction_highlighter.rehighlight_projection_window()
+        first, last = self._highlighter_projection_range()
+        for index in range(first, last + 1):
+            block = self.bytes.document().findBlockByNumber(index)
+            if block.isValid():
+                self._bytes_highlighter.rehighlightBlock(block)
 
     def _align_static_editors(self, editors: list, row_index: int) -> None:
         """Align first visible blocks after programmatic or cursor scrolling."""
@@ -376,6 +514,12 @@ class GridRenderingMixin:
         scroll_value = editor.verticalScrollBar().value()
         try:
             editor.setPlainText(text)
+            document = editor.document()
+            document.setUndoRedoEnabled(False)
+            document.setUndoRedoEnabled(True)
+            reset_history = getattr(editor, "reset_native_history_metadata", None)
+            if reset_history is not None:
+                reset_history()
             restore_logical_cursor(editor, cursor_state)
             if self._virtual:
                 editor.verticalScrollBar().setValue(0)
@@ -398,6 +542,10 @@ class GridRenderingMixin:
         active = editor.textCursor()
         position, anchor = active.position(), active.anchor()
         scroll_value = editor.verticalScrollBar().value()
+        begin_projection = getattr(editor, "begin_derived_projection", None)
+        end_projection = getattr(editor, "end_derived_projection", None)
+        if begin_projection is not None:
+            begin_projection()
         try:
             for index, (before, after) in enumerate(zip(current, updated)):
                 if before == after:
@@ -418,6 +566,8 @@ class GridRenderingMixin:
                 rebuild_dashes()
             self._remember_editor_text_signature(editor)
         finally:
+            if end_projection is not None:
+                end_projection()
             self._updating = was_updating
 
     def _set_editor_line(
@@ -436,6 +586,10 @@ class GridRenderingMixin:
         active = editor.textCursor()
         position, anchor = active.position(), active.anchor()
         scroll_value = editor.verticalScrollBar().value()
+        begin_projection = getattr(editor, "begin_derived_projection", None)
+        end_projection = getattr(editor, "end_derived_projection", None)
+        if begin_projection is not None:
+            begin_projection()
         try:
             cursor = QTextCursor(block)
             cursor.select(QTextCursor.SelectionType.LineUnderCursor)
@@ -450,21 +604,66 @@ class GridRenderingMixin:
             editor.verticalScrollBar().setValue(scroll_value)
             self._remember_editor_text_signature(editor)
         finally:
+            if end_projection is not None:
+                end_projection()
+            self._updating = was_updating
+
+    def _set_editor_lines(
+        self,
+        editor: QPlainTextEdit,
+        updates: dict[int, str],
+    ) -> None:
+        """Commit one viewport batch without per-row cursor and repaint churn."""
+
+        changed = [
+            (index, text)
+            for index, text in updates.items()
+            if (block := editor.document().findBlockByNumber(index)).isValid()
+            and block.text() != text
+        ]
+        if not changed:
+            return
+        was_updating = self._updating
+        self._updating = True
+        active = editor.textCursor()
+        position, anchor = active.position(), active.anchor()
+        scroll_value = editor.verticalScrollBar().value()
+        transaction = QTextCursor(editor.document())
+        begin_projection = getattr(editor, "begin_derived_projection", None)
+        end_projection = getattr(editor, "end_derived_projection", None)
+        if begin_projection is not None:
+            begin_projection()
+        else:
+            transaction.beginEditBlock()
+        editor.setUpdatesEnabled(False)
+        try:
+            for index, text in changed:
+                block = editor.document().findBlockByNumber(index)
+                cursor = QTextCursor(block)
+                cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+                cursor.insertText(text)
+            if begin_projection is None:
+                transaction.endEditBlock()
+            restored = QTextCursor(editor.document())
+            set_cursor_position(restored, anchor)
+            set_cursor_position(restored, position, QTextCursor.KeepAnchor)
+            editor.setTextCursor(restored)
+            editor.verticalScrollBar().setValue(scroll_value)
+            self._remember_editor_text_signature(editor)
+        finally:
+            if end_projection is not None:
+                end_projection()
+            editor.setUpdatesEnabled(True)
+            editor.viewport().update()
             self._updating = was_updating
 
     def _remember_editor_text_signature(self, editor: QPlainTextEdit) -> None:
-        self._editor_text_signatures[id(editor)] = self._editor_text_signature(editor)
+        editor.document().setModified(False)
 
     def _has_meaningful_editor_change(self, editor: QPlainTextEdit) -> bool:
-        return self._editor_text_signature(editor) != self._editor_text_signatures.get(id(editor), "")
+        """Use Qt's O(1) content dirty flag instead of hashing a whole document."""
 
-    def _editor_text_signature(self, editor: QPlainTextEdit) -> str:
-        if editor is self.instructions:
-            return editor.toPlainText()
-        return "\n".join(
-            "".join(line.split())
-            for line in editor.toPlainText().split("\n")
-        )
+        return editor.document().isModified()
 
     def _display_bytes_text(self, text: str) -> str:
         return normalize_bytes_text(text, self._group_bytes, self._uppercase_bytes)

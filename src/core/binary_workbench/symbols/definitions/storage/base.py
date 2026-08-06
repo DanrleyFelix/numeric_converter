@@ -11,6 +11,7 @@ from src.core.binary_workbench.symbols.definitions.models import (
     display_symbol_name,
     normalize_symbol_name,
     stable_symbol_id,
+    stable_symbol_id_from_normalized,
 )
 
 
@@ -44,13 +45,17 @@ class SymbolRepository:
     def replace_all(self, values: Mapping[str, str] | Iterable[SymbolDefinition]) -> None:
         """Replace a catalog while preserving matching identities."""
 
-        items = self._from_mapping(values) if isinstance(values, Mapping) else tuple(values)
+        if isinstance(values, Mapping):
+            items, by_name = self._from_mapping(values)
+        else:
+            items = tuple(values)
+            by_name = {item.normalized_name: item for item in items}
         by_id = {item.symbol_id: item for item in items}
         if by_id == self._by_id:
             return
         self.revision += 1
         self._by_id = by_id
-        self._by_name = {item.normalized_name: item for item in items}
+        self._by_name = by_name
 
     def upsert(self, name: str, value: str, symbol_id: str | None = None) -> SymbolDefinition:
         """Insert or update one definition with copy-on-write maps."""
@@ -108,20 +113,25 @@ class SymbolRepository:
         self._by_id, self._by_name = by_id, by_name
         return updated
 
-    def _from_mapping(self, values: Mapping[str, str]) -> tuple[SymbolDefinition, ...]:
-        """Infer a single rename and canonicalize one legacy mapping."""
+    def _from_mapping(
+        self,
+        values: Mapping[str, str],
+    ) -> tuple[tuple[SymbolDefinition, ...], dict[str, SymbolDefinition]]:
+        """Canonicalize one legacy map without normalizing names repeatedly."""
 
-        incoming = {
-            normalize_symbol_name(name): (name, value)
-            for name, value in values.items() if normalize_symbol_name(name)
-        }
+        incoming: dict[str, tuple[str, str]] = {}
+        for name, value in values.items():
+            key = normalize_symbol_name(name)
+            if key:
+                incoming[key] = (display_symbol_name(name), str(value))
         removed = [item for key, item in self._by_name.items() if key not in incoming]
         added = [key for key in incoming if key not in self._by_name]
         inferred = (added[0], removed[0]) if len(added) == len(removed) == 1 else None
-        return tuple(
+        items = tuple(
             _mapped_definition(self, key, name, value, inferred)
             for key, (name, value) in incoming.items()
         )
+        return items, dict(zip(incoming, items))
 
 
 def _mapped_definition(repository, key, name, value, inferred) -> SymbolDefinition:
@@ -131,10 +141,10 @@ def _mapped_definition(repository, key, name, value, inferred) -> SymbolDefiniti
     renamed = inferred[1] if inferred and inferred[0] == key else None
     identity = current or renamed
     return SymbolDefinition(
-        identity.symbol_id if identity else stable_symbol_id(
-            repository._namespace, repository.scope, name, repository.owner_tab_id
+        identity.symbol_id if identity else stable_symbol_id_from_normalized(
+            repository._namespace, repository.scope, key, repository.owner_tab_id
         ),
-        display_symbol_name(name), str(value), repository.scope,
+        name, value, repository.scope,
         repository.owner_tab_id, repository.revision + 1,
         identity.resolution_revision + (1 if renamed else 0) if identity else 0,
     )

@@ -40,7 +40,11 @@ class GridEditRulesMixin:
 
     def _rows_change_allowed(self, rows: list[BinaryWorkbenchRowDTO], editing_bytes: bool = False) -> bool:
         delta = len(rows) - len(self._rows)
-        if editing_bytes and delta < 0 and self._removed_byte_rows_are_empty(rows):
+        if (
+            editing_bytes
+            and delta < 0
+            and self._removed_byte_rows_satisfy_removal_rules(rows)
+        ):
             return True
         if self._edit_rules.allow_byte_shift or delta == 0:
             return True
@@ -54,6 +58,15 @@ class GridEditRulesMixin:
         if self._byte_transition_validated:
             return True
         previous = [self._display_bytes_row(row) for row in self._rows]
+        removed_rows = removed_source_indices(
+            previous,
+            lines,
+            self._active_bytes_alignment_hint,
+        )
+        removal_violation = self._byte_row_removal_violation(removed_rows)
+        if removal_violation is not ByteEditViolation.NONE:
+            self._emit_byte_edit_warning(removal_violation)
+            return False
         violation = byte_edit_violation(
             previous,
             lines,
@@ -79,8 +92,9 @@ class GridEditRulesMixin:
         first, last = self._byte_edit_event_rows(cursor)
         removed_rows = self._byte_removed_rows(editor, event, first, last)
         if removed_rows:
-            if not self._byte_rows_removable(removed_rows):
-                self._emit_byte_edit_warning(ByteEditViolation.ROW_REMOVAL)
+            violation = self._byte_row_removal_violation(removed_rows)
+            if violation is not ByteEditViolation.NONE:
+                self._emit_byte_edit_warning(violation)
                 return False
             if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
                 self._remove_bytes_rows(removed_rows, editor, event)
@@ -113,6 +127,7 @@ class GridEditRulesMixin:
         target_column = None if return_to_previous else 0
         shared_scroll = self.scrollbar.value()
         was_syncing = self._syncing_editor_change
+        undo_steps_before = self.bytes.document().availableUndoSteps()
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is None or not coordinator.enabled():
             removed = set(rows)
@@ -124,12 +139,23 @@ class GridEditRulesMixin:
             self._replace_bytes_document_with_history(lines)
             self._sync_user_rows(lines, BINARY_WORKBENCH_TEXT.BYTES)
             return
-        self._remember_removed_bytes_rows(first, removed_rows)
+        # The empty row is being committed as a structural user edit.  Clear
+        # its transient incomplete marker before moving the caret; otherwise
+        # cursorPositionChanged restores the old Bytes value and records that
+        # automatic repair in Qt's Undo history.
+        self._bytes_staged_incomplete = False
+        self._bytes_staged_block = None
         self._syncing_editor_change = True
         try:
             self._remove_bytes_document_span(first, len(removed_rows))
         finally:
             self._syncing_editor_change = was_syncing
+        self._remember_removed_bytes_rows(first, removed_rows)
+        self.bytes.remember_structural_undo_cursor(
+            first,
+            0,
+            undo_steps_before=undo_steps_before,
+        )
         coordinator.accept_bytes_structure_splice(first, len(removed_rows), [])
         self._remember_editor_text_signature(self.bytes)
         self._restore_bytes_removal_interaction(
@@ -137,13 +163,38 @@ class GridEditRulesMixin:
             target_column,
             shared_scroll,
         )
+        revision = self.bytes.document().revision()
+        cursor_position = self.bytes.textCursor().position()
         QTimer.singleShot(
             0,
-            lambda: self._restore_bytes_removal_interaction(
+            lambda: self._restore_bytes_removal_interaction_if_unchanged(
                 target_row,
                 target_column,
                 shared_scroll,
+                revision,
+                cursor_position,
             ),
+        )
+
+    def _restore_bytes_removal_interaction_if_unchanged(
+        self,
+        target_row: int,
+        target_column: int | None,
+        shared_scroll: int,
+        revision: int,
+        cursor_position: int,
+    ) -> None:
+        """Avoid overwriting a user action made after a structural removal."""
+
+        if (
+            self.bytes.document().revision() != revision
+            or self.bytes.textCursor().position() != cursor_position
+        ):
+            return
+        self._restore_bytes_removal_interaction(
+            target_row,
+            target_column,
+            shared_scroll,
         )
 
     def _remove_bytes_document_span(self, first: int, removed: int) -> None:
@@ -196,30 +247,60 @@ class GridEditRulesMixin:
         if not self._virtual:
             self._scroll_static_document(target_scroll)
 
-    def _byte_rows_removable(self, rows: tuple[int, ...]) -> bool:
-        """Return whether every row is free of labels, comments and directives."""
+    def _byte_row_removal_violation(
+        self,
+        rows: tuple[int, ...],
+    ) -> ByteEditViolation:
+        """Distinguish the user shift rule from protected source annotations."""
 
+        if not rows:
+            return ByteEditViolation.NONE
+        if self._user_byte_shift_rule_blocks_row_removal(rows):
+            return ByteEditViolation.USER_BYTE_SHIFTING_DISABLED
         policies = self._byte_row_policies()
-        return bool(rows) and all(
+        source_allows_removal = all(
             0 <= row < len(policies) and policies[row].removable_from_bytes
             for row in rows
         )
+        return (
+            ByteEditViolation.NONE
+            if source_allows_removal
+            else ByteEditViolation.ROW_REMOVAL
+        )
 
-    def _removed_byte_rows_are_empty(
+    def _user_byte_shift_rule_blocks_row_removal(
+        self,
+        rows: tuple[int, ...],
+    ) -> bool:
+        """Return whether the configured byte-shifting rule forbids this splice."""
+
+        if self._edit_rules.allow_byte_shift or self._free_offset_window():
+            return False
+        # An Assembly-empty row contributes no bytes and remains the established
+        # exception: removing it cannot shift a valid byte offset.
+        rows_are_source_empty = all(
+            0 <= row < len(self._rows)
+            and not self._rows[row].instruction.strip()
+            and not self._display_bytes_row(self._rows[row]).strip()
+            for row in rows
+        )
+        return not rows_are_source_empty
+
+    def _removed_byte_rows_satisfy_removal_rules(
         self,
         updated: list[BinaryWorkbenchRowDTO],
     ) -> bool:
-        """Validate row-count reduction against stable source-row alignment."""
+        """Validate a detected splice against user and source removal rules."""
 
         previous = [self._display_bytes_row(row) for row in self._rows]
         current = [self._display_bytes_row(row) for row in updated]
-        return self._byte_rows_removable(
+        return self._byte_row_removal_violation(
             removed_source_indices(
                 previous,
                 current,
                 self._active_bytes_alignment_hint,
             )
-        )
+        ) is ByteEditViolation.NONE
 
     def _byte_edit_alignment_boundary(
         self,
@@ -276,10 +357,6 @@ class GridEditRulesMixin:
         selected_rows = self._fully_selected_byte_rows(editor, first, last)
         if event.key() in {Qt.Key_Backspace, Qt.Key_Delete} and selected_rows:
             return selected_rows
-        if event.key() in {Qt.Key_Backspace, Qt.Key_Delete}:
-            cleared = self._byte_rows_cleared_by_event(editor, event, first, last)
-            if cleared:
-                return cleared
         if cursor.hasSelection():
             replacement = ""
             if event.matches(QKeySequence.Paste):
@@ -289,6 +366,8 @@ class GridEditRulesMixin:
             document_text = editor.toPlainText()
             start, end = cursor.selectionStart(), cursor.selectionEnd()
             updated = f"{document_text[:start]}{replacement}{document_text[end:]}"
+            if updated.count("\n") >= document_text.count("\n"):
+                return ()
             previous = [self._display_bytes_row(row) for row in self._rows]
             return removed_source_indices(
                 previous,
@@ -298,11 +377,19 @@ class GridEditRulesMixin:
         if event.key() == Qt.Key_Backspace and cursor.positionInBlock() == 0:
             if first <= 0:
                 return ()
-            if not cursor.block().text() or not self._byte_rows_removable((first,)):
+            if (
+                not cursor.block().text()
+                or self._byte_row_removal_violation((first,))
+                is not ByteEditViolation.NONE
+            ):
                 return (first,)
             return (first - 1,)
         if event.key() == Qt.Key_Delete and cursor.positionInBlock() >= len(cursor.block().text()):
-            if not cursor.block().text() or not self._byte_rows_removable((first,)):
+            if (
+                not cursor.block().text()
+                or self._byte_row_removal_violation((first,))
+                is not ByteEditViolation.NONE
+            ):
                 return (first,)
             return (first + 1,)
         return ()
@@ -313,7 +400,7 @@ class GridEditRulesMixin:
         first: int,
         last: int,
     ) -> tuple[int, ...]:
-        """Return an exact whole-row Bytes selection without content matching."""
+        """Return rows deliberately selected in full for structural removal."""
 
         cursor = editor.textCursor()
         if not cursor.hasSelection():
@@ -328,42 +415,18 @@ class GridEditRulesMixin:
             return ()
         return tuple(range(first, last + 1))
 
-    def _byte_rows_cleared_by_event(
-        self,
-        editor,
-        event,
-        first: int,
-        last: int,
-    ) -> tuple[int, ...]:
-        """Return complete byte-content rows cleared by Backspace or Delete."""
-
-        cursor = editor.textCursor()
-        text = editor.toPlainText()
-        start, end = cursor.selectionStart(), cursor.selectionEnd()
-        if not cursor.hasSelection():
-            position = cursor.position()
-            if event.key() == Qt.Key_Backspace:
-                start, end = max(0, position - 1), position
-            else:
-                start, end = position, min(len(text), position + 1)
-        updated = f"{text[:start]}{text[end:]}"
-        before = text.split("\n")
-        after = updated.split("\n")
-        if len(before) != len(after):
-            return ()
-        return tuple(
-            row
-            for row in range(first, last + 1)
-            if 0 <= row < len(before)
-            and bool("".join(before[row].split()))
-            and not "".join(after[row].split())
-        )
-
     def _emit_byte_edit_warning(self, violation: ByteEditViolation) -> None:
-        message = (
-            BINARY_WORKBENCH_TEXT.STATUS_BYTES_ROW_REMOVAL_BLOCKED
-            if violation is ByteEditViolation.ROW_REMOVAL
-            else BINARY_WORKBENCH_TEXT.STATUS_BYTES_ASSEMBLY_ONLY
+        messages = {
+            ByteEditViolation.ROW_REMOVAL: (
+                BINARY_WORKBENCH_TEXT.STATUS_BYTES_ROW_REMOVAL_BLOCKED
+            ),
+            ByteEditViolation.USER_BYTE_SHIFTING_DISABLED: (
+                BINARY_WORKBENCH_TEXT.STATUS_BYTES_SHIFTING_DISABLED
+            ),
+        }
+        message = messages.get(
+            violation,
+            BINARY_WORKBENCH_TEXT.STATUS_BYTES_ASSEMBLY_ONLY,
         )
         self.commandWarningRequested.emit(message)
 
@@ -400,21 +463,47 @@ class GridEditRulesMixin:
         if editing_bytes:
             self._bytes_staged_incomplete = False
             self._bytes_staged_block = None
-        current = editor.textCursor()
-        position, anchor = current.position(), current.anchor()
         values = [self._display_bytes_row(row) for row in self._rows] if editing_bytes else [self._display_instruction(row.instruction) for row in self._rows]
-        self._set_editor_text(editor, values)
-        restored = QTextCursor(editor.document())
-        set_cursor_position(restored, anchor)
-        set_cursor_position(restored, position, QTextCursor.KeepAnchor)
-        editor.setTextCursor(restored)
+        reverted = (
+            not editing_bytes
+            and self._undo_rejected_instruction_change(editor, values)
+        )
+        if not reverted:
+            current = editor.textCursor()
+            position, anchor = current.position(), current.anchor()
+            self._set_editor_text(editor, values)
+            restored = QTextCursor(editor.document())
+            set_cursor_position(restored, anchor)
+            set_cursor_position(restored, position, QTextCursor.KeepAnchor)
+            editor.setTextCursor(restored)
         self._render_raw_instructions()
         self._render_offsets()
+        if not editing_bytes and self._label_folding_enabled:
+            self._refresh_label_folding()
         self._dirty_editor_kind = None
         self._remember_editor_text_signature(editor)
         self._emit_selection_summary()
         if editing_bytes:
             self._restore_bytes_column_alignment()
+
+    def _undo_rejected_instruction_change(self, editor, values: list[str]) -> bool:
+        """Revert one rejected Assembly command without adding projection history."""
+
+        document = editor.document()
+        if not document.isUndoAvailable():
+            return False
+        expected = "\n".join(values)
+        was_syncing = self._syncing_editor_change
+        self._syncing_editor_change = True
+        try:
+            document.undo()
+            if editor.toPlainText() == expected:
+                return True
+            if document.isRedoAvailable():
+                document.redo()
+            return False
+        finally:
+            self._syncing_editor_change = was_syncing
 
     def _restore_bytes_column_alignment(self) -> None:
         """Undo cursor-driven local scrolling after a rejected Bytes edit."""
@@ -487,7 +576,11 @@ class GridEditRulesMixin:
             cursor = editor.textCursor()
             first, last = self._byte_edit_event_rows(cursor)
             removed_rows = self._byte_removed_rows(editor, event, first, last)
-            if removed_rows and self._byte_rows_removable(removed_rows):
+            if (
+                removed_rows
+                and self._byte_row_removal_violation(removed_rows)
+                is ByteEditViolation.NONE
+            ):
                 return
         if self._protected_annotated_bytes_edit_key(editor, event):
             self._handle_protected_bytes_edit_key(editor, event)

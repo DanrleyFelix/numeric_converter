@@ -45,7 +45,6 @@ class GridIncrementalEditingMixin:
     def _try_single_line_update(self, lines: list[str]) -> bool:
         if (
             self._virtual
-            or not self._edit_rules.allow_byte_shift
             or len(lines) != len(self._rows)
         ):
             return False
@@ -64,6 +63,7 @@ class GridIncrementalEditingMixin:
         labels_changed = label_declarations_changed([previous], [current])
         self._apply_single_instruction_row(index, current)
         if labels_changed:
+            self._refresh_label_folding(anchor_row=index)
             self._schedule_instruction_propagation(lines)
         else:
             self._schedule_instruction_propagation(None)

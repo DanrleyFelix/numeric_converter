@@ -95,6 +95,13 @@ class TabWorkspaceMemoryMixin:
                 continue
             page.commit_current_editor_text()
             context = page.current_context()
+            if (
+                context.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
+                and context.active_version_name
+            ):
+                # A deferred autosave may not have fired before shutdown.
+                # Capture and normalize the authoritative Assembly source now.
+                context = self._context_with_current_version(context)
             self._replace_context_without_emit(context.tab_id, context)
 
     def _flush_workspace_context(
@@ -105,10 +112,7 @@ class TabWorkspaceMemoryMixin:
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
             return self._persist_internal_workspace_context(context) is not None
         if (
-            context.kind in {
-                BINARY_WORKBENCH_TAB_KIND.BINARY,
-                BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
-            }
+            context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY
             and self.has_unsaved_version_edits(context)
         ):
             context = self._context_with_current_version(context)

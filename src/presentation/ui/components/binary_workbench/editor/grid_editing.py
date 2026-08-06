@@ -12,6 +12,8 @@ from src.core.binary_workbench.mips_r3000a import (
     editor_mips_instruction,
     rebuild_rows_with_offsets,
 )
+from src.core.binary_workbench.mips_r3000a.source_line_rows import instruction_code
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 from src.core.binary_workbench.mips_r3000a.codec import JUMP_NAVIGATION_BASE
 from src.core.binary_workbench.mips_r3000a.comments import split_comment
 from src.core.binary_workbench.symbolic_instructions import (
@@ -55,7 +57,11 @@ STANDARD_JUMP_TARGET = re.compile(
 
 class GridEditingMixin:
     def _on_bytes_changed(self) -> None:
-        if self._updating or self._syncing_editor_change:
+        if (
+            self._updating
+            or self._syncing_editor_change
+            or self.bytes.crossing_derived_projection_history()
+        ):
             return
         if not self._editor_change_allowed(True):
             self._restore_editor_after_rejected_change(True)
@@ -139,7 +145,11 @@ class GridEditingMixin:
         return False
 
     def _on_instructions_changed(self) -> None:
-        if self._updating or self._syncing_editor_change:
+        if (
+            self._updating
+            or self._syncing_editor_change
+            or self.instructions.crossing_derived_projection_history()
+        ):
             return
         if not self._editor_change_allowed(False):
             self._restore_editor_after_rejected_change(False)
@@ -285,6 +295,8 @@ class GridEditingMixin:
         labels: dict[str, str],
         block_range: tuple[int, int] | None = None,
     ) -> None:
+        """Refresh label dependencies without rebuilding a resolver per line."""
+
         was_updating = self._updating
         self._updating = True
         self._labels = labels
@@ -300,6 +312,7 @@ class GridEditingMixin:
             cached[2],
         )
         self._symbol_maps = maps
+        self._symbol_resolver = MipsSymbolResolver.from_symbol_maps(maps)
         if block_range is None:
             self._instruction_highlighter.set_symbol_maps(maps)
             self._raw_instruction_highlighter.set_symbol_maps(maps)
@@ -493,7 +506,10 @@ class GridEditingMixin:
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
-        if self._preserve_instruction_offsets():
+        if (
+            self._preserve_instruction_offsets()
+            and not self._new_source_row_became_valid(lines)
+        ):
             rows = reconcile_locked_virtual_instructions(
                 lines,
                 self._rows,
@@ -522,6 +538,21 @@ class GridEditingMixin:
         rows = self._validated_standard_jump_rows(rows, lines)
         rows = self._virtual_instruction_rows_with_previous_bytes(rows) if self._virtual else rows
         return self._rows_with_instruction_spacing(rows, lines)
+
+    def _new_source_row_became_valid(self, lines: list[str]) -> bool:
+        """Allow a newly inserted blank row to become code under locked shifting."""
+
+        return any(
+            index < len(self._rows)
+            and self._rows[index].offsets.get(BINARY_WORKBENCH_TEXT.FILE) == "-"
+            and not self._rows[index].bytes_text
+            and byte_row_policy(
+                self._rows[index].instruction,
+                False,
+            ).removable_from_bytes
+            and bool(instruction_code(line))
+            for index, line in enumerate(lines)
+        )
 
     def _validated_standard_jump_rows(
         self,
@@ -728,7 +759,11 @@ class GridEditingMixin:
             return False
 
     def _bytes_user_edit_in_progress(self) -> bool:
-        return self.bytes.hasFocus() or bool(getattr(self.bytes, "_granular_editing", False))
+        return (
+            self.bytes.hasFocus()
+            or bool(getattr(self.bytes, "_granular_editing", False))
+            or bool(getattr(self.bytes, "_history_action_in_progress", False))
+        )
 
     def _instructions_user_edit_in_progress(self) -> bool:
         return self.instructions.hasFocus() or bool(getattr(self.instructions, "_granular_editing", False))

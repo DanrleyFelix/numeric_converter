@@ -23,8 +23,27 @@ class EditorCompletionMixin:
         labels: dict[str, str],
         variables: dict[str, str],
         equates: dict[str, str],
+        symbol_maps: tuple[dict[str, str], dict[str, str], dict[str, str]] | None = None,
     ) -> None:
         self.set_label_helpers(labels)
+        if len(variables) + len(equates) > 2048:
+            # Large catalogs stay reference-backed until completion or tooltip
+            # is actually requested.  Importing Symbols must not sort and
+            # format tens of thousands of strings on the UI thread.
+            maps = symbol_maps or (
+                {},
+                {f"_{name.lstrip('_@')}".casefold(): value for name, value in variables.items()},
+                {f"@{name.lstrip('_@')}".casefold(): value for name, value in equates.items()},
+            )
+            self._lazy_symbol_maps = (maps[1], maps[2])
+            self._completion_items = {
+                **self._completion_items,
+                "variable": [],
+                "equate": [],
+            }
+            self._symbol_tooltips = {}
+            return
+        self._lazy_symbol_maps = ({}, {})
         self._completion_items = {
             **self._completion_items,
             "variable": sorted(f"_{name.lstrip('_')}" for name in variables),
@@ -105,8 +124,16 @@ class EditorCompletionMixin:
         if normalized.startswith("/"):
             return _partial_prefix_matches(self._completion_items["command"], normalized)
         if normalized.startswith("_"):
+            if self._lazy_symbol_maps[0]:
+                if not self._completion_items["variable"]:
+                    self._completion_items["variable"] = sorted(self._lazy_symbol_maps[0])
+                return _partial_prefix_matches(self._completion_items["variable"], normalized)
             return _partial_prefix_matches(self._completion_items["variable"], normalized)
         if normalized.startswith("@"):
+            if self._lazy_symbol_maps[1]:
+                if not self._completion_items["equate"]:
+                    self._completion_items["equate"] = sorted(self._lazy_symbol_maps[1])
+                return _partial_prefix_matches(self._completion_items["equate"], normalized)
             return _partial_prefix_matches(self._completion_items["equate"], normalized)
         return _partial_prefix_matches(self._completion_items["label"], normalized)
 
@@ -168,7 +195,7 @@ class EditorCompletionMixin:
             QToolTip.showText(event.globalPosition().toPoint(), message, self)
             return
         token = self._symbol_token_at_position(event.position().toPoint())
-        text = self._symbol_tooltips.get(token)
+        text = self._symbol_tooltip_text(token)
         if text:
             QToolTip.showText(event.globalPosition().toPoint(), text, self)
             return
@@ -176,7 +203,22 @@ class EditorCompletionMixin:
 
     def _symbol_token_at_position(self, position: QPoint) -> str:
         token = self._strict_token_at_position(position).lower()
-        return token if token in self._symbol_tooltips else ""
+        return token if self._symbol_tooltip_text(token) else ""
+
+    def _symbol_tooltip_text(self, token: str) -> str:
+        """Format one tooltip on demand for a large lazy Symbol catalog."""
+
+        if text := self._symbol_tooltips.get(token):
+            return text
+        values = self._lazy_symbol_maps[0] if token.startswith("_") else self._lazy_symbol_maps[1]
+        value = values.get(token)
+        if value is None:
+            return ""
+        try:
+            number = int(value, 0)
+        except ValueError:
+            return value
+        return f"{number} | 0x{number:X}"
 
     def _token_at_position(self, position: QPoint) -> str:
         cursor = self.cursorForPosition(position)

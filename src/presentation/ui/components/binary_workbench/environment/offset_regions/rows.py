@@ -64,7 +64,13 @@ class OffsetRegionsRowsMixin:
         """Return all source records selected through Ctrl or Shift."""
 
         records = []
-        for index in self.table.selectionModel().selectedRows():
+        indices = self.table.selectionModel().selectedRows()
+        current = self.table.currentIndex()
+        if not indices and current.isValid():
+            # Some Qt styles establish the current row one event before the
+            # row-selection list; fixed footer actions must still be usable.
+            indices = [current.siblingAtColumn(0)]
+        for index in indices:
             record = self.regions_model.record_at(self.regions_proxy.mapToSource(index).row())
             if record is not None:
                 records.append(record)

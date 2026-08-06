@@ -6,6 +6,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import (
     QColor,
     QFont,
+    QFontMetrics,
     QSyntaxHighlighter,
     QTextBlockUserData,
     QTextCharFormat,
@@ -75,7 +76,26 @@ class _RegisterValuesBlockData(QTextBlockUserData):
 
 
 class BytesHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent, *, double_spacing: bool = False) -> None:
+        super().__init__(parent)
+        self._double_spacing = double_spacing
+        self._projection_window: tuple[int, int] | None = None
+        self._spacing_format = QTextCharFormat()
+        if double_spacing:
+            self._spacing_format.setFontWordSpacing(
+                QFontMetrics(self.document().defaultFont()).horizontalAdvance(" ")
+            )
+
+    def set_projection_window(self, first: int, last: int) -> None:
+        """Limit expensive formatting to the viewport and its prefetch margin."""
+
+        self._projection_window = (max(0, first), max(first, last))
+
     def highlightBlock(self, text: str) -> None:
+        if not _block_in_window(self.currentBlock().blockNumber(), self._projection_window):
+            return
+        if text and self._double_spacing:
+            self.setFormat(0, len(text), self._spacing_format)
         even = text_format("#EAEAF5")
         odd = text_format("#8FA6FF")
         for index, match in enumerate(BYTE_TOKEN.finditer(text)):
@@ -87,8 +107,10 @@ class BytesHighlighter(QSyntaxHighlighter):
 
 
 class InstructionHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent) -> None:
+    def __init__(self, parent, *, semantic_validation: bool = True) -> None:
         super().__init__(parent)
+        self._semantic_validation = semantic_validation
+        self._projection_window: tuple[int, int] | None = None
         self._labels: dict[str, str] = {}
         self._variables: dict[str, str] = {}
         self._equates: dict[str, str] = {}
@@ -178,6 +200,22 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
         self._labels, self._variables, self._equates = maps
 
+    def set_projection_window(self, first: int, last: int) -> None:
+        """Limit syntax work to the visible source window and its margin."""
+
+        self._projection_window = (max(0, first), max(first, last))
+
+    def rehighlight_projection_window(self) -> None:
+        """Refresh only blocks admitted by the current projection window."""
+
+        if self._projection_window is None:
+            return
+        first, last = self._projection_window
+        for index in range(first, last + 1):
+            block = self.document().findBlockByNumber(index)
+            if block.isValid():
+                self.rehighlightBlock(block)
+
     def set_navigation_background_enabled(self, enabled: bool) -> None:
         self._navigation_background_enabled = enabled
         self.rehighlight()
@@ -187,6 +225,17 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
         self._directive_refresh_timer.stop()
         lines = self.document().toPlainText().split("\n")
+        self.prepare_lines(lines)
+        super().rehighlight()
+
+    def prepare_lines(self, lines: list[str]) -> None:
+        """Prepare cross-line diagnostics before a bulk document projection."""
+
+        if not self._semantic_validation:
+            self._has_debugger_directives = False
+            self._debugger_directive_blocks.clear()
+            self._debugger_directive_errors.clear()
+            return
         self._has_debugger_directives = any(
             is_debugger_directive_line(line) for line in lines
         )
@@ -195,7 +244,7 @@ class InstructionHighlighter(QSyntaxHighlighter):
             for index, line in enumerate(lines)
             if is_debugger_directive_line(line)
         }
-        self._directive_document_block_count = self.document().blockCount()
+        self._directive_document_block_count = max(1, len(lines))
         symbols = debugger_directive_symbols(self._labels, self._variables, self._equates)
         self._debugger_directive_errors = debugger_directive_diagnostics(
             lines,
@@ -207,7 +256,6 @@ class InstructionHighlighter(QSyntaxHighlighter):
             DEBUGGER_DIRECTIVE_ERRORS_PROPERTY,
             dict(self._debugger_directive_errors),
         )
-        super().rehighlight()
 
     def _refresh_directives_after_edit(
         self,
@@ -258,6 +306,8 @@ class InstructionHighlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text: str) -> None:
         block_number = self.currentBlock().blockNumber()
+        if not _block_in_window(block_number, self._projection_window):
+            return
         previous_data = self.currentBlock().previous().userData()
         register_values = (
             dict(previous_data.values)
@@ -318,16 +368,26 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._highlight_symbols(text, code, code_start)
         if comment_start_index >= 0:
             self.setFormat(comment_start_index, len(text) - comment_start_index, text_format(psx_mips_required_highlight_color("comment")))
-        invalid_target = self._invalid_jump_target_range(raw_code) if self._navigation_background_enabled else None
+        invalid_target = (
+            self._invalid_jump_target_range(raw_code)
+            if self._semantic_validation and self._navigation_background_enabled
+            else None
+        )
         if invalid_target is not None:
             self.setFormat(invalid_target[0], invalid_target[1] - invalid_target[0], invalid_address_format())
-        invalid_memory = self._invalid_memory_alignment_range(raw_code, register_values)
+        invalid_memory = (
+            self._invalid_memory_alignment_range(raw_code, register_values)
+            if self._semantic_validation
+            else None
+        )
         if invalid_memory is not None:
             self.setFormat(invalid_memory[0], invalid_memory[1] - invalid_memory[0], invalid_address_format())
-        self._remember_register_values(
-            block_number,
-            known_register_values_after(expand_short_instruction(code), register_values),
-        )
+        if self._semantic_validation:
+            register_values = known_register_values_after(
+                expand_short_instruction(code),
+                register_values,
+            )
+        self._remember_register_values(block_number, register_values)
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
         for match in VARIABLE_TOKEN.finditer(code):
@@ -441,7 +501,8 @@ class InstructionHighlighter(QSyntaxHighlighter):
     def _remember_register_values(self, block_number: int, values: dict[int, int]) -> None:
         self._known_register_values_by_block[block_number] = values
         self.setCurrentBlockUserData(_RegisterValuesBlockData(values))
-        self.setCurrentBlockState(register_state(values))
+        if self._projection_window is None:
+            self.setCurrentBlockState(register_state(values))
 
     def _target_value(self, token: str) -> int | None:
         normalized = token.lower()
@@ -472,3 +533,10 @@ def _navigation_operand_index(mnemonic: str) -> int | None:
     if mnemonic in {*BRANCH_OPCODES, *SPECIAL_BRANCH_RT}:
         return 3
     return None
+
+
+def _block_in_window(
+    block_number: int,
+    window: tuple[int, int] | None,
+) -> bool:
+    return window is None or window[0] <= block_number <= window[1]

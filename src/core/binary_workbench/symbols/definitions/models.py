@@ -59,10 +59,25 @@ def stable_symbol_id(
     """Build a deterministic symbol ID for legacy payload migration."""
 
     namespace = workspace_id if isinstance(workspace_id, UUID) else UUID(workspace_id)
-    normalized = normalize_symbol_name(name)
+    return stable_symbol_id_from_normalized(
+        namespace,
+        scope,
+        normalize_symbol_name(name),
+        owner_tab_id,
+    )
+
+
+def stable_symbol_id_from_normalized(
+    namespace: UUID,
+    scope: SymbolScope,
+    normalized_name: str,
+    owner_tab_id: str | None = None,
+) -> str:
+    """Build a stable ID when a catalog already owns the normalized key."""
+
     identity = (
-        f"global:{normalized}"
+        f"global:{normalized_name}"
         if scope is SymbolScope.GLOBAL
-        else f"local:{owner_tab_id or ''}:{normalized}"
+        else f"local:{owner_tab_id or ''}:{normalized_name}"
     )
     return str(uuid5(namespace, identity))

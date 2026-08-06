@@ -1,12 +1,11 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QDialog, QPushButton, QVBoxLayout
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
-    configure_binary_workbench_dialog_button,
+    configure_binary_workbench_control_height,
     configure_binary_workbench_dialog_action,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
-    BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.preferences.view.constants import (
@@ -35,7 +34,7 @@ class BinaryWorkbenchViewDialog(QDialog):
                 layout.addSpacing(
                     BINARY_WORKBENCH_VIEW_LAYOUT.IDENTICAL_ITEM_SPACING
                 )
-            layout.addWidget(button, 0, Qt.AlignHCenter)
+            layout.addWidget(button)
         layout.addSpacing(BINARY_WORKBENCH_VIEW_LAYOUT.CONFIRM_TOP_SPACING)
         confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
         configure_binary_workbench_dialog_action(confirm)
@@ -54,20 +53,10 @@ class BinaryWorkbenchViewDialog(QDialog):
         values.update({name: offsets_visible for name in self._offset_names})
         return values
 
-    def _toggle(self, text: str, checked: bool) -> QPushButton:
-        button = QPushButton(text, self)
-        button.setCheckable(True)
-        button.setChecked(checked)
-        button.setFixedSize(
-            BINARY_WORKBENCH_VIEW_LAYOUT.BUTTON_WIDTH,
-            BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT,
-        )
-        configure_binary_workbench_dialog_button(button)
-        button.clicked.connect(lambda: self._sync_style(button))
-        self._sync_style(button)
-        return button
-
-    def _sync_style(self, button: QPushButton) -> None:
-        button.setObjectName("binary-workbench-version-active" if button.isChecked() else "binary-workbench-version-item")
-        button.style().unpolish(button)
-        button.style().polish(button)
+    def _toggle(self, text: str, checked: bool) -> QCheckBox:
+        item = QCheckBox(text, self)
+        item.setObjectName("binary-workbench-dialog-check")
+        item.setChecked(checked)
+        item.setCursor(Qt.PointingHandCursor)
+        configure_binary_workbench_control_height(item)
+        return item

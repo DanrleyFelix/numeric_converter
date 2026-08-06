@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QSignalBlocker, QStringListModel, Qt, QTimer, Signal
+from dataclasses import dataclass
+
+from PySide6.QtCore import (
+    QEvent,
+    QPoint,
+    QSignalBlocker,
+    QStringListModel,
+    Qt,
+    QTimer,
+    Signal,
+)
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit, QScrollBar, QWidget
 
@@ -51,6 +61,25 @@ _COMPLETION_NAVIGATION_KEYS = {
 }
 
 
+@dataclass(frozen=True)
+class StructuralHistoryCommand:
+    """Describe a native history command that removed source rows."""
+
+    undo_steps_before: int
+    undo_steps_after: int
+    block: int
+    position: int
+    requires_byte_shift: bool
+
+
+@dataclass(frozen=True)
+class DerivedProjectionHistoryCommand:
+    """Identify one automatic UI projection inside Qt's native history."""
+
+    undo_steps_before: int
+    undo_steps_after: int
+
+
 class WorkbenchEditor(
     EditorCompletionMixin,
     EditorImmediateMenuMixin,
@@ -97,6 +126,7 @@ class WorkbenchEditor(
             "directive": list(DEBUGGER_DIRECTIVE_NAMES),
         }
         self._symbol_tooltips: dict[str, str] = {}
+        self._lazy_symbol_maps: tuple[dict[str, str], dict[str, str]] = ({}, {})
         self._pressed_symbol_token = ""
         self._label_offsets: dict[str, tuple[str, int]] = {}
         self._label_target_resolver = None
@@ -126,6 +156,15 @@ class WorkbenchEditor(
         self._return_key_handled = False
         self._protected_edit_key_handled = False
         self._edit_preflight_handled = False
+        self._history_action_in_progress = False
+        self._crossing_derived_projection_history = False
+        self._structural_history_commands: dict[int, StructuralHistoryCommand] = {}
+        self._derived_projection_commands: dict[int, DerivedProjectionHistoryCommand] = {}
+        self._derived_projection_depth = 0
+        self._derived_projection_cursor: QTextCursor | None = None
+        self._derived_projection_undo_steps = 0
+        self._history_high_watermark = self.document().availableUndoSteps()
+        self.document().undoCommandAdded.connect(self._on_undo_command_added)
         self._selection_timer = QTimer(self)
         self._selection_timer.timeout.connect(self._step_selection_scroll)
         self._completion_navigation_timer = QTimer(self)
@@ -175,6 +214,14 @@ class WorkbenchEditor(
 
     def set_uppercase_hex_input(self, enabled: bool) -> None:
         self.set_hex_input_mode(True, enabled, self._hex_group_size)
+
+    def set_content_alignment(self, alignment: Qt.AlignmentFlag) -> None:
+        """Set a persistent paragraph alignment without rewriting the document."""
+
+        option = self.document().defaultTextOption()
+        option.setAlignment(alignment)
+        self.document().setDefaultTextOption(option)
+        self.viewport().update()
 
     def set_uppercase_instruction_hover(self, enabled: bool) -> None:
         self._uppercase_instruction_cursor = enabled
@@ -363,33 +410,295 @@ class WorkbenchEditor(
         self._normalize_instruction_after_comment_start(event.text())
 
     def _run_history_action(self, action, *, undo: bool) -> None:
-        """Run undo/redo without letting Qt relocate the typing viewport."""
+        """Run undo/redo and retain Qt's caret at the affected edit location."""
 
-        cursor_state = capture_logical_cursor(self)
-        local_scroll = self.verticalScrollBar().value()
-        shared_scroll = (
+        previous_cursor = capture_logical_cursor(self)
+        previous_visible_blocks = self._visible_block_range()
+        previous_local_scroll = self.verticalScrollBar().value()
+        previous_shared_scroll = (
             self._shared_scrollbar.value()
             if self._shared_scrollbar is not None
             else None
         )
         previous_text = self.toPlainText()
         previous_steps = self._available_history_steps(undo)
-        action()
-        self._skip_bytes_no_op_history(
-            action,
-            undo=undo,
-            previous_text=previous_text,
-            previous_steps=previous_steps,
+        previous_undo_steps = self.document().availableUndoSteps()
+        self._history_action_in_progress = True
+        try:
+            if not self._skip_derived_projection_history(action, undo=undo):
+                return
+            action()
+            self._skip_bytes_no_op_history(
+                action,
+                undo=undo,
+                previous_text=previous_text,
+                previous_steps=previous_steps,
+            )
+        finally:
+            self._history_action_in_progress = False
+        action_performed = (
+            self.toPlainText() != previous_text
+            or self._available_history_steps(undo) != previous_steps
+        )
+        structural_target = self._resolved_structural_undo_cursor(
+            undo,
+            previous_undo_steps,
+        )
+        if action_performed and structural_target is not None:
+            self._restore_cursor_viewport_state(*structural_target)
+        cursor_state = (
+            capture_logical_cursor(self) if action_performed else previous_cursor
+        )
+        target_block = (
+            structural_target[0]
+            if structural_target is not None
+            else cursor_state.position_block
+        )
+        preserve_visible_viewport = (
+            action_performed
+            and previous_visible_blocks[0]
+            <= target_block
+            <= previous_visible_blocks[1]
+        )
+        local_scroll = (
+            previous_local_scroll
+            if preserve_visible_viewport
+            else self.verticalScrollBar().value()
+            if action_performed
+            else previous_local_scroll
+        )
+        shared_scroll = (
+            previous_shared_scroll
+            if preserve_visible_viewport
+            else self._shared_scrollbar.value()
+            if action_performed and self._shared_scrollbar is not None
+            else previous_shared_scroll
         )
         self._restore_history_interaction(cursor_state, local_scroll, shared_scroll)
+        revision = self.document().revision()
+        cursor_position = self.textCursor().position()
         QTimer.singleShot(
             0,
-            lambda: self._restore_history_interaction(
+            lambda: self._restore_history_interaction_if_unchanged(
                 cursor_state,
                 local_scroll,
                 shared_scroll,
+                revision,
+                cursor_position,
             ),
         )
+
+    def begin_derived_projection(self) -> None:
+        """Group automatic document updates into one non-user history entry."""
+
+        if self._derived_projection_depth == 0:
+            self._derived_projection_undo_steps = self.document().availableUndoSteps()
+            self._derived_projection_cursor = QTextCursor(self.document())
+            self._derived_projection_cursor.beginEditBlock()
+        self._derived_projection_depth += 1
+
+    def end_derived_projection(self) -> None:
+        """Mark the completed projection so Undo/Redo can ignore it."""
+
+        if self._derived_projection_depth <= 0:
+            return
+        self._derived_projection_depth -= 1
+        if self._derived_projection_depth:
+            return
+        cursor = self._derived_projection_cursor
+        self._derived_projection_cursor = None
+        if cursor is not None:
+            cursor.endEditBlock()
+        before = self._derived_projection_undo_steps
+        after = self.document().availableUndoSteps()
+        if after > before:
+            self._derived_projection_commands[after] = DerivedProjectionHistoryCommand(
+                before,
+                after,
+            )
+            self._history_high_watermark = max(self._history_high_watermark, after)
+
+    def reset_native_history_metadata(self) -> None:
+        """Forget metadata after an authoritative full-document replacement."""
+
+        self._structural_history_commands.clear()
+        self._derived_projection_commands.clear()
+        self._derived_projection_depth = 0
+        self._derived_projection_cursor = None
+        self._derived_projection_undo_steps = 0
+        self._history_high_watermark = self.document().availableUndoSteps()
+
+    def _skip_derived_projection_history(self, action, *, undo: bool) -> bool:
+        """Cross automatic commands only when a real user command exists beyond them."""
+
+        while command := self._next_derived_projection_command(undo):
+            if not self._user_history_exists_beyond(command, undo=undo):
+                return False
+            self._crossing_derived_projection_history = True
+            try:
+                action()
+            finally:
+                self._crossing_derived_projection_history = False
+        return (
+            self.document().isUndoAvailable()
+            if undo
+            else self.document().isRedoAvailable()
+        )
+
+    def crossing_derived_projection_history(self) -> bool:
+        """Report an internal Undo crossing that must not update source state."""
+
+        return self._crossing_derived_projection_history
+
+    def _next_derived_projection_command(
+        self,
+        undo: bool,
+    ) -> DerivedProjectionHistoryCommand | None:
+        current = self.document().availableUndoSteps()
+        if undo:
+            return self._derived_projection_commands.get(current)
+        return next(
+            (
+                command
+                for command in self._derived_projection_commands.values()
+                if command.undo_steps_before == current
+            ),
+            None,
+        )
+
+    def _user_history_exists_beyond(
+        self,
+        command: DerivedProjectionHistoryCommand,
+        *,
+        undo: bool,
+    ) -> bool:
+        """Inspect history metadata without applying a visual projection command."""
+
+        if undo:
+            position = command.undo_steps_before
+            while position > 0:
+                projected = self._derived_projection_commands.get(position)
+                if projected is None:
+                    return True
+                position = projected.undo_steps_before
+            return False
+        position = command.undo_steps_after
+        end = (
+            self.document().availableUndoSteps()
+            + self.document().availableRedoSteps()
+        )
+        while position < end:
+            projected = next(
+                (
+                    item
+                    for item in self._derived_projection_commands.values()
+                    if item.undo_steps_before == position
+                ),
+                None,
+            )
+            if projected is None:
+                return True
+            position = projected.undo_steps_after
+        return False
+
+    def remember_structural_undo_cursor(
+        self,
+        block: int,
+        position: int,
+        *,
+        requires_byte_shift: bool = True,
+        undo_steps_before: int | None = None,
+    ) -> None:
+        """Record one row command without merging it with character edits."""
+
+        steps = self.document().availableUndoSteps()
+        self._structural_history_commands[steps] = StructuralHistoryCommand(
+            max(0, steps - 1) if undo_steps_before is None else undo_steps_before,
+            steps,
+            block,
+            position,
+            requires_byte_shift,
+        )
+        self._history_high_watermark = max(self._history_high_watermark, steps)
+
+    def history_action_requires_byte_shift(self, undo: bool) -> bool:
+        """Return whether the next history command removes or restores rows."""
+
+        command = self.next_structural_history_command(undo)
+        return bool(command and command.requires_byte_shift)
+
+    def next_structural_history_command(
+        self,
+        undo: bool,
+    ) -> StructuralHistoryCommand | None:
+        """Return structural metadata for the next native Undo or Redo."""
+
+        undo_steps = self.document().availableUndoSteps()
+        if undo:
+            return self._structural_history_commands.get(undo_steps)
+        return next(
+            (
+                command
+                for command in self._structural_history_commands.values()
+                if command.undo_steps_before == undo_steps
+            ),
+            None,
+        )
+
+    def _on_undo_command_added(self) -> None:
+        """Discard structural metadata from a native history branch replacement."""
+
+        current = self.document().availableUndoSteps()
+        if self._derived_projection_depth == 0:
+            self._derived_projection_commands = {
+                key: value
+                for key, value in self._derived_projection_commands.items()
+                if value.undo_steps_after < current
+            }
+        if current <= self._history_high_watermark:
+            self._structural_history_commands = {
+                key: value
+                for key, value in self._structural_history_commands.items()
+                if key < current
+            }
+        self._history_high_watermark = max(current, self._history_high_watermark)
+
+    def _resolved_structural_undo_cursor(
+        self,
+        undo: bool,
+        previous_undo_steps: int,
+    ) -> tuple[int, int] | None:
+        """Return the structural command crossed by the completed history action."""
+
+        current_steps = self.document().availableUndoSteps()
+        for command in self._structural_history_commands.values():
+            crossed = (
+                previous_undo_steps >= command.undo_steps_after
+                and current_steps <= command.undo_steps_before
+                if undo
+                else previous_undo_steps <= command.undo_steps_before
+                and current_steps >= command.undo_steps_after
+            )
+            if crossed:
+                return command.block, command.position
+        return None
+
+    def _restore_history_interaction_if_unchanged(
+        self,
+        cursor_state,
+        local_scroll: int,
+        shared_scroll: int | None,
+        revision: int,
+        cursor_position: int,
+    ) -> None:
+        """Do not let a queued Undo restoration overwrite a newer interaction."""
+
+        if (
+            self.document().revision() != revision
+            or self.textCursor().position() != cursor_position
+        ):
+            return
+        self._restore_history_interaction(cursor_state, local_scroll, shared_scroll)
 
     def _skip_bytes_no_op_history(
         self,
@@ -414,8 +723,18 @@ class WorkbenchEditor(
             )
             if not available:
                 return
+            if self.history_action_requires_byte_shift(undo):
+                return
             previous_steps = current_steps
             action()
+
+    def _visible_block_range(self) -> tuple[int, int]:
+        """Return the logical rows currently visible without moving the caret."""
+
+        first = self.cursorForPosition(QPoint(0, 0)).blockNumber()
+        bottom = max(0, self.viewport().height() - 1)
+        last = self.cursorForPosition(QPoint(0, bottom)).blockNumber()
+        return min(first, last), max(first, last)
 
     def _available_history_steps(self, undo: bool) -> int:
         """Return the current number of commands in one history direction."""

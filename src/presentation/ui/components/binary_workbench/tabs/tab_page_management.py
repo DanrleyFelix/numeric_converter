@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QPushButton, QTabBar
+from PySide6.QtCore import QSignalBlocker, QSize, Qt
+from PySide6.QtWidgets import QPushButton, QTabBar, QWidget
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.repository.binary_workbench_workspace.constants import COMMANDS
@@ -67,7 +67,31 @@ class BinaryWorkbenchTabBar(QTabBar):
 
 
 class TabPageManagementMixin:
-    def _add_tab_page(self, context: BinaryWorkbenchTabContextDTO) -> None:
+    def _add_tab_page(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+        *,
+        materialize: bool = True,
+    ) -> None:
+        if not materialize:
+            page = QWidget(self)
+            page.setObjectName("binary-workbench-lazy-tab-page")
+            page.setProperty("tab_id", context.tab_id)
+            index = self.addTab(page, tab_text(context.display_name))
+            self.setTabToolTip(index, context.display_name)
+            self.tabBar().add_close_button(index, self._close_button(page))
+            return
+        page = self._create_editor_page(context)
+        index = self.addTab(page, tab_text(context.display_name))
+        self.setTabToolTip(index, context.display_name)
+        self.tabBar().add_close_button(index, self._close_button(page))
+
+    def _create_editor_page(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> BinaryWorkbenchEditorPage:
+        """Materialize one tab only when its editor is actually required."""
+
         context = self._workspace_context_for_page(context)
         self._replace_context_without_emit(context.tab_id, context)
         page = BinaryWorkbenchEditorPage(
@@ -88,12 +112,37 @@ class TabPageManagementMixin:
         page.symbolEditRequested.connect(self._edit_symbol_from_editor)
         page.statusWarningRequested.connect(self.statusWarningChanged.emit)
         page.statusErrorRequested.connect(self.statusErrorChanged.emit)
-        index = self.addTab(page, tab_text(context.display_name))
-        self.setTabToolTip(index, context.display_name)
-        self.tabBar().add_close_button(index, self._close_button(page))
         self._handle_page_context_change(context.tab_id, page.current_context())
+        return page
 
-    def _close_button(self, page: BinaryWorkbenchEditorPage) -> QPushButton:
+    def _materialize_tab_page(self, index: int) -> BinaryWorkbenchEditorPage | None:
+        """Replace an inactive placeholder without materializing sibling tabs."""
+
+        if not 0 <= index < self.count():
+            return None
+        current = self.widget(index)
+        if isinstance(current, BinaryWorkbenchEditorPage):
+            return current
+        context = self.context_at(index)
+        if context is None:
+            return None
+        text = self.tabText(index)
+        tooltip = self.tabToolTip(index)
+        page = self._create_editor_page(context)
+        blocker = QSignalBlocker(self)
+        try:
+            self.removeTab(index)
+            self.insertTab(index, page, text)
+            self.setTabToolTip(index, tooltip)
+            self.tabBar().add_close_button(index, self._close_button(page))
+            self.setCurrentIndex(index)
+        finally:
+            del blocker
+        if current is not None:
+            current.deleteLater()
+        return page
+
+    def _close_button(self, page: QWidget) -> QPushButton:
         button = QPushButton("X", self.tabBar())
         button.setObjectName("binary-workbench-tab-close")
         button.setCursor(Qt.PointingHandCursor)

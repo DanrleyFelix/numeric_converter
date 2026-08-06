@@ -24,6 +24,7 @@ from src.modules.binary_workbench_dtos import (
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.consistency import (
     coordinator as coordinator_module,
+    projection as projection_module,
 )
 from src.presentation.ui.components.binary_workbench.editor.consistency.coordinator import (
     EditorConsistencyCoordinator,
@@ -114,6 +115,69 @@ def test_contents_change_handler_contains_no_expensive_derivation_path():
     assert "_start_visual" not in source
     assert "_start_semantic" not in source
     assert "assemble" not in source
+
+
+def test_symbol_projection_does_not_become_a_source_edit_or_erase_labels():
+    grid = _grid(["entry:", "nop", "next:", "nop"])
+    original_text = grid.instructions.toPlainText()
+    original_labels = grid.current_labels()
+
+    grid.set_symbols(original_labels, {"value": "0x20"}, {"value": "0x20"}, {})
+
+    assert grid.instructions.toPlainText() == original_text
+    assert grid.current_labels() == original_labels
+    assert grid.instructions.document().isModified() is False
+
+
+def test_known_offset_navigation_never_forces_a_global_barrier(monkeypatch):
+    grid = _grid(["nop" for _ in range(200)], references=True)
+    coordinator = grid._consistency_coordinator
+    calls = []
+    monkeypatch.setattr(
+        coordinator,
+        "ensure_consistent",
+        lambda _reason: calls.append("barrier"),
+    )
+
+    assert grid.prepare_navigation() is True
+    grid.set_visible_offset(120 * 4)
+    _app().processEvents()
+
+    assert calls == []
+
+
+def test_navigation_to_current_offset_rechecks_typed_viewport_flags():
+    grid = _grid(["nop" for _ in range(40)], references=True)
+    coordinator = grid._consistency_coordinator
+    current = coordinator._viewport_range()
+    coordinator._pending_symbol_lines.add(current.first)
+    coordinator._viewport_timer.stop()
+
+    grid.set_visible_offset(grid.scrollbar.value())
+
+    assert coordinator._viewport_timer.isActive() is True
+
+
+def test_hidden_derived_column_does_not_force_full_structure_rebuild(monkeypatch):
+    """A non-materialized legacy column must not penalize a source insertion."""
+
+    grid = _grid(["nop"])
+    grid._configured_columns.remove(BINARY_WORKBENCH_TEXT.DECODED_TEXT)
+    grid.decoded_text.setPlainText("")
+    monkeypatch.setattr(
+        projection_module,
+        "_rebuild_derived_documents",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("hidden column forced a full projection")
+        ),
+    )
+
+    grid.instructions.setPlainText("nop\nnop")
+    QTest.qWait(100)
+    _app().processEvents()
+
+    assert grid.instructions.document().blockCount() == 2
+    assert grid.decoded_text.document().blockCount() == 1
 
 
 def test_label_only_commit_reuses_symbol_catalog_maps(monkeypatch):
@@ -391,7 +455,7 @@ def test_structural_edit_repairs_a_previously_diverged_derived_document():
     assert grid.raw_instructions.document().findBlockByNumber(6).isValid()
 
 
-def test_undo_keeps_the_assembly_cursor_and_shared_viewport_near_the_edit():
+def test_undo_moves_the_assembly_cursor_to_the_undone_edit():
     grid = _grid(["entry:", *["nop" for _ in range(80)]], references=True)
     grid.scrollbar.setValue(40 * 4)
     block = grid.instructions.document().findBlockByNumber(45)
@@ -407,14 +471,49 @@ def test_undo_keeps_the_assembly_cursor_and_shared_viewport_near_the_edit():
     QTest.keyClick(grid.instructions, Qt.Key_Z, Qt.ControlModifier)
     _app().processEvents()
 
-    assert grid.instructions.textCursor().blockNumber() == min(
-        cursor_row,
-        grid.instructions.document().blockCount() - 1,
-    )
+    assert grid.instructions.textCursor().blockNumber() == cursor_row - 1
     assert grid.scrollbar.value() == min(scroll_before, grid.scrollbar.maximum())
     assert grid.instructions.textCursor().blockNumber() < (
         grid.instructions.document().blockCount() - 1
     )
+
+
+def test_undo_without_available_action_keeps_the_current_cursor():
+    grid = _grid(["nop", "jr $ra"], references=True)
+    block = grid.instructions.document().findBlockByNumber(1)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    grid.instructions.setTextCursor(cursor)
+    position = grid.instructions.textCursor().position()
+
+    QTest.keyClick(grid.instructions, Qt.Key_Z, Qt.ControlModifier)
+    _app().processEvents()
+
+    assert grid.instructions.textCursor().position() == position
+
+
+def test_structural_source_delete_repairs_the_current_offset_viewport_immediately():
+    grid = _grid(["nop" for _ in range(400)], references=True)
+    grid.scrollbar.setValue(300 * 4)
+    _app().processEvents()
+    coordinator = grid._consistency_coordinator
+    first = grid.instructions.document().findBlockByNumber(8)
+    following = first.next()
+    cursor = QTextCursor(grid.instructions.document())
+    cursor.setPosition(first.position())
+    cursor.setPosition(following.position(), QTextCursor.KeepAnchor)
+
+    cursor.removeSelectedText()
+    coordinator.flush_collected_changes()
+
+    viewport = coordinator._viewport_range()
+    file_document = grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE].document()
+    reference_document = grid._offset_editors[_REFERENCE].document()
+    for index in range(viewport.first, viewport.last + 1):
+        assert file_document.findBlockByNumber(index).text() == f"0x{index * 4:08X}"
+        assert reference_document.findBlockByNumber(index).text() == (
+            f"0x{0x80000000 + index * 4:08X}"
+        )
 
 
 def test_current_viewport_schedules_zero_consistency_work():
@@ -457,6 +556,26 @@ def test_newly_visible_stale_viewport_is_projected_without_global_work(monkeypat
         ) == coordinator._model_rows[row].offsets[BINARY_WORKBENCH_TEXT.FILE]
 
 
+def test_repeated_scroll_positions_restart_one_typed_viewport_job(monkeypatch):
+    """Rapid dragging must defer stale work until the latest destination."""
+
+    grid = _grid(["nop" for _ in range(100)], references=True)
+    coordinator = grid._consistency_coordinator
+    coordinator.structural_revision += 1
+    coordinator._range_consistency.invalidate_from(
+        0,
+        len(coordinator._model_rows),
+        coordinator.structural_revision,
+    )
+    starts = []
+    monkeypatch.setattr(coordinator._viewport_timer, "start", lambda: starts.append(1))
+
+    coordinator.prioritize_viewport()
+    coordinator.prioritize_viewport()
+
+    assert starts == [1, 1]
+
+
 def test_newly_visible_pending_bytes_content_is_projected_immediately(monkeypatch):
     grid = _grid(["nop" for _ in range(100)], references=True)
     coordinator = grid._consistency_coordinator
@@ -491,6 +610,73 @@ def test_newly_visible_pending_bytes_content_is_projected_immediately(monkeypatc
 
     assert _editor_line(grid.instructions, row_index).casefold() == changed.instruction
     assert coordinator._pending_bytes_content_batches == []
+
+
+def test_global_symbol_refresh_is_immediate_with_byte_shifting_disabled():
+    """Symbol-derived Bytes and offsets must not depend on an edit permission."""
+
+    grid = _grid(["ori $t0, $zero, @global_value"], references=True)
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))
+    grid.set_symbols({}, {}, {"global_value": "0x20"}, {})
+
+    grid._consistency_coordinator.rederive_symbol_lines((0,))
+
+    row = grid.export_rows()[0]
+    assert row.bytes_text == "20 00 08 34"
+    assert row.offsets[BINARY_WORKBENCH_TEXT.FILE] == "0x00000000"
+    assert row.offsets[_REFERENCE] == "0x80000000"
+    assert _editor_line(grid.bytes, 0) == "20 00 08 34"
+
+
+def test_contiguous_symbol_viewport_uses_one_bounded_codec_call(monkeypatch):
+    """Avoid one assembler setup per row during a large Symbol import."""
+
+    grid = _grid(
+        ["ori $t0, $zero, @global_value" for _ in range(64)],
+        references=True,
+    )
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))
+    grid.set_symbols({}, {}, {"global_value": "0x20"}, {})
+    coordinator = grid._consistency_coordinator
+    calls: list[int] = []
+    original = coordinator._derive_lines
+
+    def tracked(first: int, lines: list[str]):
+        calls.append(len(lines))
+        return original(first, lines)
+
+    monkeypatch.setattr(coordinator, "_derive_lines", tracked)
+
+    coordinator.rederive_symbol_lines(tuple(range(64)))
+
+    assert calls == [64]
+    assert all(row.bytes_text == "20 00 08 34" for row in grid.export_rows())
+
+
+def test_scrolling_to_pending_symbol_rows_materializes_only_new_viewport(monkeypatch):
+    """A distant stale region becomes immediate when it enters the viewport."""
+
+    grid = _grid(
+        ["ori $t0, $zero, @global_value" for _ in range(300)],
+        references=True,
+    )
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))
+    grid.set_symbols({}, {}, {"global_value": "0x20"}, {})
+    coordinator = grid._consistency_coordinator
+    coordinator.rederive_symbol_lines(tuple(range(300)))
+    viewport = coordinator_module.DirtyRange(280, 299)
+    monkeypatch.setattr(coordinator, "_viewport_range", lambda: viewport)
+
+    coordinator.prioritize_viewport()
+    assert coordinator._viewport_timer.isActive() is True
+    coordinator._viewport_timer.stop()
+    coordinator._prioritize_coalesced_viewport()
+
+    assert not coordinator._pending_symbol_lines.intersection(range(280, 300))
+    assert all(
+        coordinator._model_rows[index].bytes_text == "20 00 08 34"
+        for index in range(280, 300)
+    )
 
 
 def test_last_valid_instruction_gets_all_offsets_immediately_after_blank_lines():

@@ -20,6 +20,7 @@ class ByteEditViolation(Enum):
     NONE = auto()
     ASSEMBLY_ONLY = auto()
     ROW_REMOVAL = auto()
+    USER_BYTE_SHIFTING_DISABLED = auto()
 
 
 @dataclass(frozen=True)

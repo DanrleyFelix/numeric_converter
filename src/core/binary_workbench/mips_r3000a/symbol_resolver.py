@@ -23,8 +23,19 @@ class MipsSymbolResolver:
         equates: Mapping[str, str] | None = None,
     ) -> None:
         self._labels = _normalized(labels)
-        self._variables = _normalized(variables)
-        self._equates = _normalized(equates)
+        self._variables = _normalized(variables, "_")
+        self._equates = _normalized(equates, "@")
+
+    @classmethod
+    def from_symbol_maps(
+        cls,
+        maps: tuple[dict[str, str], dict[str, str], dict[str, str]],
+    ) -> "MipsSymbolResolver":
+        """Reuse highlighter lookup maps without copying a large catalog."""
+
+        resolver = cls()
+        resolver._labels, resolver._variables, resolver._equates = maps
+        return resolver
 
     def replace(self, text: str, address: int, mnemonic: str) -> str:
         """Replace known symbols in one instruction without scanning every symbol."""
@@ -33,9 +44,9 @@ class MipsSymbolResolver:
             token = match.group("token")
             normalized = token.casefold()
             if token.startswith("_"):
-                return self._variables.get(normalized.lstrip("_"), token)
+                return self._variables.get(normalized, token)
             if token.startswith("@"):
-                return self._equates.get(normalized.lstrip("@"), token)
+                return self._equates.get(normalized, token)
             value = self._labels.get(normalized)
             if value is None:
                 return token
@@ -50,11 +61,14 @@ class MipsSymbolResolver:
         return SYMBOL_TOKEN.sub(replacement, text)
 
 
-def _normalized(values: Mapping[str, str] | None) -> dict[str, str]:
+def _normalized(
+    values: Mapping[str, str] | None,
+    prefix: str = "",
+) -> dict[str, str]:
     """Normalize one symbol mapping for resolver reuse across source lines."""
 
     return {
-        str(name).lstrip("_@").casefold(): str(value)
+        f"{prefix}{str(name).lstrip('_@')}".casefold(): str(value)
         for name, value in (values or {}).items()
     }
 

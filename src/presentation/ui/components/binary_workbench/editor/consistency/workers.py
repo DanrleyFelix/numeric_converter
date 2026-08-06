@@ -21,6 +21,16 @@ class ConsistencyWorkerSignals(QObject):
     completed = Signal(object)
 
 
+def _safe_emit(signal, *values) -> bool:
+    """Ignore delivery after the owning editor has already been destroyed."""
+
+    try:
+        signal.emit(*values)
+    except RuntimeError:
+        return False
+    return True
+
+
 class OffsetDistributionWorker(QRunnable):
     """Calculate prioritized File and Reference Offset batches."""
 
@@ -37,9 +47,11 @@ class OffsetDistributionWorker(QRunnable):
             for batch in iter_offset_batches(token=self.token, **self.request):
                 if self.token.is_cancelled():
                     return
-                self.signals.offsetBatchReady.emit(batch)
+                if not _safe_emit(self.signals.offsetBatchReady, batch):
+                    return
             if not self.token.is_cancelled():
-                self.signals.completed.emit(
+                _safe_emit(
+                    self.signals.completed,
                     (
                         self.request["owner"],
                         self.request["structural_revision"],
@@ -47,7 +59,7 @@ class OffsetDistributionWorker(QRunnable):
                     )
                 )
         except Exception as error:
-            self.signals.failed.emit(str(error))
+            _safe_emit(self.signals.failed, str(error))
 
 
 class SemanticWorker(QRunnable):
@@ -65,9 +77,9 @@ class SemanticWorker(QRunnable):
         try:
             result = calculate_semantic_result(self.snapshot, self.token)
             if result is not None and not self.token.is_cancelled():
-                self.signals.semanticReady.emit(result)
+                _safe_emit(self.signals.semanticReady, result)
         except Exception as error:
-            self.signals.failed.emit(str(error))
+            _safe_emit(self.signals.failed, str(error))
 
 
 class EditorConsistencyWorkerPool:

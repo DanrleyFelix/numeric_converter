@@ -105,8 +105,8 @@ class TabLibrariesMixin:
         labels: dict[str, str],
         apply_existing: bool = True,
     ) -> None:
-        if not self.commit_current_editor_text():
-            return
+        # Catalog loading must not invoke the complete Alt+S/F5 barrier.
+        # current_context() flushes only already-delivered source changes.
         current = self.current_context()
         if current is None:
             return
@@ -141,12 +141,14 @@ class TabLibrariesMixin:
                     )),
                 }
             )
-            self._set_current_context_without_page_reload(current)
+            self._replace_context(current.tab_id, current)
+            if isinstance(page, BinaryWorkbenchEditorPage):
+                page.update_symbol_context(current)
             _restore_editor_cursor(page, cursor_state)
             return
         if (
             isinstance(page, BinaryWorkbenchEditorPage)
-            and page.grid._consistency_coordinator.enabled()
+            and page.grid._consistency_coordinator.supports_derived_updates()
         ):
             effective_symbols = effective_symbol_values(
                 local_symbols,
@@ -163,7 +165,8 @@ class TabLibrariesMixin:
                     )),
                 }
             )
-            self._set_current_context_without_page_reload(current)
+            self._replace_context(current.tab_id, current)
+            page.update_symbol_context(current)
             if renamed is not None:
                 page.rename_symbol_tokens(*renamed, changed_lines)
             else:
@@ -183,7 +186,8 @@ class TabLibrariesMixin:
         symbols: dict[str, str],
         apply_existing: bool = True,
     ) -> None:
-        self.commit_current_editor_text()
+        # Flush current Qt edits without forcing a full synchronous rebuild.
+        self.current_context()
         previous_globals = dict(self._global_symbols)
         self._global_symbols = merged_symbol_values(symbols)
         current_index = self.currentIndex()
@@ -199,7 +203,7 @@ class TabLibrariesMixin:
             active_page = self.widget(current_index)
             incremental_active = (
                 isinstance(active_page, BinaryWorkbenchEditorPage)
-                and active_page.grid._consistency_coordinator.enabled()
+                and active_page.grid._consistency_coordinator.supports_derived_updates()
             )
             if not definition_only and incremental_active:
                 self._ensure_symbol_runtime(tabs[current_index], active_page)
@@ -263,9 +267,9 @@ class TabLibrariesMixin:
             page = self.widget(current_index)
             if isinstance(page, BinaryWorkbenchEditorPage):
                 if definition_only:
-                    page.replace_context(tabs[current_index])
+                    page.update_symbol_context(tabs[current_index])
                 elif incremental_active:
-                    page.replace_context(tabs[current_index])
+                    page.update_symbol_context(tabs[current_index])
                     if renamed is not None:
                         page.rename_symbol_tokens(*renamed, changed_lines)
                     else:
@@ -407,12 +411,13 @@ class TabLibrariesMixin:
             context = self._context_with_symbol_values(context, local_symbols, page)
         if not self._symbol_runtime.is_materialized(context.tab_id):
             base = _first_file_offset(context)
+            source_rows = _runtime_source_rows(context, page)
             self._symbol_runtime.materialize_tab(
                 context.tab_id,
-                context.rows,
+                source_rows,
                 local_symbols,
                 base,
-                _visible_symbol_range(page, len(context.rows)),
+                _visible_symbol_range(page, len(source_rows)),
             )
         self._pending_global_symbol_tabs.discard(context.tab_id)
         return context
@@ -437,12 +442,13 @@ class TabLibrariesMixin:
 
         if self._symbol_runtime.is_materialized(context.tab_id):
             return
+        source_rows = _runtime_source_rows(context, page)
         self._symbol_runtime.materialize_tab(
             context.tab_id,
-            context.rows,
+            source_rows,
             _local_symbols(context),
             _first_file_offset(context),
-            _visible_symbol_range(page, len(context.rows)),
+            _visible_symbol_range(page, len(source_rows)),
         )
 
     def save_current_symbols(self, name: str) -> None:
@@ -511,6 +517,24 @@ def _first_file_offset(context: BinaryWorkbenchTabContextDTO) -> int:
             except ValueError:
                 continue
     return 0
+
+
+def _runtime_source_rows(
+    context: BinaryWorkbenchTabContextDTO,
+    page: object,
+) -> list:
+    """Prefer the active editor source over a deferred context snapshot.
+
+    Opening Assembly text can precede the debounced rowsChanged commit. Symbol
+    loading must index those visible authoritative rows, not the older blank
+    DTO kept by the tab while that lightweight notification is pending.
+    """
+
+    if isinstance(page, BinaryWorkbenchEditorPage) and not page.grid._virtual:
+        rows = page.grid.export_rows()
+        if rows:
+            return rows
+    return list(context.rows)
 
 
 def _visible_symbol_range(page: object, row_count: int) -> tuple[int, int] | None:

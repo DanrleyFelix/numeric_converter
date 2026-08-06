@@ -8,6 +8,7 @@ from src.modules.application_dtos import ProgramContextDTO
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
 )
 from src.modules.shared_dtos import WindowSizeDTO
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -15,6 +16,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_TEXT,
 )
 from src.presentation.ui.components.binary_workbench.tabs import BinaryWorkbenchTabs
+from src.presentation.ui.components.binary_workbench.tabs.recovery import merge_recovery_tabs
 from src.presentation.ui.components.binary_workbench.toolbar import BinaryWorkbenchToolbar
 from src.presentation.ui.components.binary_workbench.window_close_flow import (
     BinaryWorkbenchWindowCloseMixin,
@@ -70,6 +72,7 @@ class BinaryWorkbenchWindow(
         workspace_directory: Path | None = None,
         preferences: BinaryWorkbenchPreferencesDTO | None = None,
         program_context: ProgramContextDTO | None = None,
+        recovery_omitted_tabs: tuple[BinaryWorkbenchTabContextDTO, ...] = (),
     ):
         super().__init__()
         self.setObjectName("binary-workbench-window")
@@ -79,6 +82,7 @@ class BinaryWorkbenchWindow(
         self.setMinimumSize(BINARY_WORKBENCH_LAYOUT.MIN_WIDTH, BINARY_WORKBENCH_LAYOUT.MIN_HEIGHT)
         self.resize(BINARY_WORKBENCH_LAYOUT.WINDOW_WIDTH, BINARY_WORKBENCH_LAYOUT.WINDOW_HEIGHT)
         self.toolbar = BinaryWorkbenchToolbar()
+        self._recovery_omitted_tabs = recovery_omitted_tabs
         self._help_window: HelpWindow | None = None
         self._hazards_window = None
         self.tabs = BinaryWorkbenchTabs(
@@ -97,7 +101,7 @@ class BinaryWorkbenchWindow(
         self.tabs.statusChanged.connect(self._show_status)
         self.tabs.statusWarningChanged.connect(self._show_warning_status)
         self.tabs.statusErrorChanged.connect(lambda message: self._show_status(message, 0, True))
-        self.tabs.stateChanged.connect(self.stateChanged.emit)
+        self.tabs.stateChanged.connect(self._emit_recovery_safe_state)
         self.tabs.preferencesChanged.connect(self.preferencesChanged.emit)
         self.tabs.programContextChanged.connect(self.programContextChanged.emit)
         self.tabs.closeRequested.connect(self._request_tab_close)
@@ -108,7 +112,10 @@ class BinaryWorkbenchWindow(
         self._show_status(BINARY_WORKBENCH_TEXT.STATUS_IDLE)
 
     def export_state(self) -> BinaryWorkbenchStateDTO:
-        state = self.tabs.export_state()
+        state = merge_recovery_tabs(
+            self.tabs.export_state(),
+            self._recovery_omitted_tabs,
+        )
         return BinaryWorkbenchStateDTO(
             **{
                 **state.__dict__,
@@ -117,7 +124,13 @@ class BinaryWorkbenchWindow(
         )
 
     def load_state(self, state: BinaryWorkbenchStateDTO) -> None:
+        self._recovery_omitted_tabs = ()
         self.tabs.load_state(state)
+
+    def _emit_recovery_safe_state(self, state: BinaryWorkbenchStateDTO) -> None:
+        """Keep skipped startup payloads persisted without creating their pages."""
+
+        self.stateChanged.emit(merge_recovery_tabs(state, self._recovery_omitted_tabs))
 
     def open_binary_path(self, path: Path) -> None:
         self.tabs.open_binary_path(path)

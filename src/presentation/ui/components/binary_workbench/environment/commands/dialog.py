@@ -1,5 +1,12 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QDialog, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QHeaderView,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 from src.presentation.ui.components.binary_workbench.action_controls import (
     configure_binary_workbench_dialog_action,
@@ -43,10 +50,13 @@ class BinaryWorkbenchCommandsDialog(CommandsFileActionsMixin, QDialog):
         super().__init__(parent)
         self.setObjectName("workspace-table-dialog")
         self.setWindowTitle(BINARY_WORKBENCH_TEXT.COMMANDS)
-        self.setFixedWidth(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_WIDTH)
+        self.setFixedWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_WIDTH)
         self.setMinimumHeight(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MIN_HEIGHT)
         self.setMaximumHeight(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MAX_HEIGHT)
-        self.resize(BINARY_WORKBENCH_LAYOUT.SYMBOLS_DIALOG_WIDTH, BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MIN_HEIGHT)
+        self.resize(
+            BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_WIDTH,
+            BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_MIN_HEIGHT,
+        )
         self._default_directory = default_directory
         self.commands_model = EnvironmentTableModel(
             (BINARY_WORKBENCH_TEXT.COMMANDS, BINARY_WORKBENCH_TEXT.COMMAND_INSTRUCTION_HEADER),
@@ -57,6 +67,7 @@ class BinaryWorkbenchCommandsDialog(CommandsFileActionsMixin, QDialog):
         self.commands_proxy.setSourceModel(self.commands_model)
         self._build_dialog()
         self.set_commands(commands)
+        QTimer.singleShot(0, self._resize_table_columns)
 
     def set_commands(self, commands: dict[str, list[str]]) -> None:
         """Replace commands with one model reset and no row widgets."""
@@ -85,6 +96,9 @@ class BinaryWorkbenchCommandsDialog(CommandsFileActionsMixin, QDialog):
         self.table.setModel(self.commands_proxy)
         self.table.setItemDelegate(EnvironmentCellDelegate(parent=self.table))
         configure_environment_table(self.table, "binary-workbench-environment-table")
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.selectionModel().selectionChanged.connect(self._update_action_state)
         self.table.doubleClicked.connect(lambda _index: self._edit_selected())
         layout.addWidget(self.table, 1)
@@ -115,6 +129,8 @@ class BinaryWorkbenchCommandsDialog(CommandsFileActionsMixin, QDialog):
         self.filter_input = symbol_input(BINARY_WORKBENCH_TEXT.FILTER, footer, search_icon=True)
         configure_binary_workbench_filter(self.filter_input)
         configure_binary_workbench_line_edit(self.filter_input)
+        self.filter_input.setMinimumWidth(0)
+        self.filter_input.setMaximumWidth(BINARY_WORKBENCH_LAYOUT.COMMANDS_DIALOG_WIDTH)
         self.filter_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.filter_input.textChanged.connect(self.commands_proxy.set_query)
         row.addWidget(load)
@@ -123,6 +139,15 @@ class BinaryWorkbenchCommandsDialog(CommandsFileActionsMixin, QDialog):
         row.addWidget(self.remove_button)
         row.addWidget(self.filter_input, 1)
         parent.addWidget(footer)
+
+    def _resize_table_columns(self) -> None:
+        """Give Instruction three quarters of the available table width."""
+
+        available = max(0, self.table.viewport().width())
+        self.table.setColumnWidth(
+            0,
+            available // BINARY_WORKBENCH_LAYOUT.COMMANDS_NAME_COLUMN_DIVISOR,
+        )
 
     def _selected_payload(self) -> tuple[str, list[str]] | None:
         index = self.table.currentIndex()

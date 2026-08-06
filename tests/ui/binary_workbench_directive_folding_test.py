@@ -99,8 +99,8 @@ def test_directive_fold_is_visual_only_and_keeps_debugger_source_complete():
     assert grid.instructions.document().findBlockByNumber(1).isVisible() is False
     for editor in grid._offset_editors.values():
         dash_visibility = {
-            label.property("offsetBlock"): label.isVisible()
-            for label in editor._dash_labels
+            index: editor.document().findBlockByNumber(index).isVisible()
+            for index in editor._dash_blocks
         }
         assert dash_visibility == {0: True, 1: False, 2: False, 3: False}
 
@@ -109,8 +109,8 @@ def test_directive_fold_is_visual_only_and_keeps_debugger_source_complete():
     assert all(editor.document().findBlockByNumber(1).isVisible() for editor in _editors(grid))
     for editor in grid._offset_editors.values():
         assert {
-            label.property("offsetBlock"): label.isVisible()
-            for label in editor._dash_labels
+            index: editor.document().findBlockByNumber(index).isVisible()
+            for index in editor._dash_blocks
         } == {0: True, 1: True, 2: True, 3: True}
 
 

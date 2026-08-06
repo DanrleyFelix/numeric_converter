@@ -9,6 +9,13 @@ from PySide6.QtWidgets import QFileDialog
 from src.modules.utils import read_json
 from src.presentation.repository.binary_workbench_workspace.constants import SCHEMA_VERSION
 from src.presentation.ui.components import BinaryWorkbenchWindow
+from src.presentation.ui.components.binary_workbench.file_dialogs.recovery_dialog import (
+    BinaryWorkbenchRecoveryDialog,
+)
+from src.presentation.ui.components.binary_workbench.tabs.recovery import (
+    recovery_plan,
+    selected_recovery_state,
+)
 from src.presentation.ui.components.donor import DonorWindow
 from src.presentation.ui.components.help_window import HelpWindow
 from src.presentation.ui.components.preferences_dialog import LogPreferencesDialog, PreferencesDialog
@@ -23,11 +30,30 @@ if TYPE_CHECKING:
 class MainWindowDialogsMixin:
     def _open_binary_workbench(self: MainWindow) -> None:
         if self._binary_workbench_window is None:
+            opening_state = self._binary_workbench_state
+            omitted_tabs = ()
+            plan = recovery_plan(opening_state)
+            if plan is not None:
+                dialog = BinaryWorkbenchRecoveryDialog(
+                    opening_state.tabs,
+                    plan.suspected_tab_id,
+                    self,
+                )
+                if dialog.exec() != dialog.DialogCode.Accepted:
+                    return
+                excluded = dialog.excluded_tab_ids()
+                if excluded is None:
+                    return
+                opening_state, omitted_tabs = selected_recovery_state(
+                    opening_state,
+                    excluded,
+                )
             self._binary_workbench_window = BinaryWorkbenchWindow(
-                self._binary_workbench_state,
+                opening_state,
                 self._state_service.binary_workspace_directory,
                 self._binary_workbench_preferences,
                 self._program_context,
+                recovery_omitted_tabs=omitted_tabs,
             )
             self._binary_workbench_window.setWindowIcon(self.windowIcon())
             self._binary_workbench_window.setStyleSheet(STYLESHEET)
