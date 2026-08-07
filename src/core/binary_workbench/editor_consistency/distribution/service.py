@@ -112,34 +112,79 @@ def iter_offset_batches(
 
     chunk_starts = _chunk_starts(snapshot.chunks)
     byte_starts = _byte_starts(snapshot.chunk_sums)
-    order = _priority_order(snapshot.row_count, dirty_ranges, dirty_from_line, viewport)
-    for start in range(0, len(order), OFFSET_BATCH_SIZE):
+    pending: list[int] = []
+    for index in _priority_order(
+        snapshot.row_count,
+        dirty_ranges,
+        dirty_from_line,
+        viewport,
+    ):
         if token.is_cancelled():
             return
-        indices = order[start : start + OFFSET_BATCH_SIZE]
-        values = tuple(
-            (
-                index,
-                _offsets_for(
-                    index,
-                    snapshot,
-                    chunk_starts,
-                    byte_starts,
-                    offset_names,
-                    offset_bases,
-                ),
-            )
-            for index in indices
+        pending.append(index)
+        if len(pending) < OFFSET_BATCH_SIZE:
+            continue
+        yield _offset_batch(
+            tuple(pending),
+            snapshot,
+            chunk_starts,
+            byte_starts,
+            owner,
+            structural_revision,
+            generation,
+            offset_names,
+            offset_bases,
         )
-        if values:
-            yield OffsetDistributionBatch(
-                owner,
-                structural_revision,
-                generation,
-                min(indices),
-                max(indices),
-                values,
-            )
+        pending.clear()
+    if pending and not token.is_cancelled():
+        yield _offset_batch(
+            tuple(pending),
+            snapshot,
+            chunk_starts,
+            byte_starts,
+            owner,
+            structural_revision,
+            generation,
+            offset_names,
+            offset_bases,
+        )
+
+
+def _offset_batch(
+    indices: tuple[int, ...],
+    snapshot: ContributionSnapshot,
+    chunk_starts: tuple[int, ...],
+    byte_starts: tuple[int, ...],
+    owner: EditorOwner,
+    structural_revision: int,
+    generation: int,
+    offset_names: tuple[str, ...],
+    offset_bases: dict[str, str],
+) -> OffsetDistributionBatch:
+    """Build one bounded result without retaining the remaining line order."""
+
+    values = tuple(
+        (
+            index,
+            _offsets_for(
+                index,
+                snapshot,
+                chunk_starts,
+                byte_starts,
+                offset_names,
+                offset_bases,
+            ),
+        )
+        for index in indices
+    )
+    return OffsetDistributionBatch(
+        owner,
+        structural_revision,
+        generation,
+        min(indices),
+        max(indices),
+        values,
+    )
 
 
 def _priority_order(
@@ -147,9 +192,10 @@ def _priority_order(
     dirty_ranges: tuple[DirtyRange, ...],
     dirty_from_line: int | None,
     viewport: DirtyRange,
-) -> list[int]:
-    seen: set[int] = set()
-    output: list[int] = []
+):
+    """Yield prioritized indices while retaining only a few covered spans."""
+
+    covered: list[tuple[int, int]] = []
     ranges = [
         viewport,
         DirtyRange(viewport.first - VIEWPORT_MARGIN_LINES, viewport.last + VIEWPORT_MARGIN_LINES),
@@ -157,10 +203,62 @@ def _priority_order(
         DirtyRange(0 if dirty_from_line is None else dirty_from_line, count - 1),
     ]
     for item in ranges:
-        for index in range(max(0, item.first), min(count, item.last + 1)):
-            if index not in seen:
-                seen.add(index)
-                output.append(index)
+        first = max(0, item.first)
+        last = min(count - 1, item.last)
+        if first > last:
+            continue
+        uncovered = _subtract_covered(first, last, covered)
+        for start, end in uncovered:
+            yield from range(start, end + 1)
+        covered = _merge_covered(covered, (first, last))
+
+
+def _subtract_covered(
+    first: int,
+    last: int,
+    covered: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    """Return uncovered portions of one inclusive range."""
+
+    output: list[tuple[int, int]] = []
+    cursor = first
+    for start, end in covered:
+        if end < cursor:
+            continue
+        if start > last:
+            break
+        if cursor < start:
+            output.append((cursor, min(last, start - 1)))
+        cursor = max(cursor, end + 1)
+        if cursor > last:
+            break
+    if cursor <= last:
+        output.append((cursor, last))
+    return output
+
+
+def _merge_covered(
+    covered: list[tuple[int, int]],
+    item: tuple[int, int],
+) -> list[tuple[int, int]]:
+    """Merge one priority span without creating a per-line membership set."""
+
+    output: list[tuple[int, int]] = []
+    first, last = item
+    placed = False
+    for start, end in covered:
+        if end + 1 < first:
+            output.append((start, end))
+        elif last + 1 < start:
+            if not placed:
+                output.append((first, last))
+                placed = True
+            output.append((start, end))
+        else:
+            first = min(first, start)
+            last = max(last, end)
+    if not placed:
+        output.append((first, last))
     return output
 
 

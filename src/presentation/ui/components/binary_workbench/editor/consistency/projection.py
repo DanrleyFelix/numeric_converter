@@ -79,6 +79,8 @@ def apply_structure_splice(
     first: int,
     removed: int,
     inserted: list[BinaryWorkbenchRowDTO],
+    *,
+    refresh_folding: bool = True,
 ) -> None:
     """Splice every derived document while leaving Assembly text untouched."""
 
@@ -93,6 +95,7 @@ def apply_structure_splice(
         with projection_transaction(
             grid,
             refresh_structure=True,
+            refresh_folding=refresh_folding,
             refresh_fold_offsets=False,
             history_editors=editors,
         ):
@@ -129,6 +132,8 @@ def apply_structure_splice(
                 )
             _refresh_offset_overlays(grid)
             _validate_block_counts(grid)
+        if not refresh_folding:
+            grid._splice_cached_label_folding(first, removed, len(inserted))
     except Exception:
         grid._collapsed_labels = collapsed
         try:
@@ -170,6 +175,7 @@ def apply_bytes_structure_splice(
         with projection_transaction(
             grid,
             refresh_structure=True,
+            refresh_folding=False,
             refresh_fold_offsets=False,
             history_exclude=(grid.bytes,),
             history_editors=peers,
@@ -212,6 +218,7 @@ def apply_bytes_structure_splice(
                 [grid._display_instruction(row.instruction) for row in inserted],
             )
             _validate_block_counts(grid)
+        grid._splice_cached_label_folding(first, removed, len(inserted))
     except Exception:
         _rebuild_bytes_origin_projection(grid)
 
@@ -408,6 +415,9 @@ def _refresh_fold_visibility(grid, *, render_offsets: bool = True) -> None:
     previous = grid._label_fold_regions
     regions = label_fold_regions(grid._rows) if grid._label_folding_enabled else []
     grid._label_fold_regions = regions
+    grid._label_fold_regions_by_row = {
+        region.label_row: region for region in regions
+    }
     grid._directive_fold_region = (
         debugger_directive_fold_region(grid._rows)
         if grid._label_folding_enabled

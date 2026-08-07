@@ -3,7 +3,10 @@ import re
 from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_LAYOUT,
+    BINARY_WORKBENCH_TIMING,
+)
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -72,8 +75,12 @@ class EditorCompletionMixin:
             self.hide_completion_popup()
             return
         prefix = self._current_completion_prefix()
+        if not prefix:
+            self._completion_cursor_position = None
+            self._completer.popup().hide()
+            return
         candidates = self._candidates_for_prefix(prefix)
-        if not prefix or not candidates:
+        if not candidates:
             self._completion_cursor_position = None
             self._completer.popup().hide()
             return
@@ -90,6 +97,22 @@ class EditorCompletionMixin:
         rect.setWidth(self._completion_popup_width())
         self._completer.complete(rect)
         fit_completer_popup_height(self._completer)
+
+    def _schedule_completions_after_edit(self, *, deleting: bool) -> None:
+        """Debounce large Symbol catalogs without delaying local derivation."""
+
+        prefix = self._current_completion_prefix()
+        if prefix.startswith(("_", "@")):
+            self.hide_completion_popup()
+            interval = (
+                BINARY_WORKBENCH_TIMING.EDITOR_SYMBOL_COMPLETION_DELETE_DEBOUNCE_MS
+                if deleting
+                else BINARY_WORKBENCH_TIMING.EDITOR_SYMBOL_COMPLETION_INSERT_DEBOUNCE_MS
+            )
+            self._symbol_completion_timer.start(interval)
+            return
+        self._symbol_completion_timer.stop()
+        self._refresh_completions()
 
     def _debounce_completions_after_navigation(self) -> None:
         self.hide_completion_popup()
@@ -125,15 +148,17 @@ class EditorCompletionMixin:
             return _partial_prefix_matches(self._completion_items["command"], normalized)
         if normalized.startswith("_"):
             if self._lazy_symbol_maps[0]:
-                if not self._completion_items["variable"]:
-                    self._completion_items["variable"] = sorted(self._lazy_symbol_maps[0])
-                return _partial_prefix_matches(self._completion_items["variable"], normalized)
+                return _bounded_mapping_prefix_matches(
+                    self._lazy_symbol_maps[0],
+                    normalized,
+                )
             return _partial_prefix_matches(self._completion_items["variable"], normalized)
         if normalized.startswith("@"):
             if self._lazy_symbol_maps[1]:
-                if not self._completion_items["equate"]:
-                    self._completion_items["equate"] = sorted(self._lazy_symbol_maps[1])
-                return _partial_prefix_matches(self._completion_items["equate"], normalized)
+                return _bounded_mapping_prefix_matches(
+                    self._lazy_symbol_maps[1],
+                    normalized,
+                )
             return _partial_prefix_matches(self._completion_items["equate"], normalized)
         return _partial_prefix_matches(self._completion_items["label"], normalized)
 
@@ -235,9 +260,27 @@ def _first_completion(values: list[str]) -> str:
 
 
 def _partial_prefix_matches(values: list[str], normalized_prefix: str) -> list[str]:
-    return [
-        item
-        for item in values
-        if item.lower().startswith(normalized_prefix)
-        and item.lower() != normalized_prefix
-    ]
+    matches: list[str] = []
+    for item in values:
+        normalized = item.lower()
+        if normalized.startswith(normalized_prefix) and normalized != normalized_prefix:
+            matches.append(item)
+            if len(matches) >= BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MAX_CANDIDATES:
+                break
+    return matches
+
+
+def _bounded_mapping_prefix_matches(
+    values: dict[str, str],
+    normalized_prefix: str,
+) -> list[str]:
+    """Scan a shared catalog lazily and sort only the bounded popup result."""
+
+    matches: list[str] = []
+    for item in values:
+        if item.startswith(normalized_prefix) and item != normalized_prefix:
+            matches.append(item)
+            if len(matches) >= BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MAX_CANDIDATES:
+                break
+    matches.sort()
+    return matches

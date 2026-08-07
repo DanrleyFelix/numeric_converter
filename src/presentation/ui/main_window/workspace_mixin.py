@@ -27,7 +27,8 @@ class MainWindowWorkspaceMixin:
             title=WORKSPACE_TABLE_TEXT.LOGS_TITLE,
             headers=WORKSPACE_TABLE_HEADERS["logs"],
             clear_callback=self._clear_logs_window,
-            remove_callback=self._remove_log_row,
+            remove_callback=self._remove_log_rows,
+            allow_add=False,
         )
         self._refresh_logs_window()
         self._present_workspace_window(self._logs_window)
@@ -38,7 +39,9 @@ class MainWindowWorkspaceMixin:
             title=WORKSPACE_TABLE_TEXT.VARIABLES_TITLE,
             headers=WORKSPACE_TABLE_HEADERS["variables"],
             clear_callback=self._clear_variables_window,
-            remove_callback=self._remove_variable_row,
+            remove_callback=self._remove_variable_rows,
+            allow_add=True,
+            add_callback=self._add_variable,
         )
         self._refresh_variables_window()
         self._present_workspace_window(self._variables_window)
@@ -49,27 +52,41 @@ class MainWindowWorkspaceMixin:
     def _clear_variables_window(self: MainWindow) -> None:
         self._variables_window = None
 
-    def _remove_log_row(self: MainWindow, index: object) -> None:
-        try:
-            row_index = int(index)
-        except (TypeError, ValueError):
+    def _remove_log_rows(self: MainWindow, indices: tuple[object, ...]) -> None:
+        if not indices:
             return
-        self._command_presenter.remove_log(row_index)
+        self._command_presenter.remove_logs(indices)
         self._refresh_workspace_windows()
-        self.footer.set_status(MAIN_WINDOW_TEXT.LOG_REMOVED, COLOR.INCOMPLETE)
-        self._autosave_state()
+        self.footer.set_status(
+            MAIN_WINDOW_TEXT.LOGS_REMOVED_TEMPLATE.format(count=len(indices)),
+            COLOR.INCOMPLETE,
+        )
+        self._mark_numeric_dirty("logs")
 
-    def _remove_variable_row(self: MainWindow, name: object) -> None:
-        if not isinstance(name, str):
+    def _remove_variable_rows(self: MainWindow, names: tuple[object, ...]) -> None:
+        if not names:
             return
-        self._command_presenter.remove_variable(name)
+        self._command_presenter.remove_variables(names)
         self._refresh_workspace_windows()
         self._refresh_command_completions()
         self.footer.set_status(
-            MAIN_WINDOW_TEXT.VARIABLE_REMOVED_TEMPLATE.format(name=name),
+            MAIN_WINDOW_TEXT.VARIABLES_REMOVED_TEMPLATE.format(count=len(names)),
             COLOR.INCOMPLETE,
         )
-        self._autosave_state()
+        self._mark_numeric_dirty("variables")
+
+    def _add_variable(self: MainWindow, name: str, value: str) -> None:
+        success, error = self._command_presenter.add_variable(name, value)
+        if not success:
+            self.footer.set_status(error or MAIN_WINDOW_TEXT.EXPRESSION_INCOMPLETE, COLOR.FAILED)
+            return
+        self._refresh_workspace_windows()
+        self._refresh_command_completions()
+        self.footer.set_status(
+            MAIN_WINDOW_TEXT.VARIABLE_ADDED_TEMPLATE.format(name=name),
+            COLOR.SUCCESS,
+        )
+        self._mark_numeric_dirty("variables")
 
     def _refresh_workspace_windows(self: MainWindow) -> None:
         self._refresh_logs_window()
@@ -81,10 +98,12 @@ class MainWindowWorkspaceMixin:
         title: str,
         headers: Sequence[str],
         clear_callback: Callable[[], None],
-        remove_callback: Callable[[object], None],
+        remove_callback: Callable[[tuple[object, ...]], None],
+        allow_add: bool,
+        add_callback: Callable[[str, str], None] | None = None,
     ) -> WorkspaceTableDialog:
         if window is None:
-            window = WorkspaceTableDialog(title, list(headers))
+            window = WorkspaceTableDialog(title, list(headers), allow_add=allow_add)
             window.setWindowIcon(self.windowIcon())
             window.setStyleSheet(STYLESHEET)
             window.sizePersistRequested.connect(
@@ -95,7 +114,9 @@ class MainWindowWorkspaceMixin:
                 )
             )
             window.destroyed.connect(lambda *_: clear_callback())
-            window.removeRequested.connect(remove_callback)
+            window.removeManyRequested.connect(remove_callback)
+            if add_callback is not None:
+                window.addRequested.connect(add_callback)
             self._restore_window_size(
                 self._workspace_window_key(clear_callback),
                 window,

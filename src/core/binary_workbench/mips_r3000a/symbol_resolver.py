@@ -60,6 +60,15 @@ class MipsSymbolResolver:
 
         return SYMBOL_TOKEN.sub(replacement, text)
 
+    def with_labels(self, labels: Mapping[str, str]) -> "MipsSymbolResolver":
+        """Replace the small label map while sharing large Symbol lookup maps."""
+
+        resolver = type(self)()
+        resolver._labels = _normalized(labels)
+        resolver._variables = self._variables
+        resolver._equates = self._equates
+        return resolver
+
 
 def _normalized(
     values: Mapping[str, str] | None,

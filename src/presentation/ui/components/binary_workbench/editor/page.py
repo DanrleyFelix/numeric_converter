@@ -129,6 +129,18 @@ class BinaryWorkbenchEditorPage(
             )
         return self._context
 
+    def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
+        """Cancel this page's private workers before native widgets close.
+
+        Waiting for ``destroyed`` was one event-loop turn too late: a closed
+        page could keep a semantic worker busy while the next tab was already
+        serving its viewport.  The explicit shutdown preserves the strict
+        owner isolation required by the Binary Workbench scheduler.
+        """
+
+        self.grid.shutdown_consistency()
+        super().closeEvent(event)
+
     def ensure_consistent(self, reason: str):
         """Return a complete current snapshot for a critical consumer."""
 
@@ -138,6 +150,11 @@ class BinaryWorkbenchEditorPage(
         """Project only source rows affected by changed Symbol definitions."""
 
         self.grid._consistency_coordinator.rederive_symbol_lines(indices)
+
+    def rederive_all_symbol_lines(self) -> None:
+        """Prioritize the viewport after a bulk Symbol catalog replacement."""
+
+        self.grid._consistency_coordinator.rederive_all_symbol_lines()
 
     def rename_symbol_tokens(
         self,
@@ -324,6 +341,9 @@ class BinaryWorkbenchEditorPage(
                 reference_offset_bases=context.reference_offset_bases,
                 jump_reference_offset=context.view_preferences.jump_reference_offset,
             )
+            # The empty virtual shell is only a loading projection.  It must
+            # never be flushed as a user edit into the newly installed reader.
+            self.grid.discard_pending_rows_changed()
             self._load_visible_rows(
                 offset_from_hex(context.last_open_offset),
                 self.grid.visible_size(),

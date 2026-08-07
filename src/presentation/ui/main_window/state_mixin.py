@@ -22,14 +22,53 @@ if TYPE_CHECKING:
 
 
 class MainWindowStateMixin:
+    def _persist_binary_state(self: MainWindow) -> None:
+        """Persist Binary state only after an explicit Binary-owned change."""
+
+        try:
+            self._state_service.save_default_binary_context(
+                self._collect_binary_workbench_state()
+            )
+        except PermissionError:
+            self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_AUTOSAVE_BLOCKED)
+
+    def _persist_binary_preferences(self: MainWindow) -> None:
+        """Persist only Binary preferences after their own change event."""
+
+        if isinstance(
+            self._binary_workbench_preferences,
+            BinaryWorkbenchPreferencesDTO,
+        ):
+            self._binary_preferences_service.save(
+                self._binary_workbench_preferences
+            )
+
+    def _persist_program_context(self: MainWindow) -> None:
+        """Persist Program Context only after its own change event."""
+
+        self._state_service.save_program_context(self._program_context)
+
     def _load_default_state(self: MainWindow) -> None:
         self._program_context = self._state_service.load_program_context()
-        self._binary_workbench_state = self._state_service.load_default_binary_context()
-        self._binary_workbench_preferences = self._binary_preferences_service.load()
         context = self._state_service.load_default_context()
         self._apply_context(context, self._preferences_service.get_preferences())
         self._refresh_command_completions()
         self.footer.set_status(MAIN_WINDOW_TEXT.DEFAULT_CONTEXT_LOADED)
+
+    def _ensure_binary_state_loaded(self: MainWindow) -> None:
+        """Load Binary repositories only when the Binary window is requested."""
+
+        if self._binary_state_loaded:
+            return
+        if self._binary_workbench_state == BinaryWorkbenchStateDTO():
+            self._binary_workbench_state = (
+                self._state_service.load_default_binary_context()
+            )
+        if self._binary_workbench_preferences == BinaryWorkbenchPreferencesDTO():
+            self._binary_workbench_preferences = (
+                self._binary_preferences_service.load()
+            )
+        self._binary_state_loaded = True
 
     def _collect_context(self: MainWindow) -> ApplicationContextDTO:
         return ApplicationContextDTO(
@@ -57,6 +96,7 @@ class MainWindowStateMixin:
         self._syncing_command = True
         with QSignalBlocker(self.body.command_panel.editor):
             self.body.command_panel.set_input_text(context.command.active_line)
+            self.body.command_panel.editor.document().setModified(False)
         self._syncing_command = False
 
         source_value = context.converter.fields.get(context.converter.from_type, "")
@@ -79,21 +119,6 @@ class MainWindowStateMixin:
         self._update_minimum_height(preferences.key_panel_visible)
         self._restore_window_size(MAIN_WINDOW_STATE.MAIN_WINDOW_KEY, self)
         self.body.command_panel.set_feedback(COMMAND_PANEL_TEXT.IDLE_FEEDBACK, COLOR.INFO)
-
-    def _autosave_state(self: MainWindow) -> None:
-        if not self._loaded:
-            return
-        self._state_service.save_default_context(self._collect_context())
-        try:
-            self._state_service.save_default_binary_context(self._collect_binary_workbench_state())
-        except PermissionError:
-            self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_AUTOSAVE_BLOCKED)
-        self._state_service.save_program_context(self._program_context)
-        self._binary_preferences_service.save(self._binary_workbench_preferences)
-        self._preferences_service.update_numeric_flags(
-            self.key_panel.isVisible(),
-            self._auto_convert_enabled,
-        )
 
     def _collect_window_sizes(self: MainWindow) -> dict[str, WindowSizeDTO]:
         window_sizes = dict(self._window_sizes)
@@ -135,10 +160,10 @@ class MainWindowStateMixin:
                     "window_size": WindowSizeDTO(width=width, height=height),
                 }
             )
-            self._autosave_state()
+            self._persist_binary_state()
             return
         self._window_sizes[key] = WindowSizeDTO(width=width, height=height)
-        self._autosave_state()
+        self._mark_numeric_dirty("window-size")
 
     def _restore_window_size(self: MainWindow, key: str, window: object) -> None:
         size = self._window_sizes.get(key)
@@ -157,19 +182,21 @@ class MainWindowStateMixin:
         if not isinstance(state, BinaryWorkbenchStateDTO):
             return
         self._binary_workbench_state = state
-        self._autosave_state()
+        self._binary_state_loaded = True
+        self._persist_binary_state()
 
     def _remember_binary_workbench_preferences(self: MainWindow, preferences: object) -> None:
         if not isinstance(preferences, BinaryWorkbenchPreferencesDTO):
             return
         self._binary_workbench_preferences = preferences
-        self._autosave_state()
+        self._binary_state_loaded = True
+        self._persist_binary_preferences()
 
     def _remember_program_context(self: MainWindow, context: object) -> None:
         if not isinstance(context, ProgramContextDTO):
             return
         self._program_context = context
-        self._autosave_state()
+        self._persist_program_context()
 
     def _sync_binary_workbench_window_state(self: MainWindow) -> None:
         if self._binary_workbench_window is None:

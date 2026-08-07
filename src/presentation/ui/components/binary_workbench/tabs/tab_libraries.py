@@ -10,6 +10,7 @@ from src.core.binary_workbench.symbols.compatibility import (
     definitions_payload,
 )
 from src.core.binary_workbench.symbols.definitions import SymbolScope
+from src.core.binary_workbench.symbols.constants import MAX_SYMBOL_BATCH_SIZE
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_TAB_KIND
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchInternalFileDTO,
@@ -116,11 +117,16 @@ class TabLibrariesMixin:
         local_symbols = merged_symbol_values(variables, equates)
         renamed = _single_symbol_rename(previous_symbols, local_symbols)
         changed_names = _changed_symbol_names(previous_symbols, local_symbols)
-        self._ensure_symbol_runtime(current, page)
-        changed_lines = self._symbol_runtime.lines_for_symbols(
-            current.tab_id,
-            changed_names,
+        bulk_catalog_change = (
+            renamed is None and len(changed_names) > MAX_SYMBOL_BATCH_SIZE
         )
+        changed_lines: tuple[int, ...] = ()
+        if not bulk_catalog_change:
+            self._ensure_symbol_runtime(current, page)
+            changed_lines = self._symbol_runtime.lines_for_symbols(
+                current.tab_id,
+                changed_names,
+            )
         self._symbol_runtime.set_local_definitions(current.tab_id, local_symbols)
         if not apply_existing and _definition_only_addition(
             previous_symbols,
@@ -169,6 +175,8 @@ class TabLibrariesMixin:
             page.update_symbol_context(current)
             if renamed is not None:
                 page.rename_symbol_tokens(*renamed, changed_lines)
+            elif bulk_catalog_change:
+                page.rederive_all_symbol_lines()
             else:
                 page.rederive_symbol_lines(changed_lines)
             _restore_editor_cursor(page, cursor_state)
@@ -198,6 +206,13 @@ class TabLibrariesMixin:
         )
         changed_lines: tuple[int, ...] = ()
         renamed = _single_symbol_rename(previous_globals, self._global_symbols)
+        changed_names = _changed_symbol_names(
+            previous_globals,
+            self._global_symbols,
+        )
+        bulk_catalog_change = (
+            renamed is None and len(changed_names) > MAX_SYMBOL_BATCH_SIZE
+        )
         incremental_active = False
         if 0 <= current_index < len(tabs):
             active_page = self.widget(current_index)
@@ -205,11 +220,11 @@ class TabLibrariesMixin:
                 isinstance(active_page, BinaryWorkbenchEditorPage)
                 and active_page.grid._consistency_coordinator.supports_derived_updates()
             )
-            if not definition_only and incremental_active:
+            if not definition_only and incremental_active and not bulk_catalog_change:
                 self._ensure_symbol_runtime(tabs[current_index], active_page)
                 changed_lines = self._symbol_runtime.lines_for_symbols(
                     tabs[current_index].tab_id,
-                    _changed_symbol_names(previous_globals, self._global_symbols),
+                    changed_names,
                 )
         self._symbol_runtime.set_global_definitions(self._global_symbols)
         if 0 <= current_index < len(tabs):
@@ -272,6 +287,8 @@ class TabLibrariesMixin:
                     page.update_symbol_context(tabs[current_index])
                     if renamed is not None:
                         page.rename_symbol_tokens(*renamed, changed_lines)
+                    elif bulk_catalog_change:
+                        page.rederive_all_symbol_lines()
                     else:
                         page.rederive_symbol_lines(changed_lines)
                 else:

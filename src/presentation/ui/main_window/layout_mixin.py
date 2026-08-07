@@ -60,7 +60,13 @@ class MainWindowLayoutMixin:
 
     def _bind_events(self: MainWindow) -> None:
         self.body.converter_panel.inputEdited.connect(self._on_converter_input)
+        self.body.converter_panel.inputCommitted.connect(
+            lambda _kind: self._mark_numeric_dirty("converter")
+        )
         self.body.command_panel.editor.textChanged.connect(self._on_command_text_changed)
+        self.body.command_panel.editor.document().modificationChanged.connect(
+            self._on_command_document_modified
+        )
         self.body.command_panel.editor.submitted.connect(self._on_command_submitted)
         self.key_panel.keyPressed.connect(self._on_key_panel_pressed)
 
@@ -167,11 +173,13 @@ class MainWindowLayoutMixin:
         if not visible and self._size_before_key_panel_show is not None:
             self.resize(self._size_before_key_panel_show)
             self._size_before_key_panel_show = None
-        self._autosave_state()
+        self._persist_numeric_flags()
+        self._mark_numeric_dirty("numeric-preferences")
 
     def _on_auto_convert_toggled(self: MainWindow, enabled: bool) -> None:
         self._auto_convert_enabled = enabled
-        self._autosave_state()
+        self._persist_numeric_flags()
+        self._mark_numeric_dirty("numeric-preferences")
 
     def _update_minimum_height(self: MainWindow, key_panel_visible: bool) -> None:
         min_width = MAIN_WINDOW_SIZE.MIN_WIDTH

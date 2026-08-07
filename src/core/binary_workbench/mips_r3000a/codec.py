@@ -18,6 +18,7 @@ from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     build_source_line_rows as build_mips_source_line_rows,
     instruction_code as mips_instruction_code,
 )
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 from src.core.binary_workbench.mips_r3000a.operands import word_bytes
 from src.core.binary_workbench.editor.commands.stack_pointer import stack_pointer_command
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME
@@ -165,6 +166,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
         reject_invalid: bool = False,
+        symbol_resolver: object | None = None,
     ) -> list[BinaryWorkbenchRowDTO] | None:
         return build_mips_source_line_rows(
             lines,
@@ -176,6 +178,11 @@ class PsxMipsR3000ACodec(CPUArchCodec):
             variables,
             equates,
             reject_invalid,
+            resolver=(
+                symbol_resolver
+                if isinstance(symbol_resolver, MipsSymbolResolver)
+                else None
+            ),
         )
 
 

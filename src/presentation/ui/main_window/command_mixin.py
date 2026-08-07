@@ -29,7 +29,6 @@ class MainWindowCommandMixin:
 
         self._render_converter(output)
         self.footer.set_status(MAIN_WINDOW_TEXT.CONVERTER_UPDATED, COLOR.SUCCESS)
-        self._autosave_state()
 
     def _on_command_text_changed(self: MainWindow) -> None:
         if self._syncing_command:
@@ -46,8 +45,6 @@ class MainWindowCommandMixin:
 
         if not self._command_presenter.active_line.strip():
             self.body.command_panel.set_feedback(COMMAND_PANEL_TEXT.IDLE_FEEDBACK, COLOR.INFO)
-            self._refresh_command_completions()
-            self._autosave_state()
             return
 
         message = result.message
@@ -59,8 +56,6 @@ class MainWindowCommandMixin:
             )
 
         self.body.command_panel.set_feedback(message, result.color)
-        self._refresh_command_completions()
-        self._autosave_state()
 
     def _on_command_submitted(self: MainWindow) -> None:
         result = self._command_presenter.on_enter()
@@ -79,7 +74,7 @@ class MainWindowCommandMixin:
             self._convert_command_result()
 
         self._refresh_command_completions()
-        self._autosave_state()
+        self._mark_numeric_dirty("command-submitted")
 
     def _on_key_panel_pressed(self: MainWindow, key: str) -> None:
         if key == "ENTER":
@@ -95,7 +90,7 @@ class MainWindowCommandMixin:
             self._refresh_workspace_windows()
             self.body.command_panel.set_feedback(MAIN_WINDOW_TEXT.DELETED_LAST_ITEM, COLOR.INCOMPLETE)
             self._refresh_command_completions()
-            self._autosave_state()
+            self._mark_numeric_dirty("history")
             return
 
         insertion = self._map_key_panel_input(key)
@@ -142,7 +137,8 @@ class MainWindowCommandMixin:
         self._syncing_converter = False
 
     def _refresh_command_completions(self: MainWindow) -> None:
-        self.body.command_panel.set_completions(self._command_presenter.variable_names)
+        revision, values = self._command_presenter.variable_catalog
+        self.body.command_panel.set_completion_catalog(revision, values)
         self.body.command_panel.editor.set_history_entries(self._command_presenter.history_inputs)
 
     def _map_key_panel_input(self: MainWindow, key: str) -> str:

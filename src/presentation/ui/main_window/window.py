@@ -26,8 +26,13 @@ from src.presentation.ui.main_window.constants import MAIN_WINDOW_SIZE, MAIN_WIN
 from src.presentation.ui.main_window.command_mixin import MainWindowCommandMixin
 from src.presentation.ui.main_window.dialogs_mixin import MainWindowDialogsMixin
 from src.presentation.ui.main_window.layout_mixin import MainWindowLayoutMixin
+from src.presentation.ui.main_window.numeric_persistence import (
+    MainWindowNumericPersistenceMixin,
+)
 from src.presentation.ui.main_window.state_mixin import MainWindowStateMixin
 from src.presentation.ui.main_window.workspace_mixin import MainWindowWorkspaceMixin
+from src.presentation.ui.main_window.autosave import NumericAutosaveScheduler
+from src.presentation.ui.main_window.constants import MAIN_WINDOW_TIMING
 
 
 class MainWindow(
@@ -36,6 +41,7 @@ class MainWindow(
     MainWindowCommandMixin,
     MainWindowDialogsMixin,
     MainWindowLayoutMixin,
+    MainWindowNumericPersistenceMixin,
     QMainWindow,
 ):
 
@@ -54,6 +60,7 @@ class MainWindow(
         self._preferences_service = preferences_service
         self._binary_preferences_service = binary_preferences_service
         self._binary_workbench_state = BinaryWorkbenchStateDTO()
+        self._binary_state_loaded = False
         self._program_context = ProgramContextDTO()
         self._binary_workbench_preferences = BinaryWorkbenchPreferencesDTO()
         self._help_window: HelpWindow | None = None
@@ -67,6 +74,7 @@ class MainWindow(
         self._syncing_converter = False
         self._syncing_command = False
         self._loaded = False
+        self._numeric_semantic_revision = 0
 
         self.setMinimumSize(MAIN_WINDOW_SIZE.MIN_WIDTH, MAIN_WINDOW_SIZE.MIN_HEIGHT)
         self.setWindowTitle(MAIN_WINDOW_TEXT.TITLE)
@@ -74,6 +82,15 @@ class MainWindow(
 
         self._build_ui()
         self.setStyleSheet(STYLESHEET)
+
+        self._numeric_autosave = NumericAutosaveScheduler(
+            self._numeric_autosave_snapshot,
+            self._numeric_revision_token,
+            self._state_service.save_default_context,
+            MAIN_WINDOW_TIMING.NUMERIC_AUTOSAVE_INTERVAL_MS,
+            self,
+        )
+        self._numeric_autosave.saved.connect(self._handle_numeric_autosave_saved)
 
         self._bind_events()
         self._load_default_state()
@@ -85,6 +102,17 @@ class MainWindow(
         ensure_window_on_available_screen(self)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        self._persist_numeric_flags()
+        self._mark_numeric_dirty("window-size")
+        result = self._numeric_autosave.flush_on_close()
+        if not result.success:
+            self.footer.set_status(
+                MAIN_WINDOW_TEXT.NUMERIC_CLOSE_SAVE_FAILED_TEMPLATE.format(
+                    error=result.error or "unknown error",
+                )
+            )
+            event.ignore()
+            return
         for window in (
             self._help_window,
             self._binary_workbench_window,
@@ -94,5 +122,5 @@ class MainWindow(
         ):
             if window is not None:
                 window.close()
-        self._autosave_state()
+        self._numeric_autosave.shutdown()
         super().closeEvent(event)

@@ -140,6 +140,7 @@ class BinaryWorkbenchGrid(
         self._labels: dict[str, str] = {}
         self._label_folding_enabled = False
         self._label_fold_regions = []
+        self._label_fold_regions_by_row = {}
         self._collapsed_labels: set[str] = set()
         self._directive_fold_region = None
         self._directives_collapsed = False
@@ -196,6 +197,11 @@ class BinaryWorkbenchGrid(
 
         self._consistency_coordinator.forget_owner(version_id)
 
+    def shutdown_consistency(self) -> None:
+        """Stop this grid's private timers and cooperative worker pool."""
+
+        self._consistency_coordinator.shutdown()
+
     def ensure_consistent(self, reason: str):
         """Run a synchronous source-to-derived barrier for a critical action."""
 
@@ -231,6 +237,13 @@ class BinaryWorkbenchGrid(
             self.rowsChanged.emit(list(rows))
         finally:
             self._edit_origin_kind = previous_origin
+
+    def discard_pending_rows_changed(self) -> None:
+        """Discard a deferred edit superseded by an authoritative context load."""
+
+        self._pending_rows_changed = None
+        self._pending_rows_changed_origin = None
+        self._rows_changed_emit_timer.stop()
 
     def set_editor_popups_suppressed(self, enabled: bool) -> None:
         for editor in self._popup_editors():

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
+from threading import Event
+
+from PySide6.QtCore import QObject, QRunnable, QThread, QThreadPool, Signal
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.editor_consistency.distribution import iter_offset_batches
@@ -39,6 +41,12 @@ class OffsetDistributionWorker(QRunnable):
         self.request = request
         self.token = token
         self.signals = ConsistencyWorkerSignals()
+        self._batch_applied = Event()
+
+    def acknowledge_batch(self) -> None:
+        """Release the worker after the UI accepts or rejects one batch."""
+
+        self._batch_applied.set()
 
     def run(self) -> None:
         """Emit each valid batch and one completion envelope."""
@@ -47,8 +55,16 @@ class OffsetDistributionWorker(QRunnable):
             for batch in iter_offset_batches(token=self.token, **self.request):
                 if self.token.is_cancelled():
                     return
+                self._batch_applied.clear()
                 if not _safe_emit(self.signals.offsetBatchReady, batch):
                     return
+                # Direct test execution runs on the signal object's thread.
+                # The real pool path waits cooperatively, bounding the UI queue
+                # to one ready batch without ever terminating a thread.
+                if QThread.currentThread() is not self.signals.thread():
+                    while not self._batch_applied.wait(0.02):
+                        if self.token.is_cancelled():
+                            return
             if not self.token.is_cancelled():
                 _safe_emit(
                     self.signals.completed,

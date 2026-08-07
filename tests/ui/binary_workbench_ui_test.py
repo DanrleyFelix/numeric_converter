@@ -32,6 +32,7 @@ from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TAB_KIND,
     BINARY_WORKBENCH_TEXT,
+    BINARY_WORKBENCH_TIMING,
 )
 from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchLabelsDialog,
@@ -4303,6 +4304,11 @@ def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Underscore, Qt.NoModifier, "_"))
 
     assert editor._current_completion_prefix() == "_"
+    assert editor._completion_model.stringList() == []
+    assert editor._symbol_completion_timer.isActive() is True
+    assert editor._symbol_completion_timer.interval() == 800
+    editor._symbol_completion_timer.stop()
+    editor._refresh_completions()
     assert editor._completion_model.stringList() == ["_variable1"]
     assert editor._candidates_for_prefix("_") == ["_variable1"]
     assert editor._candidates_for_prefix("_VAR") == ["_variable1"]
@@ -4718,9 +4724,53 @@ def test_binary_workbench_symbol_completion_popup_selects_first_match():
     QApplication.sendEvent(editor, QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Underscore, Qt.NoModifier, "_"))
     app.processEvents()
 
+    assert editor._completer.popup().isVisible() is False
+    assert editor._symbol_completion_timer.isActive() is True
+    assert editor._symbol_completion_timer.interval() == (
+        BINARY_WORKBENCH_TIMING.EDITOR_SYMBOL_COMPLETION_INSERT_DEBOUNCE_MS
+    )
+    editor._symbol_completion_timer.stop()
+    editor._refresh_completions()
     popup = editor._completer.popup()
     assert popup.currentIndex().data() == "_variable1"
     assert popup.width() >= BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MIN_WIDTH
+
+
+def test_binary_workbench_symbol_completion_debounces_delete_and_bounds_large_catalog():
+    _app()
+    editor = WorkbenchEditor()
+    variables = {f"global_symbol_{index:05d}": hex(index) for index in range(10_000)}
+    variable_map = {
+        f"_{name}".casefold(): value
+        for name, value in variables.items()
+    }
+    editor.set_symbol_helpers({}, variables, {}, ({}, variable_map, {}))
+    editor.setPlainText("_global_symbol_09999")
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(cursor)
+
+    QApplication.sendEvent(
+        editor,
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key_Backspace, Qt.NoModifier),
+    )
+
+    assert editor._symbol_completion_timer.isActive() is True
+    assert editor._symbol_completion_timer.interval() == (
+        BINARY_WORKBENCH_TIMING.EDITOR_SYMBOL_COMPLETION_DELETE_DEBOUNCE_MS
+    )
+    assert editor._completion_items["variable"] == []
+    editor._symbol_completion_timer.stop()
+    editor.setPlainText("_global_symbol_")
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(cursor)
+    editor._refresh_completions()
+
+    assert editor._completion_items["variable"] == []
+    assert editor._completion_model.rowCount() == (
+        BINARY_WORKBENCH_LAYOUT.EDITOR_COMPLETION_MAX_CANDIDATES
+    )
 
 
 def test_binary_workbench_arrow_navigation_hides_and_debounces_completion_popup():
@@ -4839,6 +4889,25 @@ def test_binary_workbench_highlighter_register_aliases_share_colors():
     assert psx_mips_highlight_color("registers", "$zero") == psx_mips_highlight_color("registers", "$0")
     assert psx_mips_highlight_color("registers", "0") is None
     assert psx_mips_highlight_color("registers", "$fp") == psx_mips_highlight_color("registers", "$s8")
+
+
+def test_instruction_edit_below_directives_does_not_schedule_global_rehighlight():
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText(
+        "* virtual_memory_range 0x80000000 0x801FFFFF\n"
+        "* define $sp 0x801FFFF0\n"
+        "nop\n"
+        "nop"
+    )
+    highlighter = InstructionHighlighter(editor.document())
+    highlighter.rehighlight()
+    highlighter._directive_refresh_timer.stop()
+    cursor = QTextCursor(editor.document().lastBlock())
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    cursor.insertBlock()
+
+    assert highlighter._directive_refresh_timer.isActive() is False
 
 def test_binary_workbench_highlighter_groups_use_distinct_colors():
     shared_symbol_color = PSX_MIPS_HIGHLIGHTER["equate"]
@@ -5923,13 +5992,7 @@ def test_binary_workbench_label_fold_hides_complete_rows_without_deleting_them(t
 
     page.grid.instructions.request_label_fold_toggle(0)  # type: ignore[attr-defined]
 
-    editors = [
-        *page.grid._offset_editors.values(),  # type: ignore[attr-defined]
-        page.grid.raw_instructions,  # type: ignore[attr-defined]
-        page.grid.bytes,  # type: ignore[attr-defined]
-        page.grid.decoded_text,  # type: ignore[attr-defined]
-        page.grid.instructions,  # type: ignore[attr-defined]
-    ]
+    editors = list(page.grid._fold_editors())  # type: ignore[attr-defined]
     assert page.grid.instructions._label_fold_gutter.isVisible() is True  # type: ignore[attr-defined]
     assert page.grid.instructions._label_fold_regions[0] == ("start", True)  # type: ignore[attr-defined]
     assert page.grid._offset_editors["File"].document().findBlockByNumber(0).text() == "0x00000000"  # type: ignore[attr-defined]

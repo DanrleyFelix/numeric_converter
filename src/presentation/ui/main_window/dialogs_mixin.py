@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 class MainWindowDialogsMixin:
     def _open_binary_workbench(self: MainWindow) -> None:
+        self._ensure_binary_state_loaded()
         if self._binary_workbench_window is None:
             opening_state = self._binary_workbench_state
             omitted_tabs = ()
@@ -124,7 +125,7 @@ class MainWindowDialogsMixin:
                 self.footer.set_status(
                     MAIN_WINDOW_TEXT.WORKSPACE_SAVED_TEMPLATE.format(name=Path(path).name)
                 )
-                self._autosave_state()
+                self._persist_binary_state()
                 return
         saved_path = self._state_service.save_workspace(self._collect_context(), Path(path))
         self.footer.set_status(
@@ -147,7 +148,7 @@ class MainWindowDialogsMixin:
                 self.footer.set_status(
                     MAIN_WINDOW_TEXT.WORKSPACE_LOADED_TEMPLATE.format(name=Path(path).name)
                 )
-                self._autosave_state()
+                self._persist_binary_state()
                 return
         workspace = self._state_service.load_workspace(Path(path))
         self._apply_context(workspace.context)
@@ -155,7 +156,7 @@ class MainWindowDialogsMixin:
         self.footer.set_status(
             MAIN_WINDOW_TEXT.WORKSPACE_LOADED_TEMPLATE.format(name=Path(path).name)
         )
-        self._autosave_state()
+        self._mark_numeric_dirty("workspace-loaded")
 
     def _open_preferences(self: MainWindow) -> None:
         preferences = self._preferences_service.get_preferences()
@@ -179,7 +180,6 @@ class MainWindowDialogsMixin:
             self._render_converter(output)
 
         self.footer.set_status(MAIN_WINDOW_TEXT.PREFERENCES_UPDATED)
-        self._autosave_state()
 
     def _open_log_preferences(self: MainWindow) -> None:
         dialog = LogPreferencesDialog(
@@ -193,7 +193,6 @@ class MainWindowDialogsMixin:
         self._preferences_service.update_log_preferences(preferences)
         self._command_presenter.set_log_preferences(preferences)
         self.footer.set_status(MAIN_WINDOW_TEXT.PREFERENCES_UPDATED)
-        self._autosave_state()
 
     def _open_help(self: MainWindow) -> None:
         if self._help_window is None:

@@ -197,6 +197,7 @@ class GridIncrementalEditingMixin:
             self._variables,
             self._equates,
             False,
+            resolver=self._symbol_resolver,
         )
         if rows is None or len(rows) != 1:
             return None
@@ -222,6 +223,7 @@ class GridIncrementalEditingMixin:
             self._variables,
             self._equates,
             True,
+            resolver=self._symbol_resolver,
         )
         if not encoded:
             return row
@@ -285,11 +287,16 @@ class GridIncrementalEditingMixin:
             validate_mips_hazards([row.instruction for row in self._rows])
         )
 
-    def _cancel_incremental_instruction_update(self) -> None:
+    def _cancel_incremental_instruction_update(
+        self,
+        cancel_consistency: bool = True,
+    ) -> None:
+        """Cancel legacy propagation, optionally invalidating derived jobs."""
+
         self._pending_instruction_lines = None
         self._incremental_propagation_timer.stop()
         coordinator = getattr(self, "_consistency_coordinator", None)
-        if coordinator is not None:
+        if cancel_consistency and coordinator is not None:
             coordinator.cancel_pending()
 
 

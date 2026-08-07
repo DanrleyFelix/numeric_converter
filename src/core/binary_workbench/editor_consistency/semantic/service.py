@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from time import sleep
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.editor_consistency.models import SemanticResult, SemanticSnapshot
@@ -31,27 +32,37 @@ def calculate_semantic_result(
 ) -> SemanticResult | None:
     """Calculate one complete semantic revision without accessing Qt objects."""
 
-    for index in range(0, len(snapshot.lines), 128):
-        if token.is_cancelled():
-            return None
+    checks = 0
+
+    def cancelled() -> bool:
+        """Release the GIL periodically during extraordinary bulk rebuilds."""
+
+        nonlocal checks
+        checks += 1
+        if checks % 128 == 0:
+            sleep(0)
+        return token.is_cancelled()
+
+    if cancelled():
+        return None
     codec = snapshot.codec
     rows = build_source_line_rows(
         list(snapshot.lines),
         list(snapshot.offset_names),
-        dict(snapshot.offset_bases),
+        snapshot.offset_bases,
         codec,
         0,
         None,
-        dict(snapshot.variables),
-        dict(snapshot.equates),
+        snapshot.variables,
+        snapshot.equates,
         False,
-        token.is_cancelled,
+        cancelled,
     )
     if token.is_cancelled() or rows is None:
         return None
     labels = labels_from_source_rows(rows, 0, codec.word_size)
     for _ in range(2):
-        rows = _finalize_jump_rows(snapshot, rows, labels, token)
+        rows = _finalize_jump_rows(snapshot, rows, labels, token, cancelled)
         if rows is None:
             return None
         updated_labels = labels_from_source_rows(rows, 0, codec.word_size)
@@ -61,14 +72,14 @@ def calculate_semantic_result(
         rows = build_source_line_rows(
             list(snapshot.lines),
             list(snapshot.offset_names),
-            dict(snapshot.offset_bases),
+            snapshot.offset_bases,
             codec,
             0,
             labels,
-            dict(snapshot.variables),
-            dict(snapshot.equates),
+            snapshot.variables,
+            snapshot.equates,
             False,
-            token.is_cancelled,
+            cancelled,
         )
         if rows is None:
             return None
@@ -90,6 +101,7 @@ def _finalize_jump_rows(
     rows: list[BinaryWorkbenchRowDTO],
     labels: dict[str, str],
     token: CancellationToken,
+    cancelled=None,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     """Resolve configured reference jumps and reject invalid standard targets."""
 
@@ -102,7 +114,7 @@ def _finalize_jump_rows(
     reference_base = _safe_int(snapshot.offset_bases.get(reference_name, "0"))
     output: list[BinaryWorkbenchRowDTO] = []
     for index, row in enumerate(rows):
-        if token.is_cancelled():
+        if (cancelled or token.is_cancelled)():
             return None
         line = snapshot.lines[index] if index < len(snapshot.lines) else row.instruction
         encoded = row

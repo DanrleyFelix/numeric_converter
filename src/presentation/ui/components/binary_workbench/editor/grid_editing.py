@@ -73,9 +73,14 @@ class GridEditingMixin:
             block_hint = self._bytes_edit_block_hint
             self._bytes_edit_block_hint = None
             self._active_bytes_alignment_hint = self._bytes_edit_alignment_hint
-            self._cancel_incremental_instruction_update()
+            # An incomplete character edit has not changed the authoritative
+            # Assembly model yet. Keep valid deferred viewport/Symbol work;
+            # the eventual Bytes commit invalidates it through the coordinator.
+            self._cancel_incremental_instruction_update(cancel_consistency=False)
             if not self._bytes_user_edit_in_progress():
                 self._normalize_bytes_editor_text()
+            if self._stage_or_commit_single_byte_block(block_hint):
+                return
             lines = self._normalized_bytes_lines()
             if self._try_bytes_structure_update(lines):
                 return
@@ -110,6 +115,55 @@ class GridEditingMixin:
             self._active_bytes_alignment_hint = None
             self._bytes_edit_alignment_hint = None
             self._syncing_editor_change = False
+
+    def _stage_or_commit_single_byte_block(self, index: int | None) -> bool:
+        """Keep ordinary Bytes typing proportional to the edited block.
+
+        Reading ``QPlainTextEdit.toPlainText()`` here made every Backspace scan
+        the complete file. Structural and multi-line edits still fall through
+        to the aggregated document path below.
+        """
+
+        if (
+            index is None
+            or not 0 <= index < len(self._rows)
+            or self.bytes.document().blockCount() != len(self._rows)
+        ):
+            return False
+        block = self.bytes.document().findBlockByNumber(index)
+        if not block.isValid():
+            return False
+        line = self._normalized_bytes_line(block.text())
+        policy = byte_row_policy(
+            self._rows[index].instruction,
+            bool(self._rows[index].bytes_text),
+        )
+        if policy.access is ByteRowAccess.ASSEMBLY_ONLY:
+            self._emit_byte_edit_warning(ByteEditViolation.ASSEMBLY_ONLY)
+            self._restore_editor_after_rejected_change(True)
+            return True
+        raw = "".join(line.split())
+        if len(raw) < ROW_BYTES * 2 and all(character in HEX_DIGITS for character in raw):
+            self._bytes_staged_incomplete = True
+            self._bytes_staged_block = index
+            self._set_last_editor(BINARY_WORKBENCH_TEXT.BYTES)
+            return True
+        if len(raw) != ROW_BYTES * 2:
+            return False
+        current = self._complete_byte_row(
+            index,
+            line,
+            self._source_offset_before_row(index),
+        )
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if current is None or coordinator is None or not coordinator.enabled():
+            return False
+        coordinator.accept_bytes_line(index, current)
+        self._bytes_staged_incomplete = False
+        self._bytes_staged_block = None
+        self._remember_editor_text_signature(self.bytes)
+        self._dirty_editor_kind = None
+        return True
 
     def _stage_or_commit_single_byte_event(
         self,
@@ -156,7 +210,6 @@ class GridEditingMixin:
             return
         if not self._has_meaningful_editor_change(self.instructions):
             return
-        self.assemblyTextChanged.emit()
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None and coordinator.enabled():
             coordinator.note_text_changed()
@@ -166,14 +219,17 @@ class GridEditingMixin:
             lines = self._normalized_instruction_lines()
             if not self._instructions_user_edit_in_progress():
                 self._sync_user_rows(lines, BINARY_WORKBENCH_TEXT.INSTRUCTION)
-                return
-            self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
-            self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
-            self._edit_origin_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
-            self._handle_instruction_change(lines)
+            else:
+                self._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
+                self._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
+                self._edit_origin_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
+                self._handle_instruction_change(lines)
         finally:
             self._edit_origin_kind = None
             self._syncing_editor_change = False
+        # Legacy/rule-locked editing has no coordinator flush.  Publish one
+        # persistence event only after its synchronous transaction commits.
+        self.assemblyTextChanged.emit()
 
     def edit_origin_kind(self) -> str | None:
         return self._edit_origin_kind

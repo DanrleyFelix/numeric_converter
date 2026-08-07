@@ -173,6 +173,9 @@ class WorkbenchEditor(
             BINARY_WORKBENCH_TIMING.EDITOR_COMPLETION_NAVIGATION_DEBOUNCE_MS
         )
         self._completion_navigation_timer.timeout.connect(self._refresh_completions)
+        self._symbol_completion_timer = QTimer(self)
+        self._symbol_completion_timer.setSingleShot(True)
+        self._symbol_completion_timer.timeout.connect(self._refresh_completions)
         self._setup_label_folding()
         self.setup_editor_shortcuts()
         self.cursorPositionChanged.connect(self._normalize_instruction_line_after_offset_change)
@@ -309,9 +312,11 @@ class WorkbenchEditor(
         self.editFinished.emit(self)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        document_edit = _may_edit_document(event)
+        deleting = event.key() in {Qt.Key_Backspace, Qt.Key_Delete}
         if event.key() in _COMPLETION_NAVIGATION_KEYS:
             self._debounce_completions_after_navigation()
-        if _may_edit_document(event):
+        if document_edit:
             self._edit_preflight_handled = False
             self.clear_bytes_row_removal_authorization()
             self.editAboutToStart.emit(self, event)
@@ -370,7 +375,8 @@ class WorkbenchEditor(
             return
         event = filtered_event
         if self.handle_granular_text_edit(event):
-            self._refresh_completions()
+            if document_edit:
+                self._schedule_completions_after_edit(deleting=deleting)
             self._normalize_instruction_after_comment_start(event.text())
             event.accept()
             return
@@ -380,7 +386,8 @@ class WorkbenchEditor(
             return
         if self._shared_scrollbar is None:
             super().keyPressEvent(event)
-            self._refresh_completions()
+            if document_edit:
+                self._schedule_completions_after_edit(deleting=deleting)
             self._normalize_instruction_after_comment_start(event.text())
             return
         key = event.key()
@@ -406,7 +413,8 @@ class WorkbenchEditor(
                 event.accept()
                 return
         super().keyPressEvent(event)
-        self._refresh_completions()
+        if document_edit:
+            self._schedule_completions_after_edit(deleting=deleting)
         self._normalize_instruction_after_comment_start(event.text())
 
     def _run_history_action(self, action, *, undo: bool) -> None:

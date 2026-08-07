@@ -274,8 +274,19 @@ class InstructionHighlighter(QSyntaxHighlighter):
             block_number in self._debugger_directive_blocks
             or (block.isValid() and is_debugger_directive_line(block.text()))
         )
-        if touches_directive or (structure_changed and self._has_debugger_directives):
+        directive_boundary = max(self._debugger_directive_blocks, default=-1)
+        structure_can_move_directives = (
+            structure_changed
+            and self._has_debugger_directives
+            and block_number <= directive_boundary + 1
+        )
+        if touches_directive or structure_can_move_directives:
             self._directive_refresh_timer.start()
+            return
+        # Structural edits below the top directive header cannot change its
+        # positions or diagnostics. Recording the new count prevents a later
+        # ordinary edit from paying for a full-document rehighlight.
+        self._directive_document_block_count = self.document().blockCount()
 
     def set_jump_reference_offsets(
         self,

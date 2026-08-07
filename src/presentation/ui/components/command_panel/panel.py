@@ -77,6 +77,9 @@ class CommandPanel(QFrame):
     def set_completions(self, values: list[str]) -> None:
         self.editor.set_completions(values)
 
+    def set_completion_catalog(self, revision: int, values: tuple[str, ...]) -> None:
+        self.editor.set_completion_catalog(revision, values)
+
     def set_feedback(self, message: str, color: str) -> None:
         self.feedback.setText(message)
         self.feedback.setStyleSheet(f"color: {color};")

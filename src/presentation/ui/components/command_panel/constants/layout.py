@@ -15,3 +15,12 @@ class COMMAND_PANEL_SIZE:
     MIN_WIDTH: int = 280
     MIN_HEIGHT: int = 220
     EDITOR_MIN_HEIGHT: int = 132
+
+
+class COMMAND_COMPLETION:
+    """Paging and geometry constants for large Numeric completion catalogs."""
+
+    LAZY_THRESHOLD: int = 512
+    PAGE_SIZE: int = 128
+    POPUP_VERTICAL_GAP: int = 4
+    POPUP_SCROLLBAR_ALLOWANCE: int = 24

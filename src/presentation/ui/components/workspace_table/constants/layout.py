@@ -9,6 +9,10 @@ class WORKSPACE_TABLE_SIZE:
     REMOVE_ICON_SIZE: int = 16
     REMOVE_GUTTER_WIDTH: int = 20
     ROW_HEIGHT: int = 52
+    CONTROL_HEIGHT: int = 52
+    ACTION_WIDTH: int = 160
+    FIELD_MIN_WIDTH: int = 180
+    ICON_SIZE: int = 16
 
 
 class WORKSPACE_TABLE_MARGIN:
@@ -40,3 +44,5 @@ class WORKSPACE_TABLE_SPACING:
     BODY: int = 10
     ROW: int = 18
     CARD: int = 0
+    CONTROLS: int = 15
+    SECTIONS: int = 15

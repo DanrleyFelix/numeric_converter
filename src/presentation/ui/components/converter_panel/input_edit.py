@@ -1,5 +1,11 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence, QTextCursor
+from PySide6.QtGui import (
+    QContextMenuEvent,
+    QFocusEvent,
+    QKeyEvent,
+    QKeySequence,
+    QTextCursor,
+)
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
@@ -17,6 +23,7 @@ from src.presentation.ui.components.converter_panel.helpers import (
 
 class ConverterInputEdit(QPlainTextEdit):
     valueEdited = Signal(str, str)
+    editingCommitted = Signal(str)
 
     def __init__(self, input_type: str):
         super().__init__()
@@ -85,6 +92,12 @@ class ConverterInputEdit(QPlainTextEdit):
         menu = self._context_menu()
         menu.exec(event.globalPos())
         menu.deleteLater()
+
+    def focusOutEvent(self, event: QFocusEvent) -> None:
+        """Commit converter persistence once when editing loses focus."""
+
+        super().focusOutEvent(event)
+        self.editingCommitted.emit(self.input_type)
 
     def _context_menu(self):
         menu = self.createStandardContextMenu()

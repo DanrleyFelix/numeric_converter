@@ -12,6 +12,7 @@ from src.presentation.ui.design.icons import Icons
 
 class ConverterPanel(QFrame):
     inputEdited = Signal(str, str)
+    inputCommitted = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -32,6 +33,7 @@ class ConverterPanel(QFrame):
             editor.setObjectName(f"converter-{kind}")
             editor.setPlaceholderText(label_text)
             editor.valueEdited.connect(self.inputEdited.emit)
+            editor.editingCommitted.connect(self.inputCommitted.emit)
             self.inputs[kind] = editor
             copy_raw = QToolButton()
             copy_raw.setObjectName("copy-raw")

@@ -104,6 +104,9 @@ class GridSelectionRangesMixin:
             return None
 
     def _nearest_row_offset(self, index: int) -> int:
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None and coordinator.enabled():
+            return coordinator.offset_before_line(index)
         for candidate in [*range(index, len(self._rows)), *range(index - 1, -1, -1)]:
             if (offset := self._row_offset(candidate)) is not None:
                 return offset

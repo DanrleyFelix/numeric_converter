@@ -1,8 +1,11 @@
-from PySide6.QtCore import QEvent, QItemSelectionModel, QRect, Qt, Signal, QStringListModel
+from PySide6.QtCore import QEvent, QItemSelectionModel, QRect, Qt, Signal
 from PySide6.QtGui import QContextMenuEvent, QKeyEvent, QPainter, QTextCursor
 from PySide6.QtWidgets import QCompleter, QFrame, QListView, QPlainTextEdit
 
 from src.presentation.ui.components.command_panel.prompt_area import PromptArea
+from src.core.command_window.completion import PrefixCatalog
+from src.presentation.ui.components.command_panel.completion import PagedCompletionModel
+from src.presentation.ui.components.command_panel.constants import COMMAND_COMPLETION
 from src.presentation.ui.components.binary_workbench.editor.context_menu_icons import (
     use_white_menu_icons,
 )
@@ -53,16 +56,16 @@ class CommandEdit(QPlainTextEdit):
         self._prompt_text = ">>"
         self._pad_l = 6
         self._pad_r = 2
-        self._history_entries: list[str] = []
-        self._variable_completions: list[str] = []
+        self._history_entries: tuple[str, ...] = ()
+        self._catalog_revision = -1
+        self._completion_catalog = PrefixCatalog(())
         self._history_mode_active = False
         self._promptArea = PromptArea(self)
-        self._completion_model = QStringListModel(self)
+        self._completion_model = PagedCompletionModel(self)
         self._completer = QCompleter(self._completion_model, self)
         self._completer.setWidget(self)
         self._completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self._completer.setCompletionMode(QCompleter.PopupCompletion)
-        self._completer.setFilterMode(Qt.MatchStartsWith)
+        self._completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._completer.activated.connect(self.insert_completion)
         popup = CommandCompleterPopup(self)
         popup.setObjectName("command-completer")
@@ -70,7 +73,7 @@ class CommandEdit(QPlainTextEdit):
         popup.setFocusPolicy(Qt.StrongFocus)
         popup.setFrameShape(QFrame.NoFrame)
         popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        popup.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         popup.setUniformItemSizes(True)
         popup.setMouseTracking(True)
         popup.setSpacing(0)
@@ -84,12 +87,19 @@ class CommandEdit(QPlainTextEdit):
         self.setTabChangesFocus(False)
 
     def set_completions(self, values: list[str]) -> None:
-        self._variable_completions = list(values)
-        if not self._history_mode_active:
-            self._completion_model.setStringList(values)
+        """Compatibility entry point for callers without a catalog revision."""
+        self.set_completion_catalog(self._catalog_revision + 1, tuple(values))
+
+    def set_completion_catalog(self, revision: int, values: tuple[str, ...]) -> None:
+        if revision == self._catalog_revision:
+            return
+        self._catalog_revision = revision
+        self._completion_catalog = PrefixCatalog(values)
 
     def set_history_entries(self, values: list[str]) -> None:
-        self._history_entries = list(values)
+        """Prepare history order when history changes, never while typing."""
+
+        self._history_entries = tuple(entry for entry in reversed(values) if entry)
 
     def promptAreaWidth(self) -> int:
         font_metrics = self.fontMetrics()
@@ -230,39 +240,44 @@ class CommandEdit(QPlainTextEdit):
         if not prefix or not (prefix[0].isalpha() or prefix[0] == "_"):
             self._completer.popup().hide()
             return
-        matches = _partial_prefix_matches(self._variable_completions, prefix)
+        matches = self._completion_catalog.query(prefix)
         if not matches:
             self._completer.popup().hide()
             return
-        self._completion_model.setStringList(matches)
-        if prefix != self._completer.completionPrefix():
-            self._completer.setCompletionPrefix(prefix)
-            self._completer.popup().setCurrentIndex(
-                self._completer.completionModel().index(0, 0)
-            )
+        self._completion_model.set_items(matches)
+        self._completer.setCompletionPrefix("")
+        self._completer.popup().setCurrentIndex(
+            self._completer.completionModel().index(0, 0)
+        )
         rect = self.cursorRect()
-        rect.translate(0, self.fontMetrics().height() + 4)
+        rect.translate(
+            0,
+            self.fontMetrics().height() + COMMAND_COMPLETION.POPUP_VERTICAL_GAP,
+        )
         rect.setWidth(
             self._completer.popup().sizeHintForColumn(0)
-            + 24
+            + COMMAND_COMPLETION.POPUP_SCROLLBAR_ALLOWANCE
         )
         self._completer.complete(rect)
         fit_completer_popup_height(self._completer)
 
     def _show_history_popup(self) -> None:
-        entries = [entry for entry in reversed(self._history_entries) if entry]
+        entries = self._history_entries
         if not entries:
             return
         self._history_mode_active = True
-        self._completion_model.setStringList(entries)
+        self._completion_model.set_items(tuple(entries))
         self._completer.setCompletionPrefix("")
         popup = self._completer.popup()
         popup.setCurrentIndex(self._completion_model.index(0, 0))
         rect = self.cursorRect()
-        rect.translate(0, self.fontMetrics().height() + 4)
+        rect.translate(
+            0,
+            self.fontMetrics().height() + COMMAND_COMPLETION.POPUP_VERTICAL_GAP,
+        )
         rect.setWidth(
             popup.sizeHintForColumn(0)
-            + 24
+            + COMMAND_COMPLETION.POPUP_SCROLLBAR_ALLOWANCE
         )
         self._completer.complete(rect)
         fit_completer_popup_height(self._completer)
@@ -276,6 +291,9 @@ class CommandEdit(QPlainTextEdit):
             return
         if current < 0:
             target = count - 1 if step < 0 else 0
+        elif step > 0 and current == count - 1 and self._completion_model.canFetchMore():
+            self._completion_model.fetchMore()
+            target = current + 1
         else:
             target = (current + step) % count
         index = model.index(target, 0)
@@ -291,15 +309,5 @@ class CommandEdit(QPlainTextEdit):
         if not self._history_mode_active:
             return
         self._history_mode_active = False
-        self._completion_model.setStringList(self._variable_completions)
+        self._completion_model.set_items(())
         self._completer.popup().hide()
-
-
-def _partial_prefix_matches(values: list[str], prefix: str) -> list[str]:
-    normalized = prefix.lower()
-    return [
-        item
-        for item in values
-        if item.lower().startswith(normalized)
-        and item.lower() != normalized
-    ]

@@ -44,7 +44,18 @@ class CenteredDashWorkbenchEditor(WorkbenchEditor):
     def splice_offset_blocks(self, first: int, removed: int, inserted: int) -> None:
         """Shift placeholder overlays after a structural document splice."""
 
-        self._rebuild_dash_labels()
+        removed_end = first + removed
+        delta = inserted - removed
+        self._dash_blocks = {
+            index if index < first else index + delta
+            for index in self._dash_blocks
+            if index < first or index >= removed_end
+        }
+        for index in range(first, first + inserted):
+            block = self.document().findBlockByNumber(index)
+            if block.isValid() and block.text().strip() == "-":
+                self._dash_blocks.add(index)
+        self.viewport().update()
 
     def refresh_dash_overlays(self) -> None:
         """Realign placeholder overlays after row visibility changes."""

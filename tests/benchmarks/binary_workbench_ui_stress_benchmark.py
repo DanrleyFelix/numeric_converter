@@ -13,13 +13,18 @@ import statistics
 import sys
 from time import perf_counter
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QTextCursor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPlainTextEdit, QWidget
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO
+from src.modules.binary_workbench_dtos import (
+    BinaryWorkbenchEditRulesDTO,
+    BinaryWorkbenchStateDTO,
+)
 from src.presentation.ui.components.binary_workbench.editor.page import (
     BinaryWorkbenchEditorPage,
 )
@@ -32,8 +37,6 @@ FIXTURE = ROOT / "examples" / "symbol_stress_v3"
 SOURCE = FIXTURE / "symbol_stress_11500_lines.asm"
 LOCAL = FIXTURE / "local_symbols_1500.json"
 GLOBAL = FIXTURE / "global_symbols_10000.json"
-
-
 def _milliseconds(action):
     started = perf_counter()
     value = action()
@@ -65,12 +68,81 @@ def _page(context) -> BinaryWorkbenchEditorPage:
     return page
 
 
-def _open_case(state, variables, equates) -> tuple[float, BinaryWorkbenchEditorPage]:
+def _open_case(
+    state,
+    variables,
+    equates,
+) -> tuple[float, float, float, BinaryWorkbenchEditorPage]:
+    """Separate source derivation from Qt projection during startup."""
+
     started = perf_counter()
     context = create_assembly_tab(state, SOURCE)
     context = replace(context, variables=variables, equates=equates)
+    context_ms = (perf_counter() - started) * 1000.0
+    page_started = perf_counter()
     page = _page(context)
-    return (perf_counter() - started) * 1000.0, page
+    page.grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))
+    page_ms = (perf_counter() - page_started) * 1000.0
+    return (perf_counter() - started) * 1000.0, context_ms, page_ms, page
+
+
+def _assembly_backspace_case(page: BinaryWorkbenchEditorPage) -> tuple[float, float]:
+    """Measure edits inside the already materialized viewport."""
+
+    editor = page.grid.instructions
+    block = editor.firstVisibleBlock()
+    remaining = 80
+    while block.isValid() and remaining and not block.text().strip():
+        block = block.next()
+        remaining -= 1
+    if not block.isValid() or not block.text().strip():
+        raise RuntimeError("The benchmark viewport has no editable Assembly row.")
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    editor.setTextCursor(cursor)
+    samples: list[float] = []
+    while block.text():
+        started = perf_counter()
+        QTest.keyClick(editor, Qt.Key_Backspace)
+        QApplication.processEvents()
+        samples.append((perf_counter() - started) * 1000.0)
+        block = editor.document().findBlockByNumber(block.blockNumber())
+    return samples[0], max(samples[1:], default=0.0)
+
+
+def _bytes_backspace_case(
+    page: BinaryWorkbenchEditorPage,
+) -> tuple[float | None, float | None]:
+    """Measure character deletion and the structural empty-row transition."""
+
+    QTest.qWait(90)
+    editor = page.grid.bytes
+    block = editor.firstVisibleBlock()
+    remaining = 80
+    while block.isValid() and remaining and not block.text().strip():
+        block = block.next()
+        remaining -= 1
+    if not block.isValid() or not block.text().strip():
+        # An unresolved-symbol control case intentionally has no assembled
+        # Bytes. Opening and scrolling are still valid measurements.
+        return None, None
+    block_number = block.blockNumber()
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    editor.setTextCursor(cursor)
+    character_samples: list[float] = []
+    while block.text():
+        started = perf_counter()
+        QTest.keyClick(editor, Qt.Key_Backspace)
+        QApplication.processEvents()
+        elapsed = (perf_counter() - started) * 1000.0
+        character_samples.append(elapsed)
+        block = editor.document().findBlockByNumber(block_number)
+    started = perf_counter()
+    QTest.keyClick(editor, Qt.Key_Backspace)
+    QApplication.processEvents()
+    row_delete = (perf_counter() - started) * 1000.0
+    return max(character_samples, default=0.0), row_delete
 
 
 def _scroll_case(page: BinaryWorkbenchEditorPage) -> tuple[float, float]:
@@ -110,7 +182,7 @@ def main() -> None:
         ("global_symbols", global_, global_),
         ("local_and_global", effective, effective),
     )
-    selected = set(sys.argv[1:])
+    selected = {item for item in sys.argv[1:] if not item.startswith("--")}
     if selected:
         cases = tuple(case for case in cases if case[0] in selected)
     run_count = 1 if selected else 3
@@ -120,14 +192,30 @@ def main() -> None:
         for run in range(run_count):
             print(f"running {name} {run + 1}/{run_count}", file=sys.stderr, flush=True)
             before = _rss_mib()
-            open_ms, page = _open_case(state, variables, equates)
+            open_ms, source_derivation_ms, qt_projection_ms, page = _open_case(
+                state,
+                variables,
+                equates,
+            )
             cold_scroll_ms, cached_scroll_ms = _scroll_case(page)
+            assembly_first_delete_ms, assembly_quiet_delete_max_ms = (
+                _assembly_backspace_case(page)
+            )
+            bytes_character_delete_max_ms, bytes_row_delete_ms = (
+                _bytes_backspace_case(page)
+            )
             after = _rss_mib()
             values.append(
                 {
                     "open_ms": open_ms,
+                    "source_derivation_ms": source_derivation_ms,
+                    "qt_projection_ms": qt_projection_ms,
                     "cold_scroll_ms": cold_scroll_ms,
                     "cached_scroll_ms": cached_scroll_ms,
+                    "assembly_first_delete_ms": assembly_first_delete_ms,
+                    "assembly_quiet_delete_max_ms": assembly_quiet_delete_max_ms,
+                    "bytes_character_delete_max_ms": bytes_character_delete_max_ms,
+                    "bytes_row_delete_ms": bytes_row_delete_ms,
                     "rss_delta_mib": (
                         None if before is None or after is None else after - before
                     ),
@@ -146,8 +234,16 @@ def main() -> None:
     paste = [_paste_case(state, source_text) for _ in range(run_count)]
     summary = {
         name: {
-            metric: statistics.median(
-                value[metric] for value in values if value[metric] is not None
+            metric: (
+                statistics.median(samples)
+                if (
+                    samples := [
+                        value[metric]
+                        for value in values
+                        if value[metric] is not None
+                    ]
+                )
+                else None
             )
             for metric in values[0]
         }

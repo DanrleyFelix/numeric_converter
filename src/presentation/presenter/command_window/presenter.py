@@ -52,7 +52,12 @@ class CommandWindowPresenter:
 
     @property
     def variable_names(self) -> list[str]:
-        return sorted(cmd_window_context.get_variables().keys())
+        return list(cmd_window_context.variable_catalog_snapshot()[1])
+
+    @property
+    def variable_catalog(self) -> tuple[int, tuple[str, ...]]:
+        """Expose the cached Numeric catalog without rebuilding it per keystroke."""
+        return cmd_window_context.variable_catalog_snapshot()
 
     @property
     def history_inputs(self) -> list[str]:
@@ -121,8 +126,36 @@ class CommandWindowPresenter:
         if 0 <= index < len(self._state.history):
             self._state.history.pop(index)
 
+    def remove_logs(self, indices: tuple[object, ...]) -> None:
+        """Remove a filtered/sorted multi-selection without shifting later keys."""
+        valid = sorted(
+            {int(index) for index in indices if str(index).lstrip("-").isdigit()},
+            reverse=True,
+        )
+        for index in valid:
+            self.remove_log(index)
+
     def remove_variable(self, name: str) -> None:
         cmd_window_context.remove_variable(name)
+
+    def remove_variables(self, names: tuple[object, ...]) -> None:
+        for name in names:
+            if isinstance(name, str):
+                self.remove_variable(name)
+
+    def add_variable(self, name: str, value: str) -> tuple[bool, str | None]:
+        """Evaluate a dialog assignment with Numeric rules without creating a log."""
+        active_line = self._state.active_line
+        try:
+            self._controller.on_input_changed(f"{name}={value}")
+            result = self._controller.on_confirm()
+            if result is None:
+                return False, "Invalid variable name or value."
+            return True, None
+        except Exception as error:
+            return False, str(error)
+        finally:
+            self._controller.on_input_changed(active_line)
 
     def copy_formatted(self) -> str | None:
         return self._state.last_result_formatted

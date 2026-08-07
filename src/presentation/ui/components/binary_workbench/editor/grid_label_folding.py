@@ -5,6 +5,9 @@ from PySide6.QtGui import QTextCursor
 from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
 from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TEXT,
+)
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
 )
@@ -73,6 +76,9 @@ class GridLabelFoldingMixin:
         previously_collapsed = bool(self._collapsed_labels or self._directives_collapsed)
         regions = label_fold_regions(self._rows) if self._label_folding_enabled else []
         self._label_fold_regions = regions
+        self._label_fold_regions_by_row = {
+            region.label_row: region for region in regions
+        }
         self._directive_fold_region = (
             debugger_directive_fold_region(self._rows)
             if self._label_folding_enabled
@@ -87,6 +93,51 @@ class GridLabelFoldingMixin:
             anchor_row,
             refresh_offsets=previously_collapsed or bool(self._collapsed_labels),
         )
+
+    def _splice_cached_label_folding(
+        self,
+        first: int,
+        removed: int,
+        inserted: int,
+    ) -> None:
+        """Shift known fold coordinates after a non-label structural edit.
+
+        Re-parsing every label after deleting one ordinary instruction made a
+        single Backspace proportional to the complete file.  Label-changing
+        edits still use the full refresh path.
+        """
+
+        delta = inserted - removed
+        removed_end = first + removed
+        regions: list[LabelFoldRegion] = []
+        for region in self._label_fold_regions:
+            if first <= region.label_row < removed_end:
+                continue
+            label_row = region.label_row + (delta if region.label_row >= removed_end else 0)
+            last_hidden = region.last_hidden_row
+            if first <= last_hidden:
+                last_hidden = max(label_row, last_hidden + delta)
+            first_hidden = label_row + 1
+            if first_hidden <= last_hidden:
+                regions.append(LabelFoldRegion(
+                    region.label,
+                    label_row,
+                    first_hidden,
+                    last_hidden,
+                ))
+        self._label_fold_regions = regions
+        self._label_fold_regions_by_row = {
+            region.label_row: region for region in regions
+        }
+        self.instructions.set_label_fold_regions({
+            region.label_row: (
+                region.label,
+                region.label in self._collapsed_labels,
+            )
+            for region in regions
+        })
+        if self._collapsed_labels or self._directives_collapsed:
+            self._apply_label_visibility(refresh_offsets=False)
 
     def _apply_label_visibility(
         self,
@@ -157,13 +208,20 @@ class GridLabelFoldingMixin:
         return hidden
 
     def _fold_editors(self):
-        """Return every editor whose blocks represent complete grid rows."""
+        """Return materialized editors whose blocks represent complete rows."""
 
+        content = tuple(
+            editor
+            for name, editor in (
+                (BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS, self.raw_instructions),
+                (BINARY_WORKBENCH_TEXT.BYTES, self.bytes),
+                (BINARY_WORKBENCH_TEXT.DECODED_TEXT, self.decoded_text),
+            )
+            if name in self._configured_columns
+        )
         return (
             *self._offset_editors.values(),
-            self.raw_instructions,
-            self.bytes,
-            self.decoded_text,
+            *content,
             self.instructions,
         )
 
@@ -361,16 +419,8 @@ class GridLabelFoldingMixin:
 
         if text != "-":
             return text
-        region = next(
-            (
-                item
-                for item in self._label_fold_regions
-                if item.label_row == row_index
-                and item.label in self._collapsed_labels
-            ),
-            None,
-        )
-        if region is None:
+        region = self._label_fold_regions_by_row.get(row_index)
+        if region is None or region.label not in self._collapsed_labels:
             return text
         for index in range(region.first_hidden_row, region.last_hidden_row + 1):
             candidate = self._rows[index].offsets.get(column, "-")

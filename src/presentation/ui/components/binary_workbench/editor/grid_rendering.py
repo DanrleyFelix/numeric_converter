@@ -44,6 +44,11 @@ class GridRenderingMixin:
         reference_offset_bases: dict[str, str] | None = None,
         jump_reference_offset: str = "",
     ) -> None:
+        # Loading a context is an authoritative replacement.  A deferred
+        # rowsChanged notification from the previous context must not be
+        # flushed after the page has already installed a new binary reader;
+        # doing so used to persist the old blank row as an overlay at offset 0.
+        self.discard_pending_rows_changed()
         self._cancel_incremental_instruction_update()
         self._setup_refresh_window()
         self._reset_virtual_undo_cache()
@@ -99,6 +104,7 @@ class GridRenderingMixin:
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None:
             coordinator.reset(list(self._rows))
+            coordinator.prime_loaded_symbol_viewport()
         self._schedule_layout_refresh()
 
     def _reset_loaded_editor_histories(self) -> None:
@@ -291,9 +297,12 @@ class GridRenderingMixin:
             self._on_scrollbar_changed(target)
             coordinator = getattr(self, "_consistency_coordinator", None)
             if coordinator is not None:
-                coordinator.prioritize_viewport()
+                coordinator.prioritize_viewport("direct-navigation")
             return
         self.scrollbar.setValue(target)
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.prioritize_viewport("direct-navigation")
 
     def _render(self) -> None:
         self._resize_editors()
@@ -468,7 +477,12 @@ class GridRenderingMixin:
         QTimer.singleShot(0, self._run_static_scroll_alignment)
 
     def _run_static_scroll_alignment(self) -> None:
-        """Reconcile editors after Qt has completed cursor auto-scrolling."""
+        """Reconcile editors unless their native widgets were already deleted.
+
+        A zero-delay alignment can outlive a closing tab by one Qt event-loop
+        turn.  Accessing its deleted C++ scrollbar raised ``RuntimeError`` and
+        could abort stress runs while another independent tab was opening.
+        """
 
         self._static_scroll_alignment_scheduled = False
         if self._virtual:
@@ -480,7 +494,12 @@ class GridRenderingMixin:
             self.decoded_text,
             self.instructions,
         ]
-        row_index = self._visible_block_position(self.scrollbar.value() // ROW_BYTES)
+        try:
+            row_index = self._visible_block_position(
+                self.scrollbar.value() // ROW_BYTES
+            )
+        except RuntimeError:
+            return
         self._syncing_editor_scrollbars = True
         try:
             self._align_static_editors(editors, row_index)

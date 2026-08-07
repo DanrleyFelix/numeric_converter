@@ -25,11 +25,17 @@ def build_source_line_rows(
     equates: dict[str, str] | None = None,
     reject_invalid: bool = False,
     cancelled: Callable[[], bool] | None = None,
+    resolver: MipsSymbolResolver | None = None,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     expanded = expand_pseudo_instructions(lines)
     provisional_labels = _provisional_labels(expanded, start_offset)
     resolved_labels = provisional_labels if labels is None else {**labels, **provisional_labels}
     variables, equates = variables or {}, equates or {}
+    active_resolver = (
+        resolver.with_labels(resolved_labels)
+        if resolver is not None and provisional_labels
+        else resolver
+    )
     rows = _build_rows(
         expanded,
         offset_names,
@@ -41,6 +47,7 @@ def build_source_line_rows(
         equates,
         reject_invalid,
         cancelled,
+        active_resolver,
     )
     if rows is None or labels is not None:
         return rows
@@ -60,6 +67,7 @@ def build_source_line_rows(
             equates,
             reject_invalid,
             cancelled,
+            resolver.with_labels(resolved_labels) if resolver is not None else None,
         )
         if rows is None:
             return None
@@ -77,10 +85,11 @@ def _build_rows(
     equates: dict[str, str],
     reject_invalid: bool,
     cancelled: Callable[[], bool] | None,
+    resolver: MipsSymbolResolver | None,
 ) -> list[BinaryWorkbenchRowDTO] | None:
     rows: list[BinaryWorkbenchRowDTO] = []
     offset = start_offset
-    resolver = MipsSymbolResolver(labels, variables, equates)
+    resolver = resolver or MipsSymbolResolver(labels, variables, equates)
     for line in lines:
         if cancelled is not None and cancelled():
             return None

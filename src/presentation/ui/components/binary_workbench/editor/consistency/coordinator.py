@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from uuid import uuid4
 import re
 
@@ -10,6 +11,7 @@ from src.core.binary_workbench.editor_consistency import (
     ConsistencyBarrierResult,
     ConsistencyState,
     ConsistentEditorSnapshot,
+    DerivedCategory,
     DirtyRange,
     EditorOwner,
     LineContentBatch,
@@ -66,6 +68,7 @@ class EditorConsistencyCoordinator(QObject):
         self.semantic_generation = 0
         self.visual_revision_applied = 0
         self.semantic_revision_applied = 0
+        self.viewport_epoch = 0
         self._owner_states: dict[str, tuple[int, int, int, int, int, int]] = {}
         self._forgotten_owner_ids: set[str] = set()
         self.state = ConsistencyState.CLEAN
@@ -82,9 +85,15 @@ class EditorConsistencyCoordinator(QObject):
         self._history_steps_before: int | None = None
         self._collector_scheduled = False
         self._viewport_restart_scheduled = False
+        self._requested_viewport: DirtyRange | None = None
+        self._last_viewport_origin = "initial"
         self._pending_bytes_content_batches: list[LineContentBatch] = []
+        self._pending_offset_batches: list[object] = []
+        self._pending_visual_completion: tuple | None = None
         self._pending_symbol_lines: set[int] = set()
         self._range_consistency = RangeConsistencyIndex()
+        self._symbol_consistency = RangeConsistencyIndex()
+        self._bulk_symbols_pending = False
         self._barrier_active = False
         self._visual_token: CancellationToken | None = None
         self._semantic_token: CancellationToken | None = None
@@ -99,8 +108,14 @@ class EditorConsistencyCoordinator(QObject):
             self._prioritize_coalesced_viewport,
         )
         self._bytes_content_timer = self._timer(0, self._flush_bytes_content_batch)
+        self._offset_batch_timer = self._timer(
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_PROJECTION_INTERVAL_MS,
+            self._flush_offset_batch,
+        )
         grid.instructions.document().contentsChange.connect(self.collect_contents_change)
-        grid.scrollbar.valueChanged.connect(lambda _value: self.prioritize_viewport())
+        grid.scrollbar.valueChanged.connect(
+            lambda _value: self.prioritize_viewport("scrollbar")
+        )
 
     def _timer(self, interval: int, callback) -> QTimer:
         timer = QTimer(self)
@@ -113,6 +128,11 @@ class EditorConsistencyCoordinator(QObject):
         """Return whether the active grid supports structural Assembly editing."""
 
         return not self.grid._virtual and self.grid._edit_rules.allow_byte_shift
+
+    def offset_before_line(self, index: int) -> int:
+        """Return the indexed logical offset without scanning neighboring rows."""
+
+        return self.grid._source_rows_start_offset() + self._contributions.prefix_bytes(index)
 
     def supports_derived_updates(self) -> bool:
         """Return whether this static grid can refresh derived viewport data.
@@ -168,6 +188,9 @@ class EditorConsistencyCoordinator(QObject):
         self._dirty_ranges = ()
         self._dirty_from_line = None
         self._range_consistency.reset(len(rows), self.structural_revision)
+        self._symbol_consistency.reset(len(rows), self.source_revision)
+        self._pending_symbol_lines.clear()
+        self._bulk_symbols_pending = False
         self._clear_collector()
         self.visual_revision_applied = self.structural_revision
         self.semantic_revision_applied = self.source_revision
@@ -495,8 +518,18 @@ class EditorConsistencyCoordinator(QObject):
         self._history_steps_before = None
         self._clear_collector()
         self.source_revision += 1
+        # This signal now means "one coalesced Assembly operation committed".
+        # It is deliberately absent from QTextDocument.textChanged; the
+        # autosave scheduler only snapshots after its quiet/rate-limit timers.
+        self.grid.assemblyTextChanged.emit()
         old_count = len(self._model_rows)
         new_count = self.grid.instructions.document().blockCount()
+        if self._bulk_symbols_pending:
+            self._symbol_consistency.invalidate_from(
+                0,
+                new_count,
+                self.source_revision,
+            )
         delta = new_count - old_count
         if delta == 0 and len(explicit_lines) > 1:
             self._apply_exact_source_lines(explicit_lines)
@@ -522,6 +555,10 @@ class EditorConsistencyCoordinator(QObject):
         ]
         current_sizes = [_row_size(row) for row in rows]
         label_changed = self._labels_changed(first, old_span, rows)
+        fold_structure_changed = (
+            label_changed
+            or self._directive_folding_changed(first, old_span, rows)
+        )
         previous_label_names = tuple(
             declared_label(row.instruction)
             for row in self._model_rows[first : first + old_span]
@@ -562,7 +599,13 @@ class EditorConsistencyCoordinator(QObject):
         self.grid._rows = list(self._model_rows)
         self.grid._all_rows = list(self._model_rows)
         if delta:
-            apply_structure_splice(self.grid, first, old_span, list(rows))
+            apply_structure_splice(
+                self.grid,
+                first,
+                old_span,
+                list(rows),
+                refresh_folding=fold_structure_changed,
+            )
             self.grid.instructions.remember_structural_undo_cursor(
                 first,
                 0,
@@ -797,7 +840,11 @@ class EditorConsistencyCoordinator(QObject):
                 labels[name] = (
                     f"0x{self._contributions.prefix_bytes(first + local):08X}"
                 )
-        self.grid._set_editing_labels(labels, (first, first + len(rows)))
+        block_range = (first, first + len(rows))
+        if len(rows) > OFFSET_BATCH_SIZE:
+            viewport = self._viewport_range()
+            block_range = (viewport.first, viewport.last)
+        self.grid._set_editing_labels(labels, block_range)
         self._refresh_dependency_range(first, len(rows))
         return rows
 
@@ -873,7 +920,6 @@ class EditorConsistencyCoordinator(QObject):
             self._invalidate_semantic()
             self._schedule_semantic()
         self._refresh_dependency_range(first, len(rows))
-        self.grid._refresh_jump_navigation()
         self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
         self.grid._dirty_editor_kind = None
 
@@ -919,7 +965,9 @@ class EditorConsistencyCoordinator(QObject):
             "viewport": viewport,
         }
         worker = OffsetDistributionWorker(request, self._visual_token)
-        worker.signals.offsetBatchReady.connect(self._apply_offset_batch)
+        worker.signals.offsetBatchReady.connect(
+            lambda batch, source=worker: self._queue_offset_batch(batch, source)
+        )
         worker.signals.completed.connect(self._visual_completed)
         worker.signals.failed.connect(lambda message: self._worker_failed("visual", message))
         self._visual_worker = worker
@@ -957,7 +1005,42 @@ class EditorConsistencyCoordinator(QObject):
             self.state &= ~ConsistencyState.RECALCULATING_VISUAL
             self._worker_failed("visual", str(error))
 
+    def _queue_offset_batch(self, batch, worker=None) -> None:
+        """Queue one batch and keep producer backpressure until its commit."""
+
+        if not self._valid_offset_batch(batch):
+            if worker is not None:
+                worker.acknowledge_batch()
+            return
+        self._pending_offset_batches[:] = [(batch, worker)]
+        if not self._offset_batch_timer.isActive():
+            self._offset_batch_timer.start()
+
+    def _flush_offset_batch(self) -> None:
+        """Commit at most one background batch per event-loop slice."""
+
+        while self._pending_offset_batches:
+            pending = self._pending_offset_batches.pop(0)
+            batch, worker = pending if isinstance(pending, tuple) else (pending, None)
+            try:
+                if self._valid_offset_batch(batch):
+                    self._apply_offset_batch(batch)
+                    break
+            finally:
+                if worker is not None:
+                    worker.acknowledge_batch()
+        if self._pending_offset_batches:
+            self._offset_batch_timer.start()
+            return
+        if self._pending_visual_completion is not None:
+            envelope = self._pending_visual_completion
+            self._pending_visual_completion = None
+            self._visual_completed(envelope)
+
     def _visual_completed(self, envelope) -> None:
+        if self._pending_offset_batches:
+            self._pending_visual_completion = envelope
+            return
         owner, revision, generation = envelope
         if (owner, revision, generation) != (
             self.owner,
@@ -987,11 +1070,11 @@ class EditorConsistencyCoordinator(QObject):
             self.semantic_generation,
             self.grid._codec.display_name,
             binary_workbench_worker_codec_for(self.grid._codec.display_name),
-            tuple(self._document_lines()),
+            tuple(row.instruction for row in self._model_rows),
             tuple(self.grid._columns or [BINARY_WORKBENCH_TEXT.FILE]),
             self.grid._offset_base_text(),
-            dict(self.grid._variables),
-            dict(self.grid._equates),
+            self.grid._variables,
+            self.grid._equates,
             self.grid._jump_reference_offset,
         )
         worker = SemanticWorker(snapshot, self._semantic_token)
@@ -1047,6 +1130,8 @@ class EditorConsistencyCoordinator(QObject):
         self._range_consistency.reset(len(rows), self.structural_revision)
         self._dependency_index = _dependency_index(rows)
         self._pending_symbol_lines.clear()
+        self._bulk_symbols_pending = False
+        self._symbol_consistency.reset(len(rows), self.source_revision)
         self.grid._set_editing_labels(dict(result.labels))
         self.grid.raw_instructions.set_hazard_extra_selections([])
         self.grid._apply_instruction_hazards(list(result.hazards))
@@ -1177,29 +1262,122 @@ class EditorConsistencyCoordinator(QObject):
         )
         return ConsistencyBarrierResult(True, snapshot)
 
-    def prioritize_viewport(self) -> None:
+    def prioritize_viewport(self, origin: str = "navigation") -> None:
         """Debounce typed stale work for the final scroll/navigation viewport."""
 
         viewport = self._viewport_range()
+        self.request_viewport(viewport.first, viewport.last, origin)
+
+    def request_viewport(
+        self,
+        first_line: int,
+        last_line: int,
+        origin: str = "navigation",
+    ) -> None:
+        """Prioritize one reached range regardless of its navigation source."""
+
+        if not self._model_rows:
+            return
+        viewport = DirtyRange(
+            max(0, first_line),
+            min(len(self._model_rows) - 1, max(first_line, last_line)),
+        )
+        categories = self._pending_categories(viewport)
+        if categories == DerivedCategory.NONE:
+            return
+        self.viewport_epoch += 1
+        self._last_viewport_origin = origin
+        self._requested_viewport = viewport
+        if (
+            self.state & ConsistencyState.RECALCULATING_VISUAL
+            and self._visual_token is not None
+        ):
+            self._invalidate_visual()
+            self.visual_generation += 1
+        # Scrollbar drags collapse to one frame; direct navigations take the
+        # same path and therefore also observe the current typed dirty flags.
+        self._viewport_timer.start()
+
+    def _pending_categories(self, viewport: DirtyRange) -> DerivedCategory:
+        """Return only derived categories stale inside one requested range."""
+
+        categories = DerivedCategory.NONE
         offsets_current = self._range_consistency.is_current(
             viewport.first,
             viewport.last,
             self.structural_revision,
         )
+        if not offsets_current:
+            categories |= DerivedCategory.OFFSETS
         content_pending = self._bytes_content_pending_in(viewport)
+        if content_pending:
+            categories |= (
+                DerivedCategory.ASSEMBLY
+                | DerivedCategory.BYTES
+                | DerivedCategory.RAW
+            )
         symbols_pending = any(
             viewport.first <= index <= viewport.last
             for index in self._pending_symbol_lines
+        ) or (
+            self._bulk_symbols_pending
+            and not self._symbol_consistency.is_current(
+                viewport.first,
+                viewport.last,
+                self.source_revision,
+            )
         )
-        if offsets_current and not content_pending and not symbols_pending:
-            return
-        # Restarting is intentional: a scrollbar drag can emit hundreds of
-        # positions, while Go To/Search/Symbol navigation emits only one.  The
-        # former resolves after the drag settles; the latter still commits in
-        # one 16 ms frame, comfortably inside the 70 ms viewport budget.
-        self._viewport_timer.start()
+        if symbols_pending:
+            categories |= DerivedCategory.SYMBOLS | DerivedCategory.HIGHLIGHT
+        if self.state & (
+            ConsistencyState.DIRTY_SEMANTIC
+            | ConsistencyState.RECALCULATING_SEMANTIC
+        ):
+            categories |= (
+                DerivedCategory.LABELS
+                | DerivedCategory.BRANCHES
+                | DerivedCategory.HAZARDS
+            )
+        return categories
 
-    def rederive_symbol_lines(self, indices: tuple[int, ...]) -> None:
+    def prime_loaded_symbol_viewport(self) -> None:
+        """Flag a loaded catalog cheaply and resolve its viewport first.
+
+        The flag covers every row without parsing source text. This lets any
+        later navigation request the reached viewport immediately while the
+        semantic worker reconciles the complete document eventually.
+        """
+
+        if not (self.grid._variables or self.grid._equates):
+            return
+        # Do not scan the document merely to prove that a catalog is unused.
+        # A viewport request is cheaper than the former O(document) probe and
+        # becomes a no-op naturally when its bounded rows contain no Symbols.
+        self.rederive_all_symbol_lines()
+
+    def rederive_all_symbol_lines(self) -> None:
+        """Flag a bulk catalog lazily and repair only viewport plus margin."""
+
+        if not self._model_rows or not self.supports_derived_updates():
+            return
+        self.source_revision += 1
+        self._invalidate_semantic()
+        self._bulk_symbols_pending = True
+        self._symbol_consistency.invalidate_from(
+            0,
+            len(self._model_rows),
+            self.source_revision,
+        )
+        viewport = self._requested_viewport or self._viewport_range()
+        self._requested_viewport = None
+        priority = DirtyRange(
+            max(0, viewport.first - VIEWPORT_MARGIN_LINES),
+            min(len(self._model_rows) - 1, viewport.last + VIEWPORT_MARGIN_LINES),
+        )
+        self._apply_pending_symbol_viewport(priority)
+        self._schedule_semantic()
+
+    def rederive_symbol_lines(self, indices: Iterable[int]) -> None:
         """Rebuild only rows depending on changed Symbol definitions."""
 
         active = tuple(sorted({
@@ -1262,16 +1440,18 @@ class EditorConsistencyCoordinator(QObject):
                 viewport.first,
                 viewport.last,
             )
-            self._refresh_symbol_labels(viewport)
+            if structural_from is not None:
+                self._refresh_symbol_labels(viewport)
         self._schedule_semantic()
-        if self._pending_symbol_lines:
+        if self._pending_symbol_lines or self._bulk_symbols_pending:
             self.prioritize_viewport()
         self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
 
     def _prioritize_coalesced_viewport(self) -> None:
         """Commit stale visible rows before restarting deferred propagation."""
 
-        viewport = self._viewport_range()
+        viewport = self._requested_viewport or self._viewport_range()
+        self._requested_viewport = None
         self._apply_pending_symbol_viewport(viewport)
         self._apply_pending_bytes_viewport(viewport)
         if not self._range_consistency.is_current(
@@ -1292,15 +1472,27 @@ class EditorConsistencyCoordinator(QObject):
     def _apply_pending_symbol_viewport(self, viewport: DirtyRange) -> None:
         """Resolve only stale Symbol rows that just entered the viewport."""
 
-        indices = sorted(
+        requested = {
             index
             for index in self._pending_symbol_lines
             if viewport.first <= index <= viewport.last
-        )[:OFFSET_BATCH_SIZE]
+        }
+        if self._bulk_symbols_pending and not self._symbol_consistency.is_current(
+            viewport.first,
+            viewport.last,
+            self.source_revision,
+        ):
+            requested.update(range(
+                max(0, viewport.first),
+                min(len(self._model_rows), viewport.last + 1),
+            ))
+        indices = sorted(requested)[:OFFSET_BATCH_SIZE]
         if not indices:
             return
         changed, structural_from = self._derive_symbol_indices(indices)
         self._pending_symbol_lines.difference_update(indices)
+        if self._bulk_symbols_pending:
+            self._symbol_consistency.mark(tuple(indices), self.source_revision)
         if structural_from is not None:
             self.structural_revision += 1
             self.visual_generation += 1
@@ -1339,7 +1531,8 @@ class EditorConsistencyCoordinator(QObject):
                 viewport.first,
                 viewport.last,
             )
-            self._refresh_symbol_labels(viewport)
+            if structural_from is not None:
+                self._refresh_symbol_labels(viewport)
             self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
 
     def _bytes_content_pending_in(self, viewport: DirtyRange) -> bool:
@@ -1403,8 +1596,10 @@ class EditorConsistencyCoordinator(QObject):
         self._semantic_timer.stop()
         self._viewport_timer.stop()
         self._bytes_content_timer.stop()
+        self._offset_batch_timer.stop()
         self._pending_bytes_content_batches.clear()
-        self._pending_symbol_lines.clear()
+        self._pending_offset_batches.clear()
+        self._pending_visual_completion = None
         self.visual_generation += 1
         self.semantic_generation += 1
         if self._visual_token is not None:
@@ -1420,6 +1615,9 @@ class EditorConsistencyCoordinator(QObject):
         self._pool.shutdown()
 
     def _invalidate_visual(self) -> None:
+        self._offset_batch_timer.stop()
+        self._pending_offset_batches.clear()
+        self._pending_visual_completion = None
         if self._visual_token is not None:
             self._visual_token.cancel()
 
@@ -1451,10 +1649,11 @@ class EditorConsistencyCoordinator(QObject):
             self.grid._columns or [BINARY_WORKBENCH_TEXT.FILE],
             self.grid._offset_base_text(),
             self._contributions.prefix_bytes(first),
-            dict(self.grid._labels),
-            dict(self.grid._variables),
-            dict(self.grid._equates),
+            self.grid._labels,
+            self.grid._variables,
+            self.grid._equates,
             False,
+            self.grid._symbol_resolver,
         )
         return self.grid._validated_standard_jump_rows(rows, lines)
 
@@ -1504,16 +1703,22 @@ class EditorConsistencyCoordinator(QObject):
         return changed, structural_from
 
     def _refresh_symbol_labels(self, viewport: DirtyRange) -> None:
-        """Publish newly valid labels and folding controls in the same viewport commit."""
+        """Refresh visible label offsets without scanning the complete source."""
 
-        labels = labels_from_source_rows(self._model_rows)
+        labels = dict(self.grid._labels)
+        previous_names = {name.casefold() for name in labels}
+        for index in range(
+            max(0, viewport.first),
+            min(len(self._model_rows), viewport.last + 1),
+        ):
+            name = declared_label(self._model_rows[index].instruction)
+            if name:
+                labels[name] = f"0x{self._contributions.prefix_bytes(index):08X}"
         if labels == self.grid._labels:
             return
         declarations_changed = {
             name.casefold() for name in labels
-        } != {
-            name.casefold() for name in self.grid._labels
-        }
+        } != previous_names
         self.grid._set_editing_labels(
             labels,
             (viewport.first, viewport.last),
@@ -1528,6 +1733,20 @@ class EditorConsistencyCoordinator(QObject):
         before = [declared_label(row.instruction) for row in self._model_rows[first : first + old_span]]
         after = [declared_label(row.instruction) for row in rows]
         return before != after
+
+    def _directive_folding_changed(
+        self,
+        first: int,
+        old_span: int,
+        rows: list[BinaryWorkbenchRowDTO],
+    ) -> bool:
+        """Detect edits that can change the leading directive fold group."""
+
+        before = self._model_rows[first : first + old_span]
+        if any(row.instruction.lstrip().startswith("*") for row in (*before, *rows)):
+            return True
+        region = self.grid._directive_fold_region
+        return region is not None and first <= region.last_hidden_row
 
     def _block_lines(self, first: int, count: int) -> list[str]:
         document = self.grid.instructions.document()

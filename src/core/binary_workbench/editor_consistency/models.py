@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, Flag, auto
+from collections.abc import Mapping
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.modules.contracts import CPUArchCodec
@@ -25,6 +26,21 @@ class ConsistencyState(Flag):
     DIRTY_SEMANTIC = auto()
     RECALCULATING_SEMANTIC = auto()
     RECALCULATING_IMMEDIATE = auto()
+
+
+class DerivedCategory(Flag):
+    """Name independently pending viewport projections."""
+
+    NONE = 0
+    OFFSETS = auto()
+    ASSEMBLY = auto()
+    BYTES = auto()
+    RAW = auto()
+    SYMBOLS = auto()
+    LABELS = auto()
+    BRANCHES = auto()
+    HAZARDS = auto()
+    HIGHLIGHT = auto()
 
 
 @dataclass(frozen=True)
@@ -86,9 +102,9 @@ class SemanticSnapshot:
     codec: CPUArchCodec
     lines: tuple[str, ...]
     offset_names: tuple[str, ...]
-    offset_bases: dict[str, str]
-    variables: dict[str, str]
-    equates: dict[str, str]
+    offset_bases: Mapping[str, str]
+    variables: Mapping[str, str]
+    equates: Mapping[str, str]
     jump_reference_offset: str = ""
 
 

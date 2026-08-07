@@ -4,7 +4,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QItemSelectionModel, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser, QWidget
@@ -351,27 +351,35 @@ def test_workspace_windows_show_rows_and_support_removal():
 
     assert window._variables_window is not None
     assert window._logs_window is not None
-    assert len(window._variables_window.row_widgets) == 1
-    assert len(window._logs_window.row_widgets) == 2
-    assert window._variables_window.row_widgets[0].values == ("alpha", "5", "0x5")
-    assert window._logs_window.row_widgets[0].values == ("alpha=5", "5")
-    assert window._variables_window.row_widgets[0].remove_button.text() == ""
-    assert not window._variables_window.row_widgets[0].remove_button.icon().isNull()
-    assert window._logs_window.row_widgets[0].remove_button.text() == ""
-    assert not window._logs_window.row_widgets[0].remove_button.icon().isNull()
-    assert (
-        window._variables_window.row_widgets[0].cell_labels[0].textInteractionFlags()
-        & Qt.TextSelectableByMouse
-    )
-    assert (
-        window._variables_window.row_widgets[0].cell_labels[2].textInteractionFlags()
-        & Qt.TextSelectableByMouse
-    )
+    assert window._variables_window.model.rowCount() == 1
+    assert window._logs_window.model.rowCount() == 2
+    assert tuple(
+        window._variables_window.model.index(0, column).data()
+        for column in range(3)
+    ) == ("alpha", "5", "0x5")
+    assert tuple(
+        window._logs_window.model.index(0, column).data()
+        for column in range(2)
+    ) == ("alpha=5", "5")
+    assert window._variables_window.row_widgets == []
+    assert window._logs_window.row_widgets == []
 
-    window._variables_window.row_widgets[0].remove_button.click()
+    variables_index = window._variables_window.proxy.index(0, 0)
+    window._variables_window.table.selectionModel().select(
+        variables_index,
+        QItemSelectionModel.SelectionFlag.ClearAndSelect
+        | QItemSelectionModel.SelectionFlag.Rows,
+    )
+    window._variables_window.remove_button.click()
     assert "alpha" not in window._command_presenter.variable_names
 
-    window._logs_window.row_widgets[0].remove_button.click()
+    logs_index = window._logs_window.proxy.index(0, 0)
+    window._logs_window.table.selectionModel().select(
+        logs_index,
+        QItemSelectionModel.SelectionFlag.ClearAndSelect
+        | QItemSelectionModel.SelectionFlag.Rows,
+    )
+    window._logs_window.remove_button.click()
     assert [entry.input for entry in window._command_presenter.history] == ["alpha+3"]
 
 

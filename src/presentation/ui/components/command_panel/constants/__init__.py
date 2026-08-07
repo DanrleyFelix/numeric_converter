@@ -1,4 +1,5 @@
 from src.presentation.ui.components.command_panel.constants.layout import (
+    COMMAND_COMPLETION,
     COMMAND_PANEL_MARGIN,
     COMMAND_PANEL_SIZE,
     COMMAND_PANEL_SPACING,
@@ -8,6 +9,7 @@ from src.presentation.ui.components.command_panel.constants.texts import COMMAND
 
 
 __all__ = [
+    "COMMAND_COMPLETION",
     "COMMAND_PANEL_MARGIN",
     "COMMAND_PANEL_SIZE",
     "COMMAND_PANEL_SPACING",

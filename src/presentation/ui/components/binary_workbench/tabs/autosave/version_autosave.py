@@ -100,7 +100,7 @@ class VersionAutosaveScheduler(QObject):
         self._arm_next_due()
 
     def _flush_due(self) -> None:
-        """Persist tabs that are quiet and outside their per-file 60 s window."""
+        """Persist tabs that are quiet and outside their per-file 120 s window."""
 
         now = monotonic()
         due = tuple(

@@ -16,6 +16,7 @@ from src.core.binary_workbench.editor_consistency import (
 )
 from src.core.binary_workbench.mips_r3000a import build_rows_from_instructions
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
+from src.core.binary_workbench.mips_r3000a import source_line_rows as source_rows_module
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchRowDTO,
@@ -208,6 +209,63 @@ def test_label_only_commit_reuses_symbol_catalog_maps(monkeypatch):
     assert grid._symbol_maps[1] is variable_map
     assert grid._symbol_maps[2] is equate_map
     assert grid.instructions._label_offsets["entry"][1] == 4
+
+
+def test_single_line_edit_reuses_large_symbol_resolver(monkeypatch):
+    """Typing must not normalize a large Symbol catalog for every character."""
+
+    grid = _grid(["ori $t0, $zero, _local_0001"])
+    variables = {f"local_{index:04d}": hex(index) for index in range(2500)}
+    grid.set_symbols({}, variables, {}, {})
+    constructions: list[bool] = []
+    original = source_rows_module.MipsSymbolResolver.__init__
+
+    def tracked(resolver, *args, **kwargs):
+        constructions.append(True)
+        original(resolver, *args, **kwargs)
+
+    monkeypatch.setattr(source_rows_module.MipsSymbolResolver, "__init__", tracked)
+    editor = grid.instructions
+    cursor = editor.textCursor()
+    cursor.setPosition(len(editor.toPlainText()))
+    editor.setTextCursor(cursor)
+
+    QTest.keyClick(editor, Qt.Key_Backspace)
+    _app().processEvents()
+
+    assert constructions == []
+
+
+def test_single_bytes_character_edit_does_not_read_the_complete_document(monkeypatch):
+    """Ordinary Bytes typing must remain O(1) even for a large document."""
+
+    grid = _grid(["addiu $a0, $a0, 2" for _ in range(4000)])
+    editor = grid.bytes
+    block = editor.document().findBlockByNumber(2000)
+    cursor = QTextCursor(block)
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    editor.setTextCursor(cursor)
+    editor.setFocus()
+    monkeypatch.setattr(
+        grid,
+        "_normalized_bytes_lines",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("single Bytes character scanned the full document")
+        ),
+    )
+    monkeypatch.setattr(
+        grid,
+        "_byte_row_policies",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("single Bytes character scanned every row policy")
+        ),
+    )
+
+    QTest.keyClick(editor, Qt.Key_Backspace)
+    _app().processEvents()
+
+    assert grid._bytes_staged_block == 2000
+    assert len(_editor_line(editor, 2000).replace(" ", "")) == 7
 
 
 def test_same_qt_cycle_coalesces_multiple_signals_into_one_flush(monkeypatch):
@@ -777,6 +835,8 @@ def test_large_structural_edit_projects_current_batch_immediately(monkeypatch, o
     coordinator._start_visual()
     assert len(jobs) == 1
     jobs[0].run()
+    while coordinator._pending_offset_batches:
+        coordinator._flush_offset_batch()
     _app().processEvents()
 
     rows = grid.export_rows()

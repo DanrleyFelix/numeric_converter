@@ -84,10 +84,17 @@ class GridEditRulesMixin:
             for row in self._rows
         )
 
+    def _byte_row_policy_at(self, index: int):
+        """Resolve one row policy without scanning a large Bytes document."""
+
+        if not 0 <= index < len(self._rows):
+            return None
+        row = self._rows[index]
+        return byte_row_policy(row.instruction, bool(row.bytes_text))
+
     def _bytes_edit_event_allowed(self, editor, event) -> bool:
         if event.matches(QKeySequence.Undo) or event.matches(QKeySequence.Redo):
             return True
-        policies = self._byte_row_policies()
         cursor = editor.textCursor()
         first, last = self._byte_edit_event_rows(cursor)
         removed_rows = self._byte_removed_rows(editor, event, first, last)
@@ -101,7 +108,11 @@ class GridEditRulesMixin:
                 return False
             editor.authorize_bytes_row_removal()
             return True
-        touched = policies[first : last + 1]
+        touched = tuple(
+            policy
+            for index in range(first, last + 1)
+            if (policy := self._byte_row_policy_at(index)) is not None
+        )
         if any(item.access is ByteRowAccess.ASSEMBLY_ONLY for item in touched):
             self._emit_byte_edit_warning(ByteEditViolation.ASSEMBLY_ONLY)
             return False
@@ -257,9 +268,9 @@ class GridEditRulesMixin:
             return ByteEditViolation.NONE
         if self._user_byte_shift_rule_blocks_row_removal(rows):
             return ByteEditViolation.USER_BYTE_SHIFTING_DISABLED
-        policies = self._byte_row_policies()
         source_allows_removal = all(
-            0 <= row < len(policies) and policies[row].removable_from_bytes
+            (policy := self._byte_row_policy_at(row)) is not None
+            and policy.removable_from_bytes
             for row in rows
         )
         return (

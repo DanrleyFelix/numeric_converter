@@ -74,5 +74,6 @@ class CPUArchCodec(ABC):
         variables: dict[str, str] | None = None,
         equates: dict[str, str] | None = None,
         reject_invalid: bool = False,
+        symbol_resolver: object | None = None,
     ) -> list["BinaryWorkbenchRowDTO"] | None:
         return None

@@ -33,6 +33,12 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
 
 
+def _snapshot_rows(rows):
+    """Snapshot frozen row DTOs without an O(n) recursive startup copy."""
+
+    return list(rows)
+
+
 def create_binary_tab(
     state: BinaryWorkbenchStateDTO,
     path: Path,
@@ -60,7 +66,7 @@ def create_binary_tab(
         symbol_offsets={name: [offset] for name, offset in labels.items()},
         internal_files=[],
         lba_sector_size=BINARY_WORKBENCH_DEFAULT_LBA_SECTOR_SIZE,
-        original_rows=deepcopy(rows),
+        original_rows=_snapshot_rows(rows),
         rows=rows,
         file_size=file_size,
         original_file_size=file_size,
@@ -101,7 +107,7 @@ def create_assembly_tab(
         equates=symbols,
         variables=symbols,
         symbol_offsets={name: [offset] for name, offset in labels.items()},
-        original_rows=deepcopy(rows),
+        original_rows=_snapshot_rows(rows),
         rows=rows,
         file_size=valid_offset_end(rows),
         original_file_size=valid_offset_end(rows),
@@ -125,7 +131,7 @@ def create_scratch_tab(state: BinaryWorkbenchStateDTO) -> BinaryWorkbenchTabCont
         read_mode="assembly",
         reference_offsets=list(DEFAULT_REFS),
         reference_offset_bases=dict(DEFAULT_REF_BASES),
-        original_rows=deepcopy(rows),
+        original_rows=_snapshot_rows(rows),
         rows=rows,
         file_size=valid_offset_end(rows),
         original_file_size=valid_offset_end(rows),

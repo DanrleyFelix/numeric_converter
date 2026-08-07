@@ -71,3 +71,67 @@ QPushButton#workspace-row-remove:hover:pressed {
     border: none;
     color: $text-danger;
 }
+
+QTableView#workspace-model-table {
+    background-color: $bg-workspace-row;
+    alternate-background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    gridline-color: $border-workspace-row;
+    outline: none;
+    selection-background-color: $bg-symbol-row-selected;
+    selection-color: $text-main;
+}
+
+QTableView#workspace-model-table::item {
+    border: none;
+    padding-left: $space-8;
+    padding-right: $space-8;
+    color: $text-main;
+}
+
+QTableView#workspace-model-table::item:hover {
+    background-color: $bg-search-result-hover;
+}
+
+QTableView#workspace-model-table::item:selected,
+QTableView#workspace-model-table::item:selected:hover {
+    background-color: $bg-symbol-row-selected;
+    color: $text-main;
+}
+
+QHeaderView#workspace-model-header::section {
+    background-color: $bg-workspace-header;
+    color: $text-main;
+    border: none;
+    border-right: 1px solid $border-workspace-header;
+    border-bottom: 1px solid $border-workspace-header;
+    padding: $space-8;
+}
+
+QLineEdit#workspace-model-input {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-workspace-row;
+    border-radius: $radius-0;
+    padding-left: $space-12;
+    padding-right: $space-12;
+}
+
+QLineEdit#workspace-model-input:focus {
+    border-color: $border-focus;
+}
+
+QPushButton#workspace-model-action {
+    background-color: $bg-workspace-row;
+    color: $text-main;
+    border: 1px solid $border-focus;
+    border-radius: $radius-10;
+    padding-left: $space-12;
+    padding-right: $space-12;
+}
+
+QPushButton#workspace-model-action:hover {
+    background-color: $bg-toolbar-button-hover;
+}
