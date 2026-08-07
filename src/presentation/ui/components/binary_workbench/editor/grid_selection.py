@@ -8,6 +8,77 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
 
 
 class GridSelectionMixin:
+    def _queue_selection_projection(self, editor) -> None:
+        """Debounce a complete-line selection as one bounded read demand."""
+
+        if self._updating:
+            return
+        selected = self._fully_selected_line_range(editor)
+        if selected is None:
+            self._selection_projection_timer.stop()
+            self._selection_projection_request = None
+            return
+        kind = self._projection_kind_for_editor(editor)
+        if kind is None:
+            self._selection_projection_timer.stop()
+            self._selection_projection_request = None
+            return
+        first, last = selected
+        if last - first + 1 > 256:
+            # Broad copy already owns the consistency barrier.  Selection
+            # feedback must never synchronously derive an entire document.
+            self._selection_projection_timer.stop()
+            self._selection_projection_request = None
+            return
+        self._selection_projection_request = (kind, first, last)
+        self._selection_projection_timer.start()
+
+    def _fully_selected_line_range(self, editor) -> tuple[int, int] | None:
+        """Return only rows whose complete textual contents are selected."""
+
+        cursor = editor.textCursor()
+        if not cursor.hasSelection():
+            return None
+        document = editor.document()
+        start = cursor.selectionStart()
+        end = cursor.selectionEnd()
+        first = document.findBlock(start)
+        if first.isValid() and start > first.position():
+            first = first.next()
+        last = document.findBlock(max(start, end - 1))
+        if last.isValid() and end < last.position() + len(last.text()):
+            last = last.previous()
+        if not first.isValid() or not last.isValid():
+            return None
+        if first.blockNumber() > last.blockNumber():
+            return None
+        return first.blockNumber(), last.blockNumber()
+
+    def _projection_kind_for_editor(self, editor) -> str | None:
+        """Map a selected column without consulting the current focus state."""
+
+        if editor is self.bytes:
+            return BINARY_WORKBENCH_TEXT.BYTES
+        if editor is self.raw_instructions:
+            return BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS
+        if editor is self.decoded_text:
+            return BINARY_WORKBENCH_TEXT.DECODED_TEXT
+        if editor is self.instructions:
+            return BINARY_WORKBENCH_TEXT.INSTRUCTION
+        return None
+
+    def _materialize_selected_projection(self) -> None:
+        """Materialize only the fully selected column rows on explicit demand."""
+
+        requested = self._selection_projection_request
+        self._selection_projection_request = None
+        if requested is None:
+            return
+        kind, first, last = requested
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.materialize_selected_projection(kind, first, last)
+
     def select_offsets(self, start_offset: int, end_offset: int) -> None:
         positions = self._byte_selection_positions(start_offset, end_offset)
         if positions is None:

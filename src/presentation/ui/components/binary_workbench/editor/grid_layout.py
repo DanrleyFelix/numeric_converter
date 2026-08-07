@@ -77,6 +77,15 @@ class GridLayoutMixin:
         self.raw_instructions.cursorPositionChanged.connect(self._emit_selection_summary)
         self.bytes.cursorPositionChanged.connect(self._emit_selection_summary)
         self.instructions.cursorPositionChanged.connect(self._emit_selection_summary)
+        for editor in (
+            self.raw_instructions,
+            self.bytes,
+            self.decoded_text,
+            self.instructions,
+        ):
+            editor.selectionChanged.connect(
+                lambda source=editor: self._queue_selection_projection(source)
+            )
         for editor in (self.raw_instructions, self.bytes, self.instructions):
             editor.copyRequested.connect(self._copy_editor_selection)
             editor.selectionStarted.connect(self._clear_virtual_selection)

@@ -41,6 +41,9 @@
     STATUS_ASSEMBLY_REBUILDING: str = (
         "The visible 4 KB region is ready; the remaining Assembly projection is rebuilding in the background."
     )
+    STATUS_PROJECTION_RECOVERED: str = (
+        "Editor projection is stable. Scroll to update any pending viewport regions."
+    )
     STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
     STATUS_BYTES_ASSEMBLY_ONLY: str = (
         "Directive rows can only be edited in Editor (Assembly Code)."
@@ -56,13 +59,8 @@
     )
     STATUS_VERSION_AUTOSAVE_FAILED_TEMPLATE: str = "Version autosave failed: {error}"
     RECOVERY_TITLE: str = "Binary Workbench Recovery"
-    RECOVERY_EXPLANATION: str = (
-        "The last active tab may exceed the safe startup budget. Choose a blank project "
-        "or recover the saved tabs while excluding selected entries."
-    )
     RECOVERY_BLANK_PROJECT: str = "Blank project"
-    RECOVERY_ALL_TABS: str = "Recover all tabs"
-    RECOVERY_EXCEPT: str = "Except:"
+    RECOVERY_ALL_TABS: str = "Recover all tabs except"
     FILE: str = "File"
     ENVIRONMENT: str = "Environment"
     PREFERENCES: str = "Preferences"

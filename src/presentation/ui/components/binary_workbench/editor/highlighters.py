@@ -13,6 +13,7 @@ from PySide6.QtGui import (
 )
 
 from src.core.binary_workbench.editor.commands.registry import is_editor_command_line
+from src.core.binary_workbench.editor_consistency.classification.service import declared_label
 from src.core.binary_workbench.mips_r3000a.codec import (
     JUMP_NAVIGATION_BASE,
     JUMP_NAVIGATION_MNEMONICS,
@@ -401,6 +402,13 @@ class InstructionHighlighter(QSyntaxHighlighter):
         self._remember_register_values(block_number, register_values)
 
     def _highlight_symbols(self, original: str, code: str, code_start: int) -> None:
+        declaration = declared_label(original)
+        if declaration:
+            start = original.casefold().find(declaration.casefold())
+            if start >= 0:
+                style = text_format(psx_mips_required_highlight_color("label"))
+                style.setFontWeight(QFont.Bold)
+                self.setFormat(start, len(declaration), style)
         for match in VARIABLE_TOKEN.finditer(code):
             if match.group().lower() in self._variables:
                 self.setFormat(

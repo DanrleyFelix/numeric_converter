@@ -110,6 +110,7 @@ class TabPageManagementMixin:
         )
         page.openLabelTabRequested.connect(self.open_label_tab)
         page.symbolEditRequested.connect(self._edit_symbol_from_editor)
+        page.statusRequested.connect(self.statusChanged.emit)
         page.statusWarningRequested.connect(self.statusWarningChanged.emit)
         page.statusErrorRequested.connect(self.statusErrorChanged.emit)
         self._handle_page_context_change(context.tab_id, page.current_context())

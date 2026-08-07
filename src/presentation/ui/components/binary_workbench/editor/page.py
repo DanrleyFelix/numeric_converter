@@ -38,7 +38,6 @@ from src.presentation.ui.components.binary_workbench.editor.page_reader import r
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
-from src.core.binary_workbench.symbolic_replacements import apply_symbol_offsets
 
 JUMP_RETURN_HISTORY_LIMIT = 50
 
@@ -60,6 +59,7 @@ class BinaryWorkbenchEditorPage(
     structuralVersionSaveRequested = Signal()
     openLabelTabRequested = Signal(str, int)
     symbolEditRequested = Signal(str)
+    statusRequested = Signal(str)
     statusWarningRequested = Signal(str)
     statusErrorRequested = Signal(str)
 
@@ -97,6 +97,7 @@ class BinaryWorkbenchEditorPage(
         self.grid.jumpNavigationActivated.connect(self.go_to_clicked_instruction_offset)
         self.grid.labelOpenTabRequested.connect(self.openLabelTabRequested)
         self.grid.selectAllRequested.connect(self.select_all_content)
+        self.grid.commandStatusRequested.connect(self.statusRequested.emit)
         self.grid.commandWarningRequested.connect(self.statusWarningRequested.emit)
         self.grid.navigationWarningRequested.connect(self.statusErrorRequested.emit)
         self._reader: CachedBinaryReader | InternalFileView | None = None
@@ -350,10 +351,9 @@ class BinaryWorkbenchEditorPage(
                 1,
             )
         else:
-            rows = apply_symbol_offsets(context.rows, context.variables, context.equates, context.symbol_offsets, codec)
             self.grid.load_rows(
                 self._visible_columns(),
-                rows,
+                context.rows,
                 self._preferences.group_bytes,
                 uppercase_bytes=self._preferences.uppercase_bytes,
                 uppercase_instructions=self._preferences.uppercase_instructions,

@@ -107,6 +107,7 @@ class BinaryWorkbenchGrid(
     jumpNavigationActivated = Signal(int, int)
     labelOpenTabRequested = Signal(str, int)
     commandsChanged = Signal(dict)
+    commandStatusRequested = Signal(str)
     commandWarningRequested = Signal(str)
     navigationWarningRequested = Signal(str)
 
@@ -180,6 +181,15 @@ class BinaryWorkbenchGrid(
         self._viewport_projection_timer.timeout.connect(
             self._refresh_visible_highlighter_projection
         )
+        self._selection_projection_timer = QTimer(self)
+        self._selection_projection_timer.setSingleShot(True)
+        self._selection_projection_timer.setInterval(
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS
+        )
+        self._selection_projection_timer.timeout.connect(
+            self._materialize_selected_projection
+        )
+        self._selection_projection_request = None
         self._setup_incremental_editing()
         self._setup_bytes_structural_editing()
         self._setup_refresh_window()

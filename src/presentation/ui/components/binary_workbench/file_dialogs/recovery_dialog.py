@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QButtonGroup,
+    QDialog,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
 
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO
 from src.presentation.ui.components.binary_workbench.action_controls import (
@@ -24,7 +30,6 @@ class BinaryWorkbenchRecoveryDialog(QDialog):
     def __init__(
         self,
         tabs: list[BinaryWorkbenchTabContextDTO],
-        suspected_tab_id: str,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -37,39 +42,25 @@ class BinaryWorkbenchRecoveryDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.CONTENT_MARGINS)
         layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
-        explanation = QLabel(BINARY_WORKBENCH_TEXT.RECOVERY_EXPLANATION, self)
-        explanation.setWordWrap(True)
-        explanation.setObjectName("preferences-subtitle")
-        layout.addWidget(explanation)
-        choices = QHBoxLayout()
-        choices.setContentsMargins(*BINARY_WORKBENCH_DIALOG_LAYOUT.EMPTY_MARGINS)
-        choices.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
-        blank = QPushButton(BINARY_WORKBENCH_TEXT.RECOVERY_BLANK_PROJECT, self)
-        configure_binary_workbench_dialog_action(blank)
-        blank.setFixedWidth(BINARY_WORKBENCH_LAYOUT.RECOVERY_ACTION_WIDTH)
-        blank.clicked.connect(self._choose_blank)
-        choices.addStretch(1)
-        choices.addWidget(blank)
-        recover = QPushButton(BINARY_WORKBENCH_TEXT.RECOVERY_ALL_TABS, self)
-        configure_binary_workbench_dialog_action(recover)
-        recover.setFixedWidth(BINARY_WORKBENCH_LAYOUT.RECOVERY_ACTION_WIDTH)
-        recover.clicked.connect(self._show_exceptions)
-        choices.addWidget(recover)
-        choices.addStretch(1)
-        layout.addLayout(choices)
-        self._exceptions = QWidget(self)
-        exception_layout = QVBoxLayout(self._exceptions)
-        exception_layout.setContentsMargins(0, 0, 0, 0)
-        exception_layout.setSpacing(BINARY_WORKBENCH_DIALOG_LAYOUT.ROW_SPACING)
-        exception_layout.addWidget(QLabel(BINARY_WORKBENCH_TEXT.RECOVERY_EXCEPT, self._exceptions))
-        self.tabs_list = self._tab_list(suspected_tab_id)
-        exception_layout.addWidget(self.tabs_list, 1)
-        confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self._exceptions)
+        self.blank_option = self._choice(BINARY_WORKBENCH_TEXT.RECOVERY_BLANK_PROJECT)
+        self.recover_option = self._choice(BINARY_WORKBENCH_TEXT.RECOVERY_ALL_TABS)
+        self._choice_group = QButtonGroup(self)
+        self._choice_group.setExclusive(True)
+        self._choice_group.addButton(self.blank_option)
+        self._choice_group.addButton(self.recover_option)
+        self.blank_option.setChecked(True)
+        layout.addWidget(self.blank_option)
+        layout.addWidget(self.recover_option)
+        self.tabs_list = self._tab_list()
+        self.tabs_list.setEnabled(False)
+        self.recover_option.toggled.connect(self.tabs_list.setEnabled)
+        self.blank_option.toggled.connect(self._clear_exclusions_for_blank)
+        layout.addWidget(self.tabs_list, 1)
+        confirm = QPushButton(BINARY_WORKBENCH_TEXT.CONFIRM, self)
         configure_binary_workbench_dialog_action(confirm)
+        confirm.setFixedWidth(BINARY_WORKBENCH_LAYOUT.RECOVERY_ACTION_WIDTH)
         confirm.clicked.connect(self._confirm_recovery)
-        exception_layout.addWidget(confirm, 0, Qt.AlignCenter)
-        self._exceptions.hide()
-        layout.addWidget(self._exceptions, 1)
+        layout.addWidget(confirm, 0, Qt.AlignCenter)
         self.setFixedSize(
             BINARY_WORKBENCH_LAYOUT.RECOVERY_DIALOG_WIDTH,
             BINARY_WORKBENCH_LAYOUT.RECOVERY_DIALOG_HEIGHT,
@@ -80,29 +71,44 @@ class BinaryWorkbenchRecoveryDialog(QDialog):
 
         return None if self._excluded is None else set(self._excluded)
 
-    def _tab_list(self, suspected_tab_id: str) -> EncodingTablesList:
+    def preserves_excluded_tabs(self) -> bool:
+        """Return whether unchecked recovery tabs remain persisted for later."""
+
+        return self.recover_option.isChecked()
+
+    def _tab_list(self) -> EncodingTablesList:
         """Create one virtualized project-standard list for tab exclusions."""
 
-        tabs_list = EncodingTablesList(self._exceptions)
+        tabs_list = EncodingTablesList(self)
         tabs_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for tab in self._tabs:
             item = tabs_list.append_table(tab.display_name, False)
             item.setData(Qt.ItemDataRole.UserRole, tab.tab_id)
             item.setToolTip(tab.display_name)
-            tabs_list.set_conflict(item, tab.tab_id == suspected_tab_id)
             self._items[tab.tab_id] = item
         return tabs_list
 
-    def _choose_blank(self) -> None:
-        self._excluded = {tab.tab_id for tab in self._tabs}
-        self.accept()
+    def _clear_exclusions_for_blank(self, checked: bool) -> None:
+        """Clear stale exception highlights when Blank project becomes active."""
 
-    def _show_exceptions(self) -> None:
-        self._exceptions.show()
+        if checked:
+            self.tabs_list.clearSelection()
+            self.tabs_list.setCurrentItem(None)
+
+    def _choice(self, text: str) -> QRadioButton:
+        """Create one project-styled, mutually exclusive recovery choice."""
+
+        choice = QRadioButton(text, self)
+        choice.setObjectName("binary-workbench-recovery-choice")
+        choice.setCursor(Qt.PointingHandCursor)
+        return choice
 
     def _confirm_recovery(self) -> None:
-        self._excluded = {
-            str(item.data(Qt.ItemDataRole.UserRole))
-            for item in self.tabs_list.selectedItems()
-        }
+        if self.blank_option.isChecked():
+            self._excluded = {tab.tab_id for tab in self._tabs}
+        else:
+            self._excluded = {
+                str(item.data(Qt.ItemDataRole.UserRole))
+                for item in self.tabs_list.selectedItems()
+            }
         self.accept()

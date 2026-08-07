@@ -10,7 +10,11 @@ from src.core.binary_workbench.editor_consistency.classification.service import 
 from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TIMING,
     BINARY_WORKBENCH_TEXT,
+)
+from src.presentation.ui.components.binary_workbench.editor.consistency.projection import (
+    apply_offset_values,
 )
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     set_cursor_position,
@@ -77,13 +81,30 @@ class GridLabelFoldingMixin:
         return True
 
     def _refresh_fold_viewport(self) -> None:
-        """Immediately refresh derived/highlight state revealed by folding."""
+        """Coalesce folding and refresh only the final revealed viewport.
 
+        Qt computes visible blocks after the fold visibility mask is applied.
+        Refreshing in the same event used the previous viewport and left newly
+        exposed Raw/Bytes/Symbol formatting stale. A short generation-guarded
+        delay avoids duplicate work when users fold several labels quickly.
+        """
+
+        generation = getattr(self, "_fold_viewport_generation", 0) + 1
+        self._fold_viewport_generation = generation
+        QTimer.singleShot(
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_FOLD_VIEWPORT_MS,
+            lambda: self._commit_fold_viewport(generation),
+        )
+
+    def _commit_fold_viewport(self, generation: int) -> None:
+        """Refresh the post-layout viewport if no newer fold superseded it."""
+
+        if generation != getattr(self, "_fold_viewport_generation", 0):
+            return
         coordinator = getattr(self, "_consistency_coordinator", None)
         if coordinator is not None:
             coordinator.prioritize_viewport("label-fold")
         self._refresh_visible_highlighter_projection()
-        QTimer.singleShot(0, self._refresh_visible_highlighter_projection)
 
     def _refresh_label_folding(self, anchor_row: int | None = None) -> None:
         """Recalculate regions and apply one visibility mask to all columns."""
@@ -220,14 +241,20 @@ class GridLabelFoldingMixin:
             else None
         )
         hidden_rows = self._folded_hidden_rows()
+        previous_hidden = getattr(self, "_last_fold_hidden_rows", set())
+        changed_rows = hidden_rows.symmetric_difference(previous_hidden)
         was_syncing = self._syncing_editor_scrollbars
         self._syncing_editor_scrollbars = True
         try:
             if refresh_offsets:
-                self._render_offsets()
+                self._refresh_changed_fold_offsets(changed_rows, normalize_all)
             if normalize_all or hidden_rows or getattr(self, "_last_fold_hidden_rows", set()):
                 for editor in self._fold_editors():
-                    self._apply_hidden_rows(editor, hidden_rows)
+                    self._apply_hidden_rows(
+                        editor,
+                        hidden_rows,
+                        None if normalize_all else changed_rows,
+                    )
             self._last_fold_hidden_rows = set(hidden_rows)
         finally:
             self._syncing_editor_scrollbars = was_syncing
@@ -284,22 +311,77 @@ class GridLabelFoldingMixin:
             self.instructions,
         )
 
-    def _apply_hidden_rows(self, editor, hidden_rows: set[int]) -> None:
-        """Apply row visibility without changing text or the undo document."""
+    def _refresh_changed_fold_offsets(
+        self,
+        changed_rows: set[int],
+        normalize_all: bool,
+    ) -> None:
+        """Refresh only label headers whose folded body changed visibility."""
+
+        if normalize_all:
+            self._render_offsets()
+            return
+        affected = {
+            region.label_row
+            for region in self._label_fold_regions
+            if not changed_rows.isdisjoint(
+                range(region.first_hidden_row, region.last_hidden_row + 1)
+            )
+        }
+        directive = self._directive_fold_region
+        if directive is not None and not changed_rows.isdisjoint(
+            range(directive.first_hidden_row, directive.last_hidden_row + 1)
+        ):
+            affected.add(directive.header_row)
+        if affected:
+            apply_offset_values(
+                self,
+                tuple((index, self._rows[index].offsets) for index in sorted(affected)),
+            )
+
+    def _apply_hidden_rows(
+        self,
+        editor,
+        hidden_rows: set[int],
+        changed_rows: set[int] | None = None,
+    ) -> None:
+        """Apply a fold delta without changing text or the undo document."""
 
         document = editor.document()
-        block = document.firstBlock()
         changed = False
-        while block.isValid():
+        if changed_rows is None:
+            blocks = []
+            block = document.firstBlock()
+            while block.isValid():
+                blocks.append(block)
+                block = block.next()
+        else:
+            blocks = [
+                document.findBlockByNumber(index)
+                for index in sorted(changed_rows)
+            ]
+        dirty_start: int | None = None
+        dirty_end = 0
+        for block in blocks:
+            if not block.isValid():
+                continue
             visible = block.blockNumber() not in hidden_rows
             line_count = 1 if visible else 0
             if block.isVisible() != visible or block.lineCount() != line_count:
                 block.setVisible(visible)
                 block.setLineCount(line_count)
                 changed = True
-            block = block.next()
+                dirty_start = (
+                    block.position()
+                    if dirty_start is None
+                    else min(dirty_start, block.position())
+                )
+                dirty_end = max(dirty_end, block.position() + block.length())
         if changed:
-            document.markContentsDirty(0, document.characterCount())
+            document.markContentsDirty(
+                dirty_start or 0,
+                max(1, dirty_end - (dirty_start or 0)),
+            )
         refresh_dashes = getattr(editor, "refresh_dash_overlays", None)
         if refresh_dashes is not None:
             refresh_dashes()
@@ -446,26 +528,17 @@ class GridLabelFoldingMixin:
     def _scroll_anchor_source_row(self) -> int | None:
         """Resolve the current visual top line back to its source row."""
 
-        document = self.instructions.document()
-        visible_target = self.scrollbar.value() // ROW_BYTES
-        visible_index = 0
-        for source_row in range(document.blockCount()):
-            if not document.findBlockByNumber(source_row).isVisible():
-                continue
-            if visible_index == visible_target:
-                return source_row
-            visible_index += 1
-        return None
+        block = self.instructions.firstVisibleBlock()
+        return block.blockNumber() if block.isValid() else None
 
     def _visible_position_for_source_row(self, source_row: int) -> int:
         """Map a source row to its ordinal among currently visible rows."""
 
-        document = self.instructions.document()
-        return sum(
-            1
-            for index in range(min(source_row, document.blockCount()))
-            if document.findBlockByNumber(index).isVisible()
+        bounded = min(source_row, self.instructions.document().blockCount())
+        hidden_before = sum(
+            1 for index in self._last_fold_hidden_rows if index < bounded
         )
+        return max(0, bounded - hidden_before)
 
     def _visible_block_position(self, visible_row: int) -> int:
         """Clamp a shared visual-row position for the editor scrollbars."""

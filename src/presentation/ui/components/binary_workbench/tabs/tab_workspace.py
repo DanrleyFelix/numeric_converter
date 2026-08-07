@@ -178,7 +178,7 @@ class TabWorkspaceMixin:
         )
         if manifest is None:
             return context
-        updated = self._with_symbol_offsets(
+        updated = self._context_with_global_symbols(
             self._workspace_repository.load_tab_workspace(context, manifest)
         )
         self._remember_workspace_for_source(updated)
@@ -196,7 +196,7 @@ class TabWorkspaceMixin:
         )
         if manifest is None:
             return context
-        return self._with_symbol_offsets(
+        return self._context_with_global_symbols(
             self._workspace_repository.load_tab_workspace(context, manifest)
         )
 

@@ -229,10 +229,6 @@ QLabel#binary-workbench-footer-status[statusKind="warning"] {
     color: $text-warning;
 }
 
-QCheckBox#binary-workbench-recovery-tab[loadRisk="heavy"] {
-    color: $text-danger;
-}
-
 QLabel#binary-workbench-command-name {
     color: $text-command;
     font-size: $fs-c-md;

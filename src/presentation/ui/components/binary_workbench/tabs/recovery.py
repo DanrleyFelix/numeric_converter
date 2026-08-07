@@ -44,11 +44,17 @@ def recovery_plan(
 def selected_recovery_state(
     state: BinaryWorkbenchStateDTO,
     excluded_tab_ids: set[str],
+    *,
+    preserve_excluded: bool = True,
 ) -> tuple[BinaryWorkbenchStateDTO, tuple[BinaryWorkbenchTabContextDTO, ...]]:
-    """Create a light startup state while retaining omitted payloads for persistence."""
+    """Create a light startup state and optionally retain omitted payloads."""
 
     tabs = [tab for tab in state.tabs if tab.tab_id not in excluded_tab_ids]
-    omitted = tuple(tab for tab in state.tabs if tab.tab_id in excluded_tab_ids)
+    omitted = (
+        tuple(tab for tab in state.tabs if tab.tab_id in excluded_tab_ids)
+        if preserve_excluded
+        else ()
+    )
     active = state.active_tab_id if any(tab.tab_id == state.active_tab_id for tab in tabs) else None
     if active is None and tabs:
         active = tabs[0].tab_id

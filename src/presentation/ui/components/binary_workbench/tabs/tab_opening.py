@@ -56,7 +56,7 @@ class TabOpeningMixin:
             return False
         self._remember_file_path(BINARY_WORKBENCH_STATE.OPEN_FILE_DIRECTORY, source_path)
         context = create_file_tab(self._state, source_path, self._preferences)
-        loaded = self._with_symbol_offsets(
+        loaded = self._context_with_global_symbols(
             self._workspace_repository.load_tab_workspace(context, path)
         )
         self._remember_workspace_for_source(loaded)

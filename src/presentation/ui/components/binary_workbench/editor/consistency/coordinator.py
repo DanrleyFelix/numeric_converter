@@ -45,6 +45,7 @@ from src.presentation.ui.components.binary_workbench.editor.consistency.projecti
     apply_full_projection,
     apply_line_contents,
     apply_offset_values,
+    apply_requested_column_contents,
     apply_semantic_projection,
     apply_structure_splice,
 )
@@ -86,6 +87,8 @@ class EditorConsistencyCoordinator(QObject):
         self._collector_scheduled = False
         self._viewport_restart_scheduled = False
         self._requested_viewport: DirtyRange | None = None
+        self._requested_viewport_ranges: tuple[DirtyRange, ...] = ()
+        self._recompute_viewport_on_commit = False
         self._last_viewport_origin = "initial"
         self._pending_bytes_content_batches: list[LineContentBatch] = []
         self._pending_offset_batches: list[object] = []
@@ -1333,8 +1336,11 @@ class EditorConsistencyCoordinator(QObject):
     def prioritize_viewport(self, origin: str = "navigation") -> None:
         """Debounce typed stale work for the final scroll/navigation viewport."""
 
-        viewport = self._viewport_range()
-        self.request_viewport(viewport.first, viewport.last, origin)
+        ranges = self._viewport_ranges()
+        if not ranges:
+            return
+        recompute = origin in {"scrollbar", "label-fold", "direct-navigation"}
+        self._queue_viewport_ranges(ranges, origin, recompute)
 
     def request_viewport(
         self,
@@ -1350,14 +1356,60 @@ class EditorConsistencyCoordinator(QObject):
             max(0, first_line),
             min(len(self._model_rows) - 1, max(first_line, last_line)),
         )
-        categories = self._pending_categories(viewport)
-        if categories == DerivedCategory.NONE:
+        self._queue_viewport_ranges((viewport,), origin, False)
+
+    def materialize_selected_projection(
+        self,
+        column: str,
+        first_line: int,
+        last_line: int,
+    ) -> None:
+        """Serve a complete-line selection without starting global work."""
+
+        if not self._model_rows:
+            return
+        first = max(0, first_line)
+        last = min(len(self._model_rows) - 1, max(first, last_line))
+        if last - first + 1 > OFFSET_BATCH_SIZE:
+            return
+        if column == BINARY_WORKBENCH_TEXT.INSTRUCTION:
+            self.grid._refresh_highlighter_projection((first, last))
+            return
+        source = [
+            self.grid.instructions.document().findBlockByNumber(index).text()
+            for index in range(first, last + 1)
+        ]
+        rebuilt = self._derive_lines(first, source)
+        if rebuilt is None or len(rebuilt) != len(source):
+            return
+        indexed = tuple((first + offset, row) for offset, row in enumerate(rebuilt))
+        self._model_rows[first : last + 1] = rebuilt
+        self._line_revisions[first : last + 1] = [self.source_revision] * len(rebuilt)
+        self.grid._rows = list(self._model_rows)
+        self.grid._all_rows = list(self._model_rows)
+        apply_requested_column_contents(self.grid, column, indexed)
+
+    def _queue_viewport_ranges(
+        self,
+        ranges: tuple[DirtyRange, ...],
+        origin: str,
+        recompute_on_commit: bool,
+    ) -> None:
+        """Coalesce one navigation while retaining folded visible source ranges."""
+
+        categories = DerivedCategory.NONE
+        for viewport in ranges:
+            categories |= self._pending_categories(viewport)
+        if categories == DerivedCategory.NONE and not recompute_on_commit:
             return
         self.viewport_epoch += 1
         self._last_viewport_origin = origin
-        self._requested_viewport = viewport
+        self._requested_viewport_ranges = ranges
+        self._requested_viewport = DirtyRange(ranges[0].first, ranges[-1].last)
+        self._recompute_viewport_on_commit = recompute_on_commit
         if (
-            self.state & ConsistencyState.RECALCULATING_VISUAL
+            categories != DerivedCategory.NONE
+            and self.state & ConsistencyState.RECALCULATING_VISUAL
             and self._visual_token is not None
         ):
             self._invalidate_visual()
@@ -1438,6 +1490,8 @@ class EditorConsistencyCoordinator(QObject):
         )
         viewport = self._requested_viewport or self._viewport_range()
         self._requested_viewport = None
+        self._requested_viewport_ranges = ()
+        self._recompute_viewport_on_commit = False
         priority = DirtyRange(
             max(0, viewport.first - VIEWPORT_MARGIN_LINES),
             min(len(self._model_rows) - 1, viewport.last + VIEWPORT_MARGIN_LINES),
@@ -1518,19 +1572,31 @@ class EditorConsistencyCoordinator(QObject):
     def _prioritize_coalesced_viewport(self) -> None:
         """Commit stale visible rows before restarting deferred propagation."""
 
-        viewport = self._requested_viewport or self._viewport_range()
+        ranges = (
+            self._viewport_ranges()
+            if self._recompute_viewport_on_commit
+            else self._requested_viewport_ranges
+        )
+        if not ranges:
+            ranges = (self._requested_viewport or self._viewport_range(),)
         self._requested_viewport = None
-        self._apply_pending_symbol_viewport(viewport)
-        self._apply_pending_bytes_viewport(viewport)
-        if not self._range_consistency.is_current(
-            viewport.first,
-            viewport.last,
-            self.structural_revision,
-        ):
-            self._apply_offset_window(
+        self._requested_viewport_ranges = ()
+        self._recompute_viewport_on_commit = False
+        for viewport in ranges:
+            categories = self._pending_categories(viewport)
+            if categories == DerivedCategory.NONE:
+                continue
+            self._apply_pending_symbol_viewport(viewport)
+            self._apply_pending_bytes_viewport(viewport)
+            if not self._range_consistency.is_current(
                 viewport.first,
-                viewport.last - viewport.first + 1,
-            )
+                viewport.last,
+                self.structural_revision,
+            ):
+                self._apply_offset_window(
+                    viewport.first,
+                    viewport.last - viewport.first + 1,
+                )
         if self._viewport_restart_scheduled or not self._dirty_ranges:
             return
         self._viewport_restart_scheduled = True
@@ -1668,6 +1734,9 @@ class EditorConsistencyCoordinator(QObject):
         self._pending_bytes_content_batches.clear()
         self._pending_offset_batches.clear()
         self._pending_visual_completion = None
+        self._requested_viewport = None
+        self._requested_viewport_ranges = ()
+        self._recompute_viewport_on_commit = False
         self.visual_generation += 1
         self.semantic_generation += 1
         if self._visual_token is not None:
@@ -1847,6 +1916,20 @@ class EditorConsistencyCoordinator(QObject):
     def _viewport_range(self) -> DirtyRange:
         first = max(0, self.grid.instructions.firstVisibleBlock().blockNumber())
         return DirtyRange(first, min(len(self._model_rows) - 1, first + self.grid._visible_row_count()))
+
+    def _viewport_ranges(self) -> tuple[DirtyRange, ...]:
+        """Return exact visible source ranges when folding makes them disjoint."""
+
+        if getattr(self.grid, "_last_fold_hidden_rows", None):
+            ranges = self.grid._visible_source_ranges()
+            if ranges:
+                last_row = len(self._model_rows) - 1
+                return tuple(
+                    DirtyRange(max(0, first), min(last_row, last))
+                    for first, last in ranges
+                    if first <= last_row
+                )
+        return (self._viewport_range(),)
 
     def _clear_collector(self) -> None:
         self._pending_first = None

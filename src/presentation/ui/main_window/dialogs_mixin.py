@@ -37,7 +37,6 @@ class MainWindowDialogsMixin:
             if plan is not None:
                 dialog = BinaryWorkbenchRecoveryDialog(
                     opening_state.tabs,
-                    plan.suspected_tab_id,
                     self,
                 )
                 if dialog.exec() != dialog.DialogCode.Accepted:
@@ -45,10 +44,17 @@ class MainWindowDialogsMixin:
                 excluded = dialog.excluded_tab_ids()
                 if excluded is None:
                     return
+                preserve_excluded = dialog.preserves_excluded_tabs()
                 opening_state, omitted_tabs = selected_recovery_state(
                     opening_state,
                     excluded,
+                    preserve_excluded=preserve_excluded,
                 )
+                if not preserve_excluded:
+                    # A blank recovery is an explicit replacement of the saved
+                    # heavy workspace, even when the new window has no tabs and
+                    # therefore cannot emit a later stateChanged signal.
+                    self._remember_binary_workbench_state(opening_state)
             self._binary_workbench_window = BinaryWorkbenchWindow(
                 opening_state,
                 self._state_service.binary_workspace_directory,

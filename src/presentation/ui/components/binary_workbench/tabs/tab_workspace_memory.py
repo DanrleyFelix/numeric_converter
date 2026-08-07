@@ -169,7 +169,10 @@ class TabWorkspaceMemoryMixin:
         path = Path(context.workspace_path or "")
         if not path.exists():
             return context
-        return self._with_symbol_offsets(
+        # Startup must not assemble the full tab before its viewport exists.
+        # The page coordinator resolves visible Symbol rows immediately and
+        # indexes the remainder incrementally after materialization.
+        return self._context_with_global_symbols(
             self._workspace_repository.load_tab_workspace(context, path)
         )
 

@@ -58,6 +58,23 @@ def test_recovery_exclusions_remain_available_for_safe_persistence():
     assert {tab.tab_id for tab in restored.tabs} == {"first", "second"}
 
 
+def test_blank_recovery_discards_old_tabs_instead_of_merging_them_back():
+    """A blank startup must replace the persisted heavy-tab selection."""
+
+    old = _tab("old", 2)
+    state = BinaryWorkbenchStateDTO(tabs=[old], active_tab_id="old")
+
+    selected, omitted = selected_recovery_state(
+        state,
+        {"old"},
+        preserve_excluded=False,
+    )
+
+    assert selected.tabs == []
+    assert selected.active_tab_id is None
+    assert omitted == ()
+
+
 def test_recovery_preflight_detects_a_large_source_without_materialized_rows(tmp_path):
     source = tmp_path / "large.asm"
     source.write_bytes(b" " * RECOVERY_SOURCE_BYTE_THRESHOLD)

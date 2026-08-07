@@ -118,7 +118,7 @@ class TabStateMixin:
         finally:
             self._loading_state = False
         if self.count():
-            self._sync_active_tab(self.currentIndex())
+            self._sync_active_tab(self.currentIndex(), commit_current=False)
         self.stateChanged.emit(self._state)
 
     def directory_for(self, action_key: str) -> str:
@@ -235,21 +235,6 @@ class TabStateMixin:
             **{**state_payload(self._state), "tabs": [*self._state.tabs, context], "active_tab_id": context.tab_id}
         )
         self._add_tab_page(context)
-        if self._global_symbols:
-            page = self.widget(self.count() - 1)
-            context = self._context_with_symbol_values(
-                context,
-                self.local_symbols(context),
-                page,
-            )
-            self._state = BinaryWorkbenchStateDTO(
-                **{
-                    **state_payload(self._state),
-                    "tabs": [*self._state.tabs[:-1], context],
-                }
-            )
-            if isinstance(page, BinaryWorkbenchEditorPage):
-                page.load_context(context)
         self.setCurrentIndex(self.count() - 1)
         self._ensure_workspace_heavy_loaded(self.currentIndex())
         self._enforce_workspace_heavy_limit()
@@ -492,7 +477,9 @@ class TabStateMixin:
         self._replace_context_without_emit(committed.tab_id, committed)
         return committed
 
-    def _sync_active_tab(self, index: int) -> None:
+    def _sync_active_tab(self, index: int, *, commit_current: bool = True) -> None:
+        """Activate one tab without rebuilding a freshly loaded source."""
+
         if getattr(self, "_loading_state", False):
             return
         if not 0 <= index < len(self._state.tabs):
@@ -517,7 +504,7 @@ class TabStateMixin:
         active_page = self.widget(index)
         if isinstance(active_page, BinaryWorkbenchEditorPage):
             active_page.activate_consistency_context()
-            if not active_page.commit_current_editor_text():
+            if commit_current and not active_page.commit_current_editor_text():
                 blocker = QSignalBlocker(self)
                 self.setCurrentIndex(previous if 0 <= previous < self.count() else index)
                 del blocker

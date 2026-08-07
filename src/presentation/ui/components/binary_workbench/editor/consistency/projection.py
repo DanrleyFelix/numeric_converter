@@ -263,6 +263,40 @@ def apply_line_contents(grid, rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...
         raise
 
 
+def apply_requested_column_contents(
+    grid,
+    column: str,
+    rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
+) -> None:
+    """Project one explicitly selected column without touching its peers."""
+
+    editor_and_text = {
+        BINARY_WORKBENCH_TEXT.BYTES: (
+            grid.bytes,
+            grid._display_bytes_row,
+        ),
+        BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: (
+            grid.raw_instructions,
+            grid._display_raw_row,
+        ),
+        BINARY_WORKBENCH_TEXT.DECODED_TEXT: (
+            grid.decoded_text,
+            grid._display_decoded_row,
+        ),
+    }.get(column)
+    if editor_and_text is None or not _column_is_configured(grid, column):
+        return
+    editor, display = editor_and_text
+    snapshots = _line_snapshots((editor,), tuple(index for index, _ in rows))
+    try:
+        with projection_transaction(grid, history_editors=(editor,)):
+            for index, row in rows:
+                _replace_line(editor, index, display(row))
+    except Exception:
+        _restore_lines(grid, snapshots)
+        raise
+
+
 def apply_bytes_line_contents(
     grid,
     rows: tuple[tuple[int, BinaryWorkbenchRowDTO], ...],
@@ -486,6 +520,7 @@ def _rebuild_bytes_origin_projection(grid) -> None:
         )
         _refresh_offset_overlays(grid)
         _validate_block_counts(grid)
+    _report_projection_recovered(grid)
 
 
 def _refresh_offset_overlays(grid) -> None:
@@ -576,6 +611,15 @@ def _rebuild_derived_documents(grid) -> None:
             )
         _refresh_offset_overlays(grid)
         _validate_block_counts(grid)
+    _report_projection_recovered(grid)
+
+
+def _report_projection_recovered(grid) -> None:
+    """Confirm an exceptional projection repair without exposing internals."""
+
+    signal = getattr(grid, "commandStatusRequested", None)
+    if signal is not None:
+        signal.emit(BINARY_WORKBENCH_TEXT.STATUS_PROJECTION_RECOVERED)
 
 
 def _replace_document(editor, lines: list[str]) -> None:

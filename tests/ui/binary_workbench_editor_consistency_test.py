@@ -20,9 +20,13 @@ from src.core.binary_workbench.mips_r3000a import source_line_rows as source_row
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchRowDTO,
+    BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
 )
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import (
+    BINARY_WORKBENCH_TEXT,
+    BINARY_WORKBENCH_TIMING,
+)
 from src.presentation.ui.components.binary_workbench.editor.consistency import (
     coordinator as coordinator_module,
     projection as projection_module,
@@ -30,11 +34,15 @@ from src.presentation.ui.components.binary_workbench.editor.consistency import (
 from src.presentation.ui.components.binary_workbench.editor.consistency.coordinator import (
     EditorConsistencyCoordinator,
 )
+from src.presentation.ui.components.binary_workbench.editor.highlighter_colors import (
+    psx_mips_required_highlight_color,
+)
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
     labels_from_rows,
 )
 from src.presentation.ui.components.binary_workbench.editor.page import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.editor.table import BinaryWorkbenchGrid
+from src.presentation.ui.components.binary_workbench.tabs import BinaryWorkbenchTabs
 from src.presentation.ui.helpers.load_qss import STYLESHEET
 from src.presentation.ui.components.binary_workbench.window_version_actions import (
     BinaryWorkbenchWindowVersionMixin,
@@ -295,10 +303,140 @@ def test_label_fold_refreshes_revealed_viewport_immediately(monkeypatch):
     )
 
     grid.toggle_label_fold("entry")
-    _app().processEvents()
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_FOLD_VIEWPORT_MS + 80)
 
     assert viewport_calls == ["label-fold"]
     assert len(highlight_calls) >= 1
+
+
+def test_folded_viewport_reports_only_the_disjoint_rows_revealed_on_screen():
+    """Collapsed bodies must not displace later visible labels from priority."""
+
+    lines = []
+    for label_index in range(3):
+        lines.append(f"label_{label_index}:")
+        lines.extend("nop" for _ in range(40))
+    grid = _grid(lines)
+    grid.set_label_folding_enabled(True)
+    grid.toggle_label_fold("label_0")
+    grid.toggle_label_fold("label_1")
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_FOLD_VIEWPORT_MS + 40)
+
+    ranges = grid._visible_source_ranges()
+
+    assert (0, 0) in ranges
+    assert (41, 41) in ranges
+    assert any(first <= 82 <= last for first, last in ranges)
+    assert not any(first <= 20 <= last for first, last in ranges)
+
+
+def test_declared_label_is_highlighted_before_global_semantics_finish():
+    """A visible declaration is syntactic and does not need a global label map."""
+
+    grid = _grid(["fresh_label:", "nop"])
+    grid.set_symbols({}, {}, {}, {})
+    grid._refresh_visible_highlighter_projection()
+    _app().processEvents()
+    formats = grid.instructions.document().firstBlock().layout().formats()
+    expected = psx_mips_required_highlight_color("label").casefold()
+
+    assert any(
+        item.start == 0
+        and item.length >= len("fresh_label")
+        and item.format.foreground().color().name().casefold() == expected
+        for item in formats
+    )
+
+
+def test_selection_demand_requires_a_complete_line_and_is_debounced(monkeypatch):
+    """One selected character must not trigger derivation work."""
+
+    grid = _grid(["addiu $a0, $a0, 2"])
+    calls = []
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "materialize_selected_projection",
+        lambda *args: calls.append(args),
+    )
+    block = grid.bytes.document().firstBlock()
+    cursor = QTextCursor(block)
+    cursor.setPosition(block.position() + 1, QTextCursor.KeepAnchor)
+    grid.bytes.setTextCursor(cursor)
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS + 20)
+
+    assert calls == []
+
+    block = grid.bytes.document().firstBlock()
+    cursor = QTextCursor(block)
+    cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+    grid.bytes.setTextCursor(cursor)
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS + 20)
+
+    assert calls == [(BINARY_WORKBENCH_TEXT.BYTES, 0, 0)]
+
+
+def test_selection_demand_projects_only_the_requested_column():
+    """Selection refresh must not rewrite peer columns or start global work."""
+
+    grid = _grid(["addiu $a0, $a0, 2"])
+    projection_module._replace_line(grid.bytes, 0, "")
+    projection_module._replace_line(grid.raw_instructions, 0, "RAW STALE")
+    projection_module._replace_line(grid.decoded_text, 0, "DECODE STALE")
+
+    grid._consistency_coordinator.materialize_selected_projection(
+        BINARY_WORKBENCH_TEXT.BYTES,
+        0,
+        0,
+    )
+
+    assert _editor_line(grid.bytes, 0) == grid._display_bytes_row(
+        grid._consistency_coordinator._model_rows[0]
+    )
+    assert _editor_line(grid.raw_instructions, 0) == "RAW STALE"
+    assert _editor_line(grid.decoded_text, 0) == "DECODE STALE"
+
+
+def test_projection_repair_reports_stable_status():
+    grid = _grid(["nop", "addiu $t0, $t0, 1"])
+    statuses = []
+    grid.commandStatusRequested.connect(statuses.append)
+
+    projection_module._rebuild_derived_documents(grid)
+
+    assert statuses == [BINARY_WORKBENCH_TEXT.STATUS_PROJECTION_RECOVERED]
+
+
+def test_initial_tab_materialization_does_not_force_full_commit(
+    monkeypatch,
+    tmp_path,
+):
+    """A fresh page is already source-consistent and must not hit the barrier."""
+
+    calls = []
+    monkeypatch.setattr(
+        BinaryWorkbenchEditorPage,
+        "commit_current_editor_text",
+        lambda _page: calls.append(True) or True,
+    )
+    context = BinaryWorkbenchTabContextDTO(
+        "startup",
+        "scratch",
+        "Startup",
+        rows=build_rows_from_instructions(
+            ["nop"] * 32,
+            [BINARY_WORKBENCH_TEXT.FILE],
+            {},
+        ),
+    )
+    tabs = BinaryWorkbenchTabs(
+        BinaryWorkbenchStateDTO(tabs=[context], active_tab_id=context.tab_id),
+        tmp_path,
+    )
+
+    assert calls == []
+    tabs.close()
+    tabs.deleteLater()
+    _app().processEvents()
 
 
 def test_broad_copy_barrier_runs_only_for_pending_state(monkeypatch):
@@ -714,6 +852,36 @@ def test_newly_visible_stale_viewport_is_projected_without_global_work(monkeypat
         assert _editor_line(
             grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE], row
         ) == coordinator._model_rows[row].offsets[BINARY_WORKBENCH_TEXT.FILE]
+
+
+def test_scroll_commit_rechecks_the_final_qt_viewport(monkeypatch):
+    """The 16 ms coalescer must discard the pre-layout scrollbar viewport."""
+
+    grid = _grid(["nop" for _ in range(100)], references=True)
+    coordinator = grid._consistency_coordinator
+    current = coordinator_module.DirtyRange(0, 5)
+    final = coordinator_module.DirtyRange(60, 65)
+    selected = [current]
+    monkeypatch.setattr(coordinator, "_viewport_range", lambda: selected[0])
+    coordinator.structural_revision += 1
+    coordinator._range_consistency.invalidate_from(
+        0,
+        len(coordinator._model_rows),
+        coordinator.structural_revision,
+    )
+    calls = []
+    monkeypatch.setattr(
+        coordinator,
+        "_apply_offset_window",
+        lambda first, count: calls.append((first, count)),
+    )
+
+    coordinator.prioritize_viewport("scrollbar")
+    selected[0] = final
+    coordinator._viewport_timer.stop()
+    coordinator._prioritize_coalesced_viewport()
+
+    assert calls == [(final.first, final.last - final.first + 1)]
 
 
 def test_repeated_scroll_positions_restart_one_typed_viewport_job(monkeypatch):

@@ -401,17 +401,46 @@ class GridRenderingMixin:
     def _visible_highlighter_projection_range(self) -> tuple[int, int]:
         """Return only rows visible after a coalesced navigation frame."""
 
+        ranges = self._visible_source_ranges()
+        if ranges:
+            return ranges[0][0], ranges[-1][1]
         first = max(0, self.instructions.firstVisibleBlock().blockNumber())
-        line_height = max(1, self.instructions.fontMetrics().height())
-        visible = max(1, self.instructions.viewport().height() // line_height + 2)
-        return first, first + visible
+        return first, first
+
+    def _visible_source_ranges(self) -> tuple[tuple[int, int], ...]:
+        """Return disjoint source ranges that are actually visible after folding.
+
+        A folded viewport is not a contiguous source interval: several label
+        headers can be followed by the body of a much later label. Walking the
+        already-materialized QTextBlocks is bounded by the current document and
+        avoids parsing, assembling, or deriving any hidden row.
+        """
+
+        block = self.instructions.firstVisibleBlock()
+        wanted = self._visible_row_count() + 2
+        indices: list[int] = []
+        while block.isValid() and len(indices) < wanted:
+            if block.isVisible():
+                indices.append(block.blockNumber())
+            block = block.next()
+        if not indices:
+            return ()
+        ranges: list[tuple[int, int]] = []
+        first = previous = indices[0]
+        for index in indices[1:]:
+            if index == previous + 1:
+                previous = index
+                continue
+            ranges.append((first, previous))
+            first = previous = index
+        ranges.append((first, previous))
+        return tuple(ranges)
 
     def _refresh_visible_highlighter_projection(self) -> None:
         """Prioritize current viewport formatting after scroll/navigation."""
 
-        self._refresh_highlighter_projection(
-            self._visible_highlighter_projection_range()
-        )
+        for projection_range in self._visible_source_ranges():
+            self._refresh_highlighter_projection(projection_range)
 
     def _refresh_highlighter_projection(
         self,
@@ -432,17 +461,22 @@ class GridRenderingMixin:
             self._raw_instruction_highlighter.set_projection_window(first, last)
             self._instruction_highlighter.set_projection_window(first, last)
             self._materialize_raw_projection(first, last)
-            self._rehighlight_projection_window()
+            self._rehighlight_projection_window(first, last)
             self._refresh_visible_instruction_hazards(first, last)
         finally:
             self._updating = was_updating
 
-    def _rehighlight_projection_window(self) -> None:
+    def _rehighlight_projection_window(
+        self,
+        first: int | None = None,
+        last: int | None = None,
+    ) -> None:
         """Reformat only visible blocks and their small prefetch margin."""
 
         self._instruction_highlighter.rehighlight_projection_window()
         self._raw_instruction_highlighter.rehighlight_projection_window()
-        first, last = self._highlighter_projection_range()
+        if first is None or last is None:
+            first, last = self._highlighter_projection_range()
         for index in range(first, last + 1):
             block = self.bytes.document().findBlockByNumber(index)
             if block.isValid():
