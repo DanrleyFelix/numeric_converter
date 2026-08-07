@@ -44,6 +44,9 @@
     STATUS_PROJECTION_RECOVERED: str = (
         "Editor projection is stable. Scroll to update any pending viewport regions."
     )
+    STATUS_COPY_PREPARING: str = "Preparing the selected derived content..."
+    STATUS_COPY_READY: str = "Selected content copied."
+    STATUS_COPY_CANCELLED: str = "Copy cancelled because the Assembly source changed."
     STATUS_MULTILINE_PASTE_LINE_MISMATCH: str = "Paste line count must match the selected line count."
     STATUS_BYTES_ASSEMBLY_ONLY: str = (
         "Directive rows can only be edited in Editor (Assembly Code)."

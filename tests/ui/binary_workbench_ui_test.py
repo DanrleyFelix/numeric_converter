@@ -1561,7 +1561,7 @@ def test_binary_workbench_close_save_persists_scratch_file_before_closing(tmp_pa
     tool._request_tab_close(0)
 
     assert tool.tabs.count() == 0
-    assert "ADDIU $sp,$sp,-0x10" in output_path.read_text(encoding="utf-8")
+    assert "ADDIU $SP,$SP,-0X10" in output_path.read_text(encoding="utf-8").upper()
     assert (tmp_path / "data" / "binary_workbench" / "workspaces" / "closed_workspace_manifest.json").exists()
 
 

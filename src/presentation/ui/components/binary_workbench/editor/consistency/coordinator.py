@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from uuid import uuid4
 import re
 
 from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import QApplication
 
 from src.core.binary_workbench.editor_consistency import (
     ChangeKind,
@@ -50,6 +51,7 @@ from src.presentation.ui.components.binary_workbench.editor.consistency.projecti
     apply_structure_splice,
 )
 from src.presentation.ui.components.binary_workbench.editor.consistency.workers import (
+    DerivedCopyWorker,
     EditorConsistencyWorkerPool,
     OffsetDistributionWorker,
     SemanticWorker,
@@ -93,15 +95,22 @@ class EditorConsistencyCoordinator(QObject):
         self._pending_bytes_content_batches: list[LineContentBatch] = []
         self._pending_offset_batches: list[object] = []
         self._pending_visual_completion: tuple | None = None
+        self._background_batch_delay_ms = (
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_BATCH_INITIAL_MS
+        )
         self._pending_symbol_lines: set[int] = set()
         self._range_consistency = RangeConsistencyIndex()
         self._symbol_consistency = RangeConsistencyIndex()
         self._bulk_symbols_pending = False
+        self._copy_semantic_pending = False
         self._barrier_active = False
         self._visual_token: CancellationToken | None = None
         self._semantic_token: CancellationToken | None = None
+        self._broad_copy_token: CancellationToken | None = None
         self._visual_worker = None
         self._semantic_worker = None
+        self._broad_copy_worker = None
+        self._broad_copy_generation = 0
         self._pool = EditorConsistencyWorkerPool(self)
         self._visual_quiet = self._timer(BINARY_WORKBENCH_TIMING.CONSISTENCY_VISUAL_DEBOUNCE_MS, self._start_visual)
         self._visual_maximum = self._timer(BINARY_WORKBENCH_TIMING.CONSISTENCY_VISUAL_MAX_LATENCY_MS, self._start_visual)
@@ -112,12 +121,21 @@ class EditorConsistencyCoordinator(QObject):
         )
         self._bytes_content_timer = self._timer(0, self._flush_bytes_content_batch)
         self._offset_batch_timer = self._timer(
-            BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_PROJECTION_INTERVAL_MS,
+            self._background_batch_delay_ms,
             self._flush_offset_batch,
         )
         grid.instructions.document().contentsChange.connect(self.collect_contents_change)
+        grid.bytes.document().contentsChange.connect(
+            lambda *_change: self._defer_eventual_for_user_input()
+        )
+        for editor in grid._popup_editors():
+            editor.cursorPositionChanged.connect(self._defer_eventual_for_user_input)
+            editor.selectionChanged.connect(self._defer_eventual_for_user_input)
         grid.scrollbar.valueChanged.connect(
-            lambda _value: self.prioritize_viewport("scrollbar")
+            lambda _value: (
+                self._defer_eventual_for_user_input(),
+                self.prioritize_viewport("scrollbar"),
+            )
         )
 
     def _timer(self, interval: int, callback) -> QTimer:
@@ -126,6 +144,21 @@ class EditorConsistencyCoordinator(QObject):
         timer.setInterval(interval)
         timer.timeout.connect(callback)
         return timer
+
+    def _defer_eventual_for_user_input(self) -> None:
+        """Restart idle deadlines and cancel only obsolete semantic CPU work."""
+
+        if self.grid._updating:
+            return
+        if self._pending_offset_batches:
+            self._offset_batch_timer.setInterval(self._background_batch_delay_ms)
+            self._offset_batch_timer.start()
+        if self.state & ConsistencyState.DIRTY_SEMANTIC:
+            if self._semantic_token is not None and not self._semantic_token.is_cancelled():
+                self._semantic_token.cancel()
+                self.semantic_generation += 1
+                self.state &= ~ConsistencyState.RECALCULATING_SEMANTIC
+            self._semantic_timer.start()
 
     def enabled(self) -> bool:
         """Return whether this source grid can use incremental consistency.
@@ -136,6 +169,16 @@ class EditorConsistencyCoordinator(QObject):
         """
 
         return not self.grid._virtual
+
+    def has_pending_source_changes(self) -> bool:
+        """Check unpublished edits without exporting or scanning the document."""
+
+        return bool(
+            self._pending_first is not None
+            or self._collector_scheduled
+            or self._operation_depth
+            or self._explicit_dirty_lines
+        )
 
     def offset_before_line(self, index: int) -> int:
         """Return the indexed logical offset without scanning neighboring rows."""
@@ -199,6 +242,7 @@ class EditorConsistencyCoordinator(QObject):
         self._symbol_consistency.reset(len(rows), self.source_revision)
         self._pending_symbol_lines.clear()
         self._bulk_symbols_pending = False
+        self._copy_semantic_pending = False
         self._clear_collector()
         self.visual_revision_applied = self.structural_revision
         self.semantic_revision_applied = self.source_revision
@@ -223,6 +267,7 @@ class EditorConsistencyCoordinator(QObject):
         self._clear_collector()
         self.visual_revision_applied = self.structural_revision
         self.semantic_revision_applied = self.source_revision
+        self._copy_semantic_pending = False
         self.state = ConsistencyState.CLEAN
 
     def accept_bytes_line(self, index: int, row: BinaryWorkbenchRowDTO) -> None:
@@ -481,6 +526,7 @@ class EditorConsistencyCoordinator(QObject):
 
         if self.grid._updating or self._barrier_active or not self.enabled():
             return
+        self._defer_eventual_for_user_input()
         document = self.grid.instructions.document()
         first = max(0, document.findBlock(max(0, position)).blockNumber())
         end_position = max(0, position + max(0, added) - 1)
@@ -636,6 +682,7 @@ class EditorConsistencyCoordinator(QObject):
                 self.grid._refresh_label_folding()
         immediate_last = self._apply_immediate_offsets(first)
         self._ensure_viewport_offsets_projected(first, immediate_last)
+        self._refresh_edited_viewport_projection()
         has_pending_visual = bool(self._dirty_ranges)
         needs_visual_worker = has_pending_visual or immediate_last < len(self._model_rows) - 1
         if needs_visual_worker:
@@ -702,6 +749,7 @@ class EditorConsistencyCoordinator(QObject):
         self.grid._rows = list(self._model_rows)
         self.grid._all_rows = list(self._model_rows)
         apply_line_contents(self.grid, tuple(changed))
+        self._refresh_edited_viewport_projection()
         if labels_changed:
             self.grid._set_editing_labels(labels_from_source_rows(self._model_rows))
             self.grid._refresh_label_folding()
@@ -739,6 +787,23 @@ class EditorConsistencyCoordinator(QObject):
             self.semantic_revision_applied = self.source_revision
         self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
         self.grid._dirty_editor_kind = None
+
+    def _refresh_edited_viewport_projection(self) -> None:
+        """Commit pasted visible rows and formatting without a global rebuild."""
+
+        for viewport in self._viewport_ranges():
+            first = max(0, viewport.first)
+            last = min(len(self._model_rows) - 1, viewport.last)
+            if first > last:
+                continue
+            apply_line_contents(
+                self.grid,
+                tuple(
+                    (index, self._model_rows[index])
+                    for index in range(first, last + 1)
+                ),
+            )
+            self.grid._refresh_highlighter_projection((first, last))
 
     def _apply_immediate_offsets(self, first: int) -> int:
         """Update one model batch but paint only the edited row and viewport."""
@@ -970,28 +1035,96 @@ class EditorConsistencyCoordinator(QObject):
         return preserved
 
     def ensure_broad_copy_consistent(self) -> bool:
-        """Run a barrier only when a near-complete derived copy is stale."""
+        """Report whether a broad copy can use its current projection.
+
+        The former implementation rebuilt every derived QTextDocument on the
+        GUI thread before Ctrl+C.  The check remains constant-time, while stale
+        copy data is now prepared separately by :meth:`request_broad_copy`.
+        """
 
         self.flush_collected_changes()
-        pending = bool(
-            self._pending_first is not None
-            or self._dirty_ranges
-            or self._pending_bytes_content_batches
-            or self._pending_symbol_lines
-            or self._bulk_symbols_pending
-            or self.state
-            & (
-                ConsistencyState.DIRTY_VISUAL
-                | ConsistencyState.RECALCULATING_VISUAL
-                | ConsistencyState.DIRTY_SEMANTIC
-                | ConsistencyState.RECALCULATING_SEMANTIC
-            )
-            or self.visual_revision_applied != self.structural_revision
-            or self.semantic_revision_applied != self.source_revision
-        )
-        if not pending:
+        # Clipboard text needs a current Assembly/control-flow projection, not
+        # pending paint, hazard or catalog-wide highlight maintenance.  Symbol
+        # fidelity remains the explicit F1 barrier; importing a large catalog
+        # must not turn Ctrl+C into an unrelated whole-document calculation.
+        return not self._copy_semantic_pending
+
+    def request_broad_copy(
+        self,
+        callback: Callable[[tuple[BinaryWorkbenchRowDTO, ...]], None],
+    ) -> bool:
+        """Prepare stale copy rows in a worker without reprojecting the UI.
+
+        ``True`` tells the caller to copy its current document immediately.
+        Otherwise the immutable current source is assembled with user-request
+        priority and delivered to ``callback`` only if its revision survives.
+        """
+
+        if self.ensure_broad_copy_consistent():
             return True
-        return self.ensure_consistent("broad-derived-copy").success
+        # An explicit clipboard request outranks eventual semantic maintenance.
+        # The active worker exits cooperatively at its next bounded check.
+        self._semantic_timer.stop()
+        if self._semantic_token is not None:
+            self._semantic_token.cancel()
+        self._broad_copy_generation += 1
+        generation = self._broad_copy_generation
+        if self._broad_copy_token is not None:
+            self._broad_copy_token.cancel()
+        self._broad_copy_token = CancellationToken()
+        snapshot = SemanticSnapshot(
+            self.owner,
+            self.source_revision,
+            generation,
+            self.grid._codec.display_name,
+            binary_workbench_worker_codec_for(self.grid._codec.display_name),
+            tuple(row.instruction for row in self._model_rows),
+            tuple(self.grid._columns or [BINARY_WORKBENCH_TEXT.FILE]),
+            self.grid._offset_base_text(),
+            dict(self.grid._variables),
+            dict(self.grid._equates),
+            self.grid._jump_reference_offset,
+        )
+        worker = DerivedCopyWorker(snapshot, self._broad_copy_token)
+        worker.signals.semanticReady.connect(
+            lambda result: self._complete_broad_copy(result, generation, callback)
+        )
+        worker.signals.failed.connect(self._broad_copy_failed)
+        self._broad_copy_worker = worker
+        self.grid.commandStatusRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_COPY_PREPARING)
+        self._pool.start_immediate(worker)
+        return False
+
+    def _complete_broad_copy(self, result, generation: int, callback) -> None:
+        """Deliver prepared copy rows only for the still-current snapshot."""
+
+        if (
+            result.owner != self.owner
+            or result.source_revision != self.source_revision
+            or result.generation != generation
+            or generation != self._broad_copy_generation
+        ):
+            self._broad_copy_worker = None
+            self._broad_copy_token = None
+            self.grid.commandWarningRequested.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_COPY_CANCELLED
+            )
+            return
+        callback(tuple(result.rows))
+        self.grid.commandStatusRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_COPY_READY)
+        self._broad_copy_worker = None
+        self._broad_copy_token = None
+        if self.state & ConsistencyState.DIRTY_SEMANTIC:
+            self._semantic_timer.start()
+
+    def _broad_copy_failed(self, message: str) -> None:
+        """Surface copy preparation errors without mutating editor state."""
+
+        self._broad_copy_worker = None
+        self._broad_copy_token = None
+        self.grid.commandWarningRequested.emit(message)
+        if self.state & ConsistencyState.DIRTY_SEMANTIC:
+            self._semantic_timer.start()
 
     def _schedule_visual(self) -> None:
         self.state |= ConsistencyState.DIRTY_VISUAL
@@ -999,7 +1132,11 @@ class EditorConsistencyCoordinator(QObject):
         if not self._visual_maximum.isActive():
             self._visual_maximum.start()
 
-    def _schedule_semantic(self) -> None:
+    def _schedule_semantic(self, *, copy_required: bool = True) -> None:
+        """Schedule global semantics and record whether clipboard depends on it."""
+
+        if copy_required:
+            self._copy_semantic_pending = True
         self.state |= ConsistencyState.DIRTY_SEMANTIC
         self._semantic_timer.start()
 
@@ -1082,24 +1219,45 @@ class EditorConsistencyCoordinator(QObject):
             if worker is not None:
                 worker.acknowledge_batch()
             return
-        self._pending_offset_batches[:] = [(batch, worker)]
+        # The real worker waits for acknowledgement, so production still has
+        # at most one ready batch.  Appending is nevertheless essential when
+        # a worker is executed synchronously (tests or an immediate fallback):
+        # replacing the slot silently dropped intermediate offset ranges.
+        self._pending_offset_batches.append((batch, worker))
         if not self._offset_batch_timer.isActive():
+            self._offset_batch_timer.setInterval(self._background_batch_delay_ms)
             self._offset_batch_timer.start()
 
     def _flush_offset_batch(self) -> None:
         """Commit at most one background batch per event-loop slice."""
 
+        if self._modal_ui_active():
+            # Keep the producer blocked on its current acknowledgement while
+            # the user interacts with a dialog. No CPU or projection work is
+            # useful behind a modal surface.
+            self._offset_batch_timer.setInterval(self._background_batch_delay_ms)
+            self._offset_batch_timer.start()
+            return
+        applied = False
         while self._pending_offset_batches:
             pending = self._pending_offset_batches.pop(0)
             batch, worker = pending if isinstance(pending, tuple) else (pending, None)
             try:
                 if self._valid_offset_batch(batch):
                     self._apply_offset_batch(batch)
+                    applied = True
                     break
             finally:
                 if worker is not None:
                     worker.acknowledge_batch()
+        if applied:
+            self._background_batch_delay_ms = min(
+                BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_BATCH_MAX_MS,
+                self._background_batch_delay_ms
+                + BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_BATCH_STEP_MS,
+            )
         if self._pending_offset_batches:
+            self._offset_batch_timer.setInterval(self._background_batch_delay_ms)
             self._offset_batch_timer.start()
             return
         if self._pending_visual_completion is not None:
@@ -1127,6 +1285,11 @@ class EditorConsistencyCoordinator(QObject):
         self.grid._dirty_editor_kind = None
 
     def _start_semantic(self) -> None:
+        if self._modal_ui_active():
+            # Semantic reconstruction is eventual and CPU-bound Python work.
+            # Defer it until the modal interaction has had a quiet interval.
+            self._semantic_timer.start()
+            return
         if self._pending_bytes_content_batches:
             self._semantic_timer.start()
             return
@@ -1153,6 +1316,19 @@ class EditorConsistencyCoordinator(QObject):
         self._semantic_worker = worker
         self.state |= ConsistencyState.RECALCULATING_SEMANTIC
         self._pool.start_semantic(worker)
+
+    @staticmethod
+    def _modal_ui_active() -> bool:
+        """Return whether user-facing modal/popup interaction owns the UI."""
+
+        application = QApplication.instance()
+        return bool(
+            application
+            and (
+                application.activeModalWidget() is not None
+                or application.activePopupWidget() is not None
+            )
+        )
 
     def _apply_semantic_result(self, result) -> None:
         if (
@@ -1210,6 +1386,7 @@ class EditorConsistencyCoordinator(QObject):
         self._dirty_from_line = None
         self.visual_revision_applied = self.structural_revision
         self.semantic_revision_applied = self.source_revision
+        self._copy_semantic_pending = False
         self.state &= ~ConsistencyState.DIRTY_VISUAL
         self.state &= ~ConsistencyState.RECALCULATING_VISUAL
         self.state &= ~ConsistencyState.DIRTY_SEMANTIC
@@ -1239,6 +1416,7 @@ class EditorConsistencyCoordinator(QObject):
             self.visual_revision_applied,
             self.semantic_revision_applied,
         )
+        previous_copy_pending = self._copy_semantic_pending
         try:
             lines = self._document_lines()
             rows = self.grid._instruction_rows_from_lines(lines)
@@ -1263,6 +1441,7 @@ class EditorConsistencyCoordinator(QObject):
             self._dirty_from_line = None
             self.visual_revision_applied = self.structural_revision
             self.semantic_revision_applied = self.source_revision
+            self._copy_semantic_pending = False
             self.grid._emit_rows_changed(self.grid.export_rows())
             snapshot = ConsistentEditorSnapshot(
                 self.owner,
@@ -1281,6 +1460,7 @@ class EditorConsistencyCoordinator(QObject):
                 self.semantic_revision_applied,
             ) = previous_applied_revisions
             self._model_rows = previous_rows
+            self._copy_semantic_pending = previous_copy_pending
             self.grid._rows = previous_grid_rows
             self.grid._all_rows = previous_all_rows
             try:
@@ -1497,7 +1677,7 @@ class EditorConsistencyCoordinator(QObject):
             min(len(self._model_rows) - 1, viewport.last + VIEWPORT_MARGIN_LINES),
         )
         self._apply_pending_symbol_viewport(priority)
-        self._schedule_semantic()
+        self._schedule_semantic(copy_required=False)
 
     def rederive_symbol_lines(self, indices: Iterable[int]) -> None:
         """Rebuild only rows depending on changed Symbol definitions."""
@@ -1564,7 +1744,7 @@ class EditorConsistencyCoordinator(QObject):
             )
             if structural_from is not None:
                 self._refresh_symbol_labels(viewport)
-        self._schedule_semantic()
+        self._schedule_semantic(copy_required=False)
         if self._pending_symbol_lines or self._bulk_symbols_pending:
             self.prioritize_viewport()
         self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
@@ -1743,7 +1923,35 @@ class EditorConsistencyCoordinator(QObject):
             self._visual_token.cancel()
         if self._semantic_token is not None:
             self._semantic_token.cancel()
+        if self._broad_copy_token is not None:
+            self._broad_copy_token.cancel()
         self._pool.clear()
+
+    def suspend_eventual_work(self) -> tuple[bool, bool]:
+        """Keep native modal dialogs responsive by pausing CPU-bound work."""
+
+        visual_pending = bool(
+            self._dirty_ranges
+            or self.state & ConsistencyState.DIRTY_VISUAL
+        )
+        semantic_pending = bool(self.state & ConsistencyState.DIRTY_SEMANTIC)
+        pending_bytes = list(self._pending_bytes_content_batches)
+        self.cancel_pending()
+        # Byte-to-Assembly projection was already accepted into the model.
+        # Preserve its small UI commits so a cancelled prompt cannot lose them.
+        self._pending_bytes_content_batches = pending_bytes
+        return visual_pending, semantic_pending
+
+    def resume_eventual_work(self, suspended: tuple[bool, bool]) -> None:
+        """Restore only work that was pending before a cancelled modal flow."""
+
+        visual_pending, semantic_pending = suspended
+        if self._pending_bytes_content_batches:
+            self._bytes_content_timer.start()
+        if visual_pending and self._dirty_ranges:
+            self._schedule_visual()
+        if semantic_pending:
+            self._schedule_semantic()
 
     def shutdown(self) -> None:
         """Release pending consistency work when its grid is destroyed."""
@@ -1752,6 +1960,9 @@ class EditorConsistencyCoordinator(QObject):
         self._pool.shutdown()
 
     def _invalidate_visual(self) -> None:
+        self._background_batch_delay_ms = (
+            BINARY_WORKBENCH_TIMING.CONSISTENCY_BACKGROUND_BATCH_INITIAL_MS
+        )
         self._offset_batch_timer.stop()
         self._pending_offset_batches.clear()
         self._pending_visual_completion = None
@@ -1762,6 +1973,18 @@ class EditorConsistencyCoordinator(QObject):
         self.semantic_generation += 1
         if self._semantic_token is not None:
             self._semantic_token.cancel()
+        if (
+            self._broad_copy_worker is not None
+            and self._broad_copy_token is not None
+            and not self._broad_copy_token.is_cancelled()
+        ):
+            self._broad_copy_token.cancel()
+            self._broad_copy_generation += 1
+            self._broad_copy_worker = None
+            self._broad_copy_token = None
+            self.grid.commandWarningRequested.emit(
+                BINARY_WORKBENCH_TEXT.STATUS_COPY_CANCELLED
+            )
 
     def _valid_offset_batch(self, batch) -> bool:
         return (

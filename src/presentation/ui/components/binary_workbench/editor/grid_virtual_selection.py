@@ -63,7 +63,7 @@ class GridVirtualSelectionMixin:
         )
 
     def _ensure_broad_derived_copy(self, editor) -> bool:
-        """Synchronize a >=95% derived selection only when work is pending."""
+        """Prepare a stale >=95% selection without blocking the GUI thread."""
 
         cursor = editor.textCursor()
         if not cursor.hasSelection():
@@ -76,9 +76,61 @@ class GridVirtualSelectionMixin:
         if coordinator is None:
             return True
         cursor_state = capture_logical_cursor(editor)
-        success = coordinator.ensure_broad_copy_consistent()
+        start = cursor.selectionStart()
+        end = cursor.selectionEnd()
+        document = editor.document()
+        first_block = document.findBlock(start)
+        last_block = document.findBlock(max(start, end - 1))
+        selection = (
+            first_block.blockNumber(),
+            last_block.blockNumber(),
+            start - first_block.position(),
+            end - last_block.position(),
+            start == 0,
+            end >= document.characterCount() - 1,
+        )
+        immediate = coordinator.request_broad_copy(
+            lambda rows: self._copy_prepared_derived_selection(
+                editor,
+                kind,
+                rows,
+                selection,
+                cursor_state,
+            )
+        )
         restore_logical_cursor(editor, cursor_state)
-        return success
+        return immediate
+
+    def _copy_prepared_derived_selection(
+        self,
+        editor,
+        kind: str,
+        rows,
+        selection: tuple[int, int, int, int, bool, bool],
+        cursor_state,
+    ) -> None:
+        """Copy only the selected column from immutable prepared rows."""
+
+        first, last, start_column, end_column, starts_document, ends_document = selection
+        if not 0 <= first <= last < len(rows):
+            return
+        display = (
+            self._display_bytes_row
+            if kind == BINARY_WORKBENCH_TEXT.BYTES
+            else self._display_raw_row
+        )
+        lines = [display(rows[index]) for index in range(first, last + 1)]
+        if len(lines) == 1:
+            start_column = 0 if starts_document else start_column
+            end_column = len(lines[0]) if ends_document else end_column
+            lines[0] = lines[0][start_column:end_column]
+        else:
+            if not starts_document:
+                lines[0] = lines[0][start_column:]
+            if not ends_document:
+                lines[-1] = lines[-1][:end_column]
+        QApplication.clipboard().setText(without_empty_lines("\n".join(lines)))
+        restore_logical_cursor(editor, cursor_state)
 
     def _capture_virtual_selection_anchor(self, editor) -> None:
         if not self._virtual:

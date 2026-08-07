@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 
@@ -26,33 +28,15 @@ class Icons:
         selected_token_name: str | None = None,
         opacity: float = 1.0,
     ) -> QIcon:
-        icon = QIcon()
-        icon.addPixmap(
-            _pixmap(glyph_name, token_name, 64, opacity),
-            QIcon.Normal,
-            QIcon.Off,
-        )
-        icon.addPixmap(
-            _pixmap(glyph_name, active_token_name or token_name, 64, opacity),
-            QIcon.Active,
-            QIcon.Off,
-        )
-        icon.addPixmap(
-            _pixmap(glyph_name, selected_token_name or token_name, 64, opacity),
-            QIcon.Selected,
-            QIcon.Off,
-        )
-        for size in ICON_SIZES:
-            icon.addPixmap(_pixmap(glyph_name, token_name, size, opacity), QIcon.Normal)
-            icon.addPixmap(
-                _pixmap(glyph_name, active_token_name or token_name, size, opacity),
-                QIcon.Active,
-            )
-            icon.addPixmap(
-                _pixmap(glyph_name, selected_token_name or token_name, size, opacity),
-                QIcon.Selected,
-            )
-        return icon
+        """Reuse rasterized glyph states instead of rebuilding them per dialog."""
+
+        return QIcon(_cached_icon(
+            glyph_name,
+            token_name,
+            active_token_name or token_name,
+            selected_token_name or token_name,
+            opacity,
+        ))
 
     @staticmethod
     def numeric_workbench():
@@ -154,6 +138,45 @@ class Icons:
     @staticmethod
     def search_muted():
         return Icons._icon("search", "icon-toolbar", opacity=MUTED_ICON_OPACITY)
+
+
+@lru_cache(maxsize=None)
+def _cached_icon(
+    glyph_name: str,
+    token_name: str,
+    active_token_name: str,
+    selected_token_name: str,
+    opacity: float,
+) -> QIcon:
+    """Build one immutable icon palette once for all repeated UI controls."""
+
+    icon = QIcon()
+    icon.addPixmap(
+        _pixmap(glyph_name, token_name, 64, opacity),
+        QIcon.Normal,
+        QIcon.Off,
+    )
+    icon.addPixmap(
+        _pixmap(glyph_name, active_token_name, 64, opacity),
+        QIcon.Active,
+        QIcon.Off,
+    )
+    icon.addPixmap(
+        _pixmap(glyph_name, selected_token_name, 64, opacity),
+        QIcon.Selected,
+        QIcon.Off,
+    )
+    for size in ICON_SIZES:
+        icon.addPixmap(_pixmap(glyph_name, token_name, size, opacity), QIcon.Normal)
+        icon.addPixmap(
+            _pixmap(glyph_name, active_token_name, size, opacity),
+            QIcon.Active,
+        )
+        icon.addPixmap(
+            _pixmap(glyph_name, selected_token_name, size, opacity),
+            QIcon.Selected,
+        )
+    return icon
 
 
 def _pixmap(glyph_name: str, token_name: str, size: int, opacity: float = 1.0) -> QPixmap:

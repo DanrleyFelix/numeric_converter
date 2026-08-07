@@ -12,8 +12,10 @@ from PySide6.QtWidgets import QApplication
 from src.core.binary_workbench.editor_consistency import (
     ConsistencyBarrierResult,
     LineContentBatch,
+    OffsetDistributionBatch,
     SemanticResult,
 )
+from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.mips_r3000a import build_rows_from_instructions
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
 from src.core.binary_workbench.mips_r3000a import source_line_rows as source_rows_module
@@ -439,7 +441,7 @@ def test_initial_tab_materialization_does_not_force_full_commit(
     _app().processEvents()
 
 
-def test_broad_copy_barrier_runs_only_for_pending_state(monkeypatch):
+def test_broad_copy_never_runs_the_synchronous_barrier(monkeypatch):
     grid = _grid(["nop", "nop"])
     coordinator = grid._consistency_coordinator
     calls = []
@@ -457,7 +459,47 @@ def test_broad_copy_barrier_runs_only_for_pending_state(monkeypatch):
 
     coordinator._dirty_ranges = (coordinator_module.DirtyRange(0, 1),)
     assert coordinator.ensure_broad_copy_consistent() is True
-    assert calls == ["broad-derived-copy"]
+    assert calls == []
+
+    coordinator.state = coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    coordinator._copy_semantic_pending = True
+    assert coordinator.ensure_broad_copy_consistent() is False
+    assert calls == []
+
+
+def test_stale_broad_copy_prepares_rows_without_projecting_documents(monkeypatch):
+    grid = _grid(["nop", "addiu $t0, $t0, 1"])
+    coordinator = grid._consistency_coordinator
+    coordinator.state = coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    coordinator._copy_semantic_pending = True
+    prepared = []
+    monkeypatch.setattr(
+        coordinator._pool,
+        "start_immediate",
+        lambda worker: worker.run(),
+    )
+    monkeypatch.setattr(
+        coordinator_module,
+        "apply_full_projection",
+        lambda *_args, **_kwargs: pytest.fail("broad copy must not rewrite the UI"),
+    )
+
+    assert coordinator.request_broad_copy(prepared.append) is False
+    assert [row.bytes_text for row in prepared[0]] == [
+        "00 00 00 00",
+        "01 00 08 25",
+    ]
+
+
+def test_symbol_and_highlight_maintenance_does_not_block_broad_copy():
+    grid = _grid(["nop", "addiu $t0, $t0, 1"])
+    coordinator = grid._consistency_coordinator
+    coordinator.state = coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    coordinator._bulk_symbols_pending = True
+    coordinator._pending_symbol_lines.add(1)
+    coordinator._copy_semantic_pending = False
+
+    assert coordinator.ensure_broad_copy_consistent() is True
 
 
 def test_copying_all_bytes_checks_derived_consistency(monkeypatch):
@@ -465,8 +507,8 @@ def test_copying_all_bytes_checks_derived_consistency(monkeypatch):
     calls = []
     monkeypatch.setattr(
         grid._consistency_coordinator,
-        "ensure_broad_copy_consistent",
-        lambda: calls.append(True) or True,
+        "request_broad_copy",
+        lambda callback: calls.append(True) or True,
     )
     grid.bytes.selectAll()
 
@@ -575,10 +617,62 @@ def test_visual_and_semantic_timers_use_the_revised_deadlines():
 
     assert coordinator._visual_quiet.interval() == 80
     assert coordinator._visual_maximum.interval() == 280
-    assert coordinator._semantic_timer.interval() == 1000
+    assert coordinator._semantic_timer.interval() == 3000
+    assert coordinator._offset_batch_timer.interval() == 1000
     assert coordinator._visual_quiet.isSingleShot()
     assert coordinator._visual_maximum.isSingleShot()
     assert coordinator._semantic_timer.isSingleShot()
+
+
+def test_background_batch_cadence_grows_to_ten_seconds_and_resets(monkeypatch):
+    grid = _grid(["nop"])
+    coordinator = grid._consistency_coordinator
+    batch = OffsetDistributionBatch(
+        coordinator.owner,
+        coordinator.structural_revision,
+        coordinator.visual_generation,
+        0,
+        0,
+        (),
+    )
+    monkeypatch.setattr(coordinator, "_apply_offset_batch", lambda _batch: None)
+
+    for expected in range(2000, 10001, 1000):
+        coordinator._pending_offset_batches.append((batch, None))
+        coordinator._flush_offset_batch()
+        assert coordinator._background_batch_delay_ms == expected
+
+    coordinator._pending_offset_batches.append((batch, None))
+    coordinator._flush_offset_batch()
+    assert coordinator._background_batch_delay_ms == 10000
+
+    coordinator._invalidate_visual()
+    assert coordinator._background_batch_delay_ms == 1000
+
+
+def test_user_input_restarts_eventual_idle_deadlines():
+    grid = _grid(["nop"])
+    coordinator = grid._consistency_coordinator
+    batch = OffsetDistributionBatch(
+        coordinator.owner,
+        coordinator.structural_revision,
+        coordinator.visual_generation,
+        0,
+        0,
+        (),
+    )
+    coordinator._pending_offset_batches.append((batch, None))
+    coordinator._offset_batch_timer.stop()
+    coordinator.state |= coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    coordinator._semantic_token = CancellationToken()
+    coordinator._semantic_timer.stop()
+
+    coordinator._defer_eventual_for_user_input()
+
+    assert coordinator._offset_batch_timer.isActive()
+    assert coordinator._offset_batch_timer.interval() == 1000
+    assert coordinator._semantic_timer.isActive()
+    assert coordinator._semantic_token.is_cancelled()
 
 
 def test_quiet_and_maximum_timer_race_starts_only_one_visual_job(monkeypatch):
@@ -1094,7 +1188,10 @@ def test_large_structural_edit_projects_current_batch_immediately(monkeypatch, o
     _app().processEvents()
 
     rows = grid.export_rows()
-    immediate_last = min(len(rows) - 1, 10 + 255)
+    immediate_last = min(
+        len(rows) - 1,
+        10 + coordinator_module.OFFSET_BATCH_SIZE - 1,
+    )
     _assert_valid_file_offsets(rows[: immediate_last + 1])
     assert _editor_line(grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE], 10)
     assert _editor_line(grid._offset_editors[_REFERENCE], 10)

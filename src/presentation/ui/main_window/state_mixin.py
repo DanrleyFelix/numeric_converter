@@ -23,12 +23,24 @@ if TYPE_CHECKING:
 
 class MainWindowStateMixin:
     def _persist_binary_state(self: MainWindow) -> None:
-        """Persist Binary state only after an explicit Binary-owned change."""
+        """Coalesce Binary-owned state persistence outside the GUI thread."""
 
+        self._queue_binary_state_persistence(
+            self._collect_binary_workbench_state()
+        )
+
+    def _queue_binary_state_persistence(
+        self: MainWindow,
+        state: BinaryWorkbenchStateDTO,
+    ) -> None:
+        """Queue an already-exported state without flushing the editor again."""
+
+        scheduler = getattr(self, "_binary_state_persistence", None)
+        if scheduler is not None:
+            scheduler.schedule(state)
+            return
         try:
-            self._state_service.save_default_binary_context(
-                self._collect_binary_workbench_state()
-            )
+            self._state_service.save_default_binary_context(state)
         except PermissionError:
             return
 
@@ -160,7 +172,7 @@ class MainWindowStateMixin:
                     "window_size": WindowSizeDTO(width=width, height=height),
                 }
             )
-            self._persist_binary_state()
+            self._queue_binary_state_persistence(self._binary_workbench_state)
             return
         self._window_sizes[key] = WindowSizeDTO(width=width, height=height)
         self._mark_numeric_dirty("window-size")
@@ -183,7 +195,7 @@ class MainWindowStateMixin:
             return
         self._binary_workbench_state = state
         self._binary_state_loaded = True
-        self._persist_binary_state()
+        self._queue_binary_state_persistence(state)
 
     def _remember_binary_workbench_preferences(self: MainWindow, preferences: object) -> None:
         if not isinstance(preferences, BinaryWorkbenchPreferencesDTO):

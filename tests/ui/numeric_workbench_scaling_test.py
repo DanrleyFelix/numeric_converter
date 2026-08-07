@@ -82,6 +82,28 @@ def test_locked_binary_autosave_does_not_replace_numeric_feedback():
     window._persist_binary_state()
 
     assert window.footer.status.text() == "Numeric feedback"
+    window._binary_state_persistence.shutdown()
+    window._numeric_autosave.shutdown()
+
+
+def test_binary_state_signal_reuses_exported_state_without_recollecting(monkeypatch):
+    """Opening/importing Binary state must not flush the editor a second time."""
+
+    _app()
+    window = create_main_window(Path(tempfile.mkdtemp()))
+    queued: list[BinaryWorkbenchStateDTO] = []
+    state = BinaryWorkbenchStateDTO(active_tab_id="opened")
+    monkeypatch.setattr(
+        window,
+        "_collect_binary_workbench_state",
+        lambda: (_ for _ in ()).throw(AssertionError("unexpected Binary export")),
+    )
+    monkeypatch.setattr(window._binary_state_persistence, "schedule", queued.append)
+
+    window._remember_binary_workbench_state(state)
+
+    assert queued == [state]
+    window._binary_state_persistence.shutdown()
     window._numeric_autosave.shutdown()
 
 

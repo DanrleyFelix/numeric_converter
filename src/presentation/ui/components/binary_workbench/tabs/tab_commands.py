@@ -22,7 +22,7 @@ from src.presentation.ui.components.binary_workbench.tabs.tab_state_payload impo
 
 class TabCommandsMixin:
     def custom_commands_for_current_context(self) -> dict[str, list[str]]:
-        current = self.current_context()
+        current = self.current_metadata_context()
         return self._commands_for_context(current) if current is not None else {}
 
     def load_custom_commands_from_path(self, path: Path) -> bool:

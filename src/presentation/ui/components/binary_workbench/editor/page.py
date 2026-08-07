@@ -130,6 +130,11 @@ class BinaryWorkbenchEditorPage(
             )
         return self._context
 
+    def has_pending_editor_changes(self) -> bool:
+        """Return the page's constant-time dirty signal for close prompting."""
+
+        return self.grid.has_pending_editor_changes()
+
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         """Cancel this page's private workers before native widgets close.
 
@@ -146,6 +151,16 @@ class BinaryWorkbenchEditorPage(
         """Return a complete current snapshot for a critical consumer."""
 
         return self.grid.ensure_consistent(reason)
+
+    def suspend_eventual_consistency(self) -> tuple[bool, bool]:
+        """Pause this page's CPU-bound work while a native modal is visible."""
+
+        return self.grid.suspend_eventual_consistency()
+
+    def resume_eventual_consistency(self, suspended: tuple[bool, bool]) -> None:
+        """Resume work when a close prompt is cancelled or saving fails."""
+
+        self.grid.resume_eventual_consistency(suspended)
 
     def rederive_symbol_lines(self, indices: tuple[int, ...]) -> None:
         """Project only source rows affected by changed Symbol definitions."""
@@ -275,6 +290,8 @@ class BinaryWorkbenchEditorPage(
         """Accept version persistence metadata without rebuilding editor projections."""
 
         self._context = context
+        if not context.version_dirty:
+            self.grid.mark_persistence_clean()
 
     def refresh_shared_context(
         self,

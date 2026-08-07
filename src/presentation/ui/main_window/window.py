@@ -32,6 +32,9 @@ from src.presentation.ui.main_window.numeric_persistence import (
 from src.presentation.ui.main_window.state_mixin import MainWindowStateMixin
 from src.presentation.ui.main_window.workspace_mixin import MainWindowWorkspaceMixin
 from src.presentation.ui.main_window.autosave import NumericAutosaveScheduler
+from src.presentation.ui.main_window.binary_state import (
+    BinaryStatePersistenceScheduler,
+)
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_TIMING
 
 
@@ -91,6 +94,11 @@ class MainWindow(
             self,
         )
         self._numeric_autosave.saved.connect(self._handle_numeric_autosave_saved)
+        self._binary_state_persistence = BinaryStatePersistenceScheduler(
+            lambda state: self._state_service.save_default_binary_context(state),
+            self,
+            MAIN_WINDOW_TIMING.BINARY_STATE_PERSISTENCE_DEBOUNCE_MS,
+        )
 
         self._bind_events()
         self._load_default_state()
@@ -122,5 +130,7 @@ class MainWindow(
         ):
             if window is not None:
                 window.close()
+        self._binary_state_persistence.flush_on_close()
+        self._binary_state_persistence.shutdown()
         self._numeric_autosave.shutdown()
         super().closeEvent(event)

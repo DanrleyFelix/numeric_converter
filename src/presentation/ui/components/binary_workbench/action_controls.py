@@ -98,7 +98,6 @@ def configure_binary_workbench_filter(editor: QLineEdit) -> None:
 def configure_binary_workbench_control_height(widget: QWidget) -> None:
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
     widget.setContentsMargins(margin, margin, margin, margin)
-    widget.ensurePolished()
     widget.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
 
 
@@ -111,7 +110,6 @@ def configure_binary_workbench_line_edit(
         editor.setFixedWidth(width)
     margin = BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_CONTENT_MARGIN
     editor.setTextMargins(margin, margin, margin, margin)
-    editor.ensurePolished()
     editor.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
 
 
@@ -127,7 +125,6 @@ def configure_binary_workbench_combo(
         combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     combo.setCursor(Qt.PointingHandCursor)
     combo.setContentsMargins(0, 0, 0, 0)
-    combo.ensurePolished()
     combo.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     view = combo.view()
     if hasattr(view, "setUniformItemSizes"):

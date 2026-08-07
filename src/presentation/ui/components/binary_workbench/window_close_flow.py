@@ -20,19 +20,29 @@ class BinaryWorkbenchWindowCloseMixin:
         if not close_indices:
             return
         original_index = self.tabs.currentIndex()
+        suspended_pages = []
         for close_index in close_indices:
             self.tabs.setCurrentIndex(close_index)
-            self.tabs.commit_current_editor_text()
+            page = self.tabs.widget(close_index)
+            if hasattr(page, "suspend_eventual_consistency"):
+                suspended_pages.append(
+                    (page, page.suspend_eventual_consistency())
+                )
+            # Do not run the global Assembly barrier before the native prompt.
+            # Unsaved detection flushes only the coalesced local edit; the
+            # expensive barrier remains exclusive to the user's Save choice.
             if not self.tabs.has_unsaved_changes(close_index):
                 continue
             response = self._native_close_question()
             if response == QMessageBox.StandardButton.Cancel:
+                _resume_suspended_pages(suspended_pages)
                 if 0 <= original_index < self.tabs.count():
                     self.tabs.setCurrentIndex(original_index)
                 return
             if response == QMessageBox.StandardButton.Discard:
                 self.tabs.discard_internal_changes(close_index)
             if response == QMessageBox.StandardButton.Save and not self._save_current_tab_for_close():
+                _resume_suspended_pages(suspended_pages)
                 if 0 <= original_index < self.tabs.count():
                     self.tabs.setCurrentIndex(original_index)
                 return
@@ -59,6 +69,11 @@ class BinaryWorkbenchWindowCloseMixin:
         return ask_close_tab_with_native_system_dialog(self)
 
     def _save_current_tab_for_close(self) -> bool:
+        # The native confirmation is intentionally shown before this barrier.
+        # Once Save is chosen, however, persistence must consume one complete
+        # Assembly revision rather than whichever eventual batch last finished.
+        if not self.tabs.commit_current_editor_text():
+            return False
         current = self.tabs.current_context()
         if current is None:
             return False
@@ -103,3 +118,10 @@ def _is_internal_child(child, parent) -> bool:
             or bool(parent.source_path and child.source_path == parent.source_path)
         )
     )
+
+
+def _resume_suspended_pages(suspended_pages) -> None:
+    """Resume eventual work only for pages kept open by the close flow."""
+
+    for page, suspended in suspended_pages:
+        page.resume_eventual_consistency(suspended)

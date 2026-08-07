@@ -142,11 +142,30 @@ class TabStateMixin:
             return None
         return self._fresh_context_at(index)
 
+    def current_metadata_context(self) -> BinaryWorkbenchTabContextDTO | None:
+        """Return cached tab metadata without flushing editor projections.
+
+        Environment dialogs do not consume Assembly-derived rows.  Keeping
+        their open path metadata-only prevents a hidden editor reconciliation
+        from delaying an otherwise empty dialog.
+        """
+
+        return self.context_at(self.currentIndex())
+
     def context_at(self, index: int) -> BinaryWorkbenchTabContextDTO | None:
         return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
 
     def has_unsaved_changes(self, index: int) -> bool:
-        context = self._fresh_context_at(index) if index == self.currentIndex() else self.context_at(index)
+        page = self.widget(index) if index == self.currentIndex() else None
+        if (
+            isinstance(page, BinaryWorkbenchEditorPage)
+            and page.has_pending_editor_changes()
+        ):
+            # The prompt only needs a yes/no answer. Exporting every row here
+            # made the native dialog appear late and then compete with Python
+            # workers while dragged.
+            return True
+        context = self.context_at(index)
         if context is None:
             return False
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:

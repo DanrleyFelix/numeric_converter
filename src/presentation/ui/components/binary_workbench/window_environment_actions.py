@@ -30,8 +30,21 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
 
 
 class BinaryWorkbenchWindowEnvironmentMixin:
+    def _exec_environment_dialog(self, dialog):
+        """Pause this tab's eventual CPU work for a modal UI interaction."""
+
+        page = self.tabs.currentWidget()
+        suspended = None
+        if hasattr(page, "suspend_eventual_consistency"):
+            suspended = page.suspend_eventual_consistency()
+        try:
+            return dialog.exec()
+        finally:
+            if suspended is not None and hasattr(page, "resume_eventual_consistency"):
+                page.resume_eventual_consistency(suspended)
+
     def _open_advanced_configuration(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         preferences = self.tabs.preferences()
         dialog = BinaryWorkbenchAdvancedConfigDialog(
             current.cpu_arch if current else "",
@@ -41,7 +54,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             preferences.selection_limit_bytes,
             self,
         )
-        if dialog.exec() == dialog.DialogCode.Accepted:
+        if self._exec_environment_dialog(dialog) == dialog.DialogCode.Accepted:
             self.tabs.set_current_advanced_config(
                 dialog.selected_arch(),
                 dialog.selected_read_mode(),
@@ -51,14 +64,14 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             )
 
     def _open_lba_filesystem(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None or not current.source_path:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
         dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, [], current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
         dialog.goToRequested.connect(self.tabs.go_to_offset)
-        dialog.exec()
+        self._exec_environment_dialog(dialog)
         self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
         module_path = dialog.saved_library_path() or dialog.loaded_library_path()
         if module_path:
@@ -71,7 +84,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         self._open_local_symbols()
 
     def _open_local_symbols(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         if self.tabs.scratch_initial_version_required(current):
@@ -94,7 +107,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog.setWindowTitle(BINARY_WORKBENCH_TEXT.LOCAL_SYMBOLS)
         dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY, Path(value)))
         dialog.goToRequested.connect(self.tabs.go_to_offset)
-        dialog.exec()
+        self._exec_environment_dialog(dialog)
         symbols, _, _ = dialog.values()
         symbols_changed = symbols != self.tabs.local_symbols(current)
         if symbols_changed:
@@ -115,7 +128,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
     def _open_global_symbols(self) -> None:
         """Open Global Symbols with offsets resolved from the active tab on demand."""
 
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         dialog = BinaryWorkbenchSymbolsDialog(
@@ -139,7 +152,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         )
         self.tabs.currentChanged.connect(dialog.invalidate_offsets_context)
         try:
-            dialog.exec()
+            self._exec_environment_dialog(dialog)
         finally:
             self.tabs.currentChanged.disconnect(dialog.invalidate_offsets_context)
         symbols, _, _ = dialog.values()
@@ -149,7 +162,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
     def _global_symbol_offsets(self, name: str) -> tuple[str | None, list[str]]:
         """Read one Global Symbol's offsets from the tab active at click time."""
 
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return None, []
         return current.tab_id, self.tabs.symbol_offsets_for(current.tab_id, name)
@@ -161,10 +174,10 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             return
         dialog = BinaryWorkbenchLabelsDialog(current.labels, self)
         dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
-        dialog.exec()
+        self._exec_environment_dialog(dialog)
 
     def _open_commands(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         dialog = BinaryWorkbenchCommandsDialog(
@@ -178,7 +191,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog.commandInstructionsChangeRequested.connect(
             lambda name, instructions: self._replace_command_instructions(dialog, name, instructions)
         )
-        dialog.exec()
+        self._exec_environment_dialog(dialog)
 
     def _load_command(self, dialog: BinaryWorkbenchCommandsDialog, path: Path) -> None:
         if not self.tabs.load_custom_commands_from_path(path):
@@ -221,16 +234,16 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         dialog.set_commands(self.tabs.custom_commands_for_current_context())
 
     def _open_bytes_formatter(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         preferences = self.tabs.preferences()
         dialog = BinaryWorkbenchBytesFormatterDialog(preferences.group_bytes, preferences.uppercase_bytes, preferences.uppercase_instructions, self)
-        if dialog.exec() == dialog.DialogCode.Accepted:
+        if self._exec_environment_dialog(dialog) == dialog.DialogCode.Accepted:
             self.tabs.set_current_bytes_formatter(dialog.selected_group_bytes(), dialog.selected_uppercase_bytes(), dialog.selected_uppercase_instructions())
 
     def _open_reference_offsets(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         dialog = BinaryWorkbenchReferenceOffsetsDialog(
@@ -240,7 +253,7 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             current.view_preferences.jump_reference_offset,
             self,
         )
-        if dialog.exec() == dialog.DialogCode.Accepted:
+        if self._exec_environment_dialog(dialog) == dialog.DialogCode.Accepted:
             offsets, bases, visible, jump_reference_offset = dialog.values()
             self.tabs.set_current_reference_offsets(offsets, bases, visible, jump_reference_offset)
 
@@ -249,11 +262,11 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         if current is None:
             return
         dialog = BinaryWorkbenchRulesDialog(self.tabs.edit_rules_for_current_context(), self)
-        if dialog.exec() == dialog.DialogCode.Accepted:
+        if self._exec_environment_dialog(dialog) == dialog.DialogCode.Accepted:
             self.tabs.set_current_edit_rules(dialog.selected_rules())
 
     def _open_internal_file(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if (
             current is None
             or current.kind != BINARY_WORKBENCH_TAB_KIND.BINARY
@@ -263,5 +276,8 @@ class BinaryWorkbenchWindowEnvironmentMixin:
             self._show_warning_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_REQUIREMENTS)
             return
         dialog = BinaryWorkbenchInternalFileDialog(current.internal_files, self)
-        if dialog.exec() == dialog.DialogCode.Accepted and dialog.selected_name() is not None:
+        if (
+            self._exec_environment_dialog(dialog) == dialog.DialogCode.Accepted
+            and dialog.selected_name() is not None
+        ):
             self.tabs.open_internal_tab(dialog.selected_name())

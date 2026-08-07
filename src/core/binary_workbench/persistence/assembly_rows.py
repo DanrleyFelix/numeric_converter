@@ -16,6 +16,7 @@ from src.modules.contracts import CPUArchCodec
 
 INCORRECT_INSTRUCTION = "Incorrect Instruction:"
 EMPTY_ATTEMPT = "<empty>"
+MAX_ISOLATED_INVALID_INSTRUCTIONS = 4
 
 
 def normalize_locked_assembly_rows(
@@ -31,6 +32,18 @@ def normalize_locked_assembly_rows(
     fallbacks = _fallback_by_offset(fallback_rows)
     line_fallbacks = _fallback_by_line(len(rows), fallback_rows)
     resolver = MipsSymbolResolver(labels, variables, equates)
+    if _has_bulk_invalid_attempts(
+        rows,
+        codec,
+        labels,
+        variables,
+        equates,
+        resolver,
+    ):
+        # A missing Symbol catalog can make an otherwise valid large source
+        # look invalid.  Bulk normalization is destructive, so only isolated
+        # invalid edits are eligible for the contextual comment fallback.
+        return list(rows)
     return [
         _normalize_row(
             index,
@@ -70,8 +83,18 @@ def _normalize_row(
     code, _, comment = split_comment(row.instruction)
     label, instruction = split_label(code.strip())
     attempted = instruction.strip()
-    if attempted.startswith("*") or _assembles(
-        row.instruction, row, codec, labels, variables, equates, resolver
+    if (
+        attempted.startswith("*")
+        or _contains_symbol_sigil(attempted)
+        or _assembles(
+            row.instruction,
+            row,
+            codec,
+            labels,
+            variables,
+            equates,
+            resolver,
+        )
     ):
         return row
     previous = _previous_encoding(row, fallback)
@@ -106,6 +129,48 @@ def _normalize_row(
         original_instruction=row.original_instruction,
         original_bytes_text=row.original_bytes_text,
     )
+
+
+def _has_bulk_invalid_attempts(
+    rows: list[BinaryWorkbenchRowDTO],
+    codec: CPUArchCodec,
+    labels: dict[str, str],
+    variables: dict[str, str],
+    equates: dict[str, str],
+    resolver: MipsSymbolResolver,
+) -> bool:
+    """Reject destructive normalization when invalid source is not isolated."""
+
+    invalid_count = 0
+    for row in rows:
+        code, _, _comment = split_comment(row.instruction)
+        _label, instruction = split_label(code.strip())
+        attempted = instruction.strip()
+        if (
+            not attempted
+            or attempted.startswith("*")
+            or _contains_symbol_sigil(attempted)
+            or _assembles(
+                row.instruction,
+                row,
+                codec,
+                labels,
+                variables,
+                equates,
+                resolver,
+            )
+        ):
+            continue
+        invalid_count += 1
+        if invalid_count > MAX_ISOLATED_INVALID_INSTRUCTIONS:
+            return True
+    return False
+
+
+def _contains_symbol_sigil(source: str) -> bool:
+    """Recognize unresolved legacy/local Symbol syntax before commenting it."""
+
+    return "_" in source or "@" in source
 
 
 def _assembles(

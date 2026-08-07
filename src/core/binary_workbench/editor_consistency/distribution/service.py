@@ -193,14 +193,27 @@ def _priority_order(
     dirty_from_line: int | None,
     viewport: DirtyRange,
 ):
-    """Yield prioritized indices while retaining only a few covered spans."""
+    """Yield the affected suffix with viewport-first ordering.
+
+    Offset propagation is unilateral by default: a structural change cannot
+    alter rows preceding its earliest anchor. Semantic dependencies use their
+    separate index and are the intentional bilateral case.
+    """
 
     covered: list[tuple[int, int]] = []
+    lower_bound = (
+        max(0, dirty_from_line)
+        if dirty_from_line is not None
+        else min((item.first for item in dirty_ranges), default=0)
+    )
     ranges = [
-        viewport,
-        DirtyRange(viewport.first - VIEWPORT_MARGIN_LINES, viewport.last + VIEWPORT_MARGIN_LINES),
+        DirtyRange(max(lower_bound, viewport.first), viewport.last),
+        DirtyRange(
+            max(lower_bound, viewport.first - VIEWPORT_MARGIN_LINES),
+            viewport.last + VIEWPORT_MARGIN_LINES,
+        ),
         *dirty_ranges,
-        DirtyRange(0 if dirty_from_line is None else dirty_from_line, count - 1),
+        DirtyRange(lower_bound, count - 1),
     ]
     for item in ranges:
         first = max(0, item.first)

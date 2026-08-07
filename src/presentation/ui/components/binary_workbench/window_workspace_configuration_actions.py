@@ -15,7 +15,7 @@ from src.presentation.ui.components.binary_workbench.preferences import BinaryWo
 
 class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
     def _open_view(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         dialog = BinaryWorkbenchViewDialog(
@@ -29,7 +29,7 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
         self.tabs.save_current_workspace()
 
     def _open_encoding_tables(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         directory = (
@@ -48,7 +48,7 @@ class BinaryWorkbenchWindowWorkspaceConfigurationMixin:
         self.tabs.set_current_encoding_tables(dialog.tables(), dialog.enabled_names())
 
     def _open_offset_regions(self) -> None:
-        current = self.tabs.current_context()
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
         if _scratch_workspace_source_required(current):

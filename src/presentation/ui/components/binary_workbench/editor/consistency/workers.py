@@ -7,11 +7,18 @@ from PySide6.QtCore import QObject, QRunnable, QThread, QThreadPool, Signal
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.editor_consistency.distribution import iter_offset_batches
 from src.core.binary_workbench.editor_consistency.models import SemanticSnapshot
-from src.core.binary_workbench.editor_consistency.semantic import calculate_semantic_result
+from src.core.binary_workbench.editor_consistency.semantic import (
+    calculate_derived_copy_result,
+    calculate_semantic_result,
+)
 
-EDITOR_CONSISTENCY_WORKERS = 2
+# One CPU-bound worker leaves the majority of a modest four-core machine for
+# direct editing, navigation and painting. User work still outranks eventual
+# maintenance inside this bounded queue.
+EDITOR_CONSISTENCY_WORKERS = 1
 VISUAL_WORK_PRIORITY = 1
 SEMANTIC_WORK_PRIORITY = 0
+IMMEDIATE_WORK_PRIORITY = 2
 
 
 class ConsistencyWorkerSignals(QObject):
@@ -98,6 +105,20 @@ class SemanticWorker(QRunnable):
             _safe_emit(self.signals.failed, str(error))
 
 
+class DerivedCopyWorker(SemanticWorker):
+    """Prepare broad copy rows without diagnostics or Qt projection work."""
+
+    def run(self) -> None:
+        """Emit only copy-relevant rows for the immutable source snapshot."""
+
+        try:
+            result = calculate_derived_copy_result(self.snapshot, self.token)
+            if result is not None and not self.token.is_cancelled():
+                _safe_emit(self.signals.semanticReady, result)
+        except Exception as error:
+            _safe_emit(self.signals.failed, str(error))
+
+
 class EditorConsistencyWorkerPool:
     """Own the bounded worker pool used by one editor grid."""
 
@@ -114,6 +135,11 @@ class EditorConsistencyWorkerPool:
         """Start lower-priority semantic work."""
 
         self.pool.start(worker, SEMANTIC_WORK_PRIORITY)
+
+    def start_immediate(self, worker: SemanticWorker) -> None:
+        """Start an explicit user request ahead of eventual maintenance."""
+
+        self.pool.start(worker, IMMEDIATE_WORK_PRIORITY)
 
     def clear(self) -> None:
         """Remove workers that have not begun without terminating threads."""

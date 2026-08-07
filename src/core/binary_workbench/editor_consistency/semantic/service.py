@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import re
-from time import sleep
+from time import perf_counter, sleep
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
+from src.core.binary_workbench.editor_consistency.constants import (
+    BACKGROUND_CPU_DUTY_FRACTION,
+    BACKGROUND_THROTTLE_MAX_SLEEP_SECONDS,
+    OFFSET_BATCH_SIZE,
+)
 from src.core.binary_workbench.editor_consistency.models import SemanticResult, SemanticSnapshot
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     build_source_line_rows,
@@ -32,15 +37,58 @@ def calculate_semantic_result(
 ) -> SemanticResult | None:
     """Calculate one complete semantic revision without accessing Qt objects."""
 
+    return _calculate_semantic_result(
+        snapshot,
+        token,
+        include_hazards=True,
+        throttle_background=True,
+    )
+
+
+def calculate_derived_copy_result(
+    snapshot: SemanticSnapshot,
+    token: CancellationToken,
+) -> SemanticResult | None:
+    """Prepare copy rows without unrelated hazard analysis or UI projection."""
+
+    return _calculate_semantic_result(
+        snapshot,
+        token,
+        include_hazards=False,
+        throttle_background=False,
+    )
+
+
+def _calculate_semantic_result(
+    snapshot: SemanticSnapshot,
+    token: CancellationToken,
+    *,
+    include_hazards: bool,
+    throttle_background: bool,
+) -> SemanticResult | None:
+    """Calculate source-derived rows with optional global diagnostics."""
+
     checks = 0
+    slice_started = perf_counter()
 
     def cancelled() -> bool:
         """Release the GIL periodically during extraordinary bulk rebuilds."""
 
-        nonlocal checks
+        nonlocal checks, slice_started
         checks += 1
-        if checks % 128 == 0:
-            sleep(0)
+        if checks % OFFSET_BATCH_SIZE == 0:
+            elapsed = perf_counter() - slice_started
+            if throttle_background:
+                rest_ratio = (
+                    1.0 - BACKGROUND_CPU_DUTY_FRACTION
+                ) / BACKGROUND_CPU_DUTY_FRACTION
+                sleep(min(
+                    BACKGROUND_THROTTLE_MAX_SLEEP_SECONDS,
+                    elapsed * rest_ratio,
+                ))
+            else:
+                sleep(0)
+            slice_started = perf_counter()
         return token.is_cancelled()
 
     if cancelled():
@@ -83,7 +131,11 @@ def calculate_semantic_result(
         )
         if rows is None:
             return None
-    hazards = tuple(validate_mips_hazards([row.instruction for row in rows]))
+    hazards = (
+        tuple(validate_mips_hazards([row.instruction for row in rows]))
+        if include_hazards
+        else ()
+    )
     if token.is_cancelled():
         return None
     return SemanticResult(

@@ -213,6 +213,16 @@ class BinaryWorkbenchGrid(
 
         self._consistency_coordinator.shutdown()
 
+    def suspend_eventual_consistency(self) -> tuple[bool, bool]:
+        """Pause cancellable background work before showing a native dialog."""
+
+        return self._consistency_coordinator.suspend_eventual_work()
+
+    def resume_eventual_consistency(self, suspended: tuple[bool, bool]) -> None:
+        """Resume work after the native close flow keeps this editor open."""
+
+        self._consistency_coordinator.resume_eventual_work(suspended)
+
     def ensure_consistent(self, reason: str):
         """Run a synchronous source-to-derived barrier for a critical action."""
 
@@ -222,6 +232,26 @@ class BinaryWorkbenchGrid(
         """Classify document changes already delivered by Qt."""
 
         self._consistency_coordinator.flush_collected_changes()
+
+    def has_pending_editor_changes(self) -> bool:
+        """Detect unsaved UI edits in O(1) for the native close prompt."""
+
+        return bool(
+            self._dirty_editor_kind is not None
+            or self.instructions.document().isModified()
+            or self.bytes.document().isModified()
+            or self._pending_rows_changed is not None
+            or self._pending_current_rows_changed
+            or self._consistency_coordinator.has_pending_source_changes()
+        )
+
+    def mark_persistence_clean(self) -> None:
+        """Make a successfully persisted revision the new lightweight baseline."""
+
+        self.discard_pending_rows_changed()
+        self._dirty_editor_kind = None
+        self.instructions.document().setModified(False)
+        self.bytes.document().setModified(False)
 
     def _emit_rows_changed(
         self,

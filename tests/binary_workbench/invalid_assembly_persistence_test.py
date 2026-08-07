@@ -15,7 +15,7 @@ def test_locked_assembly_restores_valid_bytes_and_retains_invalid_attempt():
         ),
         BinaryWorkbenchRowDTO(
             {"File": "0x00000004"},
-            "entry: invalid_target",
+            "entry: invalidtarget",
             "02 00 84 24",
         ),
         BinaryWorkbenchRowDTO(
@@ -37,7 +37,7 @@ def test_locked_assembly_restores_valid_bytes_and_retains_invalid_attempt():
         "nop; Incorrect Instruction: bad $a0 | keep this"
     )
     assert normalized[1].instruction == (
-        "entry: addiu $a0, $a0, 0x2; Incorrect Instruction: invalid_target"
+        "entry: addiu $a0, $a0, 0x2; Incorrect Instruction: invalidtarget"
     )
     assert normalized[0].bytes_text == "00 00 00 00"
     assert normalized[1].bytes_text == "02 00 84 24"
@@ -91,3 +91,50 @@ def test_locked_assembly_preserves_previous_source_label_and_comment():
     assert normalized[0].instruction == (
         "entry: nop; Incorrect Instruction: <empty> | previous context"
     )
+
+
+def test_locked_assembly_never_comments_five_or_more_invalid_instructions():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            {"File": f"0x{index * 4:08X}"},
+            f"invalidopcode{index}",
+            "",
+        )
+        for index in range(5)
+    ]
+
+    normalized = normalize_locked_assembly_rows(
+        rows,
+        binary_workbench_codec_for(BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME),
+        {},
+        {},
+        {},
+    )
+
+    assert normalized == rows
+    assert all("Incorrect Instruction:" not in row.instruction for row in normalized)
+
+
+def test_locked_assembly_preserves_unresolved_symbol_syntax_without_catalog():
+    rows = [
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000000"},
+            "ori $t0, $zero, _local_symbol_0000",
+            "",
+        ),
+        BinaryWorkbenchRowDTO(
+            {"File": "0x00000004"},
+            "jal @global_symbol_0000",
+            "",
+        ),
+    ]
+
+    normalized = normalize_locked_assembly_rows(
+        rows,
+        binary_workbench_codec_for(BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME),
+        {},
+        {},
+        {},
+    )
+
+    assert normalized == rows

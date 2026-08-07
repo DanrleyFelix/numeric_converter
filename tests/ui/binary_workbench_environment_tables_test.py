@@ -16,6 +16,7 @@ from src.presentation.ui.components.binary_workbench.environment import (
     BinaryWorkbenchOffsetRegionsDialog,
 )
 from src.presentation.ui.components.binary_workbench.file_dialogs import BinaryWorkbenchLbaFilesystemDialog
+from src.presentation.ui.helpers.load_qss import STYLESHEET
 
 
 def _app() -> QApplication:
@@ -70,6 +71,21 @@ def test_environment_tables_virtualize_one_thousand_records(small_factory, large
     assert (margins.left(), margins.top(), margins.right(), margins.bottom()) == (20, 20, 20, 20)
     small.close()
     large.close()
+
+
+def test_environment_table_header_keeps_the_dark_project_background():
+    """Catch the white native header regression after assigning its object name."""
+
+    _app()
+    dialog = BinaryWorkbenchLabelsDialog({"entry": "0x0"})
+    dialog.setStyleSheet(STYLESHEET)
+    dialog.show()
+    _app().processEvents()
+    header = dialog.table.horizontalHeader()
+    image = header.grab().toImage()
+
+    assert image.pixelColor(5, 5).name().lower() == "#1d1d2c"
+    dialog.close()
 
 
 def test_lba_table_adds_filters_removes_and_navigates_selected_record():

@@ -114,7 +114,7 @@ class TabViewConfigurationMixin:
         ))
 
     def offset_regions_for_current_context(self) -> list[BinaryWorkbenchOffsetRegionDTO]:
-        current = self.current_context()
+        current = self.current_metadata_context()
         if current is None:
             return []
         path = current.module_paths.get(OFFSET_REGIONS)
@@ -123,7 +123,7 @@ class TabViewConfigurationMixin:
         return list(current.offset_regions)
 
     def offset_region_details_for_current_context(self, name: str, offset: int) -> str:
-        current = self.current_context()
+        current = self.current_metadata_context()
         if current is None:
             return ""
         path = current.module_paths.get(OFFSET_REGIONS)
