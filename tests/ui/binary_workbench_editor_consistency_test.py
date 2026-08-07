@@ -236,6 +236,108 @@ def test_single_line_edit_reuses_large_symbol_resolver(monkeypatch):
     assert constructions == []
 
 
+def test_locked_single_line_edit_stays_incremental_and_preserves_bytes(monkeypatch):
+    """The shift rule must not send each Backspace through legacy full rebuilds."""
+
+    grid = _grid(["nop", "nop"])
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=False))
+    monkeypatch.setattr(
+        grid,
+        "_normalized_instruction_lines",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("locked character edit scanned the complete document")
+        ),
+    )
+    editor = grid.instructions
+    cursor = QTextCursor(editor.document().firstBlock())
+    cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+    editor.setTextCursor(cursor)
+
+    QTest.keyClick(editor, Qt.Key_Backspace)
+    _app().processEvents()
+
+    assert grid._consistency_coordinator.enabled() is True
+    assert editor.document().firstBlock().text().casefold() == "no"
+    assert grid.export_rows()[0].bytes_text == "00 00 00 00"
+
+
+def test_deferred_rows_signal_allocates_snapshot_only_when_flushed(monkeypatch):
+    grid = _grid(["nop" for _ in range(128)])
+    calls = []
+    original = grid.export_rows
+
+    def tracked():
+        calls.append(True)
+        return original()
+
+    monkeypatch.setattr(grid, "export_rows", tracked)
+    grid._emit_rows_changed(deferred=True)
+
+    assert calls == []
+    grid.flush_pending_rows_changed()
+    assert calls == [True]
+
+
+def test_label_fold_refreshes_revealed_viewport_immediately(monkeypatch):
+    grid = _grid(["entry:", "nop", "addiu $t0, $t0, 1"])
+    grid.set_label_folding_enabled(True)
+    viewport_calls = []
+    highlight_calls = []
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "prioritize_viewport",
+        viewport_calls.append,
+    )
+    monkeypatch.setattr(
+        grid,
+        "_refresh_visible_highlighter_projection",
+        lambda: highlight_calls.append(True),
+    )
+
+    grid.toggle_label_fold("entry")
+    _app().processEvents()
+
+    assert viewport_calls == ["label-fold"]
+    assert len(highlight_calls) >= 1
+
+
+def test_broad_copy_barrier_runs_only_for_pending_state(monkeypatch):
+    grid = _grid(["nop", "nop"])
+    coordinator = grid._consistency_coordinator
+    calls = []
+    coordinator.visual_revision_applied = coordinator.structural_revision
+    coordinator.semantic_revision_applied = coordinator.source_revision
+    coordinator.state = coordinator_module.ConsistencyState.CLEAN
+    monkeypatch.setattr(
+        coordinator,
+        "ensure_consistent",
+        lambda reason: calls.append(reason) or ConsistencyBarrierResult(True),
+    )
+
+    assert coordinator.ensure_broad_copy_consistent() is True
+    assert calls == []
+
+    coordinator._dirty_ranges = (coordinator_module.DirtyRange(0, 1),)
+    assert coordinator.ensure_broad_copy_consistent() is True
+    assert calls == ["broad-derived-copy"]
+
+
+def test_copying_all_bytes_checks_derived_consistency(monkeypatch):
+    grid = _grid(["nop", "addiu $t0, $t0, 1"])
+    calls = []
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "ensure_broad_copy_consistent",
+        lambda: calls.append(True) or True,
+    )
+    grid.bytes.selectAll()
+
+    grid._copy_local_editor_selection(grid.bytes)
+
+    assert calls == [True]
+    assert QApplication.clipboard().text() == "00 00 00 00\n01 00 08 25"
+
+
 def test_single_bytes_character_edit_does_not_read_the_complete_document(monkeypatch):
     """Ordinary Bytes typing must remain O(1) even for a large document."""
 

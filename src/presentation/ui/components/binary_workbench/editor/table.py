@@ -167,6 +167,7 @@ class BinaryWorkbenchGrid(
         self._selection_limit_bytes = DEFAULT_SELECTION_LIMIT_BYTES
         self._reset_virtual_undo_cache()
         self._pending_rows_changed: list[BinaryWorkbenchRowDTO] | None = None
+        self._pending_current_rows_changed = False
         self._pending_rows_changed_origin: str | None = None
         self._rows_changed_emit_timer = QTimer(self)
         self._rows_changed_emit_timer.setSingleShot(True)
@@ -212,29 +213,42 @@ class BinaryWorkbenchGrid(
 
         self._consistency_coordinator.flush_collected_changes()
 
-    def _emit_rows_changed(self, rows: list[BinaryWorkbenchRowDTO], deferred: bool = False) -> None:
+    def _emit_rows_changed(
+        self,
+        rows: list[BinaryWorkbenchRowDTO] | None = None,
+        deferred: bool = False,
+    ) -> None:
+        """Publish rows, deferring the full snapshot allocation when possible."""
+
         if not deferred:
             self._pending_rows_changed = None
+            self._pending_current_rows_changed = False
             self._pending_rows_changed_origin = None
             self._rows_changed_emit_timer.stop()
-            self.rowsChanged.emit(list(rows))
+            self.rowsChanged.emit(list(self.export_rows() if rows is None else rows))
             return
         self._pending_rows_changed = rows
+        self._pending_current_rows_changed = rows is None
         self._pending_rows_changed_origin = self._edit_origin_kind
         self._rows_changed_emit_timer.start(ROWS_CHANGED_DEBOUNCE_MS)
 
     def flush_pending_rows_changed(self) -> None:
-        if self._pending_rows_changed is None:
+        if self._pending_rows_changed is None and not self._pending_current_rows_changed:
             return
-        rows = self._pending_rows_changed
+        rows = (
+            self.export_rows()
+            if self._pending_current_rows_changed
+            else self._pending_rows_changed
+        )
         origin = self._pending_rows_changed_origin
         self._pending_rows_changed = None
+        self._pending_current_rows_changed = False
         self._pending_rows_changed_origin = None
         self._rows_changed_emit_timer.stop()
         previous_origin = self._edit_origin_kind
         self._edit_origin_kind = origin
         try:
-            self.rowsChanged.emit(list(rows))
+            self.rowsChanged.emit(list(rows or ()))
         finally:
             self._edit_origin_kind = previous_origin
 
@@ -242,6 +256,7 @@ class BinaryWorkbenchGrid(
         """Discard a deferred edit superseded by an authoritative context load."""
 
         self._pending_rows_changed = None
+        self._pending_current_rows_changed = False
         self._pending_rows_changed_origin = None
         self._rows_changed_emit_timer.stop()
 

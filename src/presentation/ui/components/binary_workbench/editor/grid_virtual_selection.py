@@ -5,7 +5,10 @@ from src.core.binary_workbench.clipboard_text import without_empty_lines
 from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
+from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
+    capture_logical_cursor,
+    restore_logical_cursor,
     set_cursor_position,
 )
 from src.presentation.ui.components.binary_workbench.editor.syntax_tokens import BYTE_TOKEN
@@ -53,9 +56,29 @@ class GridVirtualSelectionMixin:
         }:
             editor.copy()
             return
+        if not self._ensure_broad_derived_copy(editor):
+            return
         QApplication.clipboard().setText(
             without_empty_lines(editor.textCursor().selection().toPlainText())
         )
+
+    def _ensure_broad_derived_copy(self, editor) -> bool:
+        """Synchronize a >=95% derived selection only when work is pending."""
+
+        cursor = editor.textCursor()
+        if not cursor.hasSelection():
+            return True
+        document_size = max(1, editor.document().characterCount() - 1)
+        selected_size = cursor.selectionEnd() - cursor.selectionStart()
+        if selected_size / document_size < BINARY_WORKBENCH_LAYOUT.EDITOR_BROAD_DERIVED_COPY_RATIO:
+            return True
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is None:
+            return True
+        cursor_state = capture_logical_cursor(editor)
+        success = coordinator.ensure_broad_copy_consistent()
+        restore_logical_cursor(editor, cursor_state)
+        return success
 
     def _capture_virtual_selection_anchor(self, editor) -> None:
         if not self._virtual:

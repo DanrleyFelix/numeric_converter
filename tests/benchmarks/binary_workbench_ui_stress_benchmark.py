@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 import statistics
 import sys
@@ -24,6 +25,9 @@ sys.path.insert(0, str(ROOT))
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchStateDTO,
+)
+from src.core.binary_workbench.editor_consistency.classification.service import (
+    declared_label,
 )
 from src.presentation.ui.components.binary_workbench.editor.page import (
     BinaryWorkbenchEditorPage,
@@ -90,11 +94,7 @@ def _assembly_backspace_case(page: BinaryWorkbenchEditorPage) -> tuple[float, fl
     """Measure edits inside the already materialized viewport."""
 
     editor = page.grid.instructions
-    block = editor.firstVisibleBlock()
-    remaining = 80
-    while block.isValid() and remaining and not block.text().strip():
-        block = block.next()
-        remaining -= 1
+    block = _first_visible_assembled_block(page)
     if not block.isValid() or not block.text().strip():
         raise RuntimeError("The benchmark viewport has no editable Assembly row.")
     cursor = QTextCursor(block)
@@ -112,7 +112,7 @@ def _assembly_backspace_case(page: BinaryWorkbenchEditorPage) -> tuple[float, fl
 
 def _bytes_backspace_case(
     page: BinaryWorkbenchEditorPage,
-) -> tuple[float | None, float | None]:
+) -> tuple[float | None, float | None, float | None]:
     """Measure character deletion and the structural empty-row transition."""
 
     QTest.qWait(90)
@@ -125,7 +125,7 @@ def _bytes_backspace_case(
     if not block.isValid() or not block.text().strip():
         # An unresolved-symbol control case intentionally has no assembled
         # Bytes. Opening and scrolling are still valid measurements.
-        return None, None
+        return None, None, None
     block_number = block.blockNumber()
     cursor = QTextCursor(block)
     cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
@@ -142,7 +142,84 @@ def _bytes_backspace_case(
     QTest.keyClick(editor, Qt.Key_Backspace)
     QApplication.processEvents()
     row_delete = (perf_counter() - started) * 1000.0
-    return max(character_samples, default=0.0), row_delete
+    profiler = None
+    if os.environ.get("BWB_PROFILE_BYTES_UNDO"):
+        import cProfile
+
+        profiler = cProfile.Profile()
+        profiler.enable()
+    started = perf_counter()
+    QTest.keyClick(editor, Qt.Key_Z, Qt.ControlModifier)
+    QApplication.processEvents()
+    undo = (perf_counter() - started) * 1000.0
+    if profiler is not None:
+        import pstats
+
+        profiler.disable()
+        pstats.Stats(profiler).sort_stats("cumulative").print_stats(35)
+    return max(character_samples, default=0.0), row_delete, undo
+
+
+def _assembly_row_delete_case(page: BinaryWorkbenchEditorPage) -> float:
+    """Measure one accepted structural row removal in the Assembly source."""
+
+    editor = page.grid.instructions
+    block = _first_visible_assembled_block(page, require_next=True)
+    if not block.isValid() or not block.next().isValid():
+        return 0.0
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(block.position())
+    cursor.setPosition(block.next().position(), QTextCursor.KeepAnchor)
+    editor.setTextCursor(cursor)
+    profiler = None
+    if os.environ.get("BWB_PROFILE_ROW_DELETE"):
+        import cProfile
+
+        profiler = cProfile.Profile()
+        profiler.enable()
+    started = perf_counter()
+    QTest.keyClick(editor, Qt.Key_Backspace)
+    QApplication.processEvents()
+    elapsed = (perf_counter() - started) * 1000.0
+    if profiler is not None:
+        import pstats
+
+        profiler.disable()
+        pstats.Stats(profiler).sort_stats("cumulative").print_stats(35)
+    return elapsed
+
+
+def _first_visible_assembled_block(
+    page: BinaryWorkbenchEditorPage,
+    *,
+    require_next: bool = False,
+):
+    """Find ordinary assembled code, excluding directives and label-only rows."""
+
+    editor = page.grid.instructions
+    block = editor.firstVisibleBlock()
+    remaining = 160
+    while block.isValid() and remaining:
+        index = block.blockNumber()
+        text = block.text()
+        current_valid = (
+            0 <= index < len(page.grid._rows)
+            and bool(page.grid._codec.instruction_code(text))
+            and not declared_label(text)
+        )
+        next_valid = (
+            not require_next
+            or (
+                index + 1 < len(page.grid._rows)
+                and bool(page.grid._codec.instruction_code(block.next().text()))
+                and not declared_label(block.next().text())
+            )
+        )
+        if current_valid and next_valid:
+            return block
+        block = block.next()
+        remaining -= 1
+    return block
 
 
 def _scroll_case(page: BinaryWorkbenchEditorPage) -> tuple[float, float]:
@@ -198,10 +275,24 @@ def main() -> None:
                 equates,
             )
             cold_scroll_ms, cached_scroll_ms = _scroll_case(page)
+            page.grid.set_edit_rules(
+                BinaryWorkbenchEditRulesDTO(allow_byte_shift=False)
+            )
+            assembly_locked_first_delete_ms, assembly_locked_quiet_delete_max_ms = (
+                _assembly_backspace_case(page)
+            )
+            page.grid.set_edit_rules(
+                BinaryWorkbenchEditRulesDTO(allow_byte_shift=True)
+            )
             assembly_first_delete_ms, assembly_quiet_delete_max_ms = (
                 _assembly_backspace_case(page)
             )
-            bytes_character_delete_max_ms, bytes_row_delete_ms = (
+            assembly_row_delete_ms = _assembly_row_delete_case(page)
+            (
+                bytes_character_delete_max_ms,
+                bytes_row_delete_ms,
+                bytes_undo_row_ms,
+            ) = (
                 _bytes_backspace_case(page)
             )
             after = _rss_mib()
@@ -212,10 +303,14 @@ def main() -> None:
                     "qt_projection_ms": qt_projection_ms,
                     "cold_scroll_ms": cold_scroll_ms,
                     "cached_scroll_ms": cached_scroll_ms,
+                    "assembly_locked_first_delete_ms": assembly_locked_first_delete_ms,
+                    "assembly_locked_quiet_delete_max_ms": assembly_locked_quiet_delete_max_ms,
                     "assembly_first_delete_ms": assembly_first_delete_ms,
                     "assembly_quiet_delete_max_ms": assembly_quiet_delete_max_ms,
+                    "assembly_row_delete_ms": assembly_row_delete_ms,
                     "bytes_character_delete_max_ms": bytes_character_delete_max_ms,
                     "bytes_row_delete_ms": bytes_row_delete_ms,
+                    "bytes_undo_row_ms": bytes_undo_row_ms,
                     "rss_delta_mib": (
                         None if before is None or after is None else after - before
                     ),

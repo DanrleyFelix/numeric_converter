@@ -81,6 +81,8 @@ class GridEditingMixin:
                 self._normalize_bytes_editor_text()
             if self._stage_or_commit_single_byte_block(block_hint):
                 return
+            if self._try_bytes_structural_history_update():
+                return
             lines = self._normalized_bytes_lines()
             if self._try_bytes_structure_update(lines):
                 return

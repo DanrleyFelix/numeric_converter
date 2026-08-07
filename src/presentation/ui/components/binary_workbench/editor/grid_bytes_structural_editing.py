@@ -70,6 +70,64 @@ class GridBytesStructuralEditingMixin:
         self._dirty_editor_kind = None
         return True
 
+    def _try_bytes_structural_history_update(self) -> bool:
+        """Replay a known row Undo/Redo without scanning every Bytes block.
+
+        Structural Bytes commands already carry their source-row boundary and
+        removed-row cache.  Falling back to prefix/suffix matching here made a
+        single Undo proportional to files with thousands of instructions.
+        """
+
+        if not bool(getattr(self.bytes, "_history_action_in_progress", False)):
+            return False
+        first = self._active_bytes_alignment_hint
+        delta = self.bytes.document().blockCount() - len(self._rows)
+        if not delta:
+            return False
+        if first is None:
+            first = self._cached_history_splice_start(delta)
+        if first is None:
+            return False
+        first = min(max(0, first), len(self._rows))
+        removed = max(0, -delta)
+        inserted: list[BinaryWorkbenchRowDTO] = []
+        if delta > 0:
+            lines: list[str] = []
+            for index in range(first, first + delta):
+                block = self.bytes.document().findBlockByNumber(index)
+                if not block.isValid():
+                    return False
+                lines.append(self._normalized_bytes_line(block.text()))
+            restored = self._rows_for_bytes_insertion(first, lines)
+            if restored is None:
+                return False
+            inserted = restored
+        elif first + removed > len(self._rows):
+            return False
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is None or not coordinator.enabled():
+            return False
+        coordinator.accept_bytes_structure_splice(first, removed, inserted)
+        self._bytes_staged_incomplete = False
+        self._bytes_staged_block = None
+        self._remember_editor_text_signature(self.bytes)
+        self._dirty_editor_kind = None
+        return True
+
+    def _cached_history_splice_start(self, delta: int) -> int | None:
+        """Locate a structural Bytes Undo from its bounded removal journal."""
+
+        expected = abs(delta)
+        for first, rows in reversed(self._removed_bytes_rows):
+            if len(rows) != expected:
+                continue
+            # The first Undo restores the structurally deleted *empty* row;
+            # later Undo commands restore its bytes nibble by nibble.  The
+            # journal therefore supplies the boundary even when the restored
+            # text does not yet match the previously assembled row.
+            return first
+        return None
+
     def _rows_for_bytes_insertion(
         self,
         first: int,

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QTextCursor
 
 from src.core.binary_workbench.directive_folding import debugger_directive_fold_region
+from src.core.binary_workbench.editor_consistency.classification.service import (
+    declared_label,
+)
 from src.core.binary_workbench.label_folding import LabelFoldRegion, label_fold_regions
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import (
@@ -37,6 +41,7 @@ class GridLabelFoldingMixin:
         else:
             self._collapsed_labels.add(label)
         self._apply_label_visibility(anchor_row)
+        self._refresh_fold_viewport()
         self._schedule_layout_refresh()
 
     def toggle_directive_fold(self) -> None:
@@ -47,6 +52,7 @@ class GridLabelFoldingMixin:
         anchor_row = self._scroll_anchor_source_row()
         self._directives_collapsed = not self._directives_collapsed
         self._apply_label_visibility(anchor_row)
+        self._refresh_fold_viewport()
         self._schedule_layout_refresh()
 
     def expand_label_for_offset(self, offset: int) -> bool:
@@ -66,8 +72,18 @@ class GridLabelFoldingMixin:
             return False
         self._collapsed_labels.difference_update(expanded)
         self._apply_label_visibility()
+        self._refresh_fold_viewport()
         self._schedule_layout_refresh()
         return True
+
+    def _refresh_fold_viewport(self) -> None:
+        """Immediately refresh derived/highlight state revealed by folding."""
+
+        coordinator = getattr(self, "_consistency_coordinator", None)
+        if coordinator is not None:
+            coordinator.prioritize_viewport("label-fold")
+        self._refresh_visible_highlighter_projection()
+        QTimer.singleShot(0, self._refresh_visible_highlighter_projection)
 
     def _refresh_label_folding(self, anchor_row: int | None = None) -> None:
         """Recalculate regions and apply one visibility mask to all columns."""
@@ -92,7 +108,49 @@ class GridLabelFoldingMixin:
         self._apply_label_visibility(
             anchor_row,
             refresh_offsets=previously_collapsed or bool(self._collapsed_labels),
+            normalize_all=True,
         )
+
+    def _preview_label_fold_marker(self, row: int, source: str) -> None:
+        """Keep a cached fold marker attached during a local label rename."""
+
+        if not self._label_folding_enabled:
+            return
+        current = self._label_fold_regions_by_row.get(row)
+        if current is None:
+            return
+        name = declared_label(source)
+        if name == current.label:
+            return
+        # Keep the old region until the coalesced structural commit removes it;
+        # that commit needs the previous owner to expand inherited rows.
+        if not name:
+            return
+        regions = list(self._label_fold_regions)
+        replacement = LabelFoldRegion(
+            name,
+            current.label_row,
+            current.first_hidden_row,
+            current.last_hidden_row,
+        )
+        regions = [
+            replacement if region.label_row == row else region
+            for region in regions
+        ]
+        if current.label in self._collapsed_labels:
+            self._collapsed_labels.remove(current.label)
+            self._collapsed_labels.add(name)
+        self._label_fold_regions = regions
+        self._label_fold_regions_by_row = {
+            region.label_row: region for region in regions
+        }
+        self.instructions.set_label_fold_regions({
+            region.label_row: (
+                region.label,
+                region.label in self._collapsed_labels,
+            )
+            for region in regions
+        })
 
     def _splice_cached_label_folding(
         self,
@@ -144,6 +202,7 @@ class GridLabelFoldingMixin:
         anchor_row: int | None = None,
         *,
         refresh_offsets: bool = True,
+        normalize_all: bool = False,
     ) -> None:
         """Apply cached fold regions without preprocessing source labels."""
 
@@ -166,7 +225,7 @@ class GridLabelFoldingMixin:
         try:
             if refresh_offsets:
                 self._render_offsets()
-            if hidden_rows or getattr(self, "_last_fold_hidden_rows", set()):
+            if normalize_all or hidden_rows or getattr(self, "_last_fold_hidden_rows", set()):
                 for editor in self._fold_editors():
                     self._apply_hidden_rows(editor, hidden_rows)
             self._last_fold_hidden_rows = set(hidden_rows)

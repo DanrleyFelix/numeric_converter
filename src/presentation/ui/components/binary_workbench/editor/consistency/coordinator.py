@@ -125,9 +125,14 @@ class EditorConsistencyCoordinator(QObject):
         return timer
 
     def enabled(self) -> bool:
-        """Return whether the active grid supports structural Assembly editing."""
+        """Return whether this source grid can use incremental consistency.
 
-        return not self.grid._virtual and self.grid._edit_rules.allow_byte_shift
+        The user byte-shifting preference controls which structural edits are
+        accepted; it must not disable proportional derivation for ordinary
+        character edits in an existing row.
+        """
+
+        return not self.grid._virtual
 
     def offset_before_line(self, index: int) -> int:
         """Return the indexed logical offset without scanning neighboring rows."""
@@ -506,6 +511,9 @@ class EditorConsistencyCoordinator(QObject):
 
         self.grid._set_last_editor(BINARY_WORKBENCH_TEXT.INSTRUCTION)
         self.grid._dirty_editor_kind = BINARY_WORKBENCH_TEXT.INSTRUCTION
+        block = self.grid.instructions.textCursor().block()
+        if block.isValid():
+            self.grid._preview_label_fold_marker(block.blockNumber(), block.text())
 
     def flush_collected_changes(self) -> None:
         """Classify and apply one coalesced source edit."""
@@ -546,6 +554,8 @@ class EditorConsistencyCoordinator(QObject):
             rows = self._derive_lines(first, lines)
         if rows is None or len(rows) != len(lines):
             rows = [BinaryWorkbenchRowDTO({}, line, "") for line in lines]
+        if delta == 0 and old_span == new_span:
+            rows = self._preserve_locked_line_contributions(first, rows)
         if delta == 0 and old_span == 1 and new_span == 1:
             if self._apply_single_line(first, rows[0]):
                 return
@@ -666,6 +676,7 @@ class EditorConsistencyCoordinator(QObject):
                 if rebuilt and len(rebuilt) == 1
                 else BinaryWorkbenchRowDTO({}, block.text(), "")
             )
+            row = self._preserve_locked_line_contributions(index, [row])[0]
             previous_size = _row_size(previous)
             current_size = _row_size(row)
             labels_changed = labels_changed or (
@@ -920,8 +931,64 @@ class EditorConsistencyCoordinator(QObject):
             self._invalidate_semantic()
             self._schedule_semantic()
         self._refresh_dependency_range(first, len(rows))
-        self.grid._emit_rows_changed(self.grid.export_rows(), deferred=True)
+        self.grid._emit_rows_changed(deferred=True)
         self.grid._dirty_editor_kind = None
+
+    def _preserve_locked_line_contributions(
+        self,
+        first: int,
+        rows: list[BinaryWorkbenchRowDTO],
+    ) -> list[BinaryWorkbenchRowDTO]:
+        """Keep existing bytes while a locked source row is temporarily invalid.
+
+        This is the proportional replacement for the legacy whole-document
+        reconciliation that previously ran after every Backspace.
+        """
+
+        if self.grid._edit_rules.allow_byte_shift:
+            return rows
+        preserved: list[BinaryWorkbenchRowDTO] = []
+        for relative, row in enumerate(rows):
+            index = first + relative
+            if not 0 <= index < len(self._model_rows):
+                preserved.append(row)
+                continue
+            previous = self._model_rows[index]
+            if not previous.bytes_text or row.bytes_text:
+                preserved.append(row)
+                continue
+            preserved.append(BinaryWorkbenchRowDTO(
+                previous.offsets,
+                row.instruction,
+                previous.bytes_text,
+                previous.original_instruction,
+                previous.original_bytes_text,
+            ))
+        return preserved
+
+    def ensure_broad_copy_consistent(self) -> bool:
+        """Run a barrier only when a near-complete derived copy is stale."""
+
+        self.flush_collected_changes()
+        pending = bool(
+            self._pending_first is not None
+            or self._dirty_ranges
+            or self._pending_bytes_content_batches
+            or self._pending_symbol_lines
+            or self._bulk_symbols_pending
+            or self.state
+            & (
+                ConsistencyState.DIRTY_VISUAL
+                | ConsistencyState.RECALCULATING_VISUAL
+                | ConsistencyState.DIRTY_SEMANTIC
+                | ConsistencyState.RECALCULATING_SEMANTIC
+            )
+            or self.visual_revision_applied != self.structural_revision
+            or self.semantic_revision_applied != self.source_revision
+        )
+        if not pending:
+            return True
+        return self.ensure_consistent("broad-derived-copy").success
 
     def _schedule_visual(self) -> None:
         self.state |= ConsistencyState.DIRTY_VISUAL
@@ -1228,13 +1295,14 @@ class EditorConsistencyCoordinator(QObject):
         """Repair the viewport immediately and establish a complete F1 revision."""
 
         self.flush_collected_changes()
+        lines = self._document_lines()
         if (
             self.state == ConsistencyState.CLEAN
             and self.visual_revision_applied == self.structural_revision
             and self.semantic_revision_applied == self.source_revision
+            and not self.grid._bounded_refresh_available(lines)
         ):
             return self.ensure_consistent("f1-clean")
-        lines = self._document_lines()
         if not self.grid._bounded_refresh_available(lines):
             return self.ensure_consistent("f1")
         self.grid._refresh_bounded_source_rows(lines)
@@ -1730,8 +1798,18 @@ class EditorConsistencyCoordinator(QObject):
             self.grid._refresh_label_folding()
 
     def _labels_changed(self, first: int, old_span: int, rows: list[BinaryWorkbenchRowDTO]) -> bool:
-        before = [declared_label(row.instruction) for row in self._model_rows[first : first + old_span]]
-        after = [declared_label(row.instruction) for row in rows]
+        """Detect declaration changes, not an ordinary row-count difference."""
+
+        before = [
+            name
+            for row in self._model_rows[first : first + old_span]
+            if (name := declared_label(row.instruction))
+        ]
+        after = [
+            name
+            for row in rows
+            if (name := declared_label(row.instruction))
+        ]
         return before != after
 
     def _directive_folding_changed(

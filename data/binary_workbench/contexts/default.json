@@ -28,7 +28,7 @@
             "lba_sector_size": 2352,
             "named_regions": [],
             "offset_regions": [],
-            "offset_regions_loaded": true,
+            "offset_regions_loaded": false,
             "encoding_tables": [],
             "versions": [],
             "active_version_name": "default",
@@ -51,7 +51,7 @@
             "module_checksums": {
                 "symbols": "0c573004f1aeda6f75c307a6af81116cb9afe0c7fca6a1605894a117dbf67484",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "9d5bec0c7a7c041a9650524a39b2b29bc8d80624fc1dd855837e431f44ab5793",
+                "versions": "b5305cbb01350cca269345cd95b9457971171b7014049b825445edf82d2967b7",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "1654dedcec20fdc3384aa4b15d7f5b0d451ae1424594e68b88487e64fb5689c7"
             },
@@ -259,7 +259,7 @@
                         "File": "0x00000004",
                         "ram": "0x8000F804"
                     },
-                    "instruction": "addiu $a0, $zero, 0x2",
+                    "instruction": "ADDIU $a0, $zero, 0x2",
                     "bytes_text": "02 00 04 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -270,7 +270,7 @@
                         "File": "0x00000008",
                         "ram": "0x8000F808"
                     },
-                    "instruction": "addiu $a2, $zero, 0x3",
+                    "instruction": "ADDIU $a2, $zero, 0x3",
                     "bytes_text": "03 00 06 24",
                     "original_instruction": "",
                     "original_bytes_text": ""
@@ -479,8 +479,8 @@
                         "File": "0x00000054",
                         "ram": "0x8000F854"
                     },
-                    "instruction": "ORI $t0, $zero, _local_symbol_0065",
-                    "bytes_text": "41 00 08 34",
+                    "instruction": "ORI $t0, $zero, 0x004",
+                    "bytes_text": "04 00 08 34",
                     "original_instruction": "",
                     "original_bytes_text": ""
                 },

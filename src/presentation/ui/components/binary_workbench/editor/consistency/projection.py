@@ -109,6 +109,9 @@ def apply_structure_splice(
                         for offset, row in enumerate(inserted)
                     ],
                 )
+                splice_overlays = getattr(editor, "splice_offset_blocks", None)
+                if splice_overlays is not None:
+                    splice_overlays(first, removed, len(inserted))
             if _column_is_configured(grid, BINARY_WORKBENCH_TEXT.BYTES):
                 _replace_span(
                     grid.bytes,
@@ -130,7 +133,6 @@ def apply_structure_splice(
                     removed,
                     [grid._display_raw_row(row) for row in inserted],
                 )
-            _refresh_offset_overlays(grid)
             _validate_block_counts(grid)
         if not refresh_folding:
             grid._splice_cached_label_folding(first, removed, len(inserted))
@@ -592,7 +594,6 @@ def _restore_lines(grid, snapshots: tuple) -> None:
         for editor, values in snapshots:
             for index, text in values:
                 _replace_line(editor, index, text)
-        _refresh_offset_overlays(grid)
 
 
 def _validate_block_counts(grid) -> None:
