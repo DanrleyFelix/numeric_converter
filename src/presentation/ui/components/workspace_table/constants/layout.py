@@ -9,10 +9,11 @@ class WORKSPACE_TABLE_SIZE:
     REMOVE_ICON_SIZE: int = 16
     REMOVE_GUTTER_WIDTH: int = 20
     ROW_HEIGHT: int = 52
-    CONTROL_HEIGHT: int = 52
-    ACTION_WIDTH: int = 160
+    CONTROL_HEIGHT: int = 42
+    ACTION_WIDTH: int = 130
     FIELD_MIN_WIDTH: int = 180
     ICON_SIZE: int = 16
+    ICON_TEXT_SPACING: int = 8
 
 
 class WORKSPACE_TABLE_MARGIN:
@@ -20,6 +21,10 @@ class WORKSPACE_TABLE_MARGIN:
     DIALOG_TOP: int = 30
     DIALOG_RIGHT: int = 20
     DIALOG_BOTTOM: int = 20
+    PANEL_LEFT: int = 20
+    PANEL_TOP: int = 20
+    PANEL_RIGHT: int = 20
+    PANEL_BOTTOM: int = 20
     HEADER_LEFT: int = 18
     HEADER_TOP: int = 0
     HEADER_RIGHT: int = 18
@@ -45,4 +50,5 @@ class WORKSPACE_TABLE_SPACING:
     ROW: int = 18
     CARD: int = 0
     CONTROLS: int = 15
+    VARIABLE_ENTRY: int = 20
     SECTIONS: int = 15

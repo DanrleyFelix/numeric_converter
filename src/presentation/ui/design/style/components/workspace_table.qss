@@ -114,7 +114,7 @@ QLineEdit#workspace-model-input {
     background-color: $bg-workspace-row;
     color: $text-main;
     border: 1px solid $border-workspace-row;
-    border-radius: $radius-0;
+    border-radius: $radius-10;
     padding-left: $space-12;
     padding-right: $space-12;
 }
@@ -124,12 +124,11 @@ QLineEdit#workspace-model-input:focus {
 }
 
 QPushButton#workspace-model-action {
-    background-color: $bg-workspace-row;
+    background-color: $bg-button;
     color: $text-main;
     border: 1px solid $border-focus;
     border-radius: $radius-10;
-    padding-left: $space-12;
-    padding-right: $space-12;
+    padding: $space-0;
 }
 
 QPushButton#workspace-model-action:hover {

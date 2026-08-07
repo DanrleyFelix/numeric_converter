@@ -30,7 +30,7 @@ class MainWindowStateMixin:
                 self._collect_binary_workbench_state()
             )
         except PermissionError:
-            self.footer.set_status(MAIN_WINDOW_TEXT.BINARY_WORKBENCH_AUTOSAVE_BLOCKED)
+            return
 
     def _persist_binary_preferences(self: MainWindow) -> None:
         """Persist only Binary preferences after their own change event."""

@@ -15,7 +15,6 @@ class MAIN_WINDOW_TEXT:
     RAW_VALUE_COPIED: str = "Raw value copied."
     PREFERENCES_UPDATED: str = "Preferences updated."
     BINARY_WORKBENCH_READY: str = "Binary Workbench opened."
-    BINARY_WORKBENCH_AUTOSAVE_BLOCKED: str = "Binary Workbench context autosave skipped: file is locked."
     NUMERIC_CLOSE_SAVE_FAILED_TEMPLATE: str = "Numeric state was not saved: {error}"
     DONOR_READY: str = "Donor options are not configured yet."
     LOG_REMOVED: str = "Log entry removed."

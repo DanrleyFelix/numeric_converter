@@ -21,6 +21,10 @@ from src.modules.services import (
 )
 from src.presentation.ui.components.command_panel.completion import PagedCompletionModel
 from src.presentation.ui.components.workspace_table import WorkspaceRow, WorkspaceTableDialog
+from src.presentation.ui.components.workspace_table.constants import (
+    WORKSPACE_TABLE_SIZE,
+    WORKSPACE_TABLE_SPACING,
+)
 from src.presentation.ui.main_window.autosave import NumericAutosaveScheduler
 
 
@@ -63,6 +67,21 @@ def test_closed_binary_repositories_are_loaded_only_on_explicit_open(monkeypatch
     window._open_binary_workbench()
     assert calls == ["state", "preferences"]
     window._binary_workbench_window.close()
+    window._numeric_autosave.shutdown()
+
+
+def test_locked_binary_autosave_does_not_replace_numeric_feedback():
+    _app()
+    window = create_main_window(Path(tempfile.mkdtemp()))
+    window.footer.set_status("Numeric feedback")
+
+    def reject_save(_state):
+        raise PermissionError("locked")
+
+    window._state_service.save_default_binary_context = reject_save
+    window._persist_binary_state()
+
+    assert window.footer.status.text() == "Numeric feedback"
     window._numeric_autosave.shutdown()
 
 
@@ -163,6 +182,36 @@ def test_workspace_tables_keep_constant_permanent_widget_count_at_ten_thousand_r
     assert dialog.model.rowCount() == 10_000
     assert len(dialog.findChildren(QWidget)) == initial_widgets
     assert dialog.row_widgets == []
+
+
+def test_workspace_dialog_controls_match_symbols_visual_metrics():
+    _app()
+    variables = WorkspaceTableDialog(
+        "Variables",
+        ["Name", "Value", "Hex"],
+        allow_add=True,
+    )
+    logs = WorkspaceTableDialog("Logs", ["Instruction", "Result"])
+    variables.show()
+    _app().processEvents()
+
+    assert variables.table.styleSheet() == ""
+    assert variables.name_input.minimumWidth() == WORKSPACE_TABLE_SIZE.FIELD_MIN_WIDTH
+    assert variables.value_input.minimumWidth() == WORKSPACE_TABLE_SIZE.FIELD_MIN_WIDTH
+    assert variables.name_input.height() == WORKSPACE_TABLE_SIZE.CONTROL_HEIGHT
+    assert variables.remove_button.size().width() == WORKSPACE_TABLE_SIZE.ACTION_WIDTH
+    assert variables.remove_button.height() == WORKSPACE_TABLE_SIZE.CONTROL_HEIGHT
+    assert logs.remove_button.height() == WORKSPACE_TABLE_SIZE.CONTROL_HEIGHT
+    assert logs.filter_input.height() == WORKSPACE_TABLE_SIZE.CONTROL_HEIGHT
+    assert variables.name_input.width() == variables.value_input.width()
+    assert (
+        variables.add_button.x() - variables.value_input.geometry().right() - 1
+        == WORKSPACE_TABLE_SPACING.VARIABLE_ENTRY
+    )
+    assert (
+        variables.add_button.geometry().right()
+        == variables.add_button.parentWidget().contentsRect().right()
+    )
 
 
 def test_workspace_filter_sort_selection_emits_stable_keys_without_model_reset():
