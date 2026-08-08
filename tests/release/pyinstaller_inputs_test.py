@@ -34,6 +34,16 @@ def test_collect_packaged_binaries_includes_unicorn_native_library():
     )
 
 
+def test_collect_packaged_binaries_includes_keystone_native_library():
+    binary_entries = collect_packaged_binaries()
+
+    assert any(
+        "keystone" in source.lower()
+        and target.replace("\\", "/") == "keystone"
+        for source, target in binary_entries
+    )
+
+
 def test_filter_packaged_entries_removes_excluded_binary_names():
     entries = [
         ("PySide6/Qt6Widgets.dll", "C:/bundle/PySide6/Qt6Widgets.dll", "BINARY"),

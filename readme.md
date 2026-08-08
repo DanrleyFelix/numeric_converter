@@ -36,7 +36,10 @@ capabilities, technical structure and release/build notes.
   labels, internal files, offset regions, decoded text and search/navigation.
 - Builds portable bundles for Windows, Linux and macOS through PyInstaller.
 
-## What's New in v3.0
+## What's New in v3.1
+
+v3.1 is a stabilization release focused on responsiveness, predictable editing
+and direct navigation across large Binary Workbench projects.
 
 - Binary Workbench now includes a PSX MIPS debugger with Run, Pause, Stop,
   Restart, Step, Step Over and Config actions, each exposed through the debugger
@@ -61,6 +64,55 @@ capabilities, technical structure and release/build notes.
   no longer truncates scrolling, deleting a label expands the label that
   receives its instructions, and edits inside collapsed content expand the
   affected label automatically.
+- Editor consistency is now incremental and viewport-oriented. File Offset,
+  Reference Offsets, Bytes, Raw Instructions and assembly projections are
+  refreshed for the visible region first, avoiding unnecessary whole-document
+  work during ordinary typing, scrolling, folding and navigation.
+- Local and Global Symbols use indexed repositories and virtualized Model/View
+  dialogs. Large symbol catalogs no longer create one permanent widget or one
+  regular expression per entry, and inactive tabs are not materialized merely
+  because a catalog was loaded.
+- Numeric WorkBench Variables and Logs also use virtualized tables. Numeric and
+  Binary autosave, completion and background state are isolated so activity in
+  one workbench does not trigger processing in the other.
+- Byte editing received fixes for insertion, deletion, multi-line replacement,
+  undo/redo, cursor preservation and synchronization back to Editor Assembly.
+  Protected directive, label and comment rows continue to follow the configured
+  byte-shifting rules.
+- The packaged Windows build includes the Unicorn native runtime required by
+  the debugger.
+
+### Faster navigation
+
+Navigation no longer depends on a full assembly pass when the requested data is
+already available. Users can move directly through labels, Local and Global
+Symbol occurrences, Search, Go To, Offset Regions, LBA File System, hazards,
+branches and jumps. Label navigation uses a lightweight per-tab index and
+binary search; folding and scrolling request only the newly visible viewport.
+Repeated navigation reuses cached data until the Assembly source changes.
+
+This makes large files easier to explore: collapse a label to scan neighboring
+blocks, open the Labels dialog to jump by name, inspect a Symbol's offsets, or
+follow an address from Search without manually locating its line.
+
+### Stability and performance fixes
+
+- Fixed disappearing or stale offsets after inserting, deleting, pasting,
+  undoing or editing invalid Assembly lines.
+- Fixed synchronized scrolling with three or more labels, collapsed blocks and
+  optional Reference Offset or Decoded Text columns.
+- Fixed stale folding controls, truncated scroll ranges and content revealed by
+  collapse/expand without an immediate viewport refresh.
+- Fixed byte-column selection/copy regressions, destructive right-click
+  selection changes and obsolete derived edits entering user undo history.
+- Fixed branch, jump, label and Symbol refresh paths that previously performed
+  repeated global work.
+- Reduced startup and workspace recovery work by materializing active content
+  on demand and offering safe recovery for unusually large sessions.
+- Removed per-row widgets from scalable Environment, Variables and Logs views,
+  preserving filtering, sorting, inline editing and multi-selection.
+- Improved debugger memory, stack, register, breakpoint and log behavior,
+  including stack address handling and packaged Unicorn loading.
 
 ## Numeric WorkBench
 
@@ -385,10 +437,10 @@ dist/macos
 Artifact names follow this format:
 
 ```text
-numeric-workbench-v3.0-<os>-<architecture>
+numeric-workbench-v3.1-<os>-<architecture>
 ```
 
-v3.0 ships portable bundles only. Native installers are intentionally out of
+v3.1 ships portable bundles only. Native installers are intentionally out of
 scope for this release.
 
 The PyInstaller config keeps the bundle smaller by excluding unused Qt stacks
@@ -427,7 +479,7 @@ context to reproduce the issue. This is especially important for Binary
 Workbench because real binary editing workflows expose edge cases that are hard
 to predict from isolated tests.
 
-The v3.0 feature cycle reinforces the need for continued refactoring and better
+The v3.1 stabilization cycle reinforces the need for continued refactoring and better
 organization. The UI layer grew quickly and now contains responsibilities that
 should move toward controllers, presenters or core services. QSS files also need
 cleanup, several UI files are spread without their own focused subfolders, and

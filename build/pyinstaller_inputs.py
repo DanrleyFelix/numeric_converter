@@ -185,7 +185,10 @@ def collect_packaged_data(project_root: Path) -> list[tuple[str, str]]:
 def collect_packaged_binaries() -> list[tuple[str, str]]:
     """Collect native libraries required by packaged runtime dependencies."""
 
-    return collect_dynamic_libs("unicorn")
+    return [
+        *collect_dynamic_libs("unicorn"),
+        *collect_dynamic_libs("keystone"),
+    ]
 
 
 def filter_packaged_entries(entries: Iterable[tuple]) -> list[tuple]:
