@@ -1,5 +1,7 @@
 ﻿from pathlib import Path
 
+from contextlib import contextmanager
+
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_STATE,
     BINARY_WORKBENCH_TAB_KIND,
@@ -30,18 +32,25 @@ from src.presentation.repository.binary_workbench_workspace.constants import (
 
 
 class BinaryWorkbenchWindowEnvironmentMixin:
-    def _exec_environment_dialog(self, dialog):
-        """Pause this tab's eventual CPU work for a modal UI interaction."""
+    @contextmanager
+    def _environment_dialog_session(self):
+        """Suspend editor CPU work before constructing a modal dialog."""
 
         page = self.tabs.currentWidget()
         suspended = None
         if hasattr(page, "suspend_eventual_consistency"):
             suspended = page.suspend_eventual_consistency()
         try:
-            return dialog.exec()
+            yield
         finally:
             if suspended is not None and hasattr(page, "resume_eventual_consistency"):
                 page.resume_eventual_consistency(suspended)
+
+    def _exec_environment_dialog(self, dialog):
+        """Pause this tab's eventual CPU work for a modal UI interaction."""
+
+        with self._environment_dialog_session():
+            return dialog.exec()
 
     def _open_advanced_configuration(self) -> None:
         current = self.tabs.current_metadata_context()
@@ -68,17 +77,29 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         if current is None or not current.source_path:
             self._show_status(BINARY_WORKBENCH_TEXT.STATUS_INTERNAL_SOURCE_REQUIRED, BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)
             return
-        dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, [], current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
-        dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
-        dialog.goToRequested.connect(self.tabs.go_to_offset)
-        self._exec_environment_dialog(dialog)
-        self.tabs.set_current_internal_files(dialog.mappings(), dialog.selected_lba_sector_size())
+        with self._environment_dialog_session():
+            dialog = BinaryWorkbenchLbaFilesystemDialog(current.internal_files, current.lba_sector_size, [], current.display_name, self.tabs.directory_for(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY), self)
+            dialog.directoryChanged.connect(lambda value: self.tabs.set_directory(BINARY_WORKBENCH_STATE.LBA_FILESYSTEM_DIRECTORY, Path(value)))
+            dialog.goToRequested.connect(self.tabs.go_to_offset)
+            dialog.exec()
+        mappings = dialog.mappings()
+        sector_size = dialog.selected_lba_sector_size()
+        content_changed = (
+            mappings != current.internal_files
+            or sector_size != current.lba_sector_size
+        )
+        if content_changed:
+            self.tabs.set_current_internal_files(mappings, sector_size)
         module_path = dialog.saved_library_path() or dialog.loaded_library_path()
         if module_path:
             self.tabs.set_current_module_path(LBA_FILESYSTEM, Path(module_path))
-        if dialog.should_save_library() or dialog.loaded_library_name():
+        library_changed = bool(
+            dialog.should_save_library() or dialog.loaded_library_name()
+        )
+        if library_changed:
             self.tabs.save_current_lba_filesystem(dialog.library_name() or dialog.saved_library_name() or dialog.loaded_library_name())
-        self.tabs.save_current_workspace()
+        if content_changed or module_path or library_changed:
+            self.tabs.save_current_workspace()
 
     def _open_symbols(self) -> None:
         self._open_local_symbols()
@@ -168,30 +189,36 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         return current.tab_id, self.tabs.symbol_offsets_for(current.tab_id, name)
 
     def _open_labels(self) -> None:
-        self.tabs.commit_current_editor_text()
-        current = self.tabs.current_context()
+        """Open the cached label index without a global consistency barrier."""
+
+        current = self.tabs.current_metadata_context()
         if current is None:
             return
-        dialog = BinaryWorkbenchLabelsDialog(current.labels, self)
-        dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
-        self._exec_environment_dialog(dialog)
+        with self._environment_dialog_session():
+            page = self.tabs.currentWidget()
+            grid = getattr(page, "grid", None)
+            labels = grid.current_labels() if grid is not None else current.labels
+            dialog = BinaryWorkbenchLabelsDialog(labels, self)
+            dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
+            dialog.exec()
 
     def _open_commands(self) -> None:
         current = self.tabs.current_metadata_context()
         if current is None:
             return
-        dialog = BinaryWorkbenchCommandsDialog(
-            self.tabs.custom_commands_for_current_context(),
-            self.tabs.directory_for(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY),
-            self,
-        )
-        dialog.commandLoadRequested.connect(lambda path: self._load_command(dialog, Path(path)))
-        dialog.commandSaveRequested.connect(lambda path: self._save_commands(dialog, Path(path)))
-        dialog.commandRemoveRequested.connect(lambda name: self._remove_command(dialog, name))
-        dialog.commandInstructionsChangeRequested.connect(
-            lambda name, instructions: self._replace_command_instructions(dialog, name, instructions)
-        )
-        self._exec_environment_dialog(dialog)
+        with self._environment_dialog_session():
+            dialog = BinaryWorkbenchCommandsDialog(
+                self.tabs.custom_commands_for_current_context(),
+                self.tabs.directory_for(BINARY_WORKBENCH_STATE.COMMANDS_DIRECTORY),
+                self,
+            )
+            dialog.commandLoadRequested.connect(lambda path: self._load_command(dialog, Path(path)))
+            dialog.commandSaveRequested.connect(lambda path: self._save_commands(dialog, Path(path)))
+            dialog.commandRemoveRequested.connect(lambda name: self._remove_command(dialog, name))
+            dialog.commandInstructionsChangeRequested.connect(
+                lambda name, instructions: self._replace_command_instructions(dialog, name, instructions)
+            )
+            dialog.exec()
 
     def _load_command(self, dialog: BinaryWorkbenchCommandsDialog, path: Path) -> None:
         if not self.tabs.load_custom_commands_from_path(path):

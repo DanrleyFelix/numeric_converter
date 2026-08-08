@@ -1,5 +1,3 @@
-from PySide6.QtCore import QCoreApplication
-
 from src.core.binary_workbench.searching import (
     effective_search_end,
     find_reader_bytes,
@@ -22,7 +20,6 @@ from src.core.binary_workbench.text_search import (
 )
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES,
-    BINARY_WORKBENCH_SEARCH_EVENT_CHUNKS,
 )
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.page_overlays import overlay_bytes
@@ -112,7 +109,6 @@ class EditorPageSearchMixin:
                 start_offset,
                 end_offset,
                 self._context.instruction_overlays,
-                self._yield_search_events,
             )
         return hazard_items_from_rows(self.grid.export_rows() or self._context.rows, start_offset, end_offset)
 
@@ -146,7 +142,6 @@ class EditorPageSearchMixin:
                 start_offset,
                 end_offset,
                 max_results,
-                self._yield_search_events,
             )
         return self._find_instruction_rows(instruction, start_offset, end_offset, max_results)
 
@@ -172,7 +167,14 @@ class EditorPageSearchMixin:
             return []
         if self._reader is None:
             return find_hex_nibbles_in_rows(self._context.rows, needle, start_offset, end_offset, max_results)
-        return find_reader_hex(self._reader, overlay_bytes(self._context.byte_overlays), needle, start_offset, end_offset, max_results, self._yield_search_events)
+        return find_reader_hex(
+            self._reader,
+            overlay_bytes(self._context.byte_overlays),
+            needle,
+            start_offset,
+            end_offset,
+            max_results,
+        )
 
     def _hex_query_for_mode(self, mode: str, query: str) -> str:
         if mode == BINARY_WORKBENCH_TEXT.FIND_HEX_BYTES_BE:
@@ -185,7 +187,14 @@ class EditorPageSearchMixin:
             return []
         if self._reader is None:
             return find_bytes_in_rows(self._context.rows, needle, start_offset, end_offset, max_results)
-        return find_reader_bytes(self._reader, overlay_bytes(self._context.byte_overlays), needle, start_offset, end_offset, max_results, self._yield_search_events)
+        return find_reader_bytes(
+            self._reader,
+            overlay_bytes(self._context.byte_overlays),
+            needle,
+            start_offset,
+            end_offset,
+            max_results,
+        )
 
     def _read_match_bytes(self, offset: int, size: int) -> bytes:
         if self._reader is None:
@@ -194,11 +203,3 @@ class EditorPageSearchMixin:
                     return bytes.fromhex(row.bytes_text.replace(" ", ""))
             return b""
         return self._reader.read_uncached(offset, size, overlay_bytes(self._context.byte_overlays))
-
-    def _yield_search_events(self) -> None:
-        count = getattr(self, "_search_event_chunks", 0) + 1
-        self._search_event_chunks = count
-        if count % BINARY_WORKBENCH_SEARCH_EVENT_CHUNKS == 0:
-            app = QCoreApplication.instance()
-            if app is not None:
-                app.processEvents()

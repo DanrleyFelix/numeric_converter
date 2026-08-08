@@ -36,6 +36,33 @@ from src.presentation.repository.workspace_state import (
 )
 
 
+def test_heavy_binary_recovery_preview_does_not_materialize_rows(tmp_path: Path):
+    """Recovery can identify the old tab before constructing row DTOs."""
+
+    repository = BinaryWorkbenchContextRepository(tmp_path)
+    target = repository.default_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps({
+            "tabs": [{
+                "tab_id": "heavy",
+                "kind": "assembly",
+                "display_name": "heavy.asm",
+                "rows": [{"instruction": "x" * (300 * 1024)}],
+            }],
+            "active_tab_id": "heavy",
+        }),
+        encoding="utf-8",
+    )
+
+    preview = repository.recovery_preview()
+
+    assert preview is not None
+    assert preview.active_tab_id == "heavy"
+    assert [tab.display_name for tab in preview.tabs] == ["heavy.asm"]
+    assert preview.tabs[0].rows == []
+
+
 def test_application_context_roundtrip_uses_numeric_workbench_context_path(tmp_path: Path):
     repository = ApplicationContextRepository(tmp_path)
     context = ApplicationContextDTO(

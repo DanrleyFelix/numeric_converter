@@ -324,7 +324,7 @@ class TabVersionsMixin:
         self,
         tab_id: str,
     ) -> BinaryWorkbenchTabContextDTO | None:
-        """Capture only current Assembly rows and active-version metadata."""
+        """Capture authoritative Assembly text without deriving other columns."""
 
         current = next(
             (tab for tab in self._state.tabs if tab.tab_id == tab_id),
@@ -336,6 +336,18 @@ class TabVersionsMixin:
             or not current.active_version_name
         ):
             return None
+        index = next(
+            (
+                item
+                for item, tab in enumerate(self._state.tabs)
+                if tab.tab_id == tab_id
+            ),
+            -1,
+        )
+        page = self.widget(index) if 0 <= index < self.count() else None
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            current = page.persistence_context()
+            self._replace_autosave_context(current)
         existing = next(
             (
                 item

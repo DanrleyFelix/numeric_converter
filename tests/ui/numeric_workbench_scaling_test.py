@@ -6,7 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QItemSelectionModel, QObject
 from PySide6.QtTest import QSignalSpy, QTest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QFileDialog, QWidget
 
 from src.core.command_window.completion import PrefixCatalog
 from src.main import create_main_window
@@ -70,6 +70,23 @@ def test_closed_binary_repositories_are_loaded_only_on_explicit_open(monkeypatch
     window._numeric_autosave.shutdown()
 
 
+def test_numeric_open_action_calls_native_dialog_directly(monkeypatch):
+    """Keep native pickers on the direct QAction path without queued lag."""
+
+    _app()
+    window = create_main_window(Path(tempfile.mkdtemp()))
+    calls = []
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args: (calls.append(args) or ("", "")),
+    )
+
+    window.toolbar.load_workspace_action.trigger()
+    assert len(calls) == 1
+    window._numeric_autosave.shutdown()
+
+
 def test_locked_binary_autosave_does_not_replace_numeric_feedback():
     _app()
     window = create_main_window(Path(tempfile.mkdtemp()))
@@ -82,7 +99,7 @@ def test_locked_binary_autosave_does_not_replace_numeric_feedback():
     window._persist_binary_state()
 
     assert window.footer.status.text() == "Numeric feedback"
-    window._binary_state_persistence.shutdown()
+    assert not hasattr(window, "_binary_state_persistence")
     window._numeric_autosave.shutdown()
 
 
@@ -91,19 +108,16 @@ def test_binary_state_signal_reuses_exported_state_without_recollecting(monkeypa
 
     _app()
     window = create_main_window(Path(tempfile.mkdtemp()))
-    queued: list[BinaryWorkbenchStateDTO] = []
     state = BinaryWorkbenchStateDTO(active_tab_id="opened")
     monkeypatch.setattr(
         window,
         "_collect_binary_workbench_state",
         lambda: (_ for _ in ()).throw(AssertionError("unexpected Binary export")),
     )
-    monkeypatch.setattr(window._binary_state_persistence, "schedule", queued.append)
-
     window._remember_binary_workbench_state(state)
 
-    assert queued == [state]
-    window._binary_state_persistence.shutdown()
+    assert window._binary_workbench_state == state
+    assert not hasattr(window, "_binary_state_persistence")
     window._numeric_autosave.shutdown()
 
 

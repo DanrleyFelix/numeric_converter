@@ -5,6 +5,7 @@ from src.core.binary_workbench.mips_r3000a import (
     build_rows_from_instructions,
     extract_labels_from_instructions,
 )
+from src.core.binary_workbench.mips_r3000a.source_line_rows import empty_source_row
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 DEFAULT_REFS = ["File"]
@@ -52,6 +53,20 @@ def rows_from_path(
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines() if path.exists() else []
         return build_rows_from_instructions(lines, offsets, offset_bases)
     return load_more_binary_rows(path, offsets, 0, block_size, offset_bases)
+
+
+def source_only_rows_from_path(
+    path: Path,
+    offsets: list[str],
+) -> list[BinaryWorkbenchRowDTO]:
+    """Read Assembly source without assembling the full file on the GUI path."""
+
+    lines = (
+        path.read_text(encoding="utf-8", errors="replace").splitlines()
+        if path.exists()
+        else []
+    )
+    return [empty_source_row(line, offsets) for line in lines]
 
 
 def resolve_read_mode(path: Path, requested: str) -> str:

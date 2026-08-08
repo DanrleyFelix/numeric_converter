@@ -120,6 +120,11 @@ class WorkspaceStateService:
     def load_default_binary_context(self) -> BinaryWorkbenchStateDTO:
         return self._binary_context_repository.load()
 
+    def preview_default_binary_context(self) -> BinaryWorkbenchStateDTO | None:
+        """Return a light recovery preview without materializing heavy rows."""
+
+        return self._binary_context_repository.recovery_preview()
+
     def save_default_binary_context(self, state: BinaryWorkbenchStateDTO) -> Path:
         return self._binary_context_repository.save(state)
 

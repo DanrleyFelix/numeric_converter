@@ -128,5 +128,7 @@ class BinaryWorkbenchToolbar(QFrame):
         button.setMinimumWidth(TOOLBAR_SIZE.ACTION_MIN_WIDTH)
         button.setAutoRaise(True)
         button.setCursor(Qt.PointingHandCursor)
-        button.setFocusPolicy(Qt.StrongFocus)
+        # QAction owns keyboard access; retaining button focus keeps the
+        # toolbar hover color painted while modal UI is being opened.
+        button.setFocusPolicy(Qt.NoFocus)
         return button

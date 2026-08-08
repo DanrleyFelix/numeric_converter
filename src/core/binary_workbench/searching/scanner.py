@@ -17,7 +17,7 @@ from src.modules.binary_workbench_constants import (
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 
 
-def find_reader_bytes(reader, overlays: dict[int, bytes], needle: bytes, start, end, limit, on_chunk=None) -> list[int]:
+def find_reader_bytes(reader, overlays: dict[int, bytes], needle: bytes, start, end, limit) -> list[int]:
     if not needle:
         return []
     offset, search_end = _reader_range(reader, start, end)
@@ -29,7 +29,7 @@ def find_reader_bytes(reader, overlays: dict[int, bytes], needle: bytes, start, 
     return []
 
 
-def find_reader_hex(reader, overlays: dict[int, bytes], needle: str, start, end, limit, on_chunk=None) -> list[int]:
+def find_reader_hex(reader, overlays: dict[int, bytes], needle: str, start, end, limit) -> list[int]:
     offset, search_end = _reader_range(reader, start, end)
     if search_end < offset:
         return []
@@ -39,17 +39,17 @@ def find_reader_hex(reader, overlays: dict[int, bytes], needle: str, start, end,
     return []
 
 
-def find_reader_instruction(reader, codec, overlays, query: str, start, end, limit, on_chunk=None) -> list[int]:
+def find_reader_instruction(reader, codec, overlays, query: str, start, end, limit) -> list[int]:
     exact = codec.assemble(query, 0)
     if exact is not None and len(exact) == codec.word_size:
-        return find_reader_masked(reader, overlays, MaskedBytePattern(exact, b"\xFF" * len(exact), codec.word_size), start, end, limit, on_chunk)
+        return find_reader_masked(reader, overlays, MaskedBytePattern(exact, b"\xFF" * len(exact), codec.word_size), start, end, limit)
     pattern = mips_instruction_byte_pattern(query)
     if pattern is not None:
-        return find_reader_masked(reader, overlays, pattern, start, end, limit, on_chunk)
-    return _find_reader_disassembly(reader, codec, overlays, query, start, end, limit, on_chunk)
+        return find_reader_masked(reader, overlays, pattern, start, end, limit)
+    return _find_reader_disassembly(reader, codec, overlays, query, start, end, limit)
 
 
-def find_reader_masked(reader, overlays: dict[int, bytes], pattern: MaskedBytePattern, start, end, limit, on_chunk=None) -> list[int]:
+def find_reader_masked(reader, overlays: dict[int, bytes], pattern: MaskedBytePattern, start, end, limit) -> list[int]:
     offset, search_end = _reader_range(reader, start, end)
     if search_end < offset:
         return []
@@ -69,7 +69,7 @@ def effective_search_end(reader, rows: list[BinaryWorkbenchRowDTO], end_offset: 
     return None if not row_ends else min(end_offset if end_offset is not None else max(row_ends), max(row_ends))
 
 
-def _find_reader_disassembly(reader, codec, overlays, query, start, end, limit, on_chunk) -> list[int]:
+def _find_reader_disassembly(reader, codec, overlays, query, start, end, limit) -> list[int]:
     word_size = codec.word_size
     offset = _align(max(0, start or 0), word_size)
     search_end = _reader_range(reader, start, end)[1]

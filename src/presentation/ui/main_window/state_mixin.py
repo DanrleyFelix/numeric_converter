@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSignalBlocker, QSize
@@ -16,6 +17,10 @@ from src.modules.utils import COLOR
 from src.presentation.ui.components.command_panel.constants import COMMAND_PANEL_TEXT
 from src.presentation.ui.helpers.window_geometry import ensure_window_on_available_screen
 from src.presentation.ui.main_window.constants import MAIN_WINDOW_STATE, MAIN_WINDOW_TEXT
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    VERSION_PATH_PREFIX,
+    VERSIONS,
+)
 
 if TYPE_CHECKING:
     from src.presentation.ui.main_window.window import MainWindow
@@ -23,26 +28,57 @@ if TYPE_CHECKING:
 
 class MainWindowStateMixin:
     def _persist_binary_state(self: MainWindow) -> None:
-        """Coalesce Binary-owned state persistence outside the GUI thread."""
+        """Persist Binary state only at an explicit Binary lifecycle boundary."""
 
-        self._queue_binary_state_persistence(
+        state = self._compact_binary_state_for_storage(
             self._collect_binary_workbench_state()
         )
+        try:
+            self._state_service.save_default_binary_context(state)
+        except PermissionError:
+            return
+        self._binary_workbench_state = state
+
+    def _compact_binary_state_for_storage(
+        self: MainWindow,
+        state: BinaryWorkbenchStateDTO,
+    ) -> BinaryWorkbenchStateDTO:
+        """Keep module-backed tabs lazy after Binary closes.
+
+        The active Assembly source is already stored in its version module.
+        Repeating every row and version inside the default context made close
+        serialization block the Numeric UI and made the next open eagerly
+        materialize the former workspace.
+        """
+
+        tabs = []
+        for tab in state.tabs:
+            has_version_module = VERSIONS in tab.module_paths or any(
+                key.startswith(VERSION_PATH_PREFIX) for key in tab.module_paths
+            )
+            if not tab.workspace_path or not has_version_module:
+                tabs.append(tab)
+                continue
+            tabs.append(replace(
+                tab,
+                labels={},
+                symbol_offsets={},
+                search_cache={},
+                versions=[],
+                original_rows=[],
+                rows=[],
+                version_dirty=False,
+            ))
+        return replace(state, tabs=tabs)
 
     def _queue_binary_state_persistence(
         self: MainWindow,
         state: BinaryWorkbenchStateDTO,
     ) -> None:
-        """Queue an already-exported state without flushing the editor again."""
+        """Compatibility adapter: retain Binary state in memory only."""
 
-        scheduler = getattr(self, "_binary_state_persistence", None)
-        if scheduler is not None:
-            scheduler.schedule(state)
-            return
-        try:
-            self._state_service.save_default_binary_context(state)
-        except PermissionError:
-            return
+        self._binary_workbench_state = state
+        self._binary_state_loaded = True
 
     def _persist_binary_preferences(self: MainWindow) -> None:
         """Persist only Binary preferences after their own change event."""
@@ -76,11 +112,16 @@ class MainWindowStateMixin:
             self._binary_workbench_state = (
                 self._state_service.load_default_binary_context()
             )
+        self._ensure_binary_preferences_loaded()
+        self._binary_state_loaded = True
+
+    def _ensure_binary_preferences_loaded(self: MainWindow) -> None:
+        """Load the small preference payload without materializing a workspace."""
+
         if self._binary_workbench_preferences == BinaryWorkbenchPreferencesDTO():
             self._binary_workbench_preferences = (
                 self._binary_preferences_service.load()
             )
-        self._binary_state_loaded = True
 
     def _collect_context(self: MainWindow) -> ApplicationContextDTO:
         return ApplicationContextDTO(
@@ -172,7 +213,6 @@ class MainWindowStateMixin:
                     "window_size": WindowSizeDTO(width=width, height=height),
                 }
             )
-            self._queue_binary_state_persistence(self._binary_workbench_state)
             return
         self._window_sizes[key] = WindowSizeDTO(width=width, height=height)
         self._mark_numeric_dirty("window-size")
@@ -195,7 +235,6 @@ class MainWindowStateMixin:
             return
         self._binary_workbench_state = state
         self._binary_state_loaded = True
-        self._queue_binary_state_persistence(state)
 
     def _remember_binary_workbench_preferences(self: MainWindow, preferences: object) -> None:
         if not isinstance(preferences, BinaryWorkbenchPreferencesDTO):

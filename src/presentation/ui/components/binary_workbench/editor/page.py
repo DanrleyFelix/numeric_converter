@@ -19,7 +19,9 @@ from src.modules.binary_workbench_constants import (
 from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchEditRulesDTO,
     BinaryWorkbenchPreferencesDTO,
+    BinaryWorkbenchRowDTO,
     BinaryWorkbenchTabContextDTO,
+    BinaryWorkbenchVersionDTO,
 )
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
@@ -130,6 +132,65 @@ class BinaryWorkbenchEditorPage(
             )
         return self._context
 
+    def persistence_context(self) -> BinaryWorkbenchTabContextDTO:
+        """Capture source text for shutdown without running derivation."""
+
+        if self._context.kind not in {
+            BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+            BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+        }:
+            return self._context
+        rows = self.grid.persistence_source_rows()
+        changed = _source_rows_changed(rows, self._context.rows)
+        active = next(
+            (
+                version
+                for version in self._context.versions
+                if version.name == self._context.active_version_name
+            ),
+            None,
+        )
+        version_changed = active is not None and _source_rows_changed(
+            rows,
+            active.rows,
+        )
+        context = BinaryWorkbenchTabContextDTO(
+            **{
+                **self._context.__dict__,
+                "rows": rows,
+                "version_dirty": (
+                    self._context.version_dirty or changed or version_changed
+                ),
+            }
+        )
+        name = context.active_version_name
+        if not name:
+            self._context = context
+            return context
+        previous = next(
+            (version for version in context.versions if version.name == name),
+            BinaryWorkbenchVersionDTO(name=name),
+        )
+        version = BinaryWorkbenchVersionDTO(
+            name=previous.name,
+            rows=rows,
+            instruction_overlays=previous.instruction_overlays,
+            instructions_by_line=previous.instructions_by_line,
+            variables=previous.variables,
+            equates=previous.equates,
+            symbols_loaded=previous.symbols_loaded,
+        )
+        self._context = BinaryWorkbenchTabContextDTO(
+            **{
+                **context.__dict__,
+                "versions": [
+                    *[item for item in context.versions if item.name != name],
+                    version,
+                ],
+            }
+        )
+        return self._context
+
     def has_pending_editor_changes(self) -> bool:
         """Return the page's constant-time dirty signal for close prompting."""
 
@@ -161,6 +222,11 @@ class BinaryWorkbenchEditorPage(
         """Resume work when a close prompt is cancelled or saving fails."""
 
         self.grid.resume_eventual_consistency(suspended)
+
+    def shutdown_consistency(self) -> None:
+        """Cancel private editor work without waiting for global derivation."""
+
+        self.grid.shutdown_consistency()
 
     def rederive_symbol_lines(self, indices: tuple[int, ...]) -> None:
         """Project only source rows affected by changed Symbol definitions."""
@@ -484,3 +550,15 @@ def _edit_rules_for_context(
     }:
         return preferences.assembly_edit_rules
     return preferences.binary_edit_rules
+
+
+def _source_rows_changed(
+    current: list[BinaryWorkbenchRowDTO],
+    previous: list[BinaryWorkbenchRowDTO],
+) -> bool:
+    """Compare authoritative source without allocating duplicate text lists."""
+
+    return len(current) != len(previous) or any(
+        left.instruction != right.instruction
+        for left, right in zip(current, previous)
+    )

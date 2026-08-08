@@ -29,11 +29,29 @@ if TYPE_CHECKING:
 
 class MainWindowDialogsMixin:
     def _open_binary_workbench(self: MainWindow) -> None:
-        self._ensure_binary_state_loaded()
         if self._binary_workbench_window is None:
-            opening_state = self._binary_workbench_state
+            preview = None
+            if not self._binary_state_loaded:
+                preview_loader = getattr(
+                    self._state_service,
+                    "preview_default_binary_context",
+                    None,
+                )
+                if callable(preview_loader):
+                    preview = preview_loader()
+            if preview is None:
+                self._ensure_binary_state_loaded()
+            else:
+                # Preferences are tiny and independent from the persisted
+                # workspace.  Blank recovery must retain them without paying
+                # the cost of deserializing the previous heavy tab.
+                self._ensure_binary_preferences_loaded()
+            opening_state = preview or self._binary_workbench_state
             omitted_tabs = ()
-            plan = recovery_plan(opening_state)
+            # A preview exists only when the persisted context exceeds the
+            # safe startup budget.  It intentionally has no materialized rows,
+            # so its existence is itself the recovery preflight result.
+            plan = object() if preview is not None else recovery_plan(opening_state)
             if plan is not None:
                 dialog = BinaryWorkbenchRecoveryDialog(
                     opening_state.tabs,
@@ -45,6 +63,11 @@ class MainWindowDialogsMixin:
                 if excluded is None:
                     return
                 preserve_excluded = dialog.preserves_excluded_tabs()
+                if preserve_excluded and preview is not None:
+                    # Deserialize the heavy state only after the user actually
+                    # asks to recover it.  Blank project never pays this cost.
+                    self._ensure_binary_state_loaded()
+                    opening_state = self._binary_workbench_state
                 opening_state, omitted_tabs = selected_recovery_state(
                     opening_state,
                     excluded,
@@ -63,7 +86,6 @@ class MainWindowDialogsMixin:
                 recovery_omitted_tabs=omitted_tabs,
             )
             self._binary_workbench_window.setWindowIcon(self.windowIcon())
-            self._binary_workbench_window.setStyleSheet(STYLESHEET)
             self._binary_workbench_window.stateChanged.connect(
                 self._remember_binary_workbench_state
             )
@@ -229,7 +251,10 @@ class MainWindowDialogsMixin:
         self._help_window = None
 
     def _clear_binary_workbench_window(self: MainWindow) -> None:
+        """Persist the final Binary state once, then release its ownership."""
+
         self._binary_workbench_window = None
+        self._persist_binary_state()
 
     def _clear_donor_window(self: MainWindow) -> None:
         self._donor_window = None

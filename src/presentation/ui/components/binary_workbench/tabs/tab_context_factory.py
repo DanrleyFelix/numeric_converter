@@ -29,6 +29,7 @@ from src.presentation.ui.components.binary_workbench.tabs.source_rows import (
     is_assembly_path,
     resolve_read_mode,
     rows_from_path,
+    source_only_rows_from_path,
 )
 from src.presentation.ui.components.binary_workbench.tabs.view_preferences import seed_view_preferences
 
@@ -80,20 +81,43 @@ def create_file_tab(
     state: BinaryWorkbenchStateDTO,
     path: Path,
     preferences: BinaryWorkbenchPreferencesDTO | None = None,
+    *,
+    derive_assembly: bool = True,
 ) -> BinaryWorkbenchTabContextDTO:
-    return create_assembly_tab(state, path, preferences) if is_assembly_path(path) else create_binary_tab(state, path, preferences)
+    return (
+        create_assembly_tab(
+            state,
+            path,
+            preferences,
+            derive_rows=derive_assembly,
+        )
+        if is_assembly_path(path)
+        else create_binary_tab(state, path, preferences)
+    )
 
 
 def create_assembly_tab(
     state: BinaryWorkbenchStateDTO,
     path: Path,
     preferences: BinaryWorkbenchPreferencesDTO | None = None,
+    *,
+    derive_rows: bool = True,
 ) -> BinaryWorkbenchTabContextDTO:
     read_mode = resolve_read_mode(path, "assembly")
     preferences = preferences or BinaryWorkbenchPreferencesDTO()
-    rows = rows_from_path(path, read_mode, list(DEFAULT_REFS), preferences.block_size, dict(DEFAULT_REF_BASES))
+    rows = (
+        rows_from_path(
+            path,
+            read_mode,
+            list(DEFAULT_REFS),
+            preferences.block_size,
+            dict(DEFAULT_REF_BASES),
+        )
+        if derive_rows
+        else source_only_rows_from_path(path, list(DEFAULT_REFS))
+    )
     symbols: dict[str, str] = {}
-    labels = labels_from_source_rows(rows)
+    labels = labels_from_source_rows(rows) if derive_rows else {}
     return BinaryWorkbenchTabContextDTO(
         tab_id=uuid4().hex,
         kind=BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,

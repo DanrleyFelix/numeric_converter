@@ -7,7 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QItemSelectionModel, Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QFileDialog, QLabel, QPlainTextEdit, QPushButton, QTextBrowser, QToolButton, QWidget
 
 from src.modules.dtos import CommandLogPreferencesDTO, FormattingOutputDTO
 from src.main import create_main_window
@@ -27,6 +27,19 @@ def _app() -> QApplication:
 def _window():
     _app()
     return create_main_window(Path(tempfile.mkdtemp()))
+
+
+def test_production_does_not_reenter_the_qt_event_loop() -> None:
+    """User handlers must return normally instead of draining nested events."""
+
+    source_root = Path(__file__).resolve().parents[2] / "src"
+    offenders = [
+        path.relative_to(source_root).as_posix()
+        for path in source_root.rglob("*.py")
+        if ".processEvents(" in path.read_text(encoding="utf-8")
+    ]
+
+    assert offenders == []
 
 
 def test_command_feedback_uses_blue_idle_yellow_incomplete_and_red_on_enter():
@@ -245,6 +258,10 @@ def test_preferences_menu_exposes_logs_action_with_shortcut():
     assert window.toolbar.donor_action.shortcut().toString() == "Alt+D"
     assert window._copy_raw_shortcut.key().toString() == "Alt+C"
     assert [shortcut.key().toString() for shortcut in window._workspace_window_shortcuts] == ["Alt+V", "Alt+N"]
+    assert all(
+        button.focusPolicy() == Qt.NoFocus
+        for button in window.toolbar.findChildren(QToolButton)
+    )
 
 
 def test_numeric_workspace_dialogs_start_in_numeric_workbench_workspace_directory(monkeypatch):
@@ -263,8 +280,8 @@ def test_numeric_workspace_dialogs_start_in_numeric_workbench_workspace_director
     monkeypatch.setattr(QFileDialog, "getSaveFileName", fake_save)
     monkeypatch.setattr(QFileDialog, "getOpenFileName", fake_open)
 
-    window._save_workspace()
-    window._load_workspace()
+    window.toolbar.save_workspace_action.trigger()
+    window.toolbar.load_workspace_action.trigger()
 
     workspace_directory = root / "data" / "numeric_workbench" / "workspaces"
     assert captured["save"] == str(workspace_directory / "workspace.json")

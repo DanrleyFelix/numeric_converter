@@ -89,19 +89,14 @@ class TabWorkspaceMemoryMixin:
         self.stateChanged.emit(self._state)
 
     def _commit_open_tab_pages(self) -> None:
+        """Capture authoritative source without assembly or semantic barriers."""
+
         for index in range(self.count()):
             page = self.widget(index)
             if not isinstance(page, BinaryWorkbenchEditorPage):
                 continue
-            page.commit_current_editor_text()
-            context = page.current_context()
-            if (
-                context.kind == BINARY_WORKBENCH_TAB_KIND.ASSEMBLY
-                and context.active_version_name
-            ):
-                # A deferred autosave may not have fired before shutdown.
-                # Capture and normalize the authoritative Assembly source now.
-                context = self._context_with_current_version(context)
+            page.shutdown_consistency()
+            context = page.persistence_context()
             self._replace_context_without_emit(context.tab_id, context)
 
     def _flush_workspace_context(
@@ -109,20 +104,20 @@ class TabWorkspaceMemoryMixin:
         index: int,
         context: BinaryWorkbenchTabContextDTO,
     ) -> bool:
-        if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:
-            return self._persist_internal_workspace_context(context) is not None
-        if (
-            context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY
-            and self.has_unsaved_version_edits(context)
-        ):
-            context = self._context_with_current_version(context)
-        saved = self._workspace_repository.save_tab_workspace(context)
+        # Accepted edits already update the in-memory context.  Shutdown only
+        # writes that snapshot; recalculating overlays, Symbols and offsets is
+        # both redundant and the source of the former multi-second close.
+        if context.workspace_path and context.module_paths.get(VERSIONS):
+            paths = self._workspace_repository.save_active_version(context)
+            saved = replace(
+                context,
+                module_paths=paths,
+                version_dirty=False,
+            )
+        else:
+            saved = self._workspace_repository.save_tab_workspace(context)
         self._remember_workspace_for_source(saved)
-        saved = self._with_symbol_offsets(saved)
-        self._replace_context(saved.tab_id, saved)
-        page = self.widget(index)
-        if isinstance(page, BinaryWorkbenchEditorPage):
-            page.replace_context(saved)
+        self._replace_context_without_emit(saved.tab_id, saved)
         return True
 
     def _workspace_context_should_flush(
@@ -130,7 +125,9 @@ class TabWorkspaceMemoryMixin:
         context: BinaryWorkbenchTabContextDTO,
     ) -> bool:
         if context.workspace_path:
-            return True
+            # Environment commands persist their own changes.  Rewriting all
+            # modules on every close is necessary only for dirty editor data.
+            return context.version_dirty
         if context.kind == BINARY_WORKBENCH_TAB_KIND.BINARY:
             return _binary_workspace_has_payload(context)
         if context.kind == BINARY_WORKBENCH_TAB_KIND.INTERNAL:

@@ -14,21 +14,23 @@ from src.presentation.ui.components.binary_workbench.constants import (
 
 class BinaryWorkbenchWindowFileActionsMixin:
     def _open_file(self, action_key: str, file_filter: str, callback) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            BINARY_WORKBENCH_TEXT.TITLE,
-            self.tabs.directory_for(action_key),
-            file_filter,
-        )
-        if path:
-            callback(Path(path))
+        with self._environment_dialog_session():
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                BINARY_WORKBENCH_TEXT.TITLE,
+                self.tabs.directory_for(action_key),
+                file_filter,
+            )
+            if path:
+                callback(Path(path))
 
     def _open_any_file(self) -> None:
         self._open_file(BINARY_WORKBENCH_STATE.OPEN_FILE_DIRECTORY, BINARY_WORKBENCH_TEXT.FILE_FILTER_ANY, self.tabs.open_file_path)
 
     def _save_file(self) -> bool:
         default_directory = self._default_save_directory(BINARY_WORKBENCH_STATE.SAVE_FILE_DIRECTORY)
-        path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_OUTPUT)
+        with self._environment_dialog_session():
+            path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_BINARY_FILE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_OUTPUT)
         if not path:
             return False
         if self._matches_current_source(Path(path)):
@@ -49,7 +51,8 @@ class BinaryWorkbenchWindowFileActionsMixin:
         default_directory = self._default_save_directory(BINARY_WORKBENCH_STATE.SAVE_ASSEMBLY_DIRECTORY)
         if suggested_name:
             default_directory = str(Path(default_directory) / suggested_name)
-        path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_ASSEMBLY_CODE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_ASSEMBLY)
+        with self._environment_dialog_session():
+            path, _ = QFileDialog.getSaveFileName(self, BINARY_WORKBENCH_TEXT.SAVE_ASSEMBLY_CODE, default_directory, BINARY_WORKBENCH_TEXT.FILE_FILTER_ASSEMBLY)
         if not path:
             return False
         target = Path(path)

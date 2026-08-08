@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit
@@ -288,6 +290,38 @@ class GridRenderingMixin:
 
     def export_rows(self) -> list[BinaryWorkbenchRowDTO]:
         return list(self._all_rows if not self._virtual else self._rows)
+
+    def persistence_source_rows(self) -> list[BinaryWorkbenchRowDTO]:
+        """Snapshot authoritative text while reusing valid derived row data.
+
+        Closing the window must not assemble source or rebuild offsets.  The
+        existing derived projection is retained only as a cache; source text
+        always comes from the Assembly document.  This avoids both expensive
+        close-time derivation and a blank projection on the next startup.
+        """
+
+        if self._virtual:
+            return self.export_rows()
+        names = tuple(self._reference_offset_bases) or (
+            BINARY_WORKBENCH_TEXT.FILE,
+        )
+        empty_offsets = {name: "-" for name in names}
+        rows: list[BinaryWorkbenchRowDTO] = []
+        block = self.instructions.document().begin()
+        index = 0
+        while block.isValid():
+            source = block.text()
+            if index < len(self._rows):
+                rows.append(replace(self._rows[index], instruction=source))
+            else:
+                rows.append(BinaryWorkbenchRowDTO(
+                    offsets=dict(empty_offsets),
+                    instruction=source,
+                    bytes_text="",
+                ))
+            block = block.next()
+            index += 1
+        return rows
 
     def set_visible_offset(self, offset: int) -> None:
         """Navigate and request the same typed viewport consistency as scroll."""

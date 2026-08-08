@@ -7,7 +7,10 @@ from src.modules.application_dtos import (
     ProgramContextDTO,
     WorkspaceStateDTO,
 )
-from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO
+from src.modules.binary_workbench_dtos import (
+    BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
+)
 from src.core.binary_workbench.symbols.compatibility import (
     SYMBOL_SCHEMA_VERSION,
     SymbolSchemaMigrator,
@@ -26,6 +29,15 @@ from src.modules.utils import normalize_json_path, read_json, write_json
 SEARCH_CACHE_PAYLOAD_PATTERN = re.compile(
     r'("search_cache"\s*:\s*)\{.*?\}',
     re.DOTALL,
+)
+RECOVERY_PREVIEW_BYTE_THRESHOLD = 256 * 1024
+RECOVERY_TAB_PATTERN = re.compile(
+    r'"tab_id"\s*:\s*(?P<tab>"(?:\\.|[^"\\])*")\s*,\s*'
+    r'"kind"\s*:\s*(?P<kind>"(?:\\.|[^"\\])*")\s*,\s*'
+    r'"display_name"\s*:\s*(?P<name>"(?:\\.|[^"\\])*")'
+)
+RECOVERY_ACTIVE_PATTERN = re.compile(
+    r'"active_tab_id"\s*:\s*(?P<active>null|"(?:\\.|[^"\\])*")'
 )
 
 
@@ -110,6 +122,41 @@ class BinaryWorkbenchContextRepository:
                 if isinstance(migrated, dict):
                     payload = migrated
         return binary_workbench_state_from_payload(payload)
+
+    def recovery_preview(self) -> BinaryWorkbenchStateDTO | None:
+        """Read only tab identities before deserializing a heavy workspace.
+
+        Recovery must be offered before thousands of row DTOs and Symbols are
+        materialized.  The compact preview scans stable root keys and never
+        parses row, version, occurrence, or Symbol payloads.
+        """
+
+        target = self.default_path()
+        try:
+            if target.stat().st_size < RECOVERY_PREVIEW_BYTE_THRESHOLD:
+                return None
+            text = target.read_text(encoding="utf-8")
+        except OSError:
+            return None
+        tabs: list[BinaryWorkbenchTabContextDTO] = []
+        for match in RECOVERY_TAB_PATTERN.finditer(text):
+            try:
+                tab_id = json.loads(match.group("tab"))
+                kind = json.loads(match.group("kind"))
+                name = json.loads(match.group("name"))
+            except (json.JSONDecodeError, TypeError):
+                continue
+            tabs.append(BinaryWorkbenchTabContextDTO(tab_id, kind, name))
+        if not tabs:
+            return None
+        active_match = RECOVERY_ACTIVE_PATTERN.search(text)
+        active = None
+        if active_match is not None and active_match.group("active") != "null":
+            try:
+                active = json.loads(active_match.group("active"))
+            except json.JSONDecodeError:
+                active = None
+        return BinaryWorkbenchStateDTO(tabs=tabs, active_tab_id=active)
 
     def save(
         self,

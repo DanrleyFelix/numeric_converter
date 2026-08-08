@@ -12,10 +12,8 @@ from PySide6.QtWidgets import QApplication
 from src.core.binary_workbench.editor_consistency import (
     ConsistencyBarrierResult,
     LineContentBatch,
-    OffsetDistributionBatch,
     SemanticResult,
 )
-from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.mips_r3000a import build_rows_from_instructions
 from src.core.binary_workbench.mips_r3000a.codec import PsxMipsR3000ACodec
 from src.core.binary_workbench.mips_r3000a import source_line_rows as source_rows_module
@@ -113,7 +111,7 @@ def test_contents_change_handler_only_collects_a_region(monkeypatch):
     assert coordinator._pending_first == 0
     assert coordinator._pending_last == 0
     assert coordinator.source_revision == 0
-    assert coordinator._visual_worker is None
+    assert not hasattr(coordinator, "_visual_worker")
     assert called == []
     coordinator._clear_collector()
 
@@ -611,82 +609,49 @@ def test_explicit_multiline_operation_has_one_aggregated_flush(monkeypatch, oper
     assert calls == [(0, 2)]
 
 
-def test_visual_and_semantic_timers_use_the_revised_deadlines():
+def test_only_viewport_and_small_bytes_projection_timers_remain():
     grid = _grid(["nop"])
     coordinator = grid._consistency_coordinator
 
-    assert coordinator._visual_quiet.interval() == 80
-    assert coordinator._visual_maximum.interval() == 280
-    assert coordinator._semantic_timer.interval() == 3000
-    assert coordinator._offset_batch_timer.interval() == 1000
-    assert coordinator._visual_quiet.isSingleShot()
-    assert coordinator._visual_maximum.isSingleShot()
-    assert coordinator._semantic_timer.isSingleShot()
+    assert coordinator._viewport_timer.interval() == 16
+    assert coordinator._viewport_timer.isSingleShot()
+    assert coordinator._bytes_content_timer.isSingleShot()
+    assert not hasattr(coordinator, "_visual_quiet")
+    assert not hasattr(coordinator, "_semantic_timer")
+    assert not hasattr(coordinator, "_offset_batch_timer")
 
 
-def test_background_batch_cadence_grows_to_ten_seconds_and_resets(monkeypatch):
+def test_dirty_visual_state_does_not_schedule_global_offset_work():
     grid = _grid(["nop"])
     coordinator = grid._consistency_coordinator
-    batch = OffsetDistributionBatch(
-        coordinator.owner,
-        coordinator.structural_revision,
-        coordinator.visual_generation,
-        0,
-        0,
-        (),
-    )
-    monkeypatch.setattr(coordinator, "_apply_offset_batch", lambda _batch: None)
 
-    for expected in range(2000, 10001, 1000):
-        coordinator._pending_offset_batches.append((batch, None))
-        coordinator._flush_offset_batch()
-        assert coordinator._background_batch_delay_ms == expected
+    coordinator._schedule_visual()
 
-    coordinator._pending_offset_batches.append((batch, None))
-    coordinator._flush_offset_batch()
-    assert coordinator._background_batch_delay_ms == 10000
-
-    coordinator._invalidate_visual()
-    assert coordinator._background_batch_delay_ms == 1000
+    assert coordinator.state & coordinator_module.ConsistencyState.DIRTY_VISUAL
+    assert not hasattr(coordinator._pool, "start_visual")
 
 
-def test_user_input_restarts_eventual_idle_deadlines():
+def test_user_input_cancels_obsolete_semantic_work_without_rescheduling_it():
     grid = _grid(["nop"])
     coordinator = grid._consistency_coordinator
-    batch = OffsetDistributionBatch(
-        coordinator.owner,
-        coordinator.structural_revision,
-        coordinator.visual_generation,
-        0,
-        0,
-        (),
-    )
-    coordinator._pending_offset_batches.append((batch, None))
-    coordinator._offset_batch_timer.stop()
-    coordinator.state |= coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
+
     coordinator._semantic_token = CancellationToken()
-    coordinator._semantic_timer.stop()
 
     coordinator._defer_eventual_for_user_input()
 
-    assert coordinator._offset_batch_timer.isActive()
-    assert coordinator._offset_batch_timer.interval() == 1000
-    assert coordinator._semantic_timer.isActive()
     assert coordinator._semantic_token.is_cancelled()
+    assert not hasattr(coordinator, "_semantic_timer")
 
 
-def test_quiet_and_maximum_timer_race_starts_only_one_visual_job(monkeypatch):
+def test_repeated_visual_invalidations_do_not_create_jobs():
     grid = _grid(["nop", "nop"])
     coordinator = grid._consistency_coordinator
-    jobs = []
-    monkeypatch.setattr(coordinator._pool, "start_visual", jobs.append)
-    coordinator._dirty_ranges = (coordinator_module.DirtyRange(0, 1),)
-    coordinator._dirty_from_line = 0
 
-    coordinator._start_visual()
-    coordinator._start_visual()
+    coordinator._schedule_visual()
+    coordinator._schedule_visual()
 
-    assert len(jobs) == 1
+    assert not hasattr(coordinator._pool, "start_visual")
 
 
 def test_four_to_four_edit_is_local_and_preserves_typing_cursor():
@@ -705,18 +670,13 @@ def test_four_to_four_edit_is_local_and_preserves_typing_cursor():
     assert coordinator.structural_revision == 0
     assert grid.instructions.textCursor().position() == position + 1
     assert grid.export_rows()[0].bytes_text
-    assert coordinator._semantic_timer.isActive() is False
-    assert coordinator._semantic_worker is None
+    assert not hasattr(coordinator, "_semantic_timer")
+    assert not hasattr(coordinator, "_semantic_worker")
 
 
-def test_inserted_instruction_updates_offsets_immediately_without_a_redundant_job(monkeypatch):
+def test_inserted_instruction_updates_offsets_immediately_without_a_redundant_job():
     grid = _grid(["nop", "nop"], references=True)
     coordinator = grid._consistency_coordinator
-    jobs = []
-    def tracked(worker):
-        jobs.append(worker)
-
-    monkeypatch.setattr(coordinator._pool, "start_visual", tracked)
     block = grid.instructions.document().firstBlock()
     cursor = QTextCursor(block)
     cursor.movePosition(QTextCursor.EndOfBlock)
@@ -735,14 +695,12 @@ def test_inserted_instruction_updates_offsets_immediately_without_a_redundant_jo
         "0x80000004",
         "0x80000008",
     ]
-    assert jobs == []
+    assert not hasattr(coordinator._pool, "start_visual")
 
 
-def test_invalid_symbol_is_cleared_and_redistributed_immediately(monkeypatch):
+def test_invalid_symbol_is_cleared_and_redistributed_immediately():
     grid = _grid(["nop", "nop", "nop"], references=True)
     coordinator = grid._consistency_coordinator
-    jobs = []
-    monkeypatch.setattr(coordinator._pool, "start_visual", jobs.append)
     block = grid.instructions.document().firstBlock()
     cursor = QTextCursor(block)
     cursor.select(QTextCursor.SelectionType.LineUnderCursor)
@@ -760,7 +718,7 @@ def test_invalid_symbol_is_cleared_and_redistributed_immediately(monkeypatch):
     assert rows[2].offsets[BINARY_WORKBENCH_TEXT.FILE] == "0x00000004"
     assert rows[1].offsets[_REFERENCE] == "0x80000000"
     assert rows[2].offsets[_REFERENCE] == "0x80000004"
-    assert jobs == []
+    assert not hasattr(coordinator._pool, "start_visual")
 
 
 def test_invalid_line_becoming_valid_restores_visible_offset_text():
@@ -1170,12 +1128,10 @@ def test_collapsed_label_keeps_first_instruction_offsets_after_f1():
 
 
 @pytest.mark.parametrize("operation", ["insert", "delete"])
-def test_large_structural_edit_projects_current_batch_immediately(monkeypatch, operation):
+def test_large_structural_edit_projects_viewport_and_repairs_navigation_target(operation):
     lines = ["entry:", *["nop" for _ in range(300)]]
     grid = _grid(lines, references=True)
     coordinator = grid._consistency_coordinator
-    jobs = []
-    monkeypatch.setattr(coordinator._pool, "start_visual", jobs.append)
     document = grid.instructions.document()
     block = document.findBlockByNumber(10)
     cursor = QTextCursor(document)
@@ -1197,17 +1153,12 @@ def test_large_structural_edit_projects_current_batch_immediately(monkeypatch, o
     assert _editor_line(grid._offset_editors[_REFERENCE], 10)
     assert all(_editor_line(editor, 10) for editor in (grid.raw_instructions, grid.bytes, grid.instructions))
 
-    coordinator._visual_quiet.stop()
-    coordinator._visual_maximum.stop()
-    coordinator._start_visual()
-    assert len(jobs) == 1
-    jobs[0].run()
-    while coordinator._pending_offset_batches:
-        coordinator._flush_offset_batch()
-    _app().processEvents()
+    last = len(rows) - 1
+    coordinator.request_viewport(last, last, "go-to")
+    QTest.qWait(30)
 
     rows = grid.export_rows()
-    _assert_valid_file_offsets(rows)
+    assert rows[-1].offsets[BINARY_WORKBENCH_TEXT.FILE] != "-"
     assert _editor_line(grid._offset_editors[BINARY_WORKBENCH_TEXT.FILE], len(rows) - 1)
     assert all(
         editor.document().blockCount() == grid.instructions.document().blockCount()
@@ -1358,13 +1309,19 @@ def test_runtime_version_uuid_survives_rename_without_entering_public_json():
 
 
 @pytest.mark.parametrize("reason", ["save-version", "debugger"])
-def test_barrier_rejects_semantic_results_from_before_alt_s_or_f5(reason):
+def test_barrier_rejects_broad_copy_results_from_before_alt_s_or_f5(reason):
     grid = _grid(["nop", "nop"])
     coordinator = grid._consistency_coordinator
+    from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
+
+    generation = coordinator._broad_copy_generation
+    token = CancellationToken()
+    coordinator._broad_copy_token = token
+    delivered = []
     stale = SemanticResult(
         coordinator.owner,
         coordinator.source_revision,
-        coordinator.semantic_generation,
+        generation,
         (
             BinaryWorkbenchRowDTO({"File": "0x00000000"}, "nop", "DE AD BE EF"),
             BinaryWorkbenchRowDTO({"File": "0x00000004"}, "nop", "DE AD BE EF"),
@@ -1374,10 +1331,16 @@ def test_barrier_rejects_semantic_results_from_before_alt_s_or_f5(reason):
 
     result = coordinator.ensure_consistent(reason)
     current = tuple(row.bytes_text for row in grid.export_rows())
-    coordinator._apply_semantic_result(stale)
+    coordinator._complete_broad_copy(
+        stale,
+        generation,
+        lambda rows: delivered.append(rows),
+    )
 
     assert result.success is True
     assert result.snapshot is not None
+    assert token.is_cancelled()
+    assert delivered == []
     assert tuple(row.bytes_text for row in result.snapshot.rows) == current
     assert tuple(row.bytes_text for row in grid.export_rows()) == current
     assert current != ("DE AD BE EF", "DE AD BE EF")

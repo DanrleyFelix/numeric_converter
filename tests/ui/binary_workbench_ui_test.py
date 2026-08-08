@@ -1519,6 +1519,43 @@ def test_binary_workbench_saves_assembly_copy_and_persists_directory(tmp_path: P
     assert tool.export_state().directories["save_assembly"] == str(output_path.parent)
 
 
+def test_binary_workbench_open_file_action_calls_native_dialog_directly(
+    tmp_path: Path,
+    monkeypatch,
+):
+    """Keep native pickers on the direct QAction path without queued lag."""
+
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    assert tool.tabs.current_context() is None
+    calls = []
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args: (calls.append(args) or ("", "")),
+    )
+
+    tool.toolbar.open_file_action.trigger()
+    assert len(calls) == 1
+
+
+def test_binary_workbench_toolbar_buttons_do_not_retain_modal_focus(tmp_path: Path):
+    """The QAction keeps shortcuts without a stale hover-colored focus state."""
+
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    assert all(
+        button.focusPolicy() == Qt.NoFocus
+        for button in tool.toolbar.findChildren(QToolButton)
+    )
+
+
 def test_binary_workbench_save_as_adopts_scratch_source_for_workspace_identity(tmp_path: Path, monkeypatch):
     output_path = tmp_path / "renamed.asm"
     window = _window(tmp_path)
@@ -5786,7 +5823,9 @@ def test_binary_workbench_shift_enabled_keeps_invalid_version_source(tmp_path: P
     assert active.rows[0].instruction == "bad $a0"
 
 
-def test_binary_workbench_close_flush_normalizes_locked_invalid_source(tmp_path: Path):
+def test_binary_workbench_close_flush_preserves_locked_source_without_assembly(
+    tmp_path: Path,
+):
     assembly_path = tmp_path / "locked-close.asm"
     assembly_path.write_text("nop\n", encoding="utf-8")
     window = _window(tmp_path)
@@ -5812,9 +5851,7 @@ def test_binary_workbench_close_flush_normalizes_locked_invalid_source(tmp_path:
         if version.name == current.active_version_name
     )
 
-    assert active.rows[0].instruction == (
-        "nop; Incorrect Instruction: broken"
-    )
+    assert active.rows[0].instruction == "broken"
 
 
 def test_binary_workbench_saved_assembly_version_closes_without_original_file_prompt(

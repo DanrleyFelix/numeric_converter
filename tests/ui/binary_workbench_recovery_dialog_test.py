@@ -152,3 +152,58 @@ def test_blank_recovery_immediately_replaces_the_persisted_heavy_state(
     assert window._binary_workbench_state.tabs == []
     assert persisted.tabs == []
     window.close()
+
+
+def test_blank_recovery_never_deserializes_the_heavy_workspace(
+    tmp_path,
+    monkeypatch,
+):
+    """Choose Blank from the light preview without loading the old tab."""
+
+    _app()
+    window = create_main_window(tmp_path)
+    preview = BinaryWorkbenchStateDTO(
+        tabs=[BinaryWorkbenchTabContextDTO("heavy", "scratch", "heavy.asm")],
+        active_tab_id="heavy",
+    )
+    monkeypatch.setattr(
+        window._state_service,
+        "preview_default_binary_context",
+        lambda: preview,
+    )
+
+    def _unexpected_heavy_load():
+        raise AssertionError("Blank project must not load the previous workspace")
+
+    monkeypatch.setattr(
+        window._state_service,
+        "load_default_binary_context",
+        _unexpected_heavy_load,
+    )
+
+    class _BlankRecovery:
+        DialogCode = QDialog.DialogCode
+
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def excluded_tab_ids(self):
+            return {"heavy"}
+
+        def preserves_excluded_tabs(self):
+            return False
+
+    monkeypatch.setattr(
+        dialogs_mixin_module,
+        "BinaryWorkbenchRecoveryDialog",
+        _BlankRecovery,
+    )
+
+    window._open_binary_workbench()
+
+    assert window._binary_workbench_state.tabs == []
+    assert window._binary_workbench_window.tabs._state.tabs == []
+    window.close()

@@ -12,6 +12,8 @@ from src.presentation.ui.components.binary_workbench.constants import (
 class BinaryWorkbenchWindowLayoutMixin:
     def _connect_actions(self) -> None:
         self._connect_debugger_actions()
+        # Opening a file is valid even without an active tab and must reach the
+        # native picker directly; guards below are only for tab-owned actions.
         self.toolbar.open_file_action.triggered.connect(self._open_any_file)
         self.toolbar.new_scratch_action.triggered.connect(self.tabs.new_scratch_tab)
         self._connect_file_action(self.toolbar.open_internal_action, self._open_internal_file)
@@ -59,7 +61,9 @@ class BinaryWorkbenchWindowLayoutMixin:
             self.toolbar.save_binary_file_action,
             self._return_jump_action,
         ])
-        self.toolbar.advanced_configuration_action.triggered.connect(self._open_advanced_configuration)
+        self.toolbar.advanced_configuration_action.triggered.connect(
+            self._open_advanced_configuration
+        )
         for action in self._placeholder_actions():
             action.triggered.connect(lambda _, name=action.text(): self._show_status(BINARY_WORKBENCH_TEXT.STATUS_PLACEHOLDER_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS))
         self._sync_internal_file_action()

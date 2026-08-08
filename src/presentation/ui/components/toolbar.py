@@ -129,5 +129,8 @@ class Toolbar(QFrame):
         button.setMinimumWidth(TOOLBAR_SIZE.ACTION_MIN_WIDTH)
         button.setAutoRaise(True)
         button.setCursor(Qt.PointingHandCursor)
-        button.setFocusPolicy(Qt.StrongFocus)
+        # Toolbar actions keep their keyboard shortcuts on QAction.  Avoid
+        # retaining :focus after a menu click, which otherwise looks like a
+        # delayed hover repaint while a dialog is being opened.
+        button.setFocusPolicy(Qt.NoFocus)
         return button

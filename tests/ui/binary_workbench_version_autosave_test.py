@@ -1,6 +1,4 @@
 import os
-from threading import get_ident
-from time import monotonic
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -33,7 +31,7 @@ def _wait_for(values: list, timeout_ms: int = 1_000) -> bool:
     return bool(values)
 
 
-def test_version_autosave_uses_quiet_debounce_then_per_file_rate_limit():
+def test_version_autosave_waits_five_seconds_of_idle_before_snapshot():
     _app()
     parent = QWidget()
     snapshots: list[str] = []
@@ -51,35 +49,28 @@ def test_version_autosave_uses_quiet_debounce_then_per_file_rate_limit():
     scheduler.schedule("tab")
 
     assert snapshots == []
-    assert scheduler._quiet.remainingTime() > 9_000
-    scheduler._flush_due()
-    assert snapshots == []
-
-    scheduler._last_edit_at["tab"] = monotonic() - 11
+    assert 4_000 <= scheduler._quiet.remainingTime() <= 5_000
     saved: list[object] = []
     scheduler.saved.connect(saved.append)
-    scheduler._flush_due()
+    scheduler.flush_now()
     assert _wait_for(saved)
     assert snapshots == ["tab"]
     assert persisted == ["tab"]
 
     scheduler.schedule("tab")
-    scheduler._last_edit_at["tab"] = monotonic() - 11
-    scheduler._flush_due()
     QTest.qWait(20)
     assert snapshots == ["tab"]
-    assert scheduler._due_at("tab") > monotonic() + 50
+    assert scheduler._quiet.isActive()
     scheduler.shutdown()
 
 
-def test_version_autosave_persistence_runs_outside_main_thread():
+def test_version_autosave_has_no_worker_or_thread_pool():
     _app()
     parent = QWidget()
-    main_thread = get_ident()
-    worker_threads: list[int] = []
+    persisted: list[str] = []
 
-    def persist(_context):
-        worker_threads.append(get_ident())
+    def persist(context):
+        persisted.append(context.tab_id)
         return {"versions": "versions.json"}
 
     scheduler = VersionAutosaveScheduler(lambda tab: _context(tab), persist, parent)
@@ -89,5 +80,6 @@ def test_version_autosave_persistence_runs_outside_main_thread():
     scheduler.flush_now()
 
     assert _wait_for(saved)
-    assert worker_threads and worker_threads[0] != main_thread
+    assert persisted == ["tab"]
+    assert not hasattr(scheduler, "_pool")
     scheduler.shutdown()

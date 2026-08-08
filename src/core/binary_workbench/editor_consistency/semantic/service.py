@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 import re
-from time import perf_counter, sleep
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
-from src.core.binary_workbench.editor_consistency.constants import (
-    BACKGROUND_CPU_DUTY_FRACTION,
-    BACKGROUND_THROTTLE_MAX_SLEEP_SECONDS,
-    OFFSET_BATCH_SIZE,
-)
 from src.core.binary_workbench.editor_consistency.models import SemanticResult, SemanticSnapshot
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     build_source_line_rows,
@@ -41,7 +35,6 @@ def calculate_semantic_result(
         snapshot,
         token,
         include_hazards=True,
-        throttle_background=True,
     )
 
 
@@ -55,7 +48,6 @@ def calculate_derived_copy_result(
         snapshot,
         token,
         include_hazards=False,
-        throttle_background=False,
     )
 
 
@@ -64,31 +56,12 @@ def _calculate_semantic_result(
     token: CancellationToken,
     *,
     include_hazards: bool,
-    throttle_background: bool,
 ) -> SemanticResult | None:
-    """Calculate source-derived rows with optional global diagnostics."""
-
-    checks = 0
-    slice_started = perf_counter()
+    """Calculate source-derived rows without artificial CPU throttling."""
 
     def cancelled() -> bool:
-        """Release the GIL periodically during extraordinary bulk rebuilds."""
+        """Stop obsolete work cooperatively at the existing parser checkpoints."""
 
-        nonlocal checks, slice_started
-        checks += 1
-        if checks % OFFSET_BATCH_SIZE == 0:
-            elapsed = perf_counter() - slice_started
-            if throttle_background:
-                rest_ratio = (
-                    1.0 - BACKGROUND_CPU_DUTY_FRACTION
-                ) / BACKGROUND_CPU_DUTY_FRACTION
-                sleep(min(
-                    BACKGROUND_THROTTLE_MAX_SLEEP_SECONDS,
-                    elapsed * rest_ratio,
-                ))
-            else:
-                sleep(0)
-            slice_started = perf_counter()
         return token.is_cancelled()
 
     if cancelled():

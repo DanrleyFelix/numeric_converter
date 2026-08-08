@@ -49,6 +49,12 @@ def selected_recovery_state(
 ) -> tuple[BinaryWorkbenchStateDTO, tuple[BinaryWorkbenchTabContextDTO, ...]]:
     """Create a light startup state and optionally retain omitted payloads."""
 
+    if not preserve_excluded:
+        # Blank project is a real replacement, not the old heavy workspace
+        # with only its visible tabs removed.  In particular, do not eagerly
+        # carry a large Global Symbols catalog into an explicitly blank start.
+        return BinaryWorkbenchStateDTO(), ()
+
     tabs = [tab for tab in state.tabs if tab.tab_id not in excluded_tab_ids]
     omitted = (
         tuple(tab for tab in state.tabs if tab.tab_id in excluded_tab_ids)

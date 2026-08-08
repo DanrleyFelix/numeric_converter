@@ -36,7 +36,6 @@ def hazard_items_from_reader(
     start_offset: int | None,
     end_offset: int | None,
     instruction_overlays: dict[str, str] | None = None,
-    on_chunk=None,
 ) -> list[HazardCacheItem]:
     word_size = max(1, codec.word_size)
     scan_start, scan_end = _scan_range(reader.file_size, word_size, start_offset, end_offset)
@@ -56,8 +55,6 @@ def hazard_items_from_reader(
             )
         )
         offsets.append(offset)
-    if on_chunk is not None:
-        on_chunk()
     hazards = validate_mips_hazards(instructions)
     return [
         HazardCacheItem(

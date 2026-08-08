@@ -199,7 +199,6 @@ class BinaryWorkbenchWindow(
             event.ignore()
             return
         self.tabs.flush_open_workspaces()
-        self.tabs.flush_search_cache()
         self.sizePersistRequested.emit(self.width(), self.height())
         super().closeEvent(event)
 

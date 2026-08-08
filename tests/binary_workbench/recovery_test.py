@@ -62,7 +62,11 @@ def test_blank_recovery_discards_old_tabs_instead_of_merging_them_back():
     """A blank startup must replace the persisted heavy-tab selection."""
 
     old = _tab("old", 2)
-    state = BinaryWorkbenchStateDTO(tabs=[old], active_tab_id="old")
+    state = BinaryWorkbenchStateDTO(
+        tabs=[old],
+        active_tab_id="old",
+        global_symbols={"heavy": "0x1"},
+    )
 
     selected, omitted = selected_recovery_state(
         state,
@@ -72,6 +76,7 @@ def test_blank_recovery_discards_old_tabs_instead_of_merging_them_back():
 
     assert selected.tabs == []
     assert selected.active_tab_id is None
+    assert selected.global_symbols == {}
     assert omitted == ()
 
 
