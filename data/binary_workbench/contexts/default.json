@@ -35,6 +35,7 @@
                 "global_symbols": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Global Symbols\\global_symbols_10000.json",
                 "lba_filesystem": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\LBA File System\\symbol_stress_11500_lines_workspace_manifest_lba.json",
                 "offset_regions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Offset Regions\\symbol_stress_11500_lines_workspace_manifest_offset_regions.json",
+                "versions": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\symbol_stress_11500_lines_workspace_manifest_versions.json",
                 "version:default": "C:\\Users\\Danrl\\Desktop\\Danrley\\projetos\\numeric_converter\\data\\binary_workbench\\workspaces\\Versions\\symbol_stress_11500_lines_workspace_manifest_versions.json"
             },
             "module_directories": {
@@ -47,14 +48,14 @@
             "module_checksums": {
                 "symbols": "e3a8b88b4cb916d02b7c85b04a765b240145bb6cc3d89064d177d4454f1e9943",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "0ca12e68714d47e6eec5e045230e06dbd27b9e7adc9b38849ba661b025301d86",
+                "versions": "92cafc17353f15300ea1a25505e84a2f807368d0aa56a9d20b16956fa9df490b",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
             "custom_commands": {},
             "last_open_offset": "0x00000000",
             "navigation_history": [],
-            "file_size": 46008,
+            "file_size": 45964,
             "original_file_size": 46008,
             "version_dirty": false,
             "byte_overlays": {},
@@ -100099,6 +100100,6 @@
     },
     "window_size": {
         "width": 1536,
-        "height": 801
+        "height": 794
     }
 }

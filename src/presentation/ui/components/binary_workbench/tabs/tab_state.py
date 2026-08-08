@@ -153,6 +153,19 @@ class TabStateMixin:
 
         return self.context_at(self.currentIndex())
 
+    def current_labels_for_navigation(self) -> dict[str, str]:
+        """Request and retain the active tab's lightweight label index."""
+
+        index = self.currentIndex()
+        page = self.currentWidget()
+        if not isinstance(page, BinaryWorkbenchEditorPage):
+            context = self.context_at(index)
+            return {} if context is None else dict(context.labels)
+        labels = page.labels_for_navigation()
+        context = page.current_context()
+        self._replace_context_without_emit(context.tab_id, context)
+        return labels
+
     def context_at(self, index: int) -> BinaryWorkbenchTabContextDTO | None:
         return self._state.tabs[index] if 0 <= index < len(self._state.tabs) else None
 

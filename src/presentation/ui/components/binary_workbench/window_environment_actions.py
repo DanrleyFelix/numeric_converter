@@ -198,17 +198,15 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         return current.tab_id, self.tabs.symbol_offsets_for(current.tab_id, name)
 
     def _open_labels(self) -> None:
-        """Open the cached label index without a global consistency barrier."""
+        """Open a complete lightweight label index without a semantic barrier."""
 
         current = self.tabs.current_metadata_context()
         if current is None:
             return
         with self._environment_dialog_session():
-            page = self.tabs.currentWidget()
-            grid = getattr(page, "grid", None)
-            labels = grid.current_labels() if grid is not None else current.labels
+            labels = self.tabs.current_labels_for_navigation()
             dialog = BinaryWorkbenchLabelsDialog(labels, self)
-            dialog.goToRequested.connect(self.tabs.go_to_instruction_offset)
+            dialog.labelRequested.connect(self.tabs.go_to_label)
             dialog.exec()
 
     def _open_commands(self) -> None:

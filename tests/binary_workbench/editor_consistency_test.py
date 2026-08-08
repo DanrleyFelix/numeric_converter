@@ -7,7 +7,12 @@ from src.core.binary_workbench.editor_consistency import (
     SemanticSnapshot,
 )
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
-from src.core.binary_workbench.editor_consistency.classification import classify_line_change, merge_dirty_ranges
+from src.core.binary_workbench.editor_consistency.classification import (
+    classify_line_change,
+    index_label_lines,
+    index_label_offsets,
+    merge_dirty_ranges,
+)
 from src.core.binary_workbench.editor_consistency.distribution import (
     LineContributionIndex,
     build_offset_batches,
@@ -30,6 +35,36 @@ def test_contribution_index_reuses_untouched_immutable_segments():
     assert after.chunks[1] is before.chunks[1]
     assert after.chunks[2] is before.chunks[2]
     assert index.prefix_bytes(500) == sum(sizes[:500]) - 4
+
+
+def test_label_index_uses_contributions_without_assembling_rows():
+    lines = (
+        "header:",
+        "; comment",
+        "addiu $t0, $zero, 1",
+        "next: addiu $t1, $zero, 2",
+        "tail:",
+    )
+    contributions = LineContributionIndex([0, 0, 4, 4, 0]).snapshot()
+
+    assert index_label_offsets(lines, contributions) == {
+        "header": "0x00000000",
+        "next": "0x00000004",
+        "tail": "0x00000008",
+    }
+
+
+def test_label_index_infers_unmaterialized_symbol_rows_and_keeps_source_rows():
+    lines = (
+        "entry:",
+        "ori $t0, $zero, _local_symbol",
+        "ori $t1, $zero, @global_symbol",
+        "tail:",
+    )
+    lazy_contributions = LineContributionIndex([0, 0, 0, 0]).snapshot()
+
+    assert index_label_offsets(lines, lazy_contributions)["tail"] == "0x00000008"
+    assert index_label_lines(lines) == {"entry": 0, "tail": 3}
 
 
 def test_offset_batches_prioritize_only_the_affected_unilateral_suffix():

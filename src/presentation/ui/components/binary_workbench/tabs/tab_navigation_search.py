@@ -33,6 +33,13 @@ class TabNavigationSearchMixin:
         if isinstance(page, BinaryWorkbenchEditorPage):
             page.go_to_instruction_offset(offset)
 
+    def go_to_label(self, name: str) -> None:
+        """Navigate the active Assembly page to a named source label."""
+
+        page = self.currentWidget()
+        if isinstance(page, BinaryWorkbenchEditorPage):
+            page.go_to_label(name)
+
     def return_to_previous_jump_offset(self) -> bool:
         page = self.currentWidget()
         if isinstance(page, BinaryWorkbenchEditorPage):

@@ -3885,6 +3885,87 @@ def test_binary_workbench_labels_dialog_filters_and_navigates():
     assert selected == [0x8]
 
 
+def test_binary_workbench_labels_action_indexes_lazy_source_without_assembly(
+    tmp_path: Path,
+    monkeypatch,
+):
+    source = tmp_path / "labels.asm"
+    source.write_text(
+        "entry:\naddiu $t0, $zero, 1\nloop: addiu $t1, $zero, 2\nexit:\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+    assert tool is not None
+    tool.open_assembly_path(source)
+    page = tool.tabs.currentWidget()
+    page.grid._labels = {}
+    monkeypatch.setattr(
+        page.grid,
+        "_instruction_rows_from_lines",
+        lambda _lines: pytest.fail("Labels must not assemble the complete source."),
+    )
+    captured: dict[str, str] = {}
+
+    def capture(dialog):
+        for row in range(dialog.labels_model.rowCount()):
+            record = dialog.labels_model.record_at(row)
+            captured[record.cells[0]] = record.cells[1]
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(BinaryWorkbenchLabelsDialog, "exec", capture)
+    tool._open_labels()
+
+    assert captured == {
+        "entry": "0x00000000",
+        "loop": "0x00000004",
+        "exit": "0x00000008",
+    }
+    assert tool.tabs.current_metadata_context().labels == captured
+
+
+def test_labels_dialog_navigates_by_label_identity_when_offsets_are_lazy(
+    tmp_path: Path,
+    monkeypatch,
+):
+    source = tmp_path / "many_labels.asm"
+    instructions = [
+        f"ori $t0, $zero, _local_symbol_{index:04d}"
+        for index in range(600)
+    ]
+    source.write_text(
+        "entry:\n" + "\n".join(instructions) + "\ntail:\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+    assert tool is not None
+    tool.open_assembly_path(source)
+    page = tool.tabs.currentWidget()
+    requested: list[str] = []
+    monkeypatch.setattr(tool.tabs, "go_to_label", requested.append)
+
+    def choose_tail(dialog):
+        matches = [
+            row
+            for row in range(dialog.labels_model.rowCount())
+            if dialog.labels_model.record_at(row).cells[0] == "tail"
+        ]
+        assert matches
+        source_index = dialog.labels_model.index(matches[0], 0)
+        dialog.table.setCurrentIndex(dialog.labels_proxy.mapFromSource(source_index))
+        dialog._go_to_selected()
+        assert dialog.labels_model.record_at(matches[0]).cells[1] == "0x00000960"
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(BinaryWorkbenchLabelsDialog, "exec", choose_tail)
+    tool._open_labels()
+
+    assert requested == ["tail"]
+
+
 def test_binary_workbench_go_to_label_preserves_instruction_symbols(tmp_path: Path):
     window = _window(tmp_path)
     window._open_binary_workbench()

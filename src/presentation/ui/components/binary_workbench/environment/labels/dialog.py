@@ -28,6 +28,7 @@ class BinaryWorkbenchLabelsDialog(QDialog):
     """Browse labels through a virtualized, filterable table."""
 
     goToRequested = Signal(int)
+    labelRequested = Signal(str)
 
     def __init__(self, labels: dict[str, str], parent=None) -> None:
         super().__init__(parent)
@@ -96,4 +97,5 @@ class BinaryWorkbenchLabelsDialog(QDialog):
 
         record = self._selected_record()
         if record is not None and isinstance(record.payload, int):
+            self.labelRequested.emit(record.cells[0])
             self.goToRequested.emit(record.payload)

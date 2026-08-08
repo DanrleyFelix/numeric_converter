@@ -119,6 +119,11 @@ class GridSelectionMixin:
         row = self._row_for_offset(offset)
         if row is None:
             return
+        self.point_instruction_line(row)
+
+    def point_instruction_line(self, row: int) -> None:
+        """Place the typing cursor on one authoritative Assembly source row."""
+
         block = self.instructions.document().findBlockByNumber(row)
         if not block.isValid():
             return

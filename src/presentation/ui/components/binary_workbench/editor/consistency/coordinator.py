@@ -21,6 +21,8 @@ from src.core.binary_workbench.editor_consistency.cancellation import Cancellati
 from src.core.binary_workbench.editor_consistency.classification import (
     classify_line_change,
     declared_label,
+    index_label_offsets,
+    index_label_lines,
     merge_dirty_ranges,
 )
 from src.core.binary_workbench.editor_consistency.constants import (
@@ -94,6 +96,9 @@ class EditorConsistencyCoordinator(QObject):
         self._symbol_consistency = RangeConsistencyIndex()
         self._bulk_symbols_pending = False
         self._copy_semantic_pending = False
+        self._navigation_labels_key: tuple[EditorOwner, int, int] | None = None
+        self._navigation_labels: dict[str, str] = {}
+        self._navigation_label_lines: dict[str, int] = {}
         self._barrier_active = False
         self._visual_token: CancellationToken | None = None
         self._semantic_token: CancellationToken | None = None
@@ -1232,6 +1237,34 @@ class EditorConsistencyCoordinator(QObject):
         finally:
             editor.setReadOnly(was_read_only)
             self._barrier_active = False
+
+    def labels_for_navigation(self) -> dict[str, str]:
+        """Return a complete cached label index without full semantics."""
+
+        self.flush_collected_changes()
+        key = (self.owner, self.source_revision, self.structural_revision)
+        if self._navigation_labels_key == key:
+            return dict(self._navigation_labels)
+        lines = tuple(self._document_lines())
+        labels = index_label_offsets(
+            lines,
+            self._contributions.snapshot(),
+        )
+        viewport = self._viewport_range()
+        self.grid._set_editing_labels(
+            labels,
+            (viewport.first, viewport.last + 1),
+        )
+        self._navigation_labels_key = key
+        self._navigation_labels = dict(labels)
+        self._navigation_label_lines = index_label_lines(lines)
+        return labels
+
+    def label_line_for_navigation(self, name: str) -> int | None:
+        """Resolve a label to its authoritative source row from the same cache."""
+
+        self.labels_for_navigation()
+        return self._navigation_label_lines.get(name.lower())
 
     def force_refresh(self) -> ConsistencyBarrierResult:
         """Use F1 as an explicit synchronous full-consistency boundary."""

@@ -228,6 +228,16 @@ class GridRenderingMixin:
 
         return dict(self._labels)
 
+    def labels_for_navigation(self) -> dict[str, str]:
+        """Resolve the requested label list without a full semantic rebuild."""
+
+        coordinator = self._consistency_coordinator
+        return (
+            coordinator.labels_for_navigation()
+            if coordinator.enabled()
+            else self.current_labels()
+        )
+
     def label_navigation_target(self, label: str) -> int | None:
         """Resolve one clicked label against the grid's current rows."""
 

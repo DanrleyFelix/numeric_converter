@@ -55,6 +55,28 @@ class EditorPageSearchMixin:
             self.grid.select_instruction_offsets(offset, offset)
             self._pending_selection = None
 
+    def go_to_label(self, name: str) -> None:
+        """Navigate by label identity so stale cached offsets cannot misdirect."""
+
+        coordinator = self.grid._consistency_coordinator
+        if not coordinator.enabled():
+            target = next(
+                (
+                    offset
+                    for label, offset in self._context.labels.items()
+                    if label.lower() == name.lower()
+                ),
+                None,
+            )
+            if target is not None:
+                self.go_to_instruction_offset(int(target, 0))
+            return
+        row = coordinator.label_line_for_navigation(name)
+        if row is None:
+            return
+        self.grid.point_instruction_line(row)
+        coordinator.request_viewport(row, row, "label-navigation")
+
     def _navigation_offset_is_valid(self, offset: int) -> bool:
         return self._file_offset_is_valid(offset) and offset % ROW_BYTES == 0
 

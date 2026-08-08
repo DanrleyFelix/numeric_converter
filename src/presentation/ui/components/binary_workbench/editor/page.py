@@ -132,6 +132,24 @@ class BinaryWorkbenchEditorPage(
             )
         return self._context
 
+    def labels_for_navigation(self) -> dict[str, str]:
+        """Cache labels explicitly requested by the Labels dialog."""
+
+        labels = self.grid.labels_for_navigation()
+        if not self.grid._consistency_coordinator.enabled() and not labels:
+            labels = dict(self._context.labels)
+        if labels != self._context.labels:
+            self._context = BinaryWorkbenchTabContextDTO(
+                **{
+                    **self._context.__dict__,
+                    "labels": labels,
+                    "symbol_offsets": {
+                        name: [offset] for name, offset in labels.items()
+                    },
+                }
+            )
+        return labels
+
     def persistence_context(self) -> BinaryWorkbenchTabContextDTO:
         """Capture source text for shutdown without running derivation."""
 
