@@ -26,6 +26,7 @@ from src.presentation.ui.components.binary_workbench.preferences import (
     BinaryWorkbenchRulesDialog,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
+    GLOBAL_SYMBOLS,
     LBA_FILESYSTEM,
     SYMBOLS,
 )
@@ -152,13 +153,14 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         current = self.tabs.current_metadata_context()
         if current is None:
             return
+        initial_symbols = self.tabs.global_symbols()
         dialog = BinaryWorkbenchSymbolsDialog(
             self.tabs.global_symbols(),
             {},
             current.labels,
             [],
             BINARY_WORKBENCH_TEXT.GLOBAL_SYMBOLS,
-            self.tabs.directory_for(BINARY_WORKBENCH_STATE.SYMBOLS_DIRECTORY),
+            self.tabs.workspace_module_directory(GLOBAL_SYMBOLS),
             self,
             symbol_offsets=current.symbol_offsets,
             offsets_provider=self._global_symbol_offsets,
@@ -179,6 +181,13 @@ class BinaryWorkbenchWindowEnvironmentMixin:
         symbols, _, _ = dialog.values()
         if symbols != self.tabs.global_symbols():
             self.tabs.set_global_symbols(symbols, apply_existing=False)
+        module_path = dialog.saved_library_path() or dialog.loaded_library_path()
+        if module_path:
+            self.tabs.set_global_symbols_library(Path(module_path))
+        elif symbols != initial_symbols and self.tabs.global_symbols_library_path():
+            self.tabs.set_global_symbols_library(
+                Path(self.tabs.global_symbols_library_path())
+            )
 
     def _global_symbol_offsets(self, name: str) -> tuple[str | None, list[str]]:
         """Read one Global Symbol's offsets from the tab active at click time."""

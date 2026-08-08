@@ -3,7 +3,14 @@ from __future__ import annotations
 import re
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
-from src.core.binary_workbench.editor_consistency.models import SemanticResult, SemanticSnapshot
+from src.core.binary_workbench.editor_consistency.classification import declared_label
+from src.core.binary_workbench.editor_consistency.models import (
+    ContributionSnapshot,
+    DerivedCopyResult,
+    DerivedCopySnapshot,
+    SemanticResult,
+    SemanticSnapshot,
+)
 from src.core.binary_workbench.mips_r3000a.source_line_rows import (
     build_source_line_rows,
     labels_from_source_rows,
@@ -39,16 +46,108 @@ def calculate_semantic_result(
 
 
 def calculate_derived_copy_result(
-    snapshot: SemanticSnapshot,
+    snapshot: DerivedCopySnapshot,
     token: CancellationToken,
-) -> SemanticResult | None:
-    """Prepare copy rows without unrelated hazard analysis or UI projection."""
+) -> DerivedCopyResult | None:
+    """Prepare only the copied lines plus labels needed by their branches."""
 
-    return _calculate_semantic_result(
-        snapshot,
-        token,
-        include_hazards=False,
+    if token.is_cancelled() or not snapshot.lines:
+        return None
+    first = max(0, min(snapshot.first_line, len(snapshot.lines) - 1))
+    last = max(first, min(snapshot.last_line, len(snapshot.lines) - 1))
+    labels = _copy_labels(snapshot.lines, snapshot.contributions, token)
+    if labels is None:
+        return None
+    start_offset = _contribution_prefix(snapshot.contributions, first)
+    selected_lines = list(snapshot.lines[first : last + 1])
+    rows = build_source_line_rows(
+        selected_lines,
+        list(snapshot.offset_names),
+        dict(snapshot.offset_bases),
+        snapshot.codec,
+        start_offset,
+        labels,
+        dict(snapshot.variables),
+        dict(snapshot.equates),
+        False,
+        token.is_cancelled,
     )
+    if rows is None or token.is_cancelled():
+        return None
+    selected_snapshot = SemanticSnapshot(
+        snapshot.owner,
+        snapshot.source_revision,
+        snapshot.generation,
+        "",
+        snapshot.codec,
+        tuple(selected_lines),
+        snapshot.offset_names,
+        snapshot.offset_bases,
+        snapshot.variables,
+        snapshot.equates,
+        snapshot.jump_reference_offset,
+    )
+    rows = _finalize_jump_rows(
+        selected_snapshot,
+        rows,
+        labels,
+        token,
+        token.is_cancelled,
+    )
+    if rows is None or token.is_cancelled():
+        return None
+    return DerivedCopyResult(
+        snapshot.owner,
+        snapshot.source_revision,
+        snapshot.generation,
+        first,
+        tuple(rows),
+    )
+
+
+def _copy_labels(
+    lines: tuple[str, ...],
+    contributions: ContributionSnapshot,
+    token: CancellationToken,
+) -> dict[str, str] | None:
+    """Index label addresses without assembling copied-out source lines."""
+
+    labels: dict[str, str] = {}
+    offset = 0
+    line_index = 0
+    for chunk in contributions.chunks:
+        for size in chunk:
+            if token.is_cancelled():
+                return None
+            if line_index < len(lines):
+                name = declared_label(lines[line_index])
+                if name:
+                    labels[name] = f"0x{offset:08X}"
+            offset += size
+            line_index += 1
+    while line_index < len(lines):
+        if token.is_cancelled():
+            return None
+        name = declared_label(lines[line_index])
+        if name:
+            labels[name] = f"0x{offset:08X}"
+        line_index += 1
+    return labels
+
+
+def _contribution_prefix(snapshot: ContributionSnapshot, line: int) -> int:
+    """Return a copied range base from immutable contribution chunks."""
+
+    remaining = max(0, min(line, snapshot.row_count))
+    total = 0
+    for chunk, chunk_sum in zip(snapshot.chunks, snapshot.chunk_sums):
+        if remaining >= len(chunk):
+            total += chunk_sum
+            remaining -= len(chunk)
+            continue
+        total += sum(chunk[:remaining])
+        break
+    return total
 
 
 def _calculate_semantic_result(

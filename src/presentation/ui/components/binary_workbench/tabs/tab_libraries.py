@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from src.core.binary_workbench.version_overlays import (
     byte_overlays_from_instruction_overlays,
 )
@@ -16,6 +18,9 @@ from src.modules.binary_workbench_dtos import (
     BinaryWorkbenchInternalFileDTO,
     BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
+)
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    GLOBAL_SYMBOLS,
 )
 from src.presentation.ui.components.binary_workbench.editor import BinaryWorkbenchEditorPage
 from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
@@ -66,6 +71,102 @@ class TabLibrariesMixin:
 
     def global_symbols(self) -> dict[str, str]:
         return dict(self._global_symbols)
+
+    def global_symbols_library_path(self) -> str:
+        """Return the one Global Symbols library selected for this session."""
+
+        return self._global_symbols_path
+
+    def set_global_symbols_library(self, path: Path) -> Path:
+        """Canonicalize and link one Global Symbols file to every open tab."""
+
+        canonical = self._workspace_repository.import_environment_file(
+            GLOBAL_SYMBOLS,
+            path,
+        )
+        self._workspace_repository.save_symbols_file(
+            canonical,
+            self._global_symbols,
+        )
+        self._global_symbols_path = str(canonical)
+        tabs: list[BinaryWorkbenchTabContextDTO] = []
+        program_context_changed = False
+        for index, tab in enumerate(self._state.tabs):
+            linked = self._workspace_repository.bind_global_symbols(tab, canonical)
+            tabs.append(linked)
+            page = self.widget(index)
+            if isinstance(page, BinaryWorkbenchEditorPage):
+                page.replace_workspace_metadata(linked)
+            if linked.source_path and linked.workspace_path:
+                updated_program_context = self._controller.remember_workspace(
+                    self._program_context,
+                    Path(linked.source_path),
+                    Path(linked.workspace_path),
+                )
+                program_context_changed = (
+                    program_context_changed
+                    or updated_program_context != self._program_context
+                )
+                self._program_context = updated_program_context
+        self._state = BinaryWorkbenchStateDTO(
+            **{**state_payload(self._state), "tabs": tabs}
+        )
+        if program_context_changed:
+            self.programContextChanged.emit(self._program_context)
+        self.stateChanged.emit(self._state)
+        return canonical
+
+    def _restore_global_symbols_link(self) -> None:
+        """Adopt only the first valid tab link without scanning Assembly rows."""
+
+        self._global_symbols_path = ""
+        for tab in self._state.tabs:
+            value = tab.module_paths.get(GLOBAL_SYMBOLS, "")
+            if not value or not Path(value).is_file():
+                continue
+            self._global_symbols_path = str(Path(value))
+            break
+        if not self._global_symbols_path:
+            return
+        self._global_symbols = merged_symbol_values(
+            self._workspace_repository.load_symbols_file(
+                Path(self._global_symbols_path)
+            )
+        )
+        self._symbol_runtime.set_global_definitions(self._global_symbols)
+        self._state = BinaryWorkbenchStateDTO(
+            **{
+                **state_payload(self._state),
+                "global_symbols": dict(self._global_symbols),
+                "global_symbol_definitions": tuple(
+                    definitions_payload(self._symbol_runtime.globals.definitions())
+                ),
+            }
+        )
+
+    def _adopt_global_symbols_link(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        """Restore the first linked catalog and ignore later conflicting links."""
+
+        value = context.module_paths.get(GLOBAL_SYMBOLS, "")
+        if self._global_symbols_path or not value or not Path(value).is_file():
+            return
+        self._global_symbols_path = str(Path(value))
+        self._global_symbols = merged_symbol_values(
+            self._workspace_repository.load_symbols_file(Path(value))
+        )
+        self._symbol_runtime.set_global_definitions(self._global_symbols)
+        self._state = BinaryWorkbenchStateDTO(
+            **{
+                **state_payload(self._state),
+                "global_symbols": dict(self._global_symbols),
+                "global_symbol_definitions": tuple(
+                    definitions_payload(self._symbol_runtime.globals.definitions())
+                ),
+            }
+        )
 
     def _edit_symbol_from_editor(self, name: str) -> None:
         current = self.current_context()
@@ -300,6 +401,7 @@ class TabLibrariesMixin:
         self,
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
+        self._adopt_global_symbols_link(context)
         if context.lazy_symbol_payload:
             return context
         local_symbols = _local_symbols(context)
@@ -307,12 +409,16 @@ class TabLibrariesMixin:
             local_symbols,
             self._global_symbols,
         )
+        module_paths = dict(context.module_paths)
+        if self._global_symbols_path and GLOBAL_SYMBOLS not in module_paths:
+            module_paths[GLOBAL_SYMBOLS] = self._global_symbols_path
         return BinaryWorkbenchTabContextDTO(
             **{
                 **context.__dict__,
                 "symbols": local_symbols,
                 "variables": effective_symbols,
                 "equates": effective_symbols,
+                "module_paths": module_paths,
             }
         )
 

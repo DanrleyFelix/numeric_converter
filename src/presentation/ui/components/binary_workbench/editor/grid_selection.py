@@ -1,5 +1,6 @@
 from PySide6.QtGui import QTextCursor
 
+from src.core.binary_workbench.editor_consistency.constants import OFFSET_BATCH_SIZE
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
@@ -24,12 +25,17 @@ class GridSelectionMixin:
             self._selection_projection_request = None
             return
         first, last = selected
-        if last - first + 1 > 256:
-            # Broad copy already owns the consistency barrier.  Selection
-            # feedback must never synchronously derive an entire document.
-            self._selection_projection_timer.stop()
-            self._selection_projection_request = None
-            return
+        if last - first + 1 > OFFSET_BATCH_SIZE:
+            # Prepare only the selected edge currently reached by the mouse.
+            # Ctrl+C owns any broader copy-specific consistency request.
+            cursor = editor.textCursor()
+            active = cursor.blockNumber()
+            if cursor.position() >= cursor.anchor():
+                last = min(last, active)
+                first = max(first, last - OFFSET_BATCH_SIZE + 1)
+            else:
+                first = max(first, active)
+                last = min(last, first + OFFSET_BATCH_SIZE - 1)
         self._selection_projection_request = (kind, first, last)
         self._selection_projection_timer.start()
 

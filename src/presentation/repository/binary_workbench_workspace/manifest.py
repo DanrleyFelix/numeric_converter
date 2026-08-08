@@ -3,6 +3,7 @@ from pathlib import Path
 from src.modules.binary_workbench_dtos import BinaryWorkbenchTabContextDTO, BinaryWorkbenchViewPreferencesDTO
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
+    GLOBAL_SYMBOLS,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     SCHEMA_VERSION,
@@ -34,7 +35,7 @@ def module_directories(_manifest: dict[str, object], directory: Path) -> dict[st
 def module_paths(modules: dict[str, object], directory: Path) -> dict[str, str]:
     paths = {
         key: str(resolve_module_path(value, directory))
-        for key in (SYMBOLS, LBA_FILESYSTEM, OFFSET_REGIONS)
+        for key in (SYMBOLS, GLOBAL_SYMBOLS, LBA_FILESYSTEM, OFFSET_REGIONS)
         if isinstance((value := modules.get(key)), str)
     }
     raw_versions = modules.get(VERSIONS) if isinstance(modules.get(VERSIONS), dict) else {}
@@ -63,6 +64,16 @@ def manifest_payload(
         "source": source,
         "modules": {
             SYMBOLS: relative_module_path(Path(paths[SYMBOLS]), directory),
+            **(
+                {
+                    GLOBAL_SYMBOLS: relative_module_path(
+                        Path(paths[GLOBAL_SYMBOLS]),
+                        directory,
+                    )
+                }
+                if paths.get(GLOBAL_SYMBOLS)
+                else {}
+            ),
             LBA_FILESYSTEM: relative_module_path(Path(paths[LBA_FILESYSTEM]), directory),
             VERSIONS: version_paths,
             ACTIVE_VERSION: tab.active_version_name,

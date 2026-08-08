@@ -118,6 +118,7 @@ class BinaryWorkbenchTabs(
         self._controller = BinaryWorkbenchController()
         self._state = BinaryWorkbenchStateDTO()
         self._global_symbols: dict[str, str] = {}
+        self._global_symbols_path = ""
         self._symbol_runtime = SymbolRuntime(str(uuid4()))
         self._pending_global_symbol_tabs: set[str] = set()
         self._stale_context_pages: set[str] = set()

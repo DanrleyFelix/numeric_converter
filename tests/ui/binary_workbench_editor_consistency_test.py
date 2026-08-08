@@ -4,7 +4,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
@@ -370,7 +370,7 @@ def test_selection_demand_requires_a_complete_line_and_is_debounced(monkeypatch)
     cursor = QTextCursor(block)
     cursor.select(QTextCursor.SelectionType.LineUnderCursor)
     grid.bytes.setTextCursor(cursor)
-    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS + 20)
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS + 100)
 
     assert calls == [(BINARY_WORKBENCH_TEXT.BYTES, 0, 0)]
 
@@ -382,6 +382,9 @@ def test_selection_demand_projects_only_the_requested_column():
     projection_module._replace_line(grid.bytes, 0, "")
     projection_module._replace_line(grid.raw_instructions, 0, "RAW STALE")
     projection_module._replace_line(grid.decoded_text, 0, "DECODE STALE")
+    grid._consistency_coordinator.state = (
+        coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    )
 
     grid._consistency_coordinator.materialize_selected_projection(
         BINARY_WORKBENCH_TEXT.BYTES,
@@ -394,6 +397,43 @@ def test_selection_demand_projects_only_the_requested_column():
     )
     assert _editor_line(grid.raw_instructions, 0) == "RAW STALE"
     assert _editor_line(grid.decoded_text, 0) == "DECODE STALE"
+
+
+def test_selection_demand_skips_a_current_projection(monkeypatch):
+    """Settled selection must not derive a row without a relevant dirty flag."""
+
+    grid = _grid(["addiu $a0, $a0, 2"])
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "_derive_lines",
+        lambda *_args: pytest.fail("current selection started unnecessary work"),
+    )
+
+    grid._consistency_coordinator.materialize_selected_projection(
+        BINARY_WORKBENCH_TEXT.BYTES,
+        0,
+        0,
+    )
+
+
+def test_large_selection_prepares_only_the_active_bounded_edge(monkeypatch):
+    """A drag over many rows may request one selected edge, never all rows."""
+
+    grid = _grid(["addiu $a0, $a0, 2"] * 400)
+    calls = []
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "materialize_selected_projection",
+        lambda *args: calls.append(args),
+    )
+    grid.bytes.selectAll()
+    QTest.qWait(BINARY_WORKBENCH_TIMING.CONSISTENCY_SELECTION_DEBOUNCE_MS + 100)
+
+    assert len(calls) == 1
+    kind, first, last = calls[0]
+    assert kind == BINARY_WORKBENCH_TEXT.BYTES
+    assert last == 399
+    assert last - first + 1 == 128
 
 
 def test_projection_repair_reports_stable_status():
@@ -465,7 +505,7 @@ def test_broad_copy_never_runs_the_synchronous_barrier(monkeypatch):
     assert calls == []
 
 
-def test_stale_broad_copy_prepares_rows_without_projecting_documents(monkeypatch):
+def test_stale_broad_copy_prepares_only_requested_rows_without_projection(monkeypatch):
     grid = _grid(["nop", "addiu $t0, $t0, 1"])
     coordinator = grid._consistency_coordinator
     coordinator.state = coordinator_module.ConsistencyState.DIRTY_SEMANTIC
@@ -482,11 +522,13 @@ def test_stale_broad_copy_prepares_rows_without_projecting_documents(monkeypatch
         lambda *_args, **_kwargs: pytest.fail("broad copy must not rewrite the UI"),
     )
 
-    assert coordinator.request_broad_copy(prepared.append) is False
-    assert [row.bytes_text for row in prepared[0]] == [
-        "00 00 00 00",
-        "01 00 08 25",
-    ]
+    assert coordinator.request_broad_copy(
+        1,
+        1,
+        lambda first, rows: prepared.append((first, rows)),
+    ) is False
+    assert prepared[0][0] == 1
+    assert [row.bytes_text for row in prepared[0][1]] == ["01 00 08 25"]
 
 
 def test_symbol_and_highlight_maintenance_does_not_block_broad_copy():
@@ -506,14 +548,90 @@ def test_copying_all_bytes_checks_derived_consistency(monkeypatch):
     monkeypatch.setattr(
         grid._consistency_coordinator,
         "request_broad_copy",
-        lambda callback: calls.append(True) or True,
+        lambda first, last, callback: calls.append((first, last)) or True,
     )
     grid.bytes.selectAll()
 
     grid._copy_local_editor_selection(grid.bytes)
 
-    assert calls == [True]
+    assert calls == [(0, 1)]
     assert QApplication.clipboard().text() == "00 00 00 00\n01 00 08 25"
+
+
+def test_partial_bytes_copy_checks_only_copy_relevant_consistency(monkeypatch):
+    grid = _grid(["nop", "addiu $t0, $t0, 1", "nop"])
+    calls = []
+    monkeypatch.setattr(
+        grid._consistency_coordinator,
+        "request_broad_copy",
+        lambda first, last, callback: calls.append((first, last)) or True,
+    )
+    block = grid.bytes.document().findBlockByNumber(1)
+    cursor = QTextCursor(block)
+    cursor.select(QTextCursor.SelectionType.LineUnderCursor)
+    grid.bytes.setTextCursor(cursor)
+
+    grid._copy_local_editor_selection(grid.bytes)
+
+    assert calls == [(1, 1)]
+
+
+def test_stale_bytes_copy_callback_keeps_the_requested_column(monkeypatch):
+    """Regression: the async callback must capture its column kind."""
+
+    grid = _grid(["nop", "addiu $t0, $t0, 1"])
+    coordinator = grid._consistency_coordinator
+    coordinator.state = coordinator_module.ConsistencyState.DIRTY_SEMANTIC
+    coordinator._copy_semantic_pending = True
+    monkeypatch.setattr(coordinator._pool, "start_immediate", lambda worker: worker.run())
+    grid.bytes.selectAll()
+
+    grid._copy_local_editor_selection(grid.bytes)
+
+    assert QApplication.clipboard().text() == "00 00 00 00\n01 00 08 25"
+
+
+def test_bytes_selection_summary_scans_only_its_two_edge_blocks(monkeypatch):
+    """Selection feedback cost must not grow with the selected row count."""
+
+    grid = _grid(["addiu $a0, $a0, 2"] * 4000)
+    first = grid.bytes.document().findBlockByNumber(100)
+    last = grid.bytes.document().findBlockByNumber(3900)
+    cursor = QTextCursor(first)
+    cursor.setPosition(last.position() + len(last.text()), QTextCursor.KeepAnchor)
+    visited = []
+    original = grid._selected_token_indices
+
+    def tracked(block, start, end):
+        visited.append(block.blockNumber())
+        return original(block, start, end)
+
+    monkeypatch.setattr(grid, "_selected_token_indices", tracked)
+    selected = grid._selected_byte_range(cursor)
+
+    assert selected == (400, 15603, 15204)
+    assert visited == [100, 3900]
+
+
+def test_bytes_drag_does_not_autoscroll_inside_first_or_last_visible_line():
+    """Autoscroll starts only after the mouse actually leaves the viewport."""
+
+    grid = _grid(["nop"] * 80)
+    editor = grid.bytes
+
+    editor._update_selection_scroll(QPoint(0, 0))
+    assert not editor._selection_timer.isActive()
+    editor._update_selection_scroll(QPoint(0, editor.viewport().height() - 1))
+    assert not editor._selection_timer.isActive()
+
+    editor._update_selection_scroll(QPoint(0, -1))
+    assert editor._selection_timer.isActive()
+    assert editor._selection_scroll_delta < 0
+    editor._stop_selection_scroll()
+    editor._update_selection_scroll(QPoint(0, editor.viewport().height()))
+    assert editor._selection_timer.isActive()
+    assert editor._selection_scroll_delta > 0
+    editor._stop_selection_scroll()
 
 
 def test_single_bytes_character_edit_does_not_read_the_complete_document(monkeypatch):

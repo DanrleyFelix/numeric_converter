@@ -92,6 +92,7 @@ class TabStateMixin:
             self._symbol_runtime = SymbolRuntime(self._state.workspace_id)
             self._global_symbols = merged_symbol_values(self._state.global_symbols)
             self._symbol_runtime.set_global_definitions(self._global_symbols)
+            self._restore_global_symbols_link()
             active_tab_id = self._state.active_tab_id
             self._state = BinaryWorkbenchStateDTO(
                 **{

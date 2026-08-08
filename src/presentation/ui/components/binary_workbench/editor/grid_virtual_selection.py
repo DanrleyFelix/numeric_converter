@@ -5,7 +5,6 @@ from src.core.binary_workbench.clipboard_text import without_empty_lines
 from src.core.binary_workbench.selection_limits import capped_end_offset
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_TEXT
-from src.presentation.ui.components.binary_workbench.constants import BINARY_WORKBENCH_LAYOUT
 from src.presentation.ui.components.binary_workbench.editor.cursor_guard import (
     capture_logical_cursor,
     restore_logical_cursor,
@@ -34,19 +33,27 @@ class GridVirtualSelectionMixin:
         self._emit_virtual_selection_summary(kind, normalized_start, normalized_end)
 
     def _copy_editor_selection(self, editor) -> None:
-        if self._virtual_selection_range is None:
-            self._copy_local_editor_selection(editor)
-            return
-        kind, anchor_offset, cursor_offset = self._virtual_selection_range
-        if kind != self._editor_kind_for_selection(editor):
-            self._copy_local_editor_selection(editor)
-            return
-        first, last = sorted((anchor_offset, cursor_offset))
-        self.copySelectionRequested.emit(
-            kind,
-            first,
-            capped_end_offset(first, last, self._selection_limit_bytes),
-        )
+        """Copy the requested range without consuming its visual selection."""
+
+        cursor_state = capture_logical_cursor(editor)
+        self._selection_projection_timer.stop()
+        self._selection_projection_request = None
+        try:
+            if self._virtual_selection_range is None:
+                self._copy_local_editor_selection(editor)
+                return
+            kind, anchor_offset, cursor_offset = self._virtual_selection_range
+            if kind != self._editor_kind_for_selection(editor):
+                self._copy_local_editor_selection(editor)
+                return
+            first, last = sorted((anchor_offset, cursor_offset))
+            self.copySelectionRequested.emit(
+                kind,
+                first,
+                capped_end_offset(first, last, self._selection_limit_bytes),
+            )
+        finally:
+            restore_logical_cursor(editor, cursor_state)
 
     def _copy_local_editor_selection(self, editor) -> None:
         kind = self._editor_kind_for_selection(editor)
@@ -56,24 +63,21 @@ class GridVirtualSelectionMixin:
         }:
             editor.copy()
             return
-        if not self._ensure_broad_derived_copy(editor):
+        if not self._ensure_derived_copy(editor):
             return
         QApplication.clipboard().setText(
             without_empty_lines(editor.textCursor().selection().toPlainText())
         )
 
-    def _ensure_broad_derived_copy(self, editor) -> bool:
-        """Prepare a stale >=95% selection without blocking the GUI thread."""
+    def _ensure_derived_copy(self, editor) -> bool:
+        """Verify copy-relevant derivations without blocking the GUI thread."""
 
         cursor = editor.textCursor()
         if not cursor.hasSelection():
             return True
-        document_size = max(1, editor.document().characterCount() - 1)
-        selected_size = cursor.selectionEnd() - cursor.selectionStart()
-        if selected_size / document_size < BINARY_WORKBENCH_LAYOUT.EDITOR_BROAD_DERIVED_COPY_RATIO:
-            return True
+        kind = self._editor_kind_for_selection(editor)
         coordinator = getattr(self, "_consistency_coordinator", None)
-        if coordinator is None:
+        if coordinator is None or kind is None:
             return True
         cursor_state = capture_logical_cursor(editor)
         start = cursor.selectionStart()
@@ -89,14 +93,23 @@ class GridVirtualSelectionMixin:
             start == 0,
             end >= document.characterCount() - 1,
         )
-        immediate = coordinator.request_broad_copy(
-            lambda rows: self._copy_prepared_derived_selection(
+
+        def copy_prepared(prepared_first, rows) -> None:
+            """Keep the requested column bound to this asynchronous copy."""
+
+            self._copy_prepared_derived_selection(
                 editor,
                 kind,
+                prepared_first,
                 rows,
                 selection,
                 cursor_state,
             )
+
+        immediate = coordinator.request_broad_copy(
+            first_block.blockNumber(),
+            last_block.blockNumber(),
+            copy_prepared,
         )
         restore_logical_cursor(editor, cursor_state)
         return immediate
@@ -105,6 +118,7 @@ class GridVirtualSelectionMixin:
         self,
         editor,
         kind: str,
+        prepared_first: int,
         rows,
         selection: tuple[int, int, int, int, bool, bool],
         cursor_state,
@@ -112,14 +126,16 @@ class GridVirtualSelectionMixin:
         """Copy only the selected column from immutable prepared rows."""
 
         first, last, start_column, end_column, starts_document, ends_document = selection
-        if not 0 <= first <= last < len(rows):
+        local_first = first - prepared_first
+        local_last = last - prepared_first
+        if not 0 <= local_first <= local_last < len(rows):
             return
         display = (
             self._display_bytes_row
             if kind == BINARY_WORKBENCH_TEXT.BYTES
             else self._display_raw_row
         )
-        lines = [display(rows[index]) for index in range(first, last + 1)]
+        lines = [display(rows[index]) for index in range(local_first, local_last + 1)]
         if len(lines) == 1:
             start_column = 0 if starts_document else start_column
             end_column = len(lines[0]) if ends_document else end_column

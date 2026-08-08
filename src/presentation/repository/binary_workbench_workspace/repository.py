@@ -19,6 +19,7 @@ from src.modules.utils import read_json, write_json
 from src.presentation.repository.binary_workbench_workspace.constants import (
     ACTIVE_VERSION,
     ENVIRONMENT_FOLDERS,
+    GLOBAL_SYMBOLS,
     LBA_FILESYSTEM,
     MODULE_FOLDERS,
     MODULE_SUFFIXES,
@@ -48,6 +49,7 @@ from src.presentation.repository.binary_workbench_workspace.payloads import (
     offset_regions_payload,
     offset_regions_payload_preserving_details,
     source_matches,
+    source_payload,
     symbols_from_payload,
     symbols_payload,
     version_from_payload,
@@ -89,6 +91,66 @@ class BinaryWorkbenchWorkspaceRepository:
         if source.resolve() != target.resolve():
             copy2(source, target)
         return target
+
+    def load_symbols_file(self, path: Path) -> dict[str, str]:
+        """Load one Symbols catalog without resolving it against source lines."""
+
+        variables, equates = symbols_from_payload(read_json(path))
+        return {**equates, **variables}
+
+    def save_symbols_file(self, path: Path, symbols: dict[str, str]) -> Path:
+        """Persist the selected catalog without touching any editor projection."""
+
+        return write_json(path, symbols_payload(path.stem, symbols))
+
+    def bind_global_symbols(
+        self,
+        tab: BinaryWorkbenchTabContextDTO,
+        path: Path,
+    ) -> BinaryWorkbenchTabContextDTO:
+        """Persist a lightweight Global Symbols pointer for one source tab."""
+
+        canonical = self.import_environment_file(GLOBAL_SYMBOLS, path)
+        module_paths = {**tab.module_paths, GLOBAL_SYMBOLS: str(canonical)}
+        directories = {
+            **tab.module_directories,
+            GLOBAL_SYMBOLS: str(self.environment_directory(GLOBAL_SYMBOLS)),
+        }
+        if not tab.source_path:
+            return BinaryWorkbenchTabContextDTO(
+                **{
+                    **tab.__dict__,
+                    "module_paths": module_paths,
+                    "module_directories": directories,
+                }
+            )
+        target = self._normalize_manifest_path(
+            Path(tab.workspace_path or self._default_manifest(tab))
+        )
+        manifest = read_json(target)
+        if not manifest or manifest.get("schema_version") != SCHEMA_VERSION:
+            source = dict(source_payload(Path(tab.source_path)))
+            if tab.internal_file_start_lba is not None:
+                source["internal_file_start_lba"] = tab.internal_file_start_lba
+            manifest = {
+                "schema_version": SCHEMA_VERSION,
+                "source": source,
+                "modules": {},
+            }
+        modules = manifest.get("modules")
+        modules = dict(modules) if isinstance(modules, dict) else {}
+        modules[GLOBAL_SYMBOLS] = relative_module_path(canonical, self._directory)
+        manifest["modules"] = modules
+        write_json(target, manifest)
+        return BinaryWorkbenchTabContextDTO(
+            **{
+                **tab.__dict__,
+                "workspace_path": str(target),
+                "module_paths": module_paths,
+                "module_directories": directories,
+            }
+        )
+
     @property
     def decoded_tables_directory(self) -> Path:
         return self._decoded_tables_directory
@@ -546,7 +608,7 @@ def _module_paths_for_manifest(
     return {
         key: value
         for key, value in module_paths.items()
-        if _module_path_matches_workspace_stem(value, stem)
+        if key == GLOBAL_SYMBOLS or _module_path_matches_workspace_stem(value, stem)
     }
 
 
@@ -557,7 +619,7 @@ def _module_paths_for_internal_save(
     return {
         key: value
         for key, value in module_paths.items()
-        if _module_path_matches_workspace_stem(value, stem)
+        if key == GLOBAL_SYMBOLS or _module_path_matches_workspace_stem(value, stem)
     }
 
 

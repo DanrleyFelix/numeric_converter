@@ -6,15 +6,16 @@ from src.presentation.ui.components.binary_workbench.editor.cursor_guard import 
 )
 from src.modules.binary_workbench_constants import BINARY_WORKBENCH_ROW_BYTES as ROW_BYTES
 
-_SELECTION_SCROLL_EDGE_THRESHOLD = 18
 _SELECTION_SCROLL_INTERVAL_MS = 20
 
 
 class EditorSelectionScrollMixin:
     def _update_selection_scroll(self, position: QPoint) -> None:
-        if position.y() < _SELECTION_SCROLL_EDGE_THRESHOLD:
+        """Autoscroll only after a drag leaves the viewport content area."""
+
+        if position.y() < 0:
             self._selection_scroll_delta = -ROW_BYTES
-        elif position.y() > self.viewport().height() - _SELECTION_SCROLL_EDGE_THRESHOLD:
+        elif position.y() >= self.viewport().height():
             self._selection_scroll_delta = ROW_BYTES
         else:
             self._stop_selection_scroll()

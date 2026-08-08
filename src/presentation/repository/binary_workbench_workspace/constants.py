@@ -4,6 +4,7 @@ from pathlib import Path
 
 SCHEMA_VERSION = 2
 SYMBOLS = "symbols"
+GLOBAL_SYMBOLS = "global_symbols"
 LBA_FILESYSTEM = "lba_filesystem"
 VERSIONS = "versions"
 ENCODING_TABLES = "encoding_tables"
@@ -14,6 +15,7 @@ ACTIVE_VERSION = "active_version"
 
 MODULE_KEYS = (
     SYMBOLS,
+    GLOBAL_SYMBOLS,
     LBA_FILESYSTEM,
     VERSIONS,
     OFFSET_REGIONS,
@@ -21,6 +23,7 @@ MODULE_KEYS = (
 
 MODULE_FOLDERS = {
     SYMBOLS: "Symbols",
+    GLOBAL_SYMBOLS: "Global Symbols",
     LBA_FILESYSTEM: "LBA File System",
     VERSIONS: "Versions",
     OFFSET_REGIONS: "Offset Regions",
@@ -34,6 +37,7 @@ ENVIRONMENT_FOLDERS = {
 
 MODULE_SUFFIXES = {
     SYMBOLS: "symbols",
+    GLOBAL_SYMBOLS: "global_symbols",
     LBA_FILESYSTEM: "lba",
     OFFSET_REGIONS: "offset_regions",
 }

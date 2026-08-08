@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
-from src.core.binary_workbench.editor_consistency.models import SemanticSnapshot
+from src.core.binary_workbench.editor_consistency.models import DerivedCopySnapshot
 from src.core.binary_workbench.editor_consistency.semantic import (
     calculate_derived_copy_result,
 )
@@ -36,7 +36,7 @@ def _safe_emit(signal, *values) -> bool:
 class DerivedCopyWorker(QRunnable):
     """Prepare broad copy rows without diagnostics or Qt projection work."""
 
-    def __init__(self, snapshot: SemanticSnapshot, token: CancellationToken) -> None:
+    def __init__(self, snapshot: DerivedCopySnapshot, token: CancellationToken) -> None:
         super().__init__()
         self.snapshot = snapshot
         self.token = token

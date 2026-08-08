@@ -12,10 +12,10 @@ from src.core.binary_workbench.editor_consistency import (
     ConsistencyState,
     ConsistentEditorSnapshot,
     DerivedCategory,
+    DerivedCopySnapshot,
     DirtyRange,
     EditorOwner,
     LineContentBatch,
-    SemanticSnapshot,
 )
 from src.core.binary_workbench.editor_consistency.cancellation import CancellationToken
 from src.core.binary_workbench.editor_consistency.classification import (
@@ -161,6 +161,16 @@ class EditorConsistencyCoordinator(QObject):
         """Return the indexed logical offset without scanning neighboring rows."""
 
         return self.grid._source_rows_start_offset() + self._contributions.prefix_bytes(index)
+
+    def emitted_bytes_between(self, first: int, last_exclusive: int) -> int:
+        """Count emitted bytes in a selected range without visiting its rows."""
+
+        start = max(0, first)
+        end = max(start, last_exclusive)
+        return (
+            self._contributions.prefix_bytes(end)
+            - self._contributions.prefix_bytes(start)
+        )
 
     def supports_derived_updates(self) -> bool:
         """Return whether this static grid can refresh derived viewport data.
@@ -1013,7 +1023,11 @@ class EditorConsistencyCoordinator(QObject):
             ))
         return preserved
 
-    def ensure_broad_copy_consistent(self) -> bool:
+    def ensure_broad_copy_consistent(
+        self,
+        first_line: int | None = None,
+        last_line: int | None = None,
+    ) -> bool:
         """Report whether a broad copy can use its current projection.
 
         The former implementation rebuilt every derived QTextDocument on the
@@ -1026,20 +1040,35 @@ class EditorConsistencyCoordinator(QObject):
         # pending paint, hazard or catalog-wide highlight maintenance.  Symbol
         # fidelity remains the explicit F1 barrier; importing a large catalog
         # must not turn Ctrl+C into an unrelated whole-document calculation.
-        return not self._copy_semantic_pending
+        if self._copy_semantic_pending:
+            return False
+        if first_line is None or last_line is None or not self._model_rows:
+            return True
+        first = max(0, min(first_line, len(self._model_rows) - 1))
+        last = max(first, min(last_line, len(self._model_rows) - 1))
+        required = (
+            DerivedCategory.ASSEMBLY
+            | DerivedCategory.BYTES
+            | DerivedCategory.RAW
+            | DerivedCategory.SYMBOLS
+            | DerivedCategory.BRANCHES
+        )
+        return not self._pending_categories(DirtyRange(first, last)) & required
 
     def request_broad_copy(
         self,
-        callback: Callable[[tuple[BinaryWorkbenchRowDTO, ...]], None],
+        first_line: int,
+        last_line: int,
+        callback: Callable[[int, tuple[BinaryWorkbenchRowDTO, ...]], None],
     ) -> bool:
-        """Prepare stale copy rows in a worker without reprojecting the UI.
+        """Prepare only a stale copied range without reprojecting the UI.
 
         ``True`` tells the caller to copy its current document immediately.
-        Otherwise the immutable current source is assembled with user-request
-        priority and delivered to ``callback`` only if its revision survives.
+        Otherwise copied lines are assembled with user-request priority and
+        delivered to ``callback`` only if their source revision survives.
         """
 
-        if self.ensure_broad_copy_consistent():
+        if self.ensure_broad_copy_consistent(first_line, last_line):
             return True
         # An explicit clipboard request outranks eventual semantic maintenance.
         # The active worker exits cooperatively at its next bounded check.
@@ -1050,13 +1079,15 @@ class EditorConsistencyCoordinator(QObject):
         if self._broad_copy_token is not None:
             self._broad_copy_token.cancel()
         self._broad_copy_token = CancellationToken()
-        snapshot = SemanticSnapshot(
+        snapshot = DerivedCopySnapshot(
             self.owner,
             self.source_revision,
             generation,
-            self.grid._codec.display_name,
             binary_workbench_worker_codec_for(self.grid._codec.display_name),
             tuple(row.instruction for row in self._model_rows),
+            first_line,
+            last_line,
+            self._contributions.snapshot(),
             tuple(self.grid._columns or [BINARY_WORKBENCH_TEXT.FILE]),
             self.grid._offset_base_text(),
             dict(self.grid._variables),
@@ -1088,10 +1119,15 @@ class EditorConsistencyCoordinator(QObject):
                 BINARY_WORKBENCH_TEXT.STATUS_COPY_CANCELLED
             )
             return
-        callback(tuple(result.rows))
-        self.grid.commandStatusRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_COPY_READY)
-        self._broad_copy_worker = None
-        self._broad_copy_token = None
+        try:
+            callback(result.first_line, tuple(result.rows))
+        except Exception as error:
+            self.grid.commandWarningRequested.emit(str(error))
+        else:
+            self.grid.commandStatusRequested.emit(BINARY_WORKBENCH_TEXT.STATUS_COPY_READY)
+        finally:
+            self._broad_copy_worker = None
+            self._broad_copy_token = None
 
     def _broad_copy_failed(self, message: str) -> None:
         """Surface copy preparation errors without mutating editor state."""
@@ -1233,7 +1269,7 @@ class EditorConsistencyCoordinator(QObject):
         first_line: int,
         last_line: int,
     ) -> None:
-        """Serve a complete-line selection without starting global work."""
+        """Refresh only stale data requested by a settled line selection."""
 
         if not self._model_rows:
             return
@@ -1241,8 +1277,28 @@ class EditorConsistencyCoordinator(QObject):
         last = min(len(self._model_rows) - 1, max(first, last_line))
         if last - first + 1 > OFFSET_BATCH_SIZE:
             return
-        if column == BINARY_WORKBENCH_TEXT.INSTRUCTION:
-            self.grid._refresh_highlighter_projection((first, last))
+        viewport = DirtyRange(first, last)
+        categories = self._pending_categories(viewport)
+        relevant = {
+            BINARY_WORKBENCH_TEXT.BYTES: (
+                DerivedCategory.ASSEMBLY
+                | DerivedCategory.BYTES
+                | DerivedCategory.SYMBOLS
+                | DerivedCategory.BRANCHES
+            ),
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS: (
+                DerivedCategory.ASSEMBLY
+                | DerivedCategory.RAW
+                | DerivedCategory.SYMBOLS
+                | DerivedCategory.BRANCHES
+            ),
+            BINARY_WORKBENCH_TEXT.DECODED_TEXT: (
+                DerivedCategory.ASSEMBLY
+                | DerivedCategory.BYTES
+                | DerivedCategory.SYMBOLS
+            ),
+        }.get(column, DerivedCategory.NONE)
+        if relevant == DerivedCategory.NONE or not categories & relevant:
             return
         source = [
             self.grid.instructions.document().findBlockByNumber(index).text()
@@ -1252,10 +1308,6 @@ class EditorConsistencyCoordinator(QObject):
         if rebuilt is None or len(rebuilt) != len(source):
             return
         indexed = tuple((first + offset, row) for offset, row in enumerate(rebuilt))
-        self._model_rows[first : last + 1] = rebuilt
-        self._line_revisions[first : last + 1] = [self.source_revision] * len(rebuilt)
-        self.grid._rows = list(self._model_rows)
-        self.grid._all_rows = list(self._model_rows)
         apply_requested_column_contents(self.grid, column, indexed)
 
     def _queue_viewport_ranges(

@@ -262,8 +262,16 @@ class WorkbenchEditor(
             self.selectionStarted.emit(self)
             event.accept()
             return
-        self.clear_editor_occurrence_selection()
-        self.selectionStarted.emit(self)
+        cursor = self.textCursor()
+        clicked_position = self.cursorForPosition(event.position().toPoint()).position()
+        right_click_in_selection = (
+            event.button() == Qt.RightButton
+            and cursor.hasSelection()
+            and cursor.selectionStart() <= clicked_position < cursor.selectionEnd()
+        )
+        if not right_click_in_selection:
+            self.clear_editor_occurrence_selection()
+            self.selectionStarted.emit(self)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
@@ -302,11 +310,12 @@ class WorkbenchEditor(
         super().focusInEvent(event)
 
     def focusOutEvent(self, event) -> None:
-        self.clear_editor_occurrence_selection()
-        cursor = self.textCursor()
-        if cursor.hasSelection():
-            cursor.clearSelection()
-            self.setTextCursor(cursor)
+        if event.reason() != Qt.FocusReason.PopupFocusReason:
+            self.clear_editor_occurrence_selection()
+            cursor = self.textCursor()
+            if cursor.hasSelection():
+                cursor.clearSelection()
+                self.setTextCursor(cursor)
         self._stop_selection_scroll()
         super().focusOutEvent(event)
         self.editFinished.emit(self)

@@ -24,6 +24,7 @@ from src.modules.dtos import (
     BinaryWorkbenchLbaFilesystemDTO,
     BinaryWorkbenchPreferencesDTO,
     BinaryWorkbenchRowDTO,
+    BinaryWorkbenchStateDTO,
     BinaryWorkbenchTabContextDTO,
     BinaryWorkbenchVersionDTO,
 )
@@ -86,6 +87,9 @@ from src.presentation.ui.components.binary_workbench.search import (
 from src.presentation.repository.binary_workbench_payload import (
     binary_workbench_state_from_payload,
     binary_workbench_state_to_payload,
+)
+from src.presentation.repository.binary_workbench_workspace.constants import (
+    GLOBAL_SYMBOLS,
 )
 
 
@@ -6672,6 +6676,88 @@ def test_binary_workbench_global_symbols_emit_and_persist_on_add_load_and_save(t
     assert dialog.save_library_json(target) is True
     assert changes[-1] == {"created": "0x10", "loaded": "0x20"}
     assert json.loads(target.read_text(encoding="utf-8"))["symbols"] == changes[-1]
+
+
+def test_binary_workbench_reopens_linked_global_symbols_after_blank_project(
+    tmp_path: Path,
+    monkeypatch,
+):
+    source = tmp_path / "linked.asm"
+    source.write_text("ori $t0, $zero, @shared\n", encoding="utf-8")
+    external = tmp_path / "outside" / "shared.json"
+    external.parent.mkdir()
+    external.write_text(
+        json.dumps({"name": "shared", "symbols": {"shared": "0x20"}}),
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(source)
+
+    def load_and_close(dialog):
+        assert dialog.load_library_json(external) is True
+        return QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(BinaryWorkbenchSymbolsDialog, "exec", load_and_close)
+    tool._open_global_symbols()
+    canonical = Path(tool.tabs.global_symbols_library_path())
+    linked = tool.tabs.current_metadata_context()
+
+    assert canonical.parent.name == "Global Symbols"
+    assert linked is not None
+    assert linked.module_paths[GLOBAL_SYMBOLS] == str(canonical)
+
+    tool.tabs.load_state(BinaryWorkbenchStateDTO())
+    assert tool.tabs.global_symbols() == {}
+    tool.open_assembly_path(source)
+
+    restored = tool.tabs.current_context()
+    assert tool.tabs.global_symbols() == {"shared": "0x20"}
+    assert restored is not None
+    assert restored.variables["shared"] == "0x20"
+    assert restored.module_paths[GLOBAL_SYMBOLS] == str(canonical)
+
+
+def test_binary_workbench_first_tab_global_symbols_link_wins(tmp_path: Path):
+    first_library = tmp_path / "first.json"
+    second_library = tmp_path / "second.json"
+    first_library.write_text(
+        json.dumps({"name": "first", "symbols": {"first": "0x10"}}),
+        encoding="utf-8",
+    )
+    second_library.write_text(
+        json.dumps({"name": "second", "symbols": {"second": "0x20"}}),
+        encoding="utf-8",
+    )
+    state = BinaryWorkbenchStateDTO(
+        tabs=[
+            BinaryWorkbenchTabContextDTO(
+                tab_id="first",
+                kind="scratch",
+                display_name="first.asm",
+                module_paths={GLOBAL_SYMBOLS: str(first_library)},
+            ),
+            BinaryWorkbenchTabContextDTO(
+                tab_id="second",
+                kind="scratch",
+                display_name="second.asm",
+                module_paths={GLOBAL_SYMBOLS: str(second_library)},
+            ),
+        ],
+        active_tab_id="second",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.load_state(state)
+
+    assert tool.tabs.global_symbols_library_path() == str(first_library)
+    assert tool.tabs.global_symbols() == {"first": "0x10"}
 
 
 def _version_row_payload(offset: str, instruction: str, bytes_text: str) -> dict[str, object]:

@@ -21,6 +21,7 @@ from src.modules.binary_workbench_dtos import (
 from src.presentation.repository.binary_workbench_workspace.constants import (
     COMMANDS,
     ENCODING_TABLES,
+    GLOBAL_SYMBOLS,
     LBA_FILESYSTEM,
     OFFSET_REGIONS,
     SYMBOLS,
@@ -177,10 +178,23 @@ class TabWorkspaceMixin:
             ),
         )
         if manifest is None:
-            return context
-        updated = self._context_with_global_symbols(
-            self._workspace_repository.load_tab_workspace(context, manifest)
-        )
+            if not self._global_symbols_path:
+                return context
+            updated = self._workspace_repository.bind_global_symbols(
+                context,
+                Path(self._global_symbols_path),
+            )
+            updated = self._context_with_global_symbols(updated)
+            self._remember_workspace_for_source(updated)
+            return updated
+        loaded = self._workspace_repository.load_tab_workspace(context, manifest)
+        had_global_link = bool(loaded.module_paths.get(GLOBAL_SYMBOLS))
+        updated = self._context_with_global_symbols(loaded)
+        if self._global_symbols_path and not had_global_link:
+            updated = self._workspace_repository.bind_global_symbols(
+                updated,
+                Path(self._global_symbols_path),
+            )
         self._remember_workspace_for_source(updated)
         return updated
 

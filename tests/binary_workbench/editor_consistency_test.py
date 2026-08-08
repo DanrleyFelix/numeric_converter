@@ -1,6 +1,7 @@
 from src.core.binary_workbench.codec_registry import binary_workbench_worker_codec_for
 from src.core.binary_workbench.editor_consistency import (
     ChangeKind,
+    DerivedCopySnapshot,
     DirtyRange,
     EditorOwner,
     SemanticSnapshot,
@@ -12,7 +13,10 @@ from src.core.binary_workbench.editor_consistency.distribution import (
     build_offset_batches,
     incremental_offset_values,
 )
-from src.core.binary_workbench.editor_consistency.semantic import calculate_semantic_result
+from src.core.binary_workbench.editor_consistency.semantic import (
+    calculate_derived_copy_result,
+    calculate_semantic_result,
+)
 
 
 def test_contribution_index_reuses_untouched_immutable_segments():
@@ -132,3 +136,52 @@ def test_semantic_result_commits_labels_branches_and_hazards_as_one_revision():
     assert result.labels == {"start": "0x00000000", "end": "0x0000000C"}
     assert all(row.bytes_text for row in result.rows)
     assert result.rows[1].bytes_text != ""
+
+
+def test_copy_result_assembles_only_selection_with_document_label_addresses():
+    """A partial copy resolves its branch without assembling unrelated rows."""
+
+    owner = EditorOwner("tab", "version", 1)
+    lines = (
+        "beq $zero, $zero, target",
+        *("nop" for _ in range(298)),
+        "target: nop",
+    )
+    codec = binary_workbench_worker_codec_for("PSX - Mips R3000A")
+    full = calculate_semantic_result(
+        SemanticSnapshot(
+            owner,
+            2,
+            3,
+            "PSX - Mips R3000A",
+            codec,
+            lines,
+            ("File",),
+            {},
+            {},
+            {},
+        ),
+        CancellationToken(),
+    )
+    copied = calculate_derived_copy_result(
+        DerivedCopySnapshot(
+            owner,
+            2,
+            4,
+            codec,
+            lines,
+            0,
+            0,
+            LineContributionIndex([4] * len(lines)).snapshot(),
+            ("File",),
+            {},
+            {},
+            {},
+        ),
+        CancellationToken(),
+    )
+
+    assert full is not None and copied is not None
+    assert copied.first_line == 0
+    assert len(copied.rows) == 1
+    assert copied.rows[0].bytes_text == full.rows[0].bytes_text

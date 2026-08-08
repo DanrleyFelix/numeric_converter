@@ -109,6 +109,36 @@ class SemanticSnapshot:
 
 
 @dataclass(frozen=True)
+class DerivedCopySnapshot:
+    """Hold only the source metadata needed to prepare one copied range."""
+
+    owner: EditorOwner
+    source_revision: int
+    generation: int
+    codec: CPUArchCodec
+    lines: tuple[str, ...]
+    first_line: int
+    last_line: int
+    contributions: ContributionSnapshot
+    offset_names: tuple[str, ...]
+    offset_bases: Mapping[str, str]
+    variables: Mapping[str, str]
+    equates: Mapping[str, str]
+    jump_reference_offset: str = ""
+
+
+@dataclass(frozen=True)
+class DerivedCopyResult:
+    """Return copy-relevant rows without a document-wide UI projection."""
+
+    owner: EditorOwner
+    source_revision: int
+    generation: int
+    first_line: int
+    rows: tuple[BinaryWorkbenchRowDTO, ...]
+
+
+@dataclass(frozen=True)
 class SemanticResult:
     """Return one atomically applicable global semantic snapshot."""
 

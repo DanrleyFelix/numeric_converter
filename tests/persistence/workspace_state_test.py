@@ -20,6 +20,7 @@ from src.presentation.repository.binary_workbench_workspace import (
     BinaryWorkbenchWorkspaceRepository,
 )
 from src.presentation.repository.binary_workbench_workspace.constants import (
+    GLOBAL_SYMBOLS,
     OFFSET_REGIONS,
     SYMBOLS,
     VERSIONS,
@@ -614,6 +615,39 @@ def test_binary_workbench_workspace_imports_external_module_into_fixed_directory
 
     assert imported == repository.directory / "Symbols" / external.name
     assert imported.read_text(encoding="utf-8") == external.read_text(encoding="utf-8")
+
+
+def test_binary_workbench_workspace_persists_lightweight_global_symbols_link(
+    tmp_path: Path,
+):
+    repository = BinaryWorkbenchWorkspaceRepository(tmp_path)
+    source = tmp_path / "linked.asm"
+    source.write_text("ori $t0, $zero, @shared\n", encoding="utf-8")
+    external = tmp_path / "external" / "shared.json"
+    external.parent.mkdir()
+    external.write_text(
+        json.dumps({"name": "shared", "symbols": {"shared": "0x20"}}),
+        encoding="utf-8",
+    )
+    tab = BinaryWorkbenchTabContextDTO(
+        tab_id="linked",
+        kind="assembly",
+        display_name=source.name,
+        source_path=str(source),
+    )
+
+    linked = repository.bind_global_symbols(tab, external)
+    manifest = json.loads(Path(linked.workspace_path).read_text(encoding="utf-8"))
+    restored = repository.load_tab_workspace(tab, Path(linked.workspace_path))
+
+    canonical = repository.directory / "Global Symbols" / external.name
+    assert linked.module_paths[GLOBAL_SYMBOLS] == str(canonical)
+    assert manifest["modules"][GLOBAL_SYMBOLS] == str(
+        canonical.relative_to(repository.directory)
+    )
+    assert restored.module_paths[GLOBAL_SYMBOLS] == str(canonical)
+    assert restored.symbols == {}
+    assert repository.load_symbols_file(canonical) == {"shared": "0x20"}
 
 
 def test_binary_workbench_workspace_save_rehomes_external_module_paths(tmp_path: Path):

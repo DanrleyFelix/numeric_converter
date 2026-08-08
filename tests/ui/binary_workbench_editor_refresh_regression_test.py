@@ -2,8 +2,8 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QKeyEvent, QTextCursor
+from PySide6.QtCore import QEvent, QTimer, Qt
+from PySide6.QtGui import QFocusEvent, QKeyEvent, QTextCursor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
@@ -13,6 +13,9 @@ from src.presentation.ui.components.binary_workbench.editor.highlighters import 
 )
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import (
     WorkbenchEditor,
+)
+from src.presentation.ui.components.binary_workbench.editor.grid_virtual_selection import (
+    GridVirtualSelectionMixin,
 )
 
 _APP = None
@@ -121,3 +124,71 @@ def test_directive_edit_debounces_cross_line_diagnostics():
     assert highlighter._directive_refresh_timer.isActive() is True
     QTest.qWait(120)
     assert highlighter._directive_refresh_timer.isActive() is False
+
+
+class _CopySelectionHarness(GridVirtualSelectionMixin):
+    """Exercise the grid copy contract without constructing the complete UI."""
+
+    def __init__(self, editor: WorkbenchEditor) -> None:
+        self.bytes = editor
+        self.raw_instructions = WorkbenchEditor()
+        self.instructions = WorkbenchEditor()
+        self._virtual_selection_range = None
+        self._selection_projection_request = ("Bytes", 0, 0)
+        self._selection_projection_timer = QTimer()
+        self._selection_projection_timer.setSingleShot(True)
+        self._consistency_coordinator = None
+
+
+def test_copy_keeps_selection_and_cancels_its_pending_projection():
+    """Keep Ctrl+C selection after its obsolete selection projection expires."""
+
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("00  00  00  00")
+    editor.selectAll()
+    harness = _CopySelectionHarness(editor)
+    harness._selection_projection_timer.timeout.connect(
+        lambda: editor.setTextCursor(QTextCursor(editor.document()))
+    )
+    harness._selection_projection_timer.start(0)
+
+    harness._copy_editor_selection(editor)
+    _app().processEvents()
+
+    assert editor.textCursor().selectedText() == "00  00  00  00"
+    assert harness._selection_projection_timer.isActive() is False
+
+
+def test_right_click_inside_selection_does_not_start_another_selection():
+    """Keep an existing block selected when its context menu is requested."""
+
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("selected block")
+    editor.selectAll()
+    started = []
+    editor.selectionStarted.connect(started.append)
+    cursor = QTextCursor(editor.document())
+    cursor.setPosition(4)
+    point = editor.cursorRect(cursor).center()
+
+    QTest.mousePress(editor.viewport(), Qt.RightButton, pos=point)
+
+    assert started == []
+    assert editor.textCursor().selectedText() == "selected block"
+
+
+def test_context_menu_focus_does_not_clear_selection():
+    """Preserve the selected block while a popup temporarily owns focus."""
+
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("selected block")
+    editor.selectAll()
+
+    editor.focusOutEvent(
+        QFocusEvent(QEvent.Type.FocusOut, Qt.FocusReason.PopupFocusReason)
+    )
+
+    assert editor.textCursor().selectedText() == "selected block"

@@ -359,6 +359,14 @@ class BinaryWorkbenchEditorPage(
         if not context.version_dirty:
             self.grid.mark_persistence_clean()
 
+    def replace_workspace_metadata(
+        self,
+        context: BinaryWorkbenchTabContextDTO,
+    ) -> None:
+        """Accept lightweight workspace links without rebuilding editor state."""
+
+        self._context = context
+
     def refresh_shared_context(
         self,
         context: BinaryWorkbenchTabContextDTO,
