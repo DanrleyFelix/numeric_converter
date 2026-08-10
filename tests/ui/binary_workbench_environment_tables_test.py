@@ -62,6 +62,8 @@ def test_environment_tables_virtualize_one_thousand_records(small_factory, large
     assert getattr(large, model_name).rowCount() == 1000
     assert table is not None
     assert table.horizontalHeader().objectName() == "binary-workbench-environment-header"
+    assert table.isSortingEnabled()
+    assert not table.horizontalHeader().isSortIndicatorShown()
     assert table.indexWidget(table.model().index(0, 0)) is None
     assert large.findChildren(QScrollArea) == []
     assert large.findChildren(QWidget, "workspace-row") == []

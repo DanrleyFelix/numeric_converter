@@ -232,6 +232,8 @@ def test_workspace_dialog_controls_match_symbols_visual_metrics():
     _app().processEvents()
 
     assert variables.table.styleSheet() == ""
+    assert variables.table.isSortingEnabled()
+    assert not variables.table.horizontalHeader().isSortIndicatorShown()
     assert variables.name_input.minimumWidth() == WORKSPACE_TABLE_SIZE.FIELD_MIN_WIDTH
     assert variables.value_input.minimumWidth() == WORKSPACE_TABLE_SIZE.FIELD_MIN_WIDTH
     assert variables.name_input.height() == WORKSPACE_TABLE_SIZE.CONTROL_HEIGHT

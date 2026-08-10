@@ -122,6 +122,7 @@ def configure_environment_table(
     header.setFixedHeight(BINARY_WORKBENCH_LAYOUT.SHARED_CONTROL_HEIGHT)
     header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
     header.setHighlightSections(False)
+    header.setSortIndicatorShown(False)
     # The object name is assigned after the application stylesheet is loaded.
     # Re-polish only this child so Qt resolves the dark environment-header QSS
     # without restyling the dialog or any native file dialog.
