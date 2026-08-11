@@ -216,23 +216,24 @@ class TabLibrariesMixin:
         cursor_state = _editor_cursor_state(page)
         previous_symbols = _local_symbols(current)
         local_symbols = merged_symbol_values(variables, equates)
+        definition_only = not apply_existing and _definition_only_addition(
+            previous_symbols,
+            local_symbols,
+        )
         renamed = _single_symbol_rename(previous_symbols, local_symbols)
         changed_names = _changed_symbol_names(previous_symbols, local_symbols)
         bulk_catalog_change = (
             renamed is None and len(changed_names) > MAX_SYMBOL_BATCH_SIZE
         )
         changed_lines: tuple[int, ...] = ()
-        if not bulk_catalog_change:
+        if not bulk_catalog_change and not definition_only:
             self._ensure_symbol_runtime(current, page)
             changed_lines = self._symbol_runtime.lines_for_symbols(
                 current.tab_id,
                 changed_names,
             )
         self._symbol_runtime.set_local_definitions(current.tab_id, local_symbols)
-        if not apply_existing and _definition_only_addition(
-            previous_symbols,
-            local_symbols,
-        ):
+        if definition_only:
             effective_symbols = effective_symbol_values(
                 local_symbols,
                 self._global_symbols,
@@ -251,6 +252,7 @@ class TabLibrariesMixin:
             self._replace_context(current.tab_id, current)
             if isinstance(page, BinaryWorkbenchEditorPage):
                 page.update_symbol_context(current)
+                page.rederive_symbol_viewport(tuple(changed_names))
             _restore_editor_cursor(page, cursor_state)
             return
         if (
@@ -328,6 +330,8 @@ class TabLibrariesMixin:
                     changed_names,
                 )
         self._symbol_runtime.set_global_definitions(self._global_symbols)
+        if previous_globals == self._global_symbols:
+            return
         if 0 <= current_index < len(tabs):
             if definition_only:
                 current = tabs[current_index]
@@ -384,6 +388,7 @@ class TabLibrariesMixin:
             if isinstance(page, BinaryWorkbenchEditorPage):
                 if definition_only:
                     page.update_symbol_context(tabs[current_index])
+                    page.rederive_symbol_viewport(tuple(changed_names))
                 elif incremental_active:
                     page.update_symbol_context(tabs[current_index])
                     if renamed is not None:
@@ -600,7 +605,11 @@ def _definition_only_addition(
 
     old = {name.casefold(): value for name, value in previous.items()}
     new = {name.casefold(): value for name, value in current.items()}
-    return len(new) >= len(old) and all(new.get(name) == value for name, value in old.items())
+    return (
+        new != old
+        and len(new) >= len(old)
+        and all(new.get(name) == value for name, value in old.items())
+    )
 
 
 def _changed_symbol_names(

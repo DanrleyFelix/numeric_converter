@@ -132,6 +132,24 @@ def test_step_and_run_finish_cleanly_after_the_last_instruction():
         assert debugger.events[-1].message == f"Execution completed at 0x{BASE + 4:08X}."
 
 
+def test_run_reports_an_unloaded_call_destination_without_escaping():
+    """Keep an invalid JAL target inside the Debug Log and debugger state."""
+
+    target = BASE + 0x100
+    debugger = configured_debugger(f"jal 0x{target:X}", "nop")
+
+    debugger.run(limit=3)
+
+    assert debugger.state == DebuggerSessionState.ERROR
+    assert debugger.pc == target
+    assert debugger.last_error is not None
+    assert f"PC 0x{target:08X}" in debugger.last_error.message
+    assert "JAL/JALR" in debugger.last_error.message
+    assert "IGNORED" in debugger.last_error.message
+    assert debugger.events[-1].level == "Error"
+    assert debugger.events[-1].message == debugger.last_error.message
+
+
 def test_pause_and_stop_are_cooperative_and_restart_restores_state():
     debugger = configured_debugger(f"j 0x{BASE:X}", "nop")
     worker = Thread(target=lambda: debugger.run(limit=10_000_000))

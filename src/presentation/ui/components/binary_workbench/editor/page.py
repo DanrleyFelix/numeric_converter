@@ -256,6 +256,11 @@ class BinaryWorkbenchEditorPage(
 
         self.grid._consistency_coordinator.rederive_all_symbol_lines()
 
+    def rederive_symbol_viewport(self, names: tuple[str, ...]) -> None:
+        """Refresh only visible rows after a definition-only Symbol addition."""
+
+        self.grid._consistency_coordinator.rederive_symbol_viewport(names)
+
     def rename_symbol_tokens(
         self,
         old_name: str,

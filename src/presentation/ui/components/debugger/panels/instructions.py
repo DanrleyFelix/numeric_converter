@@ -42,6 +42,7 @@ class DebuggerInstructionPanel(QTableWidget):
         header = self.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(False)
+        self._enforcing_column_minimum = False
         for column in (
             DEBUGGER_LAYOUT.RAW_INSTRUCTION_COLUMN,
             DEBUGGER_LAYOUT.INSTRUCTION_STATUS_COLUMN,
@@ -59,6 +60,7 @@ class DebuggerInstructionPanel(QTableWidget):
         self.cellClicked.connect(self._cell_clicked)
         self.verticalHeader().hide()
         self.verticalHeader().setDefaultSectionSize(DEBUGGER_LAYOUT.TABLE_ROW_HEIGHT)
+        header.sectionResized.connect(self._enforce_column_minimum)
 
     def refresh(self, debugger: BWDebugger, last_pc: int | None = None) -> None:
         """Render instructions and emphasize the current/previous program counter."""
@@ -103,6 +105,18 @@ class DebuggerInstructionPanel(QTableWidget):
         """Resize flexible columns without accumulating width on refresh."""
 
         resize_instruction_columns(self)
+
+    def _enforce_column_minimum(self, column: int, _old: int, width: int) -> None:
+        """Prevent manual resizing from making debugger data unreadable."""
+
+        minimum = DEBUGGER_LAYOUT.INSTRUCTION_COLUMN_MINIMUMS[column]
+        if width >= minimum or self._enforcing_column_minimum:
+            return
+        self._enforcing_column_minimum = True
+        try:
+            self.setColumnWidth(column, minimum)
+        finally:
+            self._enforcing_column_minimum = False
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         """Keep instruction columns attached to the vertical scrollbar."""

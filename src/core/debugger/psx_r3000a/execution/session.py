@@ -77,7 +77,11 @@ class PsxExecutionSessionMixin(
         if self._instructions and instruction is None:
             raise DebuggerError(
                 DebuggerErrorCode.EXECUTION_FAILED,
-                f"PC 0x{address:08X} does not point to a loaded instruction.",
+                (
+                    f"PC 0x{address:08X} does not point to a loaded instruction. "
+                    "If this is an intentional JAL/JALR destination, mark the "
+                    "call instruction as IGNORED."
+                ),
             )
         if address in self._ignored_instructions:
             self._skip_as_nop(address, address, "instruction")

@@ -104,7 +104,11 @@ class PsxRunSessionMixin:
                 self._execute_current()
             except DebuggerError as error:
                 self._fail(error)
-                raise
+                # Execution faults are part of the debugger state, not worker
+                # failures.  Keeping them inside the session lets packaged
+                # builds retain the window and present the Error event in the
+                # Debug Log instead of unwinding through the QThread boundary.
+                return
             if self._breakpoint_hit_during_step:
                 self._state = DebuggerSessionState.PAUSED
                 return

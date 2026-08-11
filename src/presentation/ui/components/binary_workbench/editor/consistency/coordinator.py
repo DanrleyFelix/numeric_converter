@@ -36,6 +36,7 @@ from src.core.binary_workbench.editor_consistency.distribution import (
 )
 from src.core.binary_workbench.codec_registry import binary_workbench_worker_codec_for
 from src.core.binary_workbench.mips_r3000a.source_line_rows import labels_from_source_rows
+from src.core.binary_workbench.symbols.occurrences import SYMBOL_TOKEN
 from src.modules.binary_workbench_dtos import BinaryWorkbenchRowDTO
 from src.presentation.ui.components.binary_workbench.constant_groups.timing import (
     BINARY_WORKBENCH_TIMING,
@@ -1461,6 +1462,48 @@ class EditorConsistencyCoordinator(QObject):
         )
         self._apply_pending_symbol_viewport(priority)
         self._schedule_semantic(copy_required=False)
+
+    def rederive_symbol_viewport(self, names: Iterable[str]) -> None:
+        """Resolve a newly loaded Symbol only in the visible source range.
+
+        A definition-only catalog addition must be visible immediately when
+        its token is already on screen, but it must not trigger a whole-file
+        semantic rebuild.  Remaining rows stay lazily flagged and are derived
+        only if a later viewport requests them.
+        """
+
+        normalized = {name.strip().lstrip("_@").casefold() for name in names}
+        if (
+            not normalized
+            or not self._model_rows
+            or not self.supports_derived_updates()
+        ):
+            return
+        self.source_revision += 1
+        self._invalidate_semantic()
+        self._symbol_consistency.invalidate_from(
+            0,
+            len(self._model_rows),
+            self.source_revision,
+        )
+        viewport = self._viewport_range()
+        visible_matches = {
+            index
+            for index in range(viewport.first, viewport.last + 1)
+            if any(
+                match.group(2).casefold() in normalized
+                for match in SYMBOL_TOKEN.finditer(self._model_rows[index].instruction)
+            )
+        }
+        self._pending_symbol_lines.update(visible_matches)
+        self._apply_pending_symbol_viewport(viewport)
+        self._symbol_consistency.mark(
+            tuple(range(viewport.first, viewport.last + 1)),
+            self.source_revision,
+        )
+        # Rows outside the viewport remain lazy. A future navigation derives
+        # only the reached range; no semantic/global task is scheduled here.
+        self._bulk_symbols_pending = True
 
     def rederive_symbol_lines(self, indices: Iterable[int]) -> None:
         """Rebuild only rows depending on changed Symbol definitions."""

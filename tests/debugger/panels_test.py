@@ -77,12 +77,18 @@ def test_instruction_panel_uses_exec_status_width_limits_and_bytes_delegate():
     assert panel.item(0, 5).text() == "EXEC (3)"
     assert panel.item(0, 5).foreground().color().name().upper() == "#1E90FF"
     assert panel.columnWidth(0) >= DEBUGGER_LAYOUT.INSTRUCTION_NUMBER_MIN_WIDTH
+    assert panel.columnWidth(1) >= DEBUGGER_LAYOUT.INSTRUCTION_ADDRESS_MIN_WIDTH
+    assert panel.columnWidth(2) >= DEBUGGER_LAYOUT.INSTRUCTION_BYTES_MIN_WIDTH
     assert panel.columnWidth(3) == DEBUGGER_LAYOUT.RAW_INSTRUCTION_WIDTH
     assert panel.columnWidth(4) >= DEBUGGER_LAYOUT.INSTRUCTION_ORIGIN_MIN_WIDTH
     assert panel.columnWidth(5) == DEBUGGER_LAYOUT.INSTRUCTION_STATUS_WIDTH
     assert _content_to_scrollbar_gap(panel) == DEBUGGER_LAYOUT.TABLE_SCROLLBAR_GAP
     assert not panel.horizontalHeader().stretchLastSection()
     assert panel.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    panel.setColumnWidth(1, 1)
+    panel.setColumnWidth(2, 1)
+    assert panel.columnWidth(1) == DEBUGGER_LAYOUT.INSTRUCTION_ADDRESS_MIN_WIDTH
+    assert panel.columnWidth(2) == DEBUGGER_LAYOUT.INSTRUCTION_BYTES_MIN_WIDTH
     delegate = panel.itemDelegateForColumn(2)
     assert isinstance(delegate, SyntaxCellDelegate)
     assert delegate._highlighter_type is BytesHighlighter
@@ -122,6 +128,8 @@ def test_register_panel_validates_runtime_edits_and_supports_copy():
     assert panel.maximumWidth() == DEBUGGER_LAYOUT.REGISTER_PANEL_MAX_WIDTH
     assert panel.minimumWidth() == 0
     assert panel.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert panel.cursor().shape() == Qt.ArrowCursor
+    assert panel.viewport().cursor().shape() == Qt.ArrowCursor
     panel.resize(DEBUGGER_LAYOUT.REGISTER_PANEL_MAX_WIDTH, 400)
     panel.show()
     QApplication.processEvents()

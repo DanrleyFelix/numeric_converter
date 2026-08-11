@@ -6705,6 +6705,48 @@ def test_binary_workbench_local_and_global_symbols_have_separate_ownership(
     assert restored.global_symbols == {"global_value": "0x20"}
 
 
+def test_definition_only_symbols_refresh_the_active_viewport_without_global_work(
+    tmp_path: Path,
+    monkeypatch,
+):
+    """Resolve newly added local/global Symbols already visible on screen."""
+
+    assembly = tmp_path / "visible-symbols.asm"
+    assembly.write_text(
+        "ori $t0, $zero, _visible_local\n"
+        "ori $t1, $zero, @visible_global\n",
+        encoding="utf-8",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly)
+    page = tool.tabs.currentWidget()
+    page.show()
+    _app().processEvents()
+    coordinator = page.grid._consistency_coordinator
+    semantic_schedules: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        coordinator,
+        "_schedule_semantic",
+        lambda **kwargs: semantic_schedules.append(kwargs),
+    )
+
+    tool.tabs.set_current_symbols(
+        {"visible_local": "0x20"}, {}, {}, apply_existing=False
+    )
+    tool.tabs.set_global_symbols(
+        {"visible_global": "0x30"}, apply_existing=False
+    )
+    _app().processEvents()
+
+    assert page.grid._rows[0].bytes_text == "20 00 08 34"
+    assert page.grid._rows[1].bytes_text == "30 00 09 34"
+    assert semantic_schedules == []
+
+
 def test_binary_workbench_closing_symbols_dialog_commits_direct_cell_edits(
     tmp_path: Path,
     monkeypatch,
