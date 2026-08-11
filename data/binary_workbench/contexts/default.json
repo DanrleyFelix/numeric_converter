@@ -47,7 +47,7 @@
             "module_checksums": {
                 "symbols": "4fde0c8a5829d97817661b93442524310cf96f00b32eb6181864ed40c3a5ee32",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "a1aee7008b31604937e70bd476ee7177a92a458195115de82a17ffc838071843",
+                "versions": "fcdd51c01a7b792e3a97781afc3804948ed93e2abe3581cb8a4d18f91fb9177e",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
@@ -79,7 +79,8 @@
     "active_tab_id": "2d2faf958c28446f85a000a2e24c5f71",
     "global_symbols": {
         "slot_base_hi": "0x801A",
-        "slot_base_lo": "0x7AD8"
+        "slot_base_lo": "0x7AD8",
+        "tst": "0x2"
     },
     "global_symbol_definitions": [
         {
@@ -95,6 +96,15 @@
             "symbol_id": "4d94b408-e70d-5c61-9aff-cdf824df3115",
             "name": "slot_base_lo",
             "value": "0x7AD8",
+            "scope": "global",
+            "owner_tab_id": null,
+            "catalog_revision": 2,
+            "resolution_revision": 0
+        },
+        {
+            "symbol_id": "daa952e2-e3b6-5221-8931-009c5f7bddc6",
+            "name": "tst",
+            "value": "0x2",
             "scope": "global",
             "owner_tab_id": null,
             "catalog_revision": 2,
@@ -119,6 +129,6 @@
     },
     "window_size": {
         "width": 1536,
-        "height": 801
+        "height": 794
     }
 }

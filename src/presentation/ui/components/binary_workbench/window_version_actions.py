@@ -84,6 +84,7 @@ class BinaryWorkbenchWindowVersionMixin:
                     grid = self._current_grid()
                     if grid is not None:
                         grid.mark_persistence_clean()
+                        grid.refresh_visible_bytes_highlighting()
                     self.tabs.mark_initial_version_saved(current.tab_id)
                     self.tabs.backup_default_version_if_due()
                     self._show_status(BINARY_WORKBENCH_TEXT.STATUS_VERSION_UPDATED_TEMPLATE.format(name=name), BINARY_WORKBENCH_TIMING.STATUS_MESSAGE_VISIBLE_MS)

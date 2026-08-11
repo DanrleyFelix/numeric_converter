@@ -66,6 +66,18 @@ def test_filter_packaged_entries_removes_excluded_runtime_paths():
     assert filtered == [entries[1]]
 
 
+def test_filter_packaged_entries_removes_foreign_ucrt_and_api_sets():
+    """Keep Windows-provided UCRT/API-set DLLs out of portable artifacts."""
+
+    entries = [
+        ("ucrtbase.dll", "C:/jdk/bin/ucrtbase.dll", "BINARY"),
+        ("api-ms-win-core-file-l1-1-0.dll", "C:/jdk/bin/api.dll", "BINARY"),
+        ("unicorn/lib/unicorn.dll", "C:/Python/unicorn.dll", "BINARY"),
+    ]
+
+    assert filter_packaged_entries(entries) == [entries[2]]
+
+
 def test_excluded_modules_cover_qt_quick_pdf_opengl_stacks():
     expected_modules = {
         "PySide6.QtNetwork",

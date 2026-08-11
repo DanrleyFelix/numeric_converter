@@ -6,7 +6,11 @@ from src.core.debugger import (
     parse_debugger_directives,
 )
 from src.core.debugger.directives.constants import PSX_SCRATCH_HEADER
-from src.modules.binary_workbench_dtos import BinaryWorkbenchStateDTO
+from src.modules.binary_workbench_dtos import (
+    BinaryWorkbenchRowDTO,
+    BinaryWorkbenchStateDTO,
+    BinaryWorkbenchTabContextDTO,
+)
 from src.presentation.ui.components.binary_workbench.tabs.tab_context_factory import (
     create_scratch_tab,
 )
@@ -121,5 +125,32 @@ def test_psx_scratch_starts_with_the_complete_debugger_header():
 
     scratch = create_scratch_tab(BinaryWorkbenchStateDTO())
 
-    assert tuple(row.instruction for row in scratch.rows[:4]) == PSX_SCRATCH_HEADER
-    assert all(not row.bytes_text for row in scratch.rows[:4])
+    header_rows = scratch.rows[: len(PSX_SCRATCH_HEADER)]
+
+    assert tuple(row.instruction for row in header_rows) == PSX_SCRATCH_HEADER
+    assert PSX_SCRATCH_HEADER == (
+        "* virtual_memory_range 0x80000000 0x801DFFFF",
+        "* import current_file 0x8000F800",
+        "* define $sp 0x801FFF00",
+        "* define $pc 0x8000F800",
+        "* define $gp 0x8009AF08",
+    )
+    assert all(not row.bytes_text for row in header_rows)
+
+
+def test_new_scratch_header_does_not_rewrite_existing_scratch_rows():
+    """Changing the seed must not migrate Scratch Codes already in a workspace."""
+
+    existing_rows = [BinaryWorkbenchRowDTO(instruction="existing: nop")]
+    existing = BinaryWorkbenchTabContextDTO(
+        tab_id="existing",
+        kind="scratch",
+        display_name="existing.asm",
+        rows=existing_rows,
+    )
+    state = BinaryWorkbenchStateDTO(tabs=[existing], active_tab_id=existing.tab_id)
+
+    create_scratch_tab(state)
+
+    assert existing.rows is existing_rows
+    assert existing.rows[0].instruction == "existing: nop"

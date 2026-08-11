@@ -9,6 +9,7 @@ from build.pyinstaller_inputs import (
     collect_packaged_data,
     filter_packaged_entries,
 )
+from build.validation import validate_analysis_binary_origins
 
 project_root = Path.cwd().resolve()
 generated_icon = project_root / "build" / "generated" / "app.ico"
@@ -27,6 +28,7 @@ analysis = Analysis(
     noarchive=False,
     optimize=0,
 )
+validate_analysis_binary_origins(analysis.binaries, project_root)
 filtered_binaries = filter_packaged_entries(analysis.binaries)
 filtered_datas = filter_packaged_entries(analysis.datas)
 pyz = PYZ(analysis.pure)
@@ -39,7 +41,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     icon=str(generated_icon) if sys_platform == "win32" else None,
@@ -57,7 +59,7 @@ if sys_platform == "darwin":
         filtered_binaries,
         filtered_datas,
         strip=False,
-        upx=True,
+        upx=False,
         upx_exclude=[],
         name="NumericWorkBench",
     )
@@ -67,7 +69,7 @@ else:
         filtered_binaries,
         filtered_datas,
         strip=False,
-        upx=True,
+        upx=False,
         upx_exclude=[],
         name="NumericWorkBench",
     )

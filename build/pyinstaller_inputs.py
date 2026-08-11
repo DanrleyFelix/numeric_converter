@@ -167,6 +167,8 @@ EXCLUDED_PATH_FRAGMENTS = (
     "pywin32_system32",
     "win32com",
 )
+WINDOWS_SYSTEM_RUNTIME_NAMES = {"ucrtbase.dll"}
+WINDOWS_API_SET_PREFIX = "api-ms-win-"
 
 
 def collect_packaged_data(project_root: Path) -> list[tuple[str, str]]:
@@ -202,9 +204,17 @@ def filter_packaged_entries(entries: Iterable[tuple]) -> list[tuple]:
             for part in entry
             if isinstance(part, (str, Path))
         }
+        normalized_names = {name.casefold() for name in basename_set}
         if any(fragment in serialized for fragment in EXCLUDED_PATH_FRAGMENTS):
             continue
         if basename_set & EXCLUDED_BINARY_NAMES:
+            continue
+        if normalized_names & WINDOWS_SYSTEM_RUNTIME_NAMES:
+            continue
+        if any(
+            name.startswith(WINDOWS_API_SET_PREFIX) and name.endswith(".dll")
+            for name in normalized_names
+        ):
             continue
         filtered_entries.append(entry)
     return filtered_entries

@@ -526,6 +526,23 @@ class GridRenderingMixin:
             if block.isValid():
                 self._bytes_highlighter.rehighlightBlock(block)
 
+    def refresh_visible_bytes_highlighting(self) -> None:
+        """Restore the lightweight Bytes formats after a version projection."""
+
+        ranges = self._visible_source_ranges()
+        if not ranges:
+            first, last = self._visible_highlighter_projection_range()
+            ranges = ((first, last),)
+        self._bytes_highlighter.set_projection_window(
+            ranges[0][0],
+            ranges[-1][1],
+        )
+        for first, last in ranges:
+            for index in range(first, last + 1):
+                block = self.bytes.document().findBlockByNumber(index)
+                if block.isValid():
+                    self._bytes_highlighter.rehighlightBlock(block)
+
     def _align_static_editors(self, editors: list, row_index: int) -> None:
         """Align first visible blocks after programmatic or cursor scrolling."""
 

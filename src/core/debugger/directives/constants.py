@@ -24,7 +24,8 @@ CURRENT_FILE = "current_file"
 
 PSX_SCRATCH_HEADER = (
     "* virtual_memory_range 0x80000000 0x801DFFFF",
-    "* import current_file 0x80000000",
-    "* define $sp 0x801FFFF0",
-    "* define $pc 0x80000000",
+    "* import current_file 0x8000F800",
+    "* define $sp 0x801FFF00",
+    "* define $pc 0x8000F800",
+    "* define $gp 0x8009AF08",
 )

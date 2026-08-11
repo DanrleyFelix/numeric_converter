@@ -5848,6 +5848,42 @@ def test_binary_workbench_update_version_does_not_reload_current_assembly_page(t
     assert active.rows or active.instruction_overlays or active.instructions_by_line
 
 
+def test_binary_workbench_update_version_preserves_bytes_highlighting(tmp_path: Path):
+    """Keep the visible Bytes colors after the complete Alt+S workflow."""
+
+    assembly_path = tmp_path / "bytes-highlight.asm"
+    assembly_path.write_text("addiu $a0, $zero, 0x11\nnop\n", encoding="utf-8")
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.open_assembly_path(assembly_path)
+    page = tool.tabs.currentWidget()
+    _app().processEvents()
+    page.grid._bytes_highlighter.set_projection_window(0, 0)  # type: ignore[attr-defined]
+    page.grid._bytes_highlighter.rehighlightBlock(  # type: ignore[attr-defined]
+        page.grid.bytes.document().firstBlock()  # type: ignore[attr-defined]
+    )
+
+    def byte_colors() -> set[str]:
+        return {
+            item.format.foreground().color().name().casefold()
+            for item in page.grid.bytes.document().firstBlock().layout().formats()  # type: ignore[attr-defined]
+            if item.format.foreground().style() != Qt.NoBrush
+        }
+
+    expected = {"#eaeaf5", "#8fa6ff"}
+    assert expected <= byte_colors()
+    page.grid._bytes_highlighter.set_projection_window(100, 101)  # type: ignore[attr-defined]
+
+    tool._update_version()
+    QTest.qWait(200)
+    _app().processEvents()
+
+    assert expected <= byte_colors()
+
+
 def test_binary_workbench_saved_assembly_version_comments_invalid_source(tmp_path: Path):
     """Persist invalid Assembly safely while leaving the active editor untouched."""
 
