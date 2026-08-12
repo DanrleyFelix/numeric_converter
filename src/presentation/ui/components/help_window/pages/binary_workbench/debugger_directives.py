@@ -17,6 +17,9 @@ PAGE = HelpPageDefinition(
         <pre>* import current_file 0x80000000</pre>
         <p>Saved Assembly files can also import nearby <code>.asm</code> or <code>.s</code> sources with a relative path. After <code>* import </code>, autocomplete lists only the current folder; choosing a folder opens its next level without scanning the whole tree.</p>
         <pre>* import routines/slot_helpers.asm 0x8000F800</pre>
+        <p>Use <code>data_file</code> when an imported block contains data rather than executable code. Its bytes remain mapped and readable in virtual memory, but that exact imported range is omitted from the Debugger instruction panel.</p>
+        <pre>* import data_file data/deck_entry_bytes.asm 0x801A7E20</pre>
+        <p>External origins are shown relative to the folder of <code>current_file</code>, without the Assembly extension; for example, <code>data/deck_entry_bytes</code>.</p>
         <h2>Define</h2>
         <p><code>define</code> establishes an initial register value. It is commonly used for the program counter, stack pointer and arguments.</p>
         <pre>* define $pc 0x80000000

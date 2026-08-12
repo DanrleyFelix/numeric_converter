@@ -5,6 +5,7 @@ from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
 from src.core.debugger.imports.completion.provider import ImportCompletionProvider
+from src.core.debugger.directives.constants import DATA_FILE
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TIMING,
@@ -108,7 +109,19 @@ class EditorCompletionMixin:
                 self._import_source_path,
                 import_prefix,
             )
+            data_import = self._current_import_uses_data_file()
+            if data_import:
+                completions = tuple(
+                    item for item in completions if item.value != "current_file"
+                )
             candidates = [completion.value for completion in completions]
+            if (
+                self._import_source_path is not None
+                and not data_import
+                and DATA_FILE.startswith(import_prefix.casefold())
+                and import_prefix.casefold() != DATA_FILE
+            ):
+                candidates.insert(0, DATA_FILE)
             self._import_completion_directories = {
                 completion.value
                 for completion in completions
@@ -175,11 +188,31 @@ class EditorCompletionMixin:
         cursor = self.textCursor()
         before_cursor = cursor.block().text()[: cursor.positionInBlock()]
         match = re.fullmatch(
-            r"\s*\*\s*import[ \t]+([^ \t]*)",
+            r"\s*\*\s*import[ \t]+(.*)",
             before_cursor,
             flags=re.IGNORECASE,
         )
-        return match.group(1) if match is not None else None
+        if match is None:
+            return None
+        operand = match.group(1)
+        marker = f"{DATA_FILE} "
+        if operand.casefold().startswith(marker):
+            path = operand[len(marker) :]
+            return None if any(character.isspace() for character in path) else path
+        return None if any(character.isspace() for character in operand) else operand
+
+    def _current_import_uses_data_file(self) -> bool:
+        """Return whether completion currently targets a data-only import path."""
+
+        cursor = self.textCursor()
+        before_cursor = cursor.block().text()[: cursor.positionInBlock()]
+        return bool(
+            re.fullmatch(
+                rf"\s*\*\s*import[ \t]+{DATA_FILE}[ \t]+[^ \t]*",
+                before_cursor,
+                flags=re.IGNORECASE,
+            )
+        )
 
     def _candidates_for_prefix(self, prefix: str) -> list[str]:
         normalized = prefix.lower()
@@ -245,8 +278,15 @@ class EditorCompletionMixin:
             else self._current_completion_prefix()
         )
         is_import_directory = completion in self._import_completion_directories
+        is_import_modifier = (
+            import_prefix is not None
+            and not self._current_import_uses_data_file()
+            and completion.casefold() == DATA_FILE
+        )
         inserted = (
-            completion
+            f"{completion} "
+            if is_import_modifier
+            else completion
             if import_prefix is None or is_import_directory
             else f"{completion} "
         )
@@ -260,7 +300,7 @@ class EditorCompletionMixin:
         self.setTextCursor(cursor)
         self._completion_cursor_position = None
         self._restore_completion_cursor(position)
-        if is_import_directory:
+        if is_import_directory or is_import_modifier:
             self._symbol_completion_timer.stop()
             self._refresh_completions()
             return

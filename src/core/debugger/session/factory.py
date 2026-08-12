@@ -66,6 +66,8 @@ def _debugger_instructions(
 
     output: dict[int, DebuggerInstruction] = {}
     for imported in imports:
+        if imported.data_only:
+            continue
         codec = binary_workbench_codec_for(imported.architecture)
         for row in imported.rows:
             if not row.bytes_text:

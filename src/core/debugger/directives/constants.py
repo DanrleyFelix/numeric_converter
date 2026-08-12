@@ -3,6 +3,7 @@
 DIRECTIVE_PREFIX = "*"
 VIRTUAL_MEMORY_RANGE = "virtual_memory_range"
 IMPORT = "import"
+DATA_FILE = "data_file"
 DEFINE = "define"
 IGNORE = "ignore"
 

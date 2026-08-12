@@ -1461,6 +1461,12 @@ class EditorConsistencyCoordinator(QObject):
             min(len(self._model_rows) - 1, viewport.last + VIEWPORT_MARGIN_LINES),
         )
         self._apply_pending_symbol_viewport(priority)
+        # The catalog is installed before the Assembly document is rendered
+        # during startup. Repaint the reached viewport after derivation so
+        # Symbols do not retain the unresolved format until the first scroll.
+        self.grid._refresh_highlighter_projection(
+            (viewport.first, viewport.last)
+        )
         self._schedule_semantic(copy_required=False)
 
     def rederive_symbol_viewport(self, names: Iterable[str]) -> None:

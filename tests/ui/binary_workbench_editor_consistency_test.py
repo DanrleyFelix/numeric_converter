@@ -1126,6 +1126,46 @@ def test_global_symbol_refresh_is_immediate_with_byte_shifting_disabled():
     assert _editor_line(grid.bytes, 0) == "20 00 08 34"
 
 
+def test_loaded_symbol_catalog_materializes_the_initial_viewport():
+    """Opening order (catalog before rows) must still derive visible Symbols."""
+
+    _app()
+    rows = build_rows_from_instructions(
+        ["ori $t0, $zero, @global_value"],
+        [BINARY_WORKBENCH_TEXT.FILE],
+    )
+    grid = BinaryWorkbenchGrid(PsxMipsR3000ACodec())
+    grid.set_edit_rules(BinaryWorkbenchEditRulesDTO(allow_byte_shift=True))
+    grid.set_symbols({}, {}, {"global_value": "0x20"}, {})
+    grid.load_rows(
+        [
+            BINARY_WORKBENCH_TEXT.FILE,
+            BINARY_WORKBENCH_TEXT.RAW_INSTRUCTIONS,
+            BINARY_WORKBENCH_TEXT.BYTES,
+            BINARY_WORKBENCH_TEXT.INSTRUCTION,
+        ],
+        rows,
+    )
+    grid.resize(1000, 260)
+    grid.show()
+    _app().processEvents()
+    _GRIDS.append(grid)
+
+    assert grid._rows[0].bytes_text == "20 00 08 34"
+    assert _editor_line(grid.bytes, 0) == "20 00 08 34"
+    assert grid._consistency_coordinator._symbol_consistency.is_current(
+        0,
+        0,
+        grid._consistency_coordinator.source_revision,
+    )
+    formats = grid.instructions.document().firstBlock().layout().formats()
+    expected = psx_mips_required_highlight_color("equate").casefold()
+    assert any(
+        item.format.foreground().color().name().casefold() == expected
+        for item in formats
+    )
+
+
 def test_contiguous_symbol_viewport_uses_one_bounded_codec_call(monkeypatch):
     """Avoid one assembler setup per row during a large Symbol import."""
 

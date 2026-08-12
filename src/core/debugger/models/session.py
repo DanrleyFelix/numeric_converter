@@ -101,6 +101,9 @@ class DebuggerImport:
     source: str
     address: int
     line: int
+    data_only: bool = False
+
+
 @dataclass(frozen=True)
 class DebuggerRegisterValue:
     """Represent one initial register value declared by a source."""

@@ -64,6 +64,26 @@ def test_mips_codec_keeps_unrecognized_words_as_memory_data():
     assert codec.assemble("word 0xFFFFFFFF", 0) == bytes.fromhex("FF FF FF FF")
 
 
+def test_mips_codec_round_trips_full_break_code_without_keystone():
+    """The R3000A 20-bit BREAK code must not enter Keystone's 10-bit parser."""
+
+    class RejectingKeystone:
+        KS_ARCH_MIPS = 1
+        KS_MODE_MIPS32 = 2
+        KS_MODE_LITTLE_ENDIAN = 4
+
+        class Ks:
+            def __init__(self, *_args):
+                raise AssertionError("Keystone must not receive BREAK")
+
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+    codec._keystone = RejectingKeystone()  # type: ignore[attr-defined]
+    data = assemble_fallback("break 0x2FC00", 0)
+
+    assert codec.disassemble(data, 0) == "break 0x2FC00"
+    assert codec.assemble("break 0x2FC00", 0) == data
+
+
 def test_mips_codec_canonicalizes_native_negu_alias_to_subu():
     """Raw Instructions must expose the real opcode instead of a pseudo alias."""
 

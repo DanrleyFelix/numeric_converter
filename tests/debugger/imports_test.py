@@ -6,6 +6,9 @@ from src.core.debugger import DebuggerError, DebuggerErrorCode, parse_debugger_d
 from src.core.debugger.imports.completion.provider import ImportCompletionProvider
 from src.core.debugger.imports.resolver import resolve_debugger_imports
 from src.core.debugger.imports.source import DebuggerAssemblySource
+from src.core.debugger.memory.builder import build_debugger_memory
+from src.core.debugger.psx_r3000a.registers import PsxR3000ARegisters
+from src.core.debugger.session.factory import _debugger_instructions
 from src.modules.binary_workbench_constants import (
     BINARY_WORKBENCH_PSX_MIPS_R3000A_DISPLAY_NAME,
 )
@@ -57,6 +60,11 @@ def test_resolver_assembles_current_file_and_recursive_imports(tmp_path: Path):
         ("child.asm", 0x80000200, 4),
     ]
     assert imports[-1].workspace == "child-workspace.json"
+    assert [item.origin for item in imports] == [
+        "current_file",
+        "sub/nested",
+        "child",
+    ]
 
 
 def test_resolver_allows_same_file_at_different_addresses(tmp_path: Path):
@@ -194,4 +202,45 @@ def test_resolver_rejects_import_outside_main_directory(tmp_path: Path):
 
     assert captured.value.code == DebuggerErrorCode.IMPORT_FAILED
     assert "inside the main source directory" in captured.value.message
+
+
+def test_data_file_is_mapped_but_omitted_from_debugger_instructions(tmp_path: Path):
+    """Keep data readable without presenting its words as executable code."""
+
+    main_path = tmp_path / "main.asm"
+    code_path = tmp_path / "helpers.asm"
+    data_path = tmp_path / "data" / "deck_entry_bytes.asm"
+    main = _source(
+        main_path,
+        [
+            "* virtual_memory_range 0x80000000 0x801DFFFF",
+            "* import current_file 0x8000F800",
+            "* import helpers.asm 0x80010000",
+            "* import data_file data/deck_entry_bytes.asm 0x801A7E20",
+            "* define $pc 0x8000F800",
+            "* define $sp 0x801DFFF0",
+            "nop",
+        ],
+    )
+    code = _source(code_path, ["nop"])
+    data = _source(data_path, ["word 0x00120300"])
+
+    document = parse_debugger_directives(main.lines, main.symbols)
+    imports = resolve_debugger_imports(
+        main,
+        document,
+        lambda path: {
+            code_path.resolve(): code,
+            data_path.resolve(): data,
+        }[path],
+    )
+    memory = build_debugger_memory(document, imports, PsxR3000ARegisters())
+    instructions = _debugger_instructions(imports, memory)
+
+    assert imports[1].origin == "helpers"
+    assert imports[1].data_only is False
+    assert imports[2].origin == "data/deck_entry_bytes"
+    assert imports[2].data_only is True
+    assert memory.data[0x1A7E20:0x1A7E24] == bytes.fromhex("00 03 12 00")
+    assert [item.address for item in instructions] == [0x8000F800, 0x80010000]
 

@@ -5,6 +5,7 @@ import re
 from PySide6.QtGui import QColor, QTextCharFormat
 
 from src.core.debugger.directives.constants import (
+    DATA_FILE,
     DEFINE,
     IGNORE,
     IMPORT,
@@ -49,8 +50,28 @@ def highlight_debugger_directive(highlighter, text: str, error: str = "") -> Non
     arguments_start = command_start + len(match.group(4))
     arguments = [(arguments_start + item.start(), item.group()) for item in DIRECTIVE_TOKEN.finditer(match.group(5))]
     if command == IMPORT and arguments:
-        _format(highlighter, arguments[0][0], len(arguments[0][1]), DEBUGGER_DIRECTIVE_HIGHLIGHTER["file"])
-    value_indexes = (0, 1) if command == VIRTUAL_MEMORY_RANGE else (1,)
+        file_index, _value_index = _import_indexes(arguments)
+        if arguments[0][1].casefold() == DATA_FILE:
+            _format(
+                highlighter,
+                arguments[0][0],
+                len(arguments[0][1]),
+                DEBUGGER_DIRECTIVE_HIGHLIGHTER["data_file"],
+            )
+        if file_index < len(arguments):
+            _format(
+                highlighter,
+                arguments[file_index][0],
+                len(arguments[file_index][1]),
+                DEBUGGER_DIRECTIVE_HIGHLIGHTER["file"],
+            )
+    value_indexes = (
+        (0, 1)
+        if command == VIRTUAL_MEMORY_RANGE
+        else (_import_indexes(arguments)[1],)
+        if command == IMPORT
+        else (1,)
+    )
     for index in value_indexes:
         if index < len(arguments):
             _format(highlighter, arguments[index][0], len(arguments[index][1]), DEBUGGER_DIRECTIVE_HIGHLIGHTER["hex"])
@@ -77,12 +98,25 @@ def _format(highlighter, start: int, length: int, color: str, background: bool =
 def _has_value_candidate(command: str, arguments: list[tuple[int, str]]) -> bool:
     """Return whether the user has entered a hexadecimal or Symbol value."""
 
-    indexes = (0, 1) if command == VIRTUAL_MEMORY_RANGE else (1,)
+    indexes = (
+        (0, 1)
+        if command == VIRTUAL_MEMORY_RANGE
+        else (_import_indexes(arguments)[1],)
+        if command == IMPORT
+        else (1,)
+    )
     return any(
         index < len(arguments)
         and bool(HEX_VALUE.fullmatch(arguments[index][1]) or SYMBOL_VALUE.fullmatch(arguments[index][1]))
         for index in indexes
     )
+
+
+def _import_indexes(arguments: list[tuple[int, str]]) -> tuple[int, int]:
+    """Return the source and address indexes for both import syntaxes."""
+
+    data_only = bool(arguments and arguments[0][1].casefold() == DATA_FILE)
+    return (1, 2) if data_only else (0, 1)
 
 
 def _background(highlighter, length: int, color: str) -> None:

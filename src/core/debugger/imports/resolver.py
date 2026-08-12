@@ -31,7 +31,14 @@ def resolve_debugger_imports(
     output: list[DebuggerResolvedImport] = []
     for directive in document.imports:
         if directive.source.casefold() == CURRENT_FILE:
-            output.append(_assemble(main_source, document, directive.address, CURRENT_FILE))
+            output.append(
+                _assemble(
+                    main_source,
+                    document,
+                    directive.address,
+                    CURRENT_FILE,
+                )
+            )
             continue
         target = _import_path(root.parent, directive.source, directive.line)
         output.extend(
@@ -42,6 +49,7 @@ def resolve_debugger_imports(
                 main_source,
                 source_loader,
                 (root,),
+                directive.data_only,
             )
         )
     return tuple(output)
@@ -54,6 +62,7 @@ def _resolve_file(
     main_source: DebuggerAssemblySource,
     source_loader: SourceLoader,
     chain: tuple[Path, ...],
+    data_only: bool = False,
 ) -> list[DebuggerResolvedImport]:
     """Resolve one source recursively while detecting only active-chain cycles."""
 
@@ -84,7 +93,7 @@ def _resolve_file(
                     main_source,
                     debugger_source_document(main_source),
                     directive.address,
-                    f"{source.path.name}:{directive.line}",
+                    CURRENT_FILE,
                 )
             )
             continue
@@ -97,9 +106,18 @@ def _resolve_file(
                 main_source,
                 source_loader,
                 next_chain,
+                directive.data_only,
             )
         )
-    imports.append(_assemble(source, document, address, str(source.path)))
+    imports.append(
+        _assemble(
+            source,
+            document,
+            address,
+            _relative_origin(root.parent, source.path),
+            data_only,
+        )
+    )
     return imports
 
 
@@ -108,6 +126,7 @@ def _assemble(
     document: DebuggerDirectiveDocument,
     address: int,
     origin: str,
+    data_only: bool = False,
 ) -> DebuggerResolvedImport:
     """Assemble one parsed source through its existing architecture codec."""
 
@@ -143,7 +162,15 @@ def _assemble(
         data,
         origin,
         tuple(rows),
+        data_only,
     )
+
+
+def _relative_origin(root: Path, source: Path) -> str:
+    """Format an imported source relative to current_file, without its suffix."""
+
+    relative = source.resolve().relative_to(root.resolve())
+    return relative.with_suffix("").as_posix()
 
 
 def _import_path(root: Path, value: str, line: int) -> Path:

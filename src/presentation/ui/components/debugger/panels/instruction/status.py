@@ -28,11 +28,11 @@ def instruction_status(
         return "BREAK"
     if breakpoint is not None:
         return "BREAKPOINT"
+    if address == pc:
+        return "ACTUAL"
     executions = debugger.statistics.executed.get(address, 0)
     if executions:
         return f"EXEC ({executions})"
-    if address == pc:
-        return "ACTUAL"
     if stored_status != "Ready":
         return stored_status.upper()
     if last_pc is not None and address == last_pc:

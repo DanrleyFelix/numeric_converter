@@ -8,6 +8,7 @@ from src.core.binary_workbench.mips_r3000a.constants import (
     BRANCH_OPCODES,
     JUMP_FILE_OFFSET_BASE,
     J_OPCODES,
+    R_CODE_FUNCTS,
     SPECIAL_BRANCH_RT,
 )
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
@@ -72,7 +73,7 @@ class PsxMipsR3000ACodec(CPUArchCodec):
                 return word_bytes(int(normalized[hex_start:], 16))
             except (ValueError, IndexError):
                 return None
-        if _is_branch_instruction(lower):
+        if _is_branch_instruction(lower) or _is_code_instruction(lower):
             try:
                 return assemble_fallback(normalized, address)
             except Exception:
@@ -228,6 +229,13 @@ def _navigation_value(operand: str, symbols: dict[str, str]) -> int:
 def _is_branch_instruction(text: str) -> bool:
     parts = text.replace(",", " ").split()
     return bool(parts) and parts[0].lower() in {*BRANCH_OPCODES, *SPECIAL_BRANCH_RT}
+
+
+def _is_code_instruction(text: str) -> bool:
+    """Route 20-bit BREAK/SYSCALL codes around Keystone's 10-bit parser."""
+
+    parts = text.replace(",", " ").split()
+    return bool(parts) and parts[0].lower() in R_CODE_FUNCTS
 
 
 def _is_incomplete_jump(text: str) -> bool:

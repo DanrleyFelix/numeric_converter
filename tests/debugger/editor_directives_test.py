@@ -99,6 +99,47 @@ def test_import_completion_enters_directory_without_second_debounce(tmp_path: Pa
     assert editor.toPlainText() == "* import nested/child.asm "
 
 
+def test_data_file_completion_opens_external_import_path_immediately(tmp_path: Path):
+    """Offer the modifier, then reuse hierarchical import completion."""
+
+    _app()
+    source = tmp_path / "main.asm"
+    source.write_text("nop", encoding="utf-8")
+    (tmp_path / "data.asm").write_text("nop", encoding="utf-8")
+    editor = WorkbenchEditor()
+    editor.set_import_source_path(source)
+    editor.setPlainText("* import da")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+
+    editor._refresh_completions()
+    assert "data_file" in editor._completion_model.stringList()
+    editor._insert_completion("data_file")
+
+    assert editor.toPlainText() == "* import data_file "
+    assert editor._completion_model.stringList() == ["data.asm"]
+    assert "current_file" not in editor._completion_model.stringList()
+
+
+def test_data_file_modifier_uses_dodger_blue_highlight():
+    """Distinguish the data-only import modifier from the import command."""
+
+    _app()
+    editor = WorkbenchEditor()
+    editor.setPlainText("* import data_file data/table.asm 0x801A7E20")
+    highlighter = InstructionHighlighter(editor.document())
+    highlighter.rehighlight()
+
+    data_file_format = next(
+        item
+        for item in editor.document().firstBlock().layout().formats()
+        if item.start == len("* import ") and item.length == len("data_file")
+    )
+
+    assert data_file_format.format.foreground().color().name().upper() == "#1E90FF"
+
+
 def test_directive_highlighter_uses_required_colors_and_exposes_errors():
     _app()
     editor = WorkbenchEditor()

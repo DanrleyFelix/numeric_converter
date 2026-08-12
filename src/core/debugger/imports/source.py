@@ -45,6 +45,7 @@ class DebuggerResolvedImport:
     data: bytes
     origin: str
     rows: tuple[BinaryWorkbenchRowDTO, ...]
+    data_only: bool = False
 
     @property
     def size(self) -> int:

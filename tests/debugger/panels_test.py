@@ -1,5 +1,6 @@
 import os
 from dataclasses import replace
+from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -16,7 +17,7 @@ from src.presentation.ui.components.debugger.actions import (
     DebuggerActions,
 )
 from src.core.debugger.directives.parser import parse_debugger_directives
-from src.core.debugger.models.session import DebuggerEvent
+from src.core.debugger.models.session import DebuggerEvent, DebuggerSessionState
 from src.core.debugger.session.factory import DebuggerSessionBundle
 from src.presentation.repository.debugger_window.repository import (
     DebuggerWindowStateRepository,
@@ -25,6 +26,9 @@ from src.presentation.ui.components.debugger.constants.layout import DEBUGGER_LA
 from src.presentation.ui.components.debugger.config.dialog import DebuggerConfigDialog
 from src.presentation.ui.components.debugger.panels.instruction.highlighting import (
     SyntaxCellDelegate,
+)
+from src.presentation.ui.components.debugger.panels.instruction.status import (
+    instruction_status,
 )
 from src.presentation.ui.components.debugger.panels.instructions import DebuggerInstructionPanel
 from src.presentation.ui.components.debugger.panels.log.view import (
@@ -68,6 +72,7 @@ def test_instruction_panel_uses_exec_status_width_limits_and_bytes_delegate():
     _app()
     debugger = configured_debugger("nop", "nop")
     debugger.statistics.executed[BASE] = 3
+    debugger.pc = BASE + 4
     panel = DebuggerInstructionPanel()
     panel.refresh(debugger, BASE)
     panel.resize(1000, 400)
@@ -99,6 +104,7 @@ def test_instruction_panel_uses_exec_status_width_limits_and_bytes_delegate():
         "semantic_validation": False,
     }
     debugger.statistics.executed.clear()
+    debugger.pc = BASE
     panel.refresh(debugger)
     assert panel.item(0, 5).text() == "ACTUAL"
     assert panel.item(1, 5).text() == "READY"
@@ -118,6 +124,21 @@ def test_instruction_panel_uses_exec_status_width_limits_and_bytes_delegate():
     debugger.pc = BASE + 8
     panel.refresh(debugger, BASE)
     assert panel.item(0, 5).text() == "LAST"
+
+
+def test_actual_status_temporarily_precedes_a_previous_execution_count():
+    """Show the live PC every time it revisits an executed instruction."""
+
+    debugger = SimpleNamespace(
+        ignored_instructions=set(),
+        ignored_addresses=set(),
+        breakpoints=(),
+        state=DebuggerSessionState.PAUSED,
+        statistics=SimpleNamespace(executed={BASE: 2}, ignored={}),
+    )
+
+    assert instruction_status(debugger, BASE, BASE, None, "Ready") == "ACTUAL"
+    assert instruction_status(debugger, BASE, BASE + 4, BASE, "Ready") == "EXEC (2)"
 
 
 def test_register_panel_validates_runtime_edits_and_supports_copy():

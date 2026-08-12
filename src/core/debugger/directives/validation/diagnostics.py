@@ -13,6 +13,7 @@ from src.core.debugger.directives.constants import (
 from src.core.debugger.directives.parser import (
     _directive_parts,
     _hex_value,
+    _import_arguments,
     _register,
     _validate_argument_count,
 )
@@ -59,7 +60,8 @@ def debugger_directive_diagnostics(
                     )
                 range_line = index
             elif command == IMPORT:
-                _hex_value(arguments[1], values, line)
+                _source, address_token, _data_only = _import_arguments(arguments, line)
+                _hex_value(address_token, values, line)
             elif command in {DEFINE, IGNORE}:
                 _register(arguments[0], line)
                 _hex_value(arguments[1], values, line)

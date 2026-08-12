@@ -107,6 +107,36 @@ def test_imported_source_does_not_require_or_accept_virtual_memory_range():
     assert document.imports[0].source == "child.asm"
 
 
+def test_parser_marks_data_file_import_without_changing_normal_imports():
+    document = parse_debugger_directives(
+        [
+            "* virtual_memory_range 0x80000000 0x801DFFFF",
+            "* import current_file 0x8000F800",
+            "* import data_file data/deck_entry_bytes.asm 0x801A7E20",
+        ]
+    )
+
+    assert document.imports[0].data_only is False
+    assert document.imports[1].source == "data/deck_entry_bytes.asm"
+    assert document.imports[1].address == 0x801A7E20
+    assert document.imports[1].data_only is True
+
+
+@pytest.mark.parametrize(
+    "directive",
+    (
+        "* import data_file current_file 0x801A7E20",
+        "* import unknown child.asm 0x801A7E20",
+        "* import data_file child.asm",
+    ),
+)
+def test_parser_rejects_invalid_data_file_imports(directive):
+    with pytest.raises(DebuggerError):
+        parse_debugger_directives(
+            ["* virtual_memory_range 0x80000000 0x801DFFFF", directive]
+        )
+
+
 def test_label_only_line_does_not_count_as_first_valid_instruction():
     document = parse_debugger_directives(
         [

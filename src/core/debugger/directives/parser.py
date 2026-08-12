@@ -6,6 +6,8 @@ from collections.abc import Callable, Mapping, Sequence
 from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.debugger.directives.constants import (
     ARGUMENT_COUNTS,
+    CURRENT_FILE,
+    DATA_FILE,
     DEBUGGER_DIRECTIVE_NAMES,
     DEFINE,
     DIRECTIVE_PREFIX,
@@ -72,7 +74,15 @@ def parse_debugger_directives(
                 raise _error(line, "virtual_memory_range start must be lower than its end.")
             memory_range = DebuggerMemoryRange(start, end)
         elif command == IMPORT:
-            imports.append(DebuggerImport(arguments[0], _hex_value(arguments[1], values, line), line))
+            source, address_token, data_only = _import_arguments(arguments, line)
+            imports.append(
+                DebuggerImport(
+                    source,
+                    _hex_value(address_token, values, line),
+                    line,
+                    data_only,
+                )
+            )
         elif command == DEFINE:
             register_values.append(
                 DebuggerRegisterValue(
@@ -125,9 +135,27 @@ def _directive_parts(code: str, line: int) -> tuple[str, list[str]]:
 def _validate_argument_count(command: str, arguments: list[str], line: int) -> None:
     """Validate the exact arity of a recognized directive."""
 
+    if command == IMPORT:
+        _import_arguments(arguments, line)
+        return
     expected = ARGUMENT_COUNTS[command]
     if len(arguments) != expected:
         raise _error(line, f"{command} expects exactly {expected} arguments.")
+
+
+def _import_arguments(arguments: list[str], line: int) -> tuple[str, str, bool]:
+    """Parse a normal import or the explicit data-only import modifier."""
+
+    if len(arguments) == 2:
+        return arguments[0], arguments[1], False
+    if len(arguments) == 3 and arguments[0].casefold() == DATA_FILE:
+        if arguments[1].casefold() == CURRENT_FILE:
+            raise _error(line, "data_file must reference an external assembly file.")
+        return arguments[1], arguments[2], True
+    raise _error(
+        line,
+        "import expects 'source address' or 'data_file source address'.",
+    )
 
 
 def _hex_value(token: str, symbols: Mapping[str, str], line: int) -> int:
