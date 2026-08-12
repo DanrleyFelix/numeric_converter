@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from src.core.binary_workbench.codec_registry import binary_workbench_codec_for
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 from src.core.debugger.directives.constants import CURRENT_FILE
 from src.core.debugger.imports.source import (
     DebuggerAssemblySource,
@@ -120,6 +121,12 @@ def _assemble(
         variables=source.variables,
         equates=source.equates,
         reject_invalid=True,
+        symbol_resolver=MipsSymbolResolver(
+            source.labels,
+            source.variables,
+            source.equates,
+            jump_file_offset_base=0,
+        ),
     )
     if rows is None:
         raise DebuggerError(

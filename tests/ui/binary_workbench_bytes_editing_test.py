@@ -351,6 +351,20 @@ def test_deleting_complete_word_bytes_removes_the_plain_row():
     assert grid.bytes.toPlainText() == "00 00 00 00"
 
 
+def test_complete_unrecognized_bytes_remain_an_editable_word():
+    """Preserve arbitrary memory data even when it has no PSX instruction."""
+
+    grid = _grid(
+        [BinaryWorkbenchRowDTO({"File": "0x00000000"}, "nop", "00 00 00 00")]
+    )
+
+    row = grid._complete_byte_row(0, "FF FF FF FF", 0)
+
+    assert row is not None
+    assert row.bytes_text == "FF FF FF FF"
+    assert row.instruction.lower() == "word 0xffffffff"
+
+
 def test_deleting_complete_commented_instruction_bytes_is_blocked():
     grid = _grid(
         [

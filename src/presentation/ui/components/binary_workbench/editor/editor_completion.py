@@ -1,8 +1,10 @@
 import re
+from pathlib import Path
 
 from PySide6.QtCore import QPoint, QTimer
 from PySide6.QtWidgets import QToolTip
 
+from src.core.debugger.imports.completion.provider import ImportCompletionProvider
 from src.presentation.ui.components.binary_workbench.constants import (
     BINARY_WORKBENCH_LAYOUT,
     BINARY_WORKBENCH_TIMING,
@@ -21,6 +23,23 @@ from src.presentation.ui.helpers.completer_popup import fit_completer_popup_heig
 
 
 class EditorCompletionMixin:
+    def _setup_import_completion(self) -> None:
+        """Initialize lazy import completion without touching the filesystem."""
+
+        self._import_source_path: Path | None = None
+        self._import_completion_provider = ImportCompletionProvider()
+        self._import_completion_directories: set[str] = set()
+
+    def set_import_source_path(self, path: Path | None) -> None:
+        """Bind relative import suggestions to the active Assembly source."""
+
+        normalized = Path(path) if path is not None else None
+        if normalized == self._import_source_path:
+            return
+        self._import_source_path = normalized
+        self._import_completion_provider.clear()
+        self.hide_completion_popup()
+
     def set_symbol_helpers(
         self,
         labels: dict[str, str],
@@ -74,12 +93,27 @@ class EditorCompletionMixin:
         ):
             self.hide_completion_popup()
             return
-        prefix = self._current_completion_prefix()
-        if not prefix:
-            self._completion_cursor_position = None
-            self._completer.popup().hide()
-            return
-        candidates = self._candidates_for_prefix(prefix)
+        import_prefix = self._current_import_path_prefix()
+        if import_prefix is None:
+            prefix = self._current_completion_prefix()
+            if not prefix:
+                self._completion_cursor_position = None
+                self._completer.popup().hide()
+                return
+            self._import_completion_directories.clear()
+            candidates = self._candidates_for_prefix(prefix)
+        else:
+            prefix = import_prefix
+            completions = self._import_completion_provider.complete(
+                self._import_source_path,
+                import_prefix,
+            )
+            candidates = [completion.value for completion in completions]
+            self._import_completion_directories = {
+                completion.value
+                for completion in completions
+                if completion.is_directory
+            }
         if not candidates:
             self._completion_cursor_position = None
             self._completer.popup().hide()
@@ -102,7 +136,9 @@ class EditorCompletionMixin:
         """Debounce large Symbol catalogs without delaying local derivation."""
 
         prefix = self._current_completion_prefix()
-        if prefix.startswith(("_", "@")):
+        if self._current_import_path_prefix() is not None or prefix.startswith(
+            ("_", "@")
+        ):
             self.hide_completion_popup()
             interval = (
                 BINARY_WORKBENCH_TIMING.EDITOR_SYMBOL_COMPLETION_DELETE_DEBOUNCE_MS
@@ -132,6 +168,18 @@ class EditorCompletionMixin:
             if match.start() <= column <= match.end():
                 return block[match.start() : column]
         return ""
+
+    def _current_import_path_prefix(self) -> str | None:
+        """Return the typed path only while the caret is in an import operand."""
+
+        cursor = self.textCursor()
+        before_cursor = cursor.block().text()[: cursor.positionInBlock()]
+        match = re.fullmatch(
+            r"\s*\*\s*import[ \t]+([^ \t]*)",
+            before_cursor,
+            flags=re.IGNORECASE,
+        )
+        return match.group(1) if match is not None else None
 
     def _candidates_for_prefix(self, prefix: str) -> list[str]:
         normalized = prefix.lower()
@@ -190,17 +238,32 @@ class EditorCompletionMixin:
             cursor = self.textCursor()
             set_cursor_position(cursor, self._completion_cursor_position)
             self.setTextCursor(cursor)
-        prefix = self._current_completion_prefix()
+        import_prefix = self._current_import_path_prefix()
+        prefix = (
+            import_prefix
+            if import_prefix is not None
+            else self._current_completion_prefix()
+        )
+        is_import_directory = completion in self._import_completion_directories
+        inserted = (
+            completion
+            if import_prefix is None or is_import_directory
+            else f"{completion} "
+        )
         cursor = self.textCursor()
-        position = cursor.position() - len(prefix) + len(completion)
+        position = cursor.position() - len(prefix) + len(inserted)
         cursor.beginEditBlock()
         for _ in prefix:
             cursor.deletePreviousChar()
-        cursor.insertText(completion)
+        cursor.insertText(inserted)
         cursor.endEditBlock()
         self.setTextCursor(cursor)
         self._completion_cursor_position = None
         self._restore_completion_cursor(position)
+        if is_import_directory:
+            self._symbol_completion_timer.stop()
+            self._refresh_completions()
+            return
         QTimer.singleShot(0, lambda: self._restore_completion_cursor(position))
 
     def set_command_completions(self, commands: list[str]) -> None:

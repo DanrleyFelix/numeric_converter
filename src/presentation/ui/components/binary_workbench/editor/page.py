@@ -35,6 +35,9 @@ from src.presentation.ui.components.binary_workbench.editor.page_byte_replacemen
 from src.presentation.ui.components.binary_workbench.editor.page_virtual_copy import EditorPageVirtualCopyMixin
 from src.presentation.ui.components.binary_workbench.editor.page_context_updates import EditorPageContextMixin
 from src.presentation.ui.components.binary_workbench.editor.page_immediate_symbols import EditorPageImmediateSymbolsMixin
+from src.presentation.ui.components.binary_workbench.editor.instruction_overlays import (
+    labels_from_rows,
+)
 from src.presentation.ui.components.binary_workbench.editor.page_search import EditorPageSearchMixin
 from src.presentation.ui.components.binary_workbench.editor.page_reader import reader_for_context
 from src.presentation.ui.components.binary_workbench.editor.selection_summary import selection_summary_footer
@@ -423,10 +426,38 @@ class BinaryWorkbenchEditorPage(
     def load_context(self, context: BinaryWorkbenchTabContextDTO) -> None:
         self._reader = reader_for_context(context, self._preferences)
         context = self._context_with_original_file_size(context)
+        if (
+            context.rows
+            and context.kind in {
+                BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+                BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+            }
+        ):
+            # Older workspace payloads can retain assembled rows without the
+            # lightweight label index. Recover declarations from those rows
+            # before the initial viewport is highlighted; this performs no
+            # assembly, Symbol resolution or global semantic recalculation.
+            loaded_labels = labels_from_rows(context.rows)
+            if loaded_labels != context.labels:
+                context = BinaryWorkbenchTabContextDTO(
+                    **{
+                        **context.__dict__,
+                        "labels": loaded_labels,
+                    }
+                )
         self._context = context
         self._activate_consistency_owner(context)
         codec = binary_workbench_codec_for(context.cpu_arch)
         self.grid.set_codec(codec)
+        self.grid.instructions.set_import_source_path(
+            Path(context.source_path)
+            if context.source_path
+            and context.kind in {
+                BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+                BINARY_WORKBENCH_TAB_KIND.SCRATCH,
+            }
+            else None
+        )
         self.grid.set_label_folding_enabled(
             context.kind in {
                 BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,

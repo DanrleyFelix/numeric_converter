@@ -8,6 +8,7 @@ from src.core.binary_workbench.mips_r3000a import (
     raw_mips_instruction,
     validate_mips_hazards,
 )
+from src.core.binary_workbench.mips_r3000a.symbol_resolver import MipsSymbolResolver
 
 
 def test_mips_preprocessor_resolves_symbols_and_removes_noise():
@@ -87,6 +88,20 @@ def test_mips_jump_labels_are_adjusted_only_for_assembler_input():
     assert raw_mips_instruction("jal @jump_symbol", 0, {}, symbols, symbols) == "jal 0x1d9200"
     assert (
         preprocess_instruction(
+            "jal absolute_label",
+            0x8000F860,
+            {"absolute_label": "0x8000F800"},
+            {},
+            {},
+            MipsSymbolResolver(
+                {"absolute_label": "0x8000F800"},
+                jump_file_offset_base=0,
+            ),
+        )
+        == "jal 0x8000f800"
+    )
+    assert (
+        preprocess_instruction(
             "beq $zero, $zero, label_teste",
             0x1D91F0,
             labels,
@@ -95,6 +110,31 @@ def test_mips_jump_labels_are_adjusted_only_for_assembler_input():
         )
         == "beq $zero, $zero, 0x0003"
     )
+
+
+def test_mips_partial_jump_does_not_invoke_the_native_assembler():
+    """Avoid Keystone stderr noise while a J/JAL operand is still being typed."""
+
+    calls: list[tuple[int, int]] = []
+
+    class NativeAssemblerProbe:
+        """Record native engine construction without performing assembly."""
+
+        KS_ARCH_MIPS = 1
+        KS_MODE_MIPS32 = 2
+        KS_MODE_LITTLE_ENDIAN = 4
+
+        @staticmethod
+        def Ks(architecture: int, mode: int):
+            calls.append((architecture, mode))
+            raise AssertionError("partial jumps must not reach Keystone")
+
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+    codec._keystone = NativeAssemblerProbe
+
+    assert codec.assemble("j", 0) is None
+    assert codec.assemble("jal", 0) is None
+    assert calls == []
 
 
 def test_mips_source_rows_encode_variables_and_equates_from_raw_instructions():
@@ -116,6 +156,8 @@ def test_mips_pseudo_instructions_expand_to_core_instructions():
     assert expand_pseudo_instruction("li $v0, 1") == ["addiu $v0, $zero, 1"]
     assert expand_pseudo_instruction("move $a0, $s1") == ["addu $a0, $s1, $zero"]
     assert expand_pseudo_instruction("loop: b loop") == ["loop: beq $zero, $zero, loop"]
+    assert expand_pseudo_instruction("neg $a0, $t3") == ["sub $a0, $zero, $t3"]
+    assert expand_pseudo_instruction("negu $a0, $t3") == ["subu $a0, $zero, $t3"]
 
 
 

@@ -5,6 +5,7 @@ from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 
 LI_IMMEDIATE_MIN = -0x8000
 LI_IMMEDIATE_MAX = 0xFFFF
+PSEUDO_INSTRUCTION_MNEMONICS = frozenset({"b", "clear", "li", "move", "neg", "negu"})
 
 
 def expand_pseudo_instructions(lines: list[str]) -> list[str]:
@@ -40,6 +41,8 @@ def _expand_code(code: str) -> list[str] | None:
     if mnemonic == "clear" and len(operands) == 1:
         return [f"addu {operands[0]}, $zero, $zero"]
     if mnemonic == "neg" and len(operands) == 2:
+        return [f"sub {operands[0]}, $zero, {operands[1]}"]
+    if mnemonic == "negu" and len(operands) == 2:
         return [f"subu {operands[0]}, $zero, {operands[1]}"]
     if mnemonic == "b" and len(operands) == 1:
         return [f"beq $zero, $zero, {operands[0]}"]

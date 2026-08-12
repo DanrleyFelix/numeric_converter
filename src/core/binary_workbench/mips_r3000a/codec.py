@@ -7,6 +7,7 @@ from src.core.binary_workbench.mips_r3000a.comments import strip_comment
 from src.core.binary_workbench.mips_r3000a.constants import (
     BRANCH_OPCODES,
     JUMP_FILE_OFFSET_BASE,
+    J_OPCODES,
     SPECIAL_BRANCH_RT,
 )
 from src.core.binary_workbench.mips_r3000a.disassembler import disassemble_fallback
@@ -63,6 +64,8 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         if normalized.lower() == "nop":
             return b"\x00\x00\x00\x00"
         lower = normalized.lower()
+        if _is_incomplete_jump(lower):
+            return None
         if lower.startswith(("word 0x", ".word 0x")):
             try:
                 hex_start = lower.index("0x") + 2
@@ -92,22 +95,17 @@ class PsxMipsR3000ACodec(CPUArchCodec):
             return None
 
     def disassemble(self, data: bytes, address: int) -> str:
+        """Decode only opcodes supported by the PSX codec; preserve all others as data."""
+
         if len(data) != 4:
             return "word 0x00000000"
         word = int.from_bytes(data, "little")
-        if _is_branch_word(word) or _is_jalr_word(word):
-            return disassemble_fallback(word, address)
-        if self._capstone is not None:
-            engine = self._capstone.Cs(
-                self._capstone.CS_ARCH_MIPS,
-                self._capstone.CS_MODE_MIPS32 + self._capstone.CS_MODE_LITTLE_ENDIAN,
-            )
-            engine.detail = False
-            result = next(engine.disasm(data, address), None)
-            if result is not None:
-                operands = f" {result.op_str}" if result.op_str else ""
-                return f"{result.mnemonic}{operands}"
-        return disassemble_fallback(word, address)
+        fallback = disassemble_fallback(word, address)
+        # Capstone intentionally does not decide whether arbitrary memory is
+        # editable Assembly.  It accepts MIPS encodings beyond the PSX subset,
+        # and those strings may not round-trip through this project's assembler.
+        # The project decoder is therefore the canonical instruction/data gate.
+        return fallback
 
     def bytes_text(self, data: bytes) -> str:
         return " ".join(f"{value:02X}" for value in data)
@@ -232,10 +230,8 @@ def _is_branch_instruction(text: str) -> bool:
     return bool(parts) and parts[0].lower() in {*BRANCH_OPCODES, *SPECIAL_BRANCH_RT}
 
 
-def _is_branch_word(word: int) -> bool:
-    opcode = (word >> 26) & 0x3F
-    return opcode in BRANCH_OPCODES.values() or opcode == 0x01
+def _is_incomplete_jump(text: str) -> bool:
+    """Keep partial J/JAL input away from noisy native assembler diagnostics."""
 
-
-def _is_jalr_word(word: int) -> bool:
-    return ((word >> 26) & 0x3F) == 0x00 and (word & 0x3F) == 0x09
+    parts = text.replace(",", " ").split()
+    return bool(parts) and parts[0].lower() in J_OPCODES and len(parts) != 2

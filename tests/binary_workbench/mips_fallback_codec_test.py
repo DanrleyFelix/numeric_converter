@@ -54,6 +54,25 @@ def test_mips_codec_routes_jalr_words_to_fallback_even_with_capstone():
 
     assert codec.disassemble(bytes.fromhex("09 F8 20 01"), 0) == "jalr $t1"
 
+
+def test_mips_codec_keeps_unrecognized_words_as_memory_data():
+    """Never let a broader native decoder erase a complete four-byte word."""
+
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+
+    assert codec.disassemble(bytes.fromhex("FF FF FF FF"), 0) == "word 0xFFFFFFFF"
+    assert codec.assemble("word 0xFFFFFFFF", 0) == bytes.fromhex("FF FF FF FF")
+
+
+def test_mips_codec_canonicalizes_native_negu_alias_to_subu():
+    """Raw Instructions must expose the real opcode instead of a pseudo alias."""
+
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+    data = assemble_fallback("subu $a0, $zero, $t3", 0)
+
+    assert codec.disassemble(data, 0) == "subu $a0, $zero, $t3"
+
+
 def test_mips_fallback_assembles_register_aliases_to_same_bytes():
     assert assemble_fallback("addiu $s1, $zero, 1", 0) == assemble_fallback("addiu r17, $0, 1", 0)
     assert assemble_fallback("lw $t0, 4($sp)", 0) == assemble_fallback("lw $r8, 4(r29)", 0)

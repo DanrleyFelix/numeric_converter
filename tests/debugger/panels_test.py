@@ -92,6 +92,12 @@ def test_instruction_panel_uses_exec_status_width_limits_and_bytes_delegate():
     delegate = panel.itemDelegateForColumn(2)
     assert isinstance(delegate, SyntaxCellDelegate)
     assert delegate._highlighter_type is BytesHighlighter
+    instruction_delegate = panel.itemDelegateForColumn(3)
+    assert isinstance(instruction_delegate, SyntaxCellDelegate)
+    assert instruction_delegate._highlighter_type is InstructionHighlighter
+    assert instruction_delegate._highlighter_options == {
+        "semantic_validation": False,
+    }
     debugger.statistics.executed.clear()
     panel.refresh(debugger)
     assert panel.item(0, 5).text() == "ACTUAL"

@@ -17,6 +17,7 @@ PAGE = HelpPageDefinition(
             <li>Destination instructions can omit a repeated source register when it can be inferred. For example, <code>addiu $a0, 0x5</code> becomes <code>addiu $a0, $a0, 0x5</code>.</li>
             <li>Register forms work the same way: <code>and $s0, $a0</code> becomes <code>and $s0, $s0, $a0</code>.</li>
             <li>Editor Assembly keeps the short form while Raw Instructions shows the complete instruction used by the assembler.</li>
+            <li><code>negu $a0, $t3</code> is a pseudo-instruction for <code>subu $a0, $zero, $t3</code>. Raw Instructions always shows the canonical <code>subu</code> form.</li>
         </ul>
         <h2>Custom commands</h2>
         <ul>

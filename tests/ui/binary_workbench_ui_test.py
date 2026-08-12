@@ -61,6 +61,9 @@ from src.presentation.ui.components.binary_workbench.editor.constants.context_me
 from src.presentation.ui.components.binary_workbench.editor import (
     page_immediate_symbols as page_immediate_symbols_module,
 )
+from src.presentation.ui.components.binary_workbench.editor.page import (
+    BinaryWorkbenchEditorPage,
+)
 from src.presentation.ui.components.binary_workbench.editor.workbench_editor import WorkbenchEditor
 from src.presentation.ui.components.binary_workbench.editor.add_command_dialog import AddCommandDialog
 from src.presentation.ui.components.binary_workbench.file_dialogs import (
@@ -5055,7 +5058,7 @@ def test_binary_workbench_highlighter_colors_supported_pseudo_instructions():
     other_color = psx_mips_highlight_color("mnemonic", "addiu")
     branch_color = psx_mips_highlight_color("mnemonic", "beq")
 
-    for mnemonic in ("li", "move", "clear", "neg"):
+    for mnemonic in ("li", "move", "clear", "neg", "negu"):
         assert psx_mips_highlight_color("mnemonic", mnemonic) == other_color
         assert invalid_instruction(f"{mnemonic} $a0, $s1") is False
     assert psx_mips_highlight_color("mnemonic", "b") == branch_color
@@ -5099,6 +5102,46 @@ def test_binary_workbench_highlighter_trusts_current_source_labels(
     highlighter.set_symbols({"target": "0x00000040"}, {}, {})
 
     assert highlighter._invalid_jump_target_range(instruction) is None
+
+
+def test_binary_workbench_opening_recovers_missing_label_index_for_viewport():
+    """A persisted Assembly must not briefly mark valid branch labels red."""
+
+    _app()
+    rows = [
+        BinaryWorkbenchRowDTO(
+            offsets={BINARY_WORKBENCH_TEXT.FILE: "0x00000000"},
+            instruction="BEQ $a1, $zero, target",
+            bytes_text="01 00 A0 10",
+        ),
+        BinaryWorkbenchRowDTO(
+            offsets={BINARY_WORKBENCH_TEXT.FILE: "-"},
+            instruction="target:",
+            bytes_text="",
+        ),
+        BinaryWorkbenchRowDTO(
+            offsets={BINARY_WORKBENCH_TEXT.FILE: "0x00000004"},
+            instruction="NOP",
+            bytes_text="00 00 00 00",
+        ),
+    ]
+    page = BinaryWorkbenchEditorPage(
+        BinaryWorkbenchTabContextDTO(
+            tab_id="missing-label-cache",
+            kind=BINARY_WORKBENCH_TAB_KIND.ASSEMBLY,
+            display_name="labels.asm",
+            rows=rows,
+            labels={},
+        )
+    )
+
+    assert page.current_context().labels == {"target": "0x00000004"}
+    assert (
+        page.grid._instruction_highlighter._invalid_jump_target_range(
+            "BEQ $a1, $zero, target"
+        )
+        is None
+    )
 
 
 def test_binary_workbench_highlighter_marks_misaligned_load_store_addresses():

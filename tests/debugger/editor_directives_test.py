@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QApplication
+from pathlib import Path
 
 from src.core.debugger.directives.validation.diagnostics import (
     debugger_directive_diagnostics,
@@ -38,6 +39,64 @@ def test_directive_autocomplete_is_reserved_for_star_prefixed_lines():
     cursor.movePosition(QTextCursor.End)
     editor.setTextCursor(cursor)
     assert "virtual_memory_range" not in editor._candidates_for_prefix("vi")
+
+
+def test_import_completion_waits_for_typing_debounce(tmp_path: Path):
+    """Do not scan an import directory from the key event itself."""
+
+    _app()
+    source = tmp_path / "main.asm"
+    source.write_text("nop", encoding="utf-8")
+    editor = WorkbenchEditor()
+    editor.set_import_source_path(source)
+    calls: list[tuple[Path | None, str]] = []
+    provider = editor._import_completion_provider
+    original = provider.complete
+
+    def complete(path: Path | None, prefix: str):
+        calls.append((path, prefix))
+        return original(path, prefix)
+
+    provider.complete = complete
+    editor.setPlainText("* import ch")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+    editor._schedule_completions_after_edit(deleting=False)
+
+    assert calls == []
+    assert editor._symbol_completion_timer.isActive() is True
+    assert editor._symbol_completion_timer.interval() == 400
+
+    editor._symbol_completion_timer.stop()
+    editor._refresh_completions()
+    assert calls == [(source, "ch")]
+
+
+def test_import_completion_enters_directory_without_second_debounce(tmp_path: Path):
+    """Open a selected folder immediately, then append a space to files."""
+
+    _app()
+    source = tmp_path / "main.asm"
+    source.write_text("nop", encoding="utf-8")
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "child.asm").write_text("nop", encoding="utf-8")
+    editor = WorkbenchEditor()
+    editor.set_import_source_path(source)
+    editor.setPlainText("* import ne")
+    cursor = editor.textCursor()
+    cursor.movePosition(QTextCursor.End)
+    editor.setTextCursor(cursor)
+
+    editor._refresh_completions()
+    editor._insert_completion("nested/")
+
+    assert editor.toPlainText() == "* import nested/"
+    assert editor._completion_model.stringList() == ["nested/child.asm"]
+
+    editor._insert_completion("nested/child.asm")
+    assert editor.toPlainText() == "* import nested/child.asm "
 
 
 def test_directive_highlighter_uses_required_colors_and_exposes_errors():

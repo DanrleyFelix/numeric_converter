@@ -15,6 +15,8 @@ PAGE = HelpPageDefinition(
         <h2>Import</h2>
         <p><code>import</code> loads binary content into virtual memory at a runtime address. Use the current Binary Workbench file or an imported project file, then confirm that the destination lies inside <code>virtual_memory_range</code>.</p>
         <pre>* import current_file 0x80000000</pre>
+        <p>Saved Assembly files can also import nearby <code>.asm</code> or <code>.s</code> sources with a relative path. After <code>* import </code>, autocomplete lists only the current folder; choosing a folder opens its next level without scanning the whole tree.</p>
+        <pre>* import routines/slot_helpers.asm 0x8000F800</pre>
         <h2>Define</h2>
         <p><code>define</code> establishes an initial register value. It is commonly used for the program counter, stack pointer and arguments.</p>
         <pre>* define $pc 0x80000000

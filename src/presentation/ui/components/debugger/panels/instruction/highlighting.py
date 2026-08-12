@@ -27,11 +27,12 @@ from src.presentation.ui.helpers.load_qss import THEME_TOKENS
 class SyntaxCellDelegate(QStyledItemDelegate):
     """Paint one table cell through a Binary Workbench syntax highlighter."""
 
-    def __init__(self, highlighter_type, parent=None) -> None:
+    def __init__(self, highlighter_type, parent=None, **highlighter_options) -> None:
         """Bind the delegate to a QSyntaxHighlighter implementation."""
 
         super().__init__(parent)
         self._highlighter_type = highlighter_type
+        self._highlighter_options = dict(highlighter_options)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:
         """Draw the item background and syntax-formatted text."""
@@ -55,7 +56,10 @@ class SyntaxCellDelegate(QStyledItemDelegate):
         cursor = QTextCursor(document)
         cursor.select(QTextCursor.Document)
         cursor.mergeCharFormat(default_format)
-        highlighter = self._highlighter_type(document)
+        highlighter = self._highlighter_type(
+            document,
+            **self._highlighter_options,
+        )
         highlighter.rehighlight()
         content = cell.rect.adjusted(
             DEBUGGER_LAYOUT.SYNTAX_CELL_LEFT_PADDING,
@@ -79,7 +83,14 @@ def bytes_cell_delegate(parent=None) -> SyntaxCellDelegate:
 def instruction_cell_delegate(parent=None) -> SyntaxCellDelegate:
     """Return a cell delegate using the Binary Workbench instruction highlighter."""
 
-    return SyntaxCellDelegate(InstructionHighlighter, parent)
+    # Debugger rows already contain decoded branch immediates rather than the
+    # Assembly source labels used by semantic navigation. Applying source-side
+    # target validation here incorrectly paints valid relative immediates red.
+    return SyntaxCellDelegate(
+        InstructionHighlighter,
+        parent,
+        semantic_validation=False,
+    )
 
 
 def instruction_cell_color(column: int, value: str) -> str | None:

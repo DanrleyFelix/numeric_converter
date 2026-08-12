@@ -33,9 +33,10 @@ def reconcile_locked_virtual_instructions(
         if not instruction_code(line):
             if cursor < len(code_rows) and not _existing_comment_row(visible_rows, index):
                 if not line.strip():
-                    # Preserve the locked bytes while keeping the user's empty
-                    # attempt authoritative until save/close normalization.
-                    rows.append(_row_with_instruction(code_rows[cursor], line))
+                    # A complete memory word must never be projected as an
+                    # empty Assembly row. Keep the canonical instruction or
+                    # ``word`` representation that owns these four bytes.
+                    rows.append(code_rows[cursor])
                     cursor += 1
                     continue
                 rows.append(_row_with_instruction(code_rows[cursor], line))

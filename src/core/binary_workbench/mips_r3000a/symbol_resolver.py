@@ -21,10 +21,13 @@ class MipsSymbolResolver:
         labels: Mapping[str, str] | None = None,
         variables: Mapping[str, str] | None = None,
         equates: Mapping[str, str] | None = None,
+        *,
+        jump_file_offset_base: int = JUMP_FILE_OFFSET_BASE,
     ) -> None:
         self._labels = _normalized(labels)
         self._variables = _normalized(variables, "_")
         self._equates = _normalized(equates, "@")
+        self._jump_file_offset_base = jump_file_offset_base
 
     @classmethod
     def from_symbol_maps(
@@ -52,7 +55,7 @@ class MipsSymbolResolver:
                 return token
             label_offset = _safe_int(value, address)
             target = (
-                label_offset + JUMP_FILE_OFFSET_BASE
+                label_offset + self._jump_file_offset_base
                 if mnemonic in J_OPCODES
                 else _label_target(label_offset, address)
             )
@@ -67,6 +70,7 @@ class MipsSymbolResolver:
         resolver._labels = _normalized(labels)
         resolver._variables = self._variables
         resolver._equates = self._equates
+        resolver._jump_file_offset_base = self._jump_file_offset_base
         return resolver
 
 

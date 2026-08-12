@@ -118,6 +118,7 @@ class WorkbenchEditor(
         self.viewport().setMouseTracking(True)
         self._shared_scrollbar: QScrollBar | None = None
         self._completion_model = QStringListModel(self)
+        self._setup_import_completion()
         self._completion_items: dict[str, list[str]] = {
             "label": [],
             "variable": [],
