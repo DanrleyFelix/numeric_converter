@@ -12,11 +12,13 @@ PAGE = HelpPageDefinition(
             <li><b>Run (F5)</b> starts or continues execution. After Stop, it starts a new session.</li>
             <li><b>Pause (F6)</b> pauses automatic execution.</li>
             <li><b>Stop (F7)</b> ends the current session and invalidates its execution state.</li>
-            <li><b>Restart (F8)</b> restores the initial memory, registers and PC.</li>
+            <li><b>Restart (F8)</b> restores initial memory, applies register values declared by <code>define</code>, sets every other register to zero and leaves the session in <code>READY</code>.</li>
             <li><b>Step (F9)</b> executes the current instruction and pauses at the next one.</li>
             <li><b>Step Over (F10)</b> treats a normal instruction like Step, but runs through a <code>jal</code>/<code>jalr</code> call and its delay slot until control returns.</li>
             <li><b>Config (F11)</b> opens the execution and Debug Log options.</li>
         </ul>
+        <h2>Restart and register editing</h2>
+        <p>After Restart, registers may be edited while the session is <code>READY</code>; they may also be edited while execution is paused. Run, Step and Step Over continue from the edited PC and register values without resetting them again. A second Restart discards manual edits and restores the declared values and zeros. <code>$zero</code> always remains zero, while breakpoints, <code>IGNORED</code> instructions and Debugger configuration are preserved.</p>
         <h2>Debugger Config</h2>
         <p><code>Interval (ms)</code> is the delay between automatic instruction steps. Use <code>0</code> for the fastest possible execution; <code>2000</code> means one instruction every two seconds. Execution, Memory, Info, Warning and Error determine which event categories appear in Debug Log and are initially checked.</p>
         <h2>The three panels</h2>

@@ -185,11 +185,21 @@ def test_binary_workbench_guide_uses_help_window_pages(tmp_path: Path):
     ).toPlainText()
     assert "virtual_memory_range" in directives
     assert "virtual memory" in directives.casefold()
+    for value in ("data_file", "mapped data range", "persisted version"):
+        assert value in directives
     tool._help_window.navigation.setCurrentRow(nav_titles.index("Debugger Window"))
     debugger_guide = tool._help_window.pages.currentWidget().findChild(
         QTextBrowser, "help-page"
     ).toPlainText()
-    for value in ("Run (F5)", "Config (F11)", "Interval (ms)", "Follow W"):
+    for value in (
+        "Run (F5)",
+        "Restart (F8)",
+        "READY",
+        "without resetting",
+        "Config (F11)",
+        "Interval (ms)",
+        "Follow W",
+    ):
         assert value in debugger_guide
 
 
