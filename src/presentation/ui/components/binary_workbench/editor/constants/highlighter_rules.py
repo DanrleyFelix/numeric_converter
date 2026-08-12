@@ -70,7 +70,7 @@ PSX_MIPS_HIGHLIGHTER = {
 
 DEBUGGER_DIRECTIVE_HIGHLIGHTER = {
     "command": "#C792EA",
-    "data_file": "#1E90FF",
+    "data_file": "#7B68EE",
     "file": "#E5C07B",
     "hex": "#98C379",
     "marker": PSX_MIPS_HIGHLIGHTER["comment"],

@@ -47,7 +47,7 @@
             "module_checksums": {
                 "symbols": "a25fdc9f30064331d49853c9d35aa473072949e33b9f58d3c0d40f84434d9083",
                 "lba_filesystem": "2e1441d32f0d742a14a35bc7732e3cf5b23834b7c8dc083a6c915e11eca2affb",
-                "versions": "684eea9e31915004019ab691a0f857a28a9ba360283de2d1ab3251ae427e6d5b",
+                "versions": "1b714b2ed5a801ef6bf16aa376e9625d6e820c5db3b20c71fb23357b14fc780b",
                 "offset_regions": "503fb05c0d07d3871bd90ba31f98a2614a5cf3c68587b562836cd72736efc2be",
                 "view_preferences": "445f73bdeabe3011c15fffd1b66fe3639b3cdc51a7a5a0bfa032dcfc4275b20a"
             },
