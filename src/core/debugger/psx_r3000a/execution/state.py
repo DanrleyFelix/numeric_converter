@@ -15,6 +15,10 @@ from src.core.debugger.models.session import (
     DebuggerStatistics,
 )
 from src.core.debugger.psx_r3000a.control.session import PsxSessionControlMixin
+from src.core.debugger.psx_r3000a.execution.ranges import (
+    build_executable_ranges,
+    entry_executable_range,
+)
 from src.core.debugger.psx_r3000a.hooks.session import PsxObservationMixin
 
 
@@ -37,6 +41,10 @@ class PsxExecutionStateMixin(PsxSessionControlMixin, PsxObservationMixin):
         self._stop_requested = False
         self._statistics = DebuggerStatistics()
         self._instructions: tuple[DebuggerInstruction, ...] = ()
+        self._instruction_addresses: frozenset[int] = frozenset()
+        self._executable_ranges = ()
+        self._entry_executable_range = None
+        self._last_transition = None
         self._events: list[DebuggerEvent] = []
         self._last_error: DebuggerError | None = None
         self._execution_interval_ms = 0
@@ -53,6 +61,13 @@ class PsxExecutionStateMixin(PsxSessionControlMixin, PsxObservationMixin):
         self._backend.set_observer(self._observe_backend)
         self._registers.reset(image.initial_registers)
         self._instructions = tuple(instructions)
+        self._instruction_addresses = frozenset(item.address for item in instructions)
+        self._executable_ranges = build_executable_ranges(self._instructions)
+        self._entry_executable_range = entry_executable_range(
+            self._executable_ranges,
+            image.initial_pc,
+        )
+        self._last_transition = None
         self._statistics = DebuggerStatistics()
         self._pause_requested = False
         self._stop_requested = False

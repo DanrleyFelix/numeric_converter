@@ -180,11 +180,39 @@ def test_register_panel_validates_runtime_edits_and_supports_copy():
     panel.item(row, 2).setText("42")
     assert debugger.registers.read("t0") == 42
     assert panel.item(row, 1).text() == "0x0000002A"
+    panel.item(row, 2).setText(str(1 << 32))
+    assert debugger.registers.read("t0") == 42
+    assert panel.item(row, 2).text() == "42"
     debugger.step()
     assert debugger.registers.read("t0") == 42
     panel.setCurrentItem(panel.item(row, 2))
     QApplication.sendEvent(panel, QKeyEvent(QEvent.KeyPress, Qt.Key_C, Qt.ControlModifier))
     assert QApplication.clipboard().text() == "42"
+
+
+def test_register_panel_blocks_edits_while_running_or_stopped():
+    """Expose editable values only for the Ready and Paused session states."""
+
+    _app()
+    debugger = configured_debugger("nop")
+    panel = DebuggerRegisterPanel(debugger)
+
+    for state, editable in (
+        (DebuggerSessionState.READY, True),
+        (DebuggerSessionState.PAUSED, True),
+        (DebuggerSessionState.RUNNING, False),
+        (DebuggerSessionState.STOPPED, False),
+    ):
+        debugger._state = state
+        panel.refresh()
+        row = next(
+            index
+            for index in range(panel.rowCount())
+            if panel.item(index, 0).text() == "t0"
+        )
+        for column in (1, 2):
+            is_editable = bool(panel.item(row, column).flags() & Qt.ItemIsEditable)
+            assert is_editable is editable
 
 
 def test_debug_log_highlights_execution_and_every_hexadecimal_value():

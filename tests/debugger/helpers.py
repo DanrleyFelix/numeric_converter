@@ -15,17 +15,21 @@ BASE = 0x1000
 END = 0x1FFF
 
 
-def configured_debugger(*instructions: str, ignored: tuple[int, ...] = ()):
+def configured_debugger(
+    *instructions: str,
+    ignored: tuple[int, ...] = (),
+    register_values: dict[str, int] | None = None,
+):
     """Create a debugger with metadata for execution-control tests."""
 
     codec = PsxMipsR3000ACodec()
     chunks = [codec.assemble(text, BASE + index * 4) for index, text in enumerate(instructions)]
     assert all(chunk is not None for chunk in chunks)
     data = b"".join(chunks)
+    initial_values = {"pc": BASE, "sp": END - 3, **(register_values or {})}
     lines = [
         f"* virtual_memory_range 0x{BASE:X} 0x{END:X}",
-        f"* define $pc 0x{BASE:X}",
-        f"* define $sp 0x{END - 3:X}",
+        *(f"* define ${name} 0x{value:X}" for name, value in initial_values.items()),
         *(f"* ignore $pc 0x{address:X}" for address in ignored),
     ]
     document = parse_debugger_directives(lines)

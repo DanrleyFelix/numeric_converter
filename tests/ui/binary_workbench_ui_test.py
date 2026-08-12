@@ -6985,6 +6985,38 @@ def test_binary_workbench_first_tab_global_symbols_link_wins(tmp_path: Path):
     assert tool.tabs.global_symbols() == {"first": "0x10"}
 
 
+def test_binary_workbench_lazy_local_payload_still_receives_global_symbols(tmp_path: Path):
+    """Global lookup remains available without materializing lazy Local Symbols."""
+
+    global_library = tmp_path / "globals.json"
+    global_library.write_text(
+        json.dumps({"name": "globals", "symbols": {"shared": "0x20"}}),
+        encoding="utf-8",
+    )
+    state = BinaryWorkbenchStateDTO(
+        tabs=[BinaryWorkbenchTabContextDTO(
+            tab_id="lazy",
+            kind="scratch",
+            display_name="lazy.asm",
+            module_paths={GLOBAL_SYMBOLS: str(global_library)},
+            lazy_symbol_payload={"symbols": {"local": "0x10"}},
+            symbol_migration_pending=True,
+        )],
+        active_tab_id="lazy",
+    )
+    window = _window(tmp_path)
+    window._open_binary_workbench()
+    tool = window._binary_workbench_window
+
+    assert tool is not None
+    tool.tabs.load_state(state)
+    restored = tool.tabs.current_context()
+
+    assert restored is not None
+    assert restored.variables["shared"] == "0x20"
+    assert tool.tabs.global_symbols() == {"shared": "0x20"}
+
+
 def _version_row_payload(offset: str, instruction: str, bytes_text: str) -> dict[str, object]:
     return {
         "offset": offset,

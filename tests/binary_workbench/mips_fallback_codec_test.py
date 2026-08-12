@@ -64,6 +64,31 @@ def test_mips_codec_keeps_unrecognized_words_as_memory_data():
     assert codec.assemble("word 0xFFFFFFFF", 0) == bytes.fromhex("FF FF FF FF")
 
 
+def test_mips_codec_preserves_instruction_shaped_data_with_reserved_bits():
+    """A decoded mnemonic may not silently discard arbitrary memory bits."""
+
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+    cases = {
+        "D9 00 00 00": "word 0x000000D9",
+        "D3 00 02 02": "word 0x020200D3",
+        "00 00 23 00": "word 0x00230000",
+    }
+
+    for bytes_text, expected in cases.items():
+        data = bytes.fromhex(bytes_text)
+        instruction = codec.disassemble(data, 0)
+        assert instruction == expected
+        assert codec.assemble(instruction, 0) == data
+
+
+def test_mips_codec_keeps_canonical_instruction_when_round_trip_is_exact():
+    codec = PsxMipsR3000ACodec(use_native_engines=False)
+    data = bytes.fromhex("19 00 00 00")
+
+    assert codec.disassemble(data, 0) == "multu $zero, $zero"
+    assert codec.assemble(codec.disassemble(data, 0), 0) == data
+
+
 def test_mips_codec_round_trips_full_break_code_without_keystone():
     """The R3000A 20-bit BREAK code must not enter Keystone's 10-bit parser."""
 

@@ -407,8 +407,9 @@ class TabLibrariesMixin:
         context: BinaryWorkbenchTabContextDTO,
     ) -> BinaryWorkbenchTabContextDTO:
         self._adopt_global_symbols_link(context)
-        if context.lazy_symbol_payload:
-            return context
+        # A lazy Local Symbols payload must not hide the already loaded Global
+        # catalog.  Publishing the shared lookup map is cheap and does not
+        # materialize, scan or assemble the inactive tab.
         local_symbols = _local_symbols(context)
         effective_symbols = effective_symbol_values(
             local_symbols,

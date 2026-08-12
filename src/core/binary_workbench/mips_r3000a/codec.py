@@ -96,7 +96,14 @@ class PsxMipsR3000ACodec(CPUArchCodec):
             return None
 
     def disassemble(self, data: bytes, address: int) -> str:
-        """Decode only opcodes supported by the PSX codec; preserve all others as data."""
+        """Decode only exactly reversible PSX instructions; preserve other words.
+
+        Arbitrary memory can share an opcode with a valid instruction while
+        carrying non-zero reserved fields.  Rendering that word as Assembly
+        would discard those fields when the line is assembled again.  Bytes
+        are therefore treated as data unless the canonical instruction
+        round-trips to the same four bytes.
+        """
 
         if len(data) != 4:
             return "word 0x00000000"
@@ -106,6 +113,12 @@ class PsxMipsR3000ACodec(CPUArchCodec):
         # editable Assembly.  It accepts MIPS encodings beyond the PSX subset,
         # and those strings may not round-trip through this project's assembler.
         # The project decoder is therefore the canonical instruction/data gate.
+        try:
+            encoded = assemble_fallback(fallback, address)
+        except Exception:
+            encoded = None
+        if encoded != data:
+            return f"word 0x{word:08X}"
         return fallback
 
     def bytes_text(self, data: bytes) -> str:

@@ -1523,6 +1523,45 @@ def test_failed_barrier_projection_never_rewrites_authoritative_source(monkeypat
     assert (coordinator.source_revision, coordinator.structural_revision) == revisions
 
 
+def test_alt_s_preserves_exact_bytes_origin_rows(monkeypatch):
+    """A save barrier must not remount memory entered in the Bytes column."""
+
+    grid = _grid(["nop"])
+    coordinator = grid._consistency_coordinator
+    row = grid._complete_byte_row(0, "D9 00 00 00", 0)
+    assert row is not None
+    coordinator.accept_bytes_line(0, row)
+
+    original_deriver = grid._instruction_rows_from_lines
+
+    def conflicting_deriver(lines, *args, **kwargs):
+        derived = original_deriver(lines, *args, **kwargs)
+        assert derived is not None
+        return [BinaryWorkbenchRowDTO(item.offsets, item.instruction, "19 00 00 00") for item in derived]
+
+    monkeypatch.setattr(grid, "_instruction_rows_from_lines", conflicting_deriver)
+    result = coordinator.ensure_consistent("save-version")
+
+    assert result.success is True
+    assert result.snapshot is not None
+    assert result.snapshot.rows[0].bytes_text == "D9 00 00 00"
+    assert result.snapshot.rows[0].instruction.lower() == "word 0x000000d9"
+    assert grid.export_rows()[0].bytes_text == "D9 00 00 00"
+
+
+def test_full_bytes_sync_marks_only_the_modified_rows_as_authoritative():
+    """Unchanged Assembly rows must remain eligible for Symbol rederivation."""
+
+    grid = _grid(["nop", "nop"])
+    coordinator = grid._consistency_coordinator
+    changed = grid._complete_byte_row(0, "D9 00 00 00", 0)
+    assert changed is not None
+    rows = grid.export_rows()
+    coordinator.accept_synchronous_rows([changed, rows[1]])
+
+    assert coordinator._bytes_authoritative_lines == {0}
+
+
 def test_alt_s_failure_keeps_the_previous_version_context_dirty():
     previous = BinaryWorkbenchTabContextDTO(
         tab_id="tab",

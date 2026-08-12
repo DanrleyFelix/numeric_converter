@@ -75,6 +75,7 @@ class EditorConsistencyCoordinator(QObject):
         self._forgotten_owner_ids: set[str] = set()
         self.state = ConsistencyState.CLEAN
         self._model_rows: list[BinaryWorkbenchRowDTO] = []
+        self._bytes_authoritative_lines: set[int] = set()
         self._line_revisions: list[int] = []
         self._contributions = LineContributionIndex()
         self._dependency_index: dict[str, set[int]] = {}
@@ -226,6 +227,7 @@ class EditorConsistencyCoordinator(QObject):
 
         self.cancel_pending()
         self._model_rows = list(rows)
+        self._bytes_authoritative_lines.clear()
         self._line_revisions = [self.source_revision] * len(rows)
         self._contributions = LineContributionIndex([_row_size(row) for row in rows])
         self._dependency_index = _dependency_index(rows)
@@ -244,12 +246,22 @@ class EditorConsistencyCoordinator(QObject):
     def accept_synchronous_rows(self, rows: list[BinaryWorkbenchRowDTO]) -> None:
         """Adopt a complete Bytes-origin projection as the current revision."""
 
+        previous_rows = tuple(self._model_rows)
         previous_sizes = tuple(_row_size(row) for row in self._model_rows)
         current_sizes = tuple(_row_size(row) for row in rows)
+        first, removed, inserted_count = _changed_bytes_span(previous_rows, rows)
         self.cancel_pending()
         self.source_revision += 1
         if previous_sizes != current_sizes:
             self.structural_revision += 1
+        if removed or inserted_count:
+            self._splice_bytes_authority(
+                first,
+                removed,
+                inserted_count,
+                bytes_origin=True,
+                inserted=rows[first : first + inserted_count],
+            )
         self._model_rows = list(rows)
         self._line_revisions = [self.source_revision] * len(rows)
         self._contributions = LineContributionIndex(current_sizes)
@@ -274,6 +286,10 @@ class EditorConsistencyCoordinator(QObject):
         self.cancel_pending()
         self.source_revision += 1
         self._model_rows[index] = row
+        if row.bytes_text:
+            self._bytes_authoritative_lines.add(index)
+        else:
+            self._bytes_authoritative_lines.discard(index)
         self._line_revisions[index] = self.source_revision
         self._contributions.splice(index, 1, [current_size])
         self.grid._rows = list(self._model_rows)
@@ -347,6 +363,10 @@ class EditorConsistencyCoordinator(QObject):
             previous_size = _row_size(self._model_rows[index])
             current_size = _row_size(row)
             self._model_rows[index] = row
+            if row.bytes_text:
+                self._bytes_authoritative_lines.add(index)
+            else:
+                self._bytes_authoritative_lines.discard(index)
             self._line_revisions[index] = self.source_revision
             self._contributions.splice(index, 1, [current_size])
             if previous_size != current_size:
@@ -447,6 +467,13 @@ class EditorConsistencyCoordinator(QObject):
         self.cancel_pending()
         self.source_revision += 1
         self.structural_revision += 1
+        self._splice_bytes_authority(
+            first,
+            removed,
+            len(inserted),
+            bytes_origin=True,
+            inserted=inserted,
+        )
         self._model_rows[first : first + removed] = inserted
         self._line_revisions[first : first + removed] = [self.source_revision] * len(inserted)
         self._contributions.splice(
@@ -582,11 +609,18 @@ class EditorConsistencyCoordinator(QObject):
             )
         delta = new_count - old_count
         if delta == 0 and len(explicit_lines) > 1:
+            self._bytes_authoritative_lines.difference_update(explicit_lines)
             self._apply_exact_source_lines(explicit_lines)
             return
         new_span = max(1, last - first + 1, delta + 1)
         new_span = min(new_span, max(0, new_count - first))
         old_span = min(max(0, new_span - delta), max(0, old_count - first))
+        self._splice_bytes_authority(
+            first,
+            old_span,
+            new_span,
+            bytes_origin=False,
+        )
         lines = self._block_lines(first, new_span)
         rows = None
         if delta == 0 and old_span == 1 and new_span == 1:
@@ -1184,9 +1218,10 @@ class EditorConsistencyCoordinator(QObject):
         previous_copy_pending = self._copy_semantic_pending
         try:
             lines = self._document_lines()
-            rows = self.grid._instruction_rows_from_lines(lines)
-            if rows is None or len(rows) != len(lines):
+            derived_rows = self.grid._instruction_rows_from_lines(lines)
+            if derived_rows is None or len(derived_rows) != len(lines):
                 raise ValueError("Unable to derive the current Assembly source.")
+            rows = self._rows_preserving_bytes_authority(derived_rows)
             labels = labels_from_source_rows(rows)
             previous_sizes = tuple(_row_size(row) for row in self._model_rows)
             current_sizes = tuple(_row_size(row) for row in rows)
@@ -1238,6 +1273,64 @@ class EditorConsistencyCoordinator(QObject):
         finally:
             editor.setReadOnly(was_read_only)
             self._barrier_active = False
+
+    def _splice_bytes_authority(
+        self,
+        first: int,
+        removed: int,
+        inserted_count: int,
+        *,
+        bytes_origin: bool,
+        inserted: list[BinaryWorkbenchRowDTO] | None = None,
+    ) -> None:
+        """Move per-line source ownership through one structural row splice."""
+
+        end = first + removed
+        delta = inserted_count - removed
+        shifted = {
+            index if index < first else index + delta
+            for index in self._bytes_authoritative_lines
+            if index < first or index >= end
+        }
+        if bytes_origin:
+            values = inserted or []
+            shifted.update(
+                first + relative
+                for relative in range(inserted_count)
+                if relative < len(values) and values[relative].bytes_text
+            )
+        self._bytes_authoritative_lines = shifted
+
+    def _rows_preserving_bytes_authority(
+        self,
+        derived_rows: list[BinaryWorkbenchRowDTO],
+        *,
+        first: int = 0,
+    ) -> list[BinaryWorkbenchRowDTO]:
+        """Keep exact Bytes-origin contents while accepting derived offsets."""
+
+        preserved: list[BinaryWorkbenchRowDTO] = []
+        for relative, derived in enumerate(derived_rows):
+            index = first + relative
+            if (
+                index not in self._bytes_authoritative_lines
+                or not 0 <= index < len(self._model_rows)
+            ):
+                preserved.append(derived)
+                continue
+            authoritative = self._model_rows[index]
+            if not authoritative.bytes_text:
+                self._bytes_authoritative_lines.discard(index)
+                preserved.append(derived)
+                continue
+            preserved.append(BinaryWorkbenchRowDTO(
+                derived.offsets,
+                authoritative.instruction,
+                authoritative.bytes_text,
+                authoritative.original_instruction,
+                authoritative.original_bytes_text,
+            ))
+        return preserved
 
     def labels_for_navigation(self) -> dict[str, str]:
         """Return a complete cached label index without full semantics."""
@@ -1848,6 +1941,10 @@ class EditorConsistencyCoordinator(QObject):
             )
             if rebuilt is None or len(rebuilt) != len(previous):
                 continue
+            rebuilt = self._rows_preserving_bytes_authority(
+                rebuilt,
+                first=first,
+            )
             previous_sizes = [_row_size(row) for row in previous]
             current_sizes = [_row_size(row) for row in rebuilt]
             self._model_rows[first : last + 1] = rebuilt
@@ -1986,6 +2083,28 @@ class EditorConsistencyCoordinator(QObject):
             symbol = _control_flow_symbol(self._model_rows[index].instruction)
             if symbol:
                 self._dependency_index.setdefault(symbol, set()).add(index)
+
+
+def _changed_bytes_span(
+    before: tuple[BinaryWorkbenchRowDTO, ...],
+    after: list[BinaryWorkbenchRowDTO],
+) -> tuple[int, int, int]:
+    """Locate the bounded Bytes-origin splice used by the legacy full sync."""
+
+    shared = min(len(before), len(after))
+    first = 0
+    while first < shared and before[first].bytes_text == after[first].bytes_text:
+        first += 1
+    if first == len(before) == len(after):
+        return first, 0, 0
+    suffix = 0
+    while (
+        suffix < len(before) - first
+        and suffix < len(after) - first
+        and before[-1 - suffix].bytes_text == after[-1 - suffix].bytes_text
+    ):
+        suffix += 1
+    return first, len(before) - first - suffix, len(after) - first - suffix
 
 
 def _row_size(row: BinaryWorkbenchRowDTO) -> int:

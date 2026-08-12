@@ -12,7 +12,12 @@ from src.core.debugger.psx_r3000a.execution.breakpoint.session import (
     PsxExecutionBreakpointMixin,
 )
 from src.core.debugger.psx_r3000a.execution.running.session import PsxRunSessionMixin
+from src.core.debugger.psx_r3000a.execution.ranges import naturally_completed_entry_range
 from src.core.debugger.psx_r3000a.execution.state import PsxExecutionStateMixin
+from src.core.debugger.psx_r3000a.execution.transitions import (
+    ignored_execution_transition,
+    record_execution_transition,
+)
 
 
 class PsxExecutionSessionMixin(
@@ -57,11 +62,15 @@ class PsxExecutionSessionMixin(
         self._pause_requested = False
         self._stop_requested = True
         self._clear_breakpoint_hits()
+        initial_registers = self._image.initial_registers if self._image else {}
         if self._backend is not None:
             self._backend.stop()
             self._backend.reset()
-        self._registers.reset(self._image.initial_registers if self._image else {})
+        self._registers.reset(initial_registers)
+        if self._backend is not None:
+            self._backend.write_registers(self._registers.snapshot())
         self._statistics = DebuggerStatistics()
+        self._last_transition = None
         self._events.append(DebuggerEvent("Info", "Debugger session restarted."))
         self._last_error = None
         self._stop_requested = False
@@ -89,7 +98,7 @@ class PsxExecutionSessionMixin(
         register_values = self._registers.snapshot()
         flow = decode_control_flow(data, address, register_values)
         ignored_addresses = self._image.ignored_addresses if self._image else frozenset()
-        if flow is not None and flow.destination in ignored_addresses:
+        if flow is not None and flow.taken and flow.destination in ignored_addresses:
             self._skip_as_nop(address, flow.destination, flow.mnemonic)
             return
         self._prepare_breakpoint_step()
@@ -97,6 +106,11 @@ class PsxExecutionSessionMixin(
         backend.step()
         updated_registers = backend.read_registers()
         self._registers.reset(updated_registers)
+        self._last_transition = record_execution_transition(
+            address,
+            flow,
+            self.pc,
+        )
         raw_instruction = instruction.raw_instruction if instruction else "Instruction executed"
         self._events.append(DebuggerEvent("Execution", raw_instruction, address))
         self._complete_breakpoint_step(
@@ -106,18 +120,22 @@ class PsxExecutionSessionMixin(
         )
 
     def _finish_at_program_end(self) -> bool:
-        """Stop cleanly when execution advances past the final loaded instruction."""
+        """Stop only after natural fallthrough from the executable entry range."""
 
         if self._instructions:
-            final_address = max(
-                instruction.address + len(instruction.data)
-                for instruction in self._instructions
+            completed = naturally_completed_entry_range(
+                self._entry_executable_range,
+                self._last_transition,
+                self.pc,
+                self._instruction_addresses,
             )
-        elif self._image is not None and self._image.zones:
-            final_address = max(zone.end + 1 for zone in self._image.zones)
         else:
-            return False
-        if self.pc != final_address:
+            completed = bool(
+                self._image
+                and self._image.zones
+                and self.pc == max(zone.end + 1 for zone in self._image.zones)
+            )
+        if not completed:
             return False
         self._state = DebuggerSessionState.STOPPED
         self._events.append(
@@ -131,10 +149,10 @@ class PsxExecutionSessionMixin(
         _increment(self._statistics.executed, address)
         _increment(self._statistics.ignored, reached)
         self.pc = address + self.step_rules.instruction_size
+        self._last_transition = ignored_execution_transition(address, self.pc)
         self._required_backend().write_registers(self._registers.snapshot())
         message = f"Ignored {reason} at 0x{address:08X}; reached 0x{reached:08X}."
         self._events.append(DebuggerEvent("Execution", message, address, {"reached": reached}))
-
 
 def _increment(values: dict[int, int], address: int) -> None:
     """Increment one address-indexed execution counter."""

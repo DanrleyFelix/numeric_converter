@@ -69,8 +69,12 @@ class PsxRunSessionMixin:
         if self._state not in {DebuggerSessionState.READY, DebuggerSessionState.PAUSED}:
             raise self._state_error("step over")
         self._clear_breakpoint_hits()
-        data = self.read_memory(self.pc, self.step_rules.instruction_size)
-        flow = decode_control_flow(data, self.pc, self._registers.snapshot())
+        try:
+            data = self.read_memory(self.pc, self.step_rules.instruction_size)
+            flow = decode_control_flow(data, self.pc, self._registers.snapshot())
+        except DebuggerError as error:
+            self._fail(error)
+            raise
         if flow is None or not flow.is_call:
             self.step()
             return

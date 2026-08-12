@@ -116,7 +116,7 @@ class DebuggerRegisterPanel(QTableWidget):
             self.setColumnWidth(column, width)
 
     def _edit_register(self, item: QTableWidgetItem) -> None:
-        """Apply user edits only while the debugger is paused."""
+        """Apply user edits only while the debugger is Ready or Paused."""
 
         if self._refreshing or item.column() not in {1, 2}:
             return
@@ -129,7 +129,10 @@ class DebuggerRegisterPanel(QTableWidget):
         name_item = self.item(item.row(), 0)
         try:
             value = int(item.text(), 16 if item.column() == 1 else 10)
-            self._debugger.registers.write(name_item.text(), value)
+            name = name_item.text()
+            if not 0 <= value < 1 << self._debugger.registers.register_size(name):
+                raise ValueError
+            self._debugger.registers.write(name, value)
         except (ValueError, AttributeError):
             pass
         self.refresh()
