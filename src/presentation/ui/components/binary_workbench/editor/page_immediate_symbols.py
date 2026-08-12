@@ -79,10 +79,12 @@ def _replacement_range(
     start: int,
     end: int,
 ) -> tuple[int, int, str] | None:
+    """Build the editor replacement for a newly created local Symbol."""
+
     if start < 0 or end <= start:
         return None
-    prefix = "_"
-    return start, end, f"{prefix}{name.lstrip(prefix)}"
+    prefix = "@"
+    return start, end, f"{prefix}{name.lstrip('_@')}"
 
 
 def _byte_overlays_with_symbol_values(

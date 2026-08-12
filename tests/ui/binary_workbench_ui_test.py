@@ -993,7 +993,7 @@ def test_binary_workbench_add_symbol_replaces_immediate_text(tmp_path: Path, mon
     assert current.symbols == {"card_id": "0x71"}
     assert current.variables == {"card_id": "0x71"}
     assert current.equates == current.variables
-    assert page.grid.instructions.toPlainText() == "ADDIU $t1,$zero,_card_id"  # type: ignore[attr-defined]
+    assert page.grid.instructions.toPlainText() == "ADDIU $t1,$zero,@card_id"  # type: ignore[attr-defined]
     assert page.grid.bytes.toPlainText() == "71 00 09 24"  # type: ignore[attr-defined]
 
 
@@ -1034,7 +1034,7 @@ def test_binary_workbench_add_symbol_replaces_memory_operand(tmp_path: Path, mon
     assert current.symbols == {"actor_hp": "0x2CD($gp)"}
     assert current.variables == {"actor_hp": "0x2CD($gp)"}
     assert current.equates == current.variables
-    assert page.grid.instructions.toPlainText() == "LW $v0, _actor_hp"  # type: ignore[attr-defined]
+    assert page.grid.instructions.toPlainText() == "LW $v0, @actor_hp"  # type: ignore[attr-defined]
     assert page.grid.bytes.toPlainText() == "CD 02 82 8F"  # type: ignore[attr-defined]
 
 
@@ -4428,7 +4428,7 @@ def test_binary_workbench_symbol_completion_starts_from_prefix_markers():
     assert editor._current_completion_prefix() == "_"
     assert editor._completion_model.stringList() == []
     assert editor._symbol_completion_timer.isActive() is True
-    assert editor._symbol_completion_timer.interval() == 800
+    assert editor._symbol_completion_timer.interval() == 400
     editor._symbol_completion_timer.stop()
     editor._refresh_completions()
     assert editor._completion_model.stringList() == ["_variable1"]
@@ -5071,11 +5071,34 @@ def test_binary_workbench_highlighter_requires_branch_target_inside_current_file
     highlighter.set_symbols({"target": "0x00000004"}, {}, {})
     assert highlighter._invalid_jump_target_range("beq $zero, $zero, target") is None
 
-    highlighter.set_symbols({"target": "0x00000008"}, {}, {})
-    assert highlighter._invalid_jump_target_range("beq $zero, $zero, target") is not None
+    highlighter.set_symbols({}, {}, {})
+    assert highlighter._invalid_jump_target_range("beq $zero, $zero, 0x00000008") is not None
 
     highlighter.set_symbols({"target": "0x00000002"}, {}, {})
     assert highlighter._invalid_jump_target_range("beq $zero, $zero, target") is not None
+
+
+@pytest.mark.parametrize(
+    "instruction",
+    (
+        "beq $a1, $zero, target",
+        "bne $a1, $zero, target",
+        "bltz $a1, target",
+        "bgez $a1, target",
+    ),
+)
+def test_binary_workbench_highlighter_trusts_current_source_labels(
+    instruction: str,
+):
+    """A current source label must not be rejected by a stale visual size."""
+
+    _app()
+    editor = QPlainTextEdit()
+    highlighter = InstructionHighlighter(editor.document())
+    highlighter.set_jump_reference_offsets({}, "", 4)
+    highlighter.set_symbols({"target": "0x00000040"}, {}, {})
+
+    assert highlighter._invalid_jump_target_range(instruction) is None
 
 
 def test_binary_workbench_highlighter_marks_misaligned_load_store_addresses():

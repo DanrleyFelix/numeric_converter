@@ -446,12 +446,18 @@ class InstructionHighlighter(QSyntaxHighlighter):
         if not JUMP_TARGET_TOKEN.fullmatch(token):
             return None
         target = self._target_file_offset(mnemonic, token)
+        body = token.removeprefix(REFERENCE_OFFSET_PREFIX)
+        known_source_label = (
+            not token.startswith(REFERENCE_OFFSET_PREFIX)
+            and body.casefold() in self._labels
+        )
         if (
             target is None
             or target < 0
             or target % ROW_BYTES != 0
             or (
                 mnemonic not in JUMP_NAVIGATION_MNEMONICS
+                and not known_source_label
                 and target >= self._file_size
             )
         ):
